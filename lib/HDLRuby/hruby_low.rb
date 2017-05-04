@@ -165,12 +165,27 @@ module HDLRuby::Low
 
         ## Gets an inout by +name+.
         def get_inout(name)
-            return @inout[name]
+            return @inouts[name]
         end
 
         ## Gets an inner by +name+.
         def get_inner(name)
-            return @inner[name]
+            return @inners[name]
+        end
+
+        ## Gets a signal instance by +name+.
+        def get_signalI(name)
+            # Try in the inputs.
+            signalI = get_input(name)
+            return signalI if signalI
+            # Try in the outputs.
+            signalI = get_output(name)
+            return signalI if signalI
+            # Try in the inouts.
+            signalI = get_inout(name)
+            return signalI if signalI
+            # Not found yet, look into the inners.
+            return get_inner(name)
         end
 
         # Handling the system instances.
@@ -197,9 +212,9 @@ module HDLRuby::Low
             @systemIs.each_value(&ruby_block)
         end
 
-        ## Gets a system by +name+.
-        def get_system(name)
-            return @system[name]
+        ## Gets a system instance by +name+.
+        def get_systemI(name)
+            return @systemIs[name]
         end
 
         # Handling the connections.

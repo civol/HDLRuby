@@ -200,6 +200,20 @@ begin
             $success = false
         end
     end
+    puts "  Inputs by name... "
+    $signalIs.each do |input|
+        if /i[0-9]/.match(input.name) then
+            print "    Input #{input.name}... "
+            signalI = $systemT0.get_input(input.name)
+            if input == signalI then
+                puts "Ok."
+            else
+                puts "Error: unexpected input, got #{signalI} but expecting #{input}."
+                $success = false
+            end
+        end
+    end
+
     puts "  Outputs... "
     $systemT0.each_output.with_index do |output,i|
         print "    Output #{i}... "
@@ -212,6 +226,20 @@ begin
             $success = false
         end
     end
+    puts "  Outputs by name... "
+    $signalIs.each do |output|
+        if /o[0-9]/.match(output.name) then
+            print "    Output #{output.name}... "
+            signalI = $systemT0.get_output(output.name)
+            if output == signalI then
+                puts "Ok."
+            else
+                puts "Error: unexpected output, got #{signalI} but expecting #{output}."
+                $success = false
+            end
+        end
+    end
+
     puts "  Inouts... "
     $systemT0.each_inout.with_index do |inout,i|
         print "    Inout #{i}... "
@@ -224,6 +252,20 @@ begin
             $success = false
         end
     end
+    puts "  Inouts by name... "
+    $signalIs.each do |inout|
+        if /io/.match(inout.name) then
+            print "    Inout #{inout.name}... "
+            signalI = $systemT0.get_inout(inout.name)
+            if inout == signalI then
+                puts "Ok."
+            else
+                puts "Error: unexpected inout, got #{signalI} but expecting #{inout}."
+                $success = false
+            end
+        end
+    end
+
     puts "  Inners... "
     $systemT0.each_inner.with_index do |inner,i|
         print "    Inner #{i}... "
@@ -235,6 +277,20 @@ begin
             $success = false
         end
     end
+    puts "  Inners by name... "
+    $signalIs.each do |inner|
+        if /s[0-9]/.match(inner.name) then
+            print "    Inner #{inner.name}... "
+            signalI = $systemT0.get_inner(inner.name)
+            if inner == signalI then
+                puts "Ok."
+            else
+                puts "Error: unexpected inner, got #{signalI} but expecting #{inner}."
+                $success = false
+            end
+        end
+    end
+
     puts "  All signal instances... "
     $systemT0.each_signalI.with_index do |any,i|
         print "    SignalI #{i}... "
@@ -246,6 +302,18 @@ begin
             $success = false
         end
     end
+    puts "  All signal instances by name... "
+    $signalIs.each do |signal|
+        print "    SignalI #{signal.name}... "
+        signalI = $systemT0.get_signalI(signal.name)
+        if signal == signalI then
+            puts "Ok."
+        else
+            puts "Error: unexpected signalI, got #{signalI} but expecting #{signal}."
+            $success = false
+        end
+    end
+
     puts "  System instances... "
     $systemT0.each_systemI.with_index do |any,i|
         print "    SystemI #{i}... "
@@ -254,6 +322,17 @@ begin
             puts "Ok."
         else
             puts "Error: unexpected systemI, got #{any} but expecting #{systemI}."
+            $success = false
+        end
+    end
+    puts "  System instances by name... "
+    $systemIs[1..-1].each do |system|
+        print "    SystemI #{system.name}... "
+        systemI = $systemT0.get_systemI(system.name)
+        if system == systemI then
+            puts "Ok."
+        else
+            puts "Error: unexpected systemI, got #{systemI} but expecting #{system}."
             $success = false
         end
     end
