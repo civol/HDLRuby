@@ -41,7 +41,7 @@ end
 
 print "\nCreating a one-bit signal type... "
 begin
-    $sig_bit = SignalT.new("bit",:bit)
+    $sig_bit = SignalT.new("bit",:bit,1)
     if $sig_bit.name != "bit" then
         puts "Error: invalid name: got #{$sig_bit.name} but expecting bit."
         $success = false

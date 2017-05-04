@@ -173,7 +173,6 @@ module HDLRuby::Low
             return @inner[name]
         end
 
-
         # Handling the system instances.
 
         # Adds system instance +systemI+.
@@ -203,7 +202,6 @@ module HDLRuby::Low
             return @system[name]
         end
 
-
         # Handling the connections.
 
         # Adds a +connection+.
@@ -223,7 +221,6 @@ module HDLRuby::Low
             # A block? Apply it on each connection.
             @connections.each(&block)
         end
-
 
         # Handling the processes.
 
@@ -259,12 +256,17 @@ module HDLRuby::Low
         # The type of the signal
         attr_reader :type
 
-        # Creates a new signal named +name+ with +type+.
-        def initialize(name,type)
+        # The size of the signal
+        attr_reader :size
+
+        # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
+        def initialize(name,type,size)
             # Check and set the name.
             @name = name.to_s
             # Check and set the type.
             @type = type.to_sym
+            # Check and set the size.
+            @size = size.to_i
         end
     end
 
@@ -322,8 +324,8 @@ module HDLRuby::Low
             # A block? Apply it on each block.
             @blocks.each(&ruby_block)
         end
-
     end
+
 
     ##
     # Describes a time process.
@@ -338,6 +340,7 @@ module HDLRuby::Low
             raise "Time processes do not have any sensitivity list."
         end
     end
+
 
     ## 
     # Describes an event.
@@ -487,7 +490,6 @@ module HDLRuby::Low
     end
 
 
-
     ## 
     # Describes a statement.
     #
@@ -569,6 +571,7 @@ module HDLRuby::Low
         end
     end
 
+
     ## 
     # Describes a case statement.
     class Case < Statement
@@ -644,6 +647,7 @@ module HDLRuby::Low
     class Expression
     end
 
+    
     ##
     # Describes a value.
     class Value < Expression
@@ -666,6 +670,7 @@ module HDLRuby::Low
             @content = type.cast(content)
         end
     end
+
 
     ##
     # Describes an operation.
@@ -692,6 +697,7 @@ module HDLRuby::Low
         end
     end
 
+
     ## 
     # Describes an unary operation.
     class Unary < Operation
@@ -713,6 +719,7 @@ module HDLRuby::Low
             return @children[0]
         end
     end
+
 
     ##
     # Describes an binary operation.
@@ -743,6 +750,7 @@ module HDLRuby::Low
             return @child[1]
         end
     end
+
 
     ##
     # Describes a ternary operation.
@@ -782,6 +790,7 @@ module HDLRuby::Low
         end
     end
 
+
     ## 
     # Describes a concatenation expression.
     class Concat < Expression
@@ -807,12 +816,14 @@ module HDLRuby::Low
         end
     end
 
+
     ## 
     # Describes a port expression.
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Port < Expression
     end
+
 
     ##
     # Describes port concatenation.
@@ -840,6 +851,7 @@ module HDLRuby::Low
         end
     end
 
+
     ## 
     # Describes a port index.
     class PortIndex < Port
@@ -859,6 +871,7 @@ module HDLRuby::Low
             @index = index.to_i
         end
     end
+
 
     ## 
     # Describes a port range.
@@ -880,6 +893,7 @@ module HDLRuby::Low
         end
     end
 
+
     ##
     # Describes a port key.
     class PortKey < Port
@@ -899,6 +913,7 @@ module HDLRuby::Low
             @key = key.to_sym
         end
     end
+
 
     ## 
     # Describe a this port.
