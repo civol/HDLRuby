@@ -241,7 +241,7 @@ module HDLRuby::Low
 
         # Adds a +process+.
         def add_process(process)
-            unless process.is_a?(Process)
+            unless process.is_a?(Always)
                 raise "Invalid class for a process: #{process.class}"
             end
             @processes << process
@@ -288,11 +288,11 @@ module HDLRuby::Low
 
     ##
     # Describes a process.
-    class Process
+    class Always
 
         # Creates a new process named +name+.
-        def initialize(name)
-            # Set the name as a string.
+        def initialize(name = "")
+            # Set the name as a string if any.
             @name = name.to_s
             # Initialize the sensibility list.
             @events = []
@@ -348,7 +348,7 @@ module HDLRuby::Low
     # NOTE: 
     # * this is the only kind of process that can include time statements. 
     # * this kind of process is not synthesizable!
-    class TimeProcess
+    class TimeAlways
         # Time process do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)

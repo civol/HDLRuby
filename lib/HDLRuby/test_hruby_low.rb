@@ -57,8 +57,9 @@ rescue Exception => e
 end
 
 puts "\nCreating signal instances from the previous signal type..."
-$sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7",
-           "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2"]
+$sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
+           "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2",
+           ]
 $signalIs = []
 $sNames.each_with_index do |name,i|
     print "  Signal instance #{name}... "
@@ -95,9 +96,12 @@ $signalIs.each do |signalI|
         elsif name[0] == "o" then
             # Output
             $systemT0.add_output(signalI)
-        else
+        elsif name[0] == "s" then
             # Inner
             $systemT0.add_inner(signalI)
+        else
+            # Default: input (should be the clock).
+            $systemT0.add_input(signalI)
         end
         puts "Ok."
     rescue Exception => e
@@ -151,7 +155,7 @@ end
 puts "\nCreating ports for further connection of the signals..."
 $pNames = ["p0i0", "p0i1", "p0i2", "p0i3", "p0i4", "p0i5", "p0i6", "p0i7",
            "p0o0", "p0o1", "p0o2", "p0o3", "p0o4", "p0o5", "p0io",
-           "p0s0", "p0s1", "p0s2",
+           "p0s0", "p0s1", "p0s2", "p0clk",
            "p1i0", "p1i1", "p1i2", "p1o0", "p1o1", "p1io",
            "p1s0", "p1s1", "p1s2",
            "p2i0", "p2i1", "p2i2", "p2o0", "p2o1", "p2io",
@@ -167,10 +171,10 @@ $pNames.each_with_index do |name,i|
             system_port = PortName.new(system_port,"systemI#{name[1]}")
         end
         # Create the signal port
-        $ports[i] = PortName.new(system_port,"#{name[2..3]}")
-        if $ports[i].name != name[2..3] then
+        $ports[i] = PortName.new(system_port,"#{name[2..-1]}")
+        if $ports[i].name != name[2..-1] then
             puts "Error: invalid signal instance, got #{$ports[i].name} " +
-                 " but expecting #{name[2..3]}"
+                 " but expecting #{name[2..-1]}"
             $success = false
         else
             puts "Ok."
@@ -337,6 +341,111 @@ $stNames.each do |pName,expression|
 end
 
 
+print "\nCreating a clock event... "
+begin
+    signalI = $signalIs.find{|signalI| signalI.name == "clk"}
+    $event = Event.new(:posedge,signalI)
+    success = true
+    if $event.type != :posedge then
+        puts "Error: invalid type of event, got #{$event.type} but expecting :posedge."
+        success = false
+    elsif $event.signalI != signalI then
+        puts "Error: invalid signalI, got #{$event.signalI} but expecting #{signalI}."
+        success = false
+    end
+    if success then
+        puts "Ok."
+    else
+        $success = false
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
+
+print "\nCreating a block... "
+begin
+    $block = Block.new(:sequential)
+    if $block.type != :sequential then
+        puts "Error: invalid block type, got #{$block.type} but expecting :sequential."
+        $success = false
+    else
+        puts "Ok."
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
+puts "\nAdding statements to $block... "
+$statements.each.with_index do |statement,i|
+    begin
+        print "  For statement #{i}... "
+        $block.add_statement(statement)
+        puts "Ok."
+    rescue Exception => e
+        puts "Error: unexpected exception raised #{e.inspect}\n"
+        $success = false
+    end
+end
+puts "Checking the added statements... "
+$statements.each.with_index do |statement,i|
+    begin
+        print "  For statement #{i}... "
+        bStatement = $block.each_statement.to_a[i]
+        if bStatement != statement then
+            puts "Error: invalid statement, got #{bStatement} but expecting #{statement}."
+            $success = false
+        else
+            puts "Ok."
+        end
+    rescue Exception => e
+        puts "Error: unexpected exception raised #{e.inspect}\n"
+        $success = false
+    end
+end
+
+
+print "\nCreating a process... "
+begin
+    $process = Always.new
+    puts "Ok."
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
+print "\nAdding a block to $process... "
+begin
+    $process.add_block($block)
+    pBlock = $process.each_block.first
+    if pBlock != $block then
+        puts "Error: invalid block, got #{pBlock} but expecting #{$block}."
+        $sucess = false
+    else
+        puts "Ok."
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
+
+print "\nAdding a process to $systemT0... "
+begin
+    $systemT0.add_process($process)
+    sProcess = $systemT0.each_process.first
+    if sProcess != $process then
+        puts "Error: invalid process, got #{sProcess} but expecting #{$process}."
+        $sucess = false
+    else
+        puts "Ok."
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
 
 #################################################################
 # Final global test.
