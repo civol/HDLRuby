@@ -6,23 +6,23 @@ require "HDLRuby.rb"
 
 require "yaml"
 
-include HDLRuby
+include HDLRuby::Low
 
 $success = true
 
-print "Creating the type for one bit... "
-begin
-    $bit = Type.new(:bit)
-    if $bit.base == :bit then
-        puts "Ok."
-    else
-        puts "Error: invalid base, got #{$bit.base} but expecting :bit."
-        $success = false
-    end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
-end
+# print "Creating the type for one bit... "
+# begin
+#     $bit = Type.new(:bit)
+#     if $bit.base == :bit then
+#         puts "Ok."
+#     else
+#         puts "Error: invalid base, got #{$bit.base} but expecting :bit."
+#         $success = false
+#     end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+# end
 
 print "\nCreating system types... "
 begin
@@ -41,11 +41,11 @@ end
 
 print "\nCreating a one-bit signal type... "
 begin
-    $sig_bit = SignalT.new("bit",$bit)
+    $sig_bit = SignalT.new("bit",:bit)
     if $sig_bit.name != "bit" then
         puts "Error: invalid name: got #{$sig_bit.name} but expecting bit."
         $success = false
-    elsif $sig_bit.type != $bit then
+    elsif $sig_bit.type != :bit then
         puts "Error: invalid type: got #{$sig_bit.type} but expecting #{$bit}."
         $success = false
     else

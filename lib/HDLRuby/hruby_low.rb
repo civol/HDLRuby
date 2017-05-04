@@ -1,29 +1,29 @@
-module HDLRuby
+##
+# Low-level libraries for describing digital hardware.        
+#######################################################
+module HDLRuby::Low
 
-######################################################################
-##      Low-level libraries for describing digital hardware.        ##
-######################################################################
+    # This is too high level
+    # ##
+    # # Describes a type: base type with a specifier.
+    # class Type
 
-    ##
-    # Describes a type: base type with a specifier.
-    class Type
+    #     # The base type.
+    #     attr_reader :base
 
-        # The base type.
-        attr_reader :base
+    #     # The specificier.
+    #     attr_reader :specifier
 
-        # The specificier.
-        attr_reader :specifier
-
-        # Creates a new type from a +base+ type and +specifier+ (if any).
-        def initialize(base, specifier = nil)
-            # Check and set the base type.
-            @base = base.to_sym
-            # Set the specifier.
-            @specifier = specifier
-            # Freeze it since a type is not supposed to change.
-            @specifier.freeze
-        end
-    end
+    #     # Creates a new type from a +base+ type and +specifier+ (if any).
+    #     def initialize(base, specifier = nil)
+    #         # Check and set the base type.
+    #         @base = base.to_sym
+    #         # Set the specifier.
+    #         @specifier = specifier
+    #         # Freeze it since a type is not supposed to change.
+    #         @specifier.freeze
+    #     end
+    # end
 
 
     ## 
@@ -38,12 +38,12 @@ module HDLRuby
             # Set the name as a string.
             @name = name.to_s
             # Initialize the signal instance lists.
-            @inputs = []
-            @outputs = []
-            @inouts = []
-            @inners = []
+            @inputs = {}
+            @outputs = {}
+            @inouts = {}
+            @inners = {}
             # Initialize the system instances list.
-            @systemIs = []
+            @systemIs = {}
             # Initialize the connection list.
             @connections = []
             # Initialize the process lists.
@@ -54,34 +54,50 @@ module HDLRuby
 
         # Adds input signal instance +signalI+.
         def add_input(signalI)
+            # Checks and add the signalI.
             unless signalI.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signalI.class}"
             end
-            @inputs << signalI
+            if @inputs.has_key?(signalI.name) then
+                raise "SignalI #{signalI.name} already present."
+            end
+            @inputs[signalI.name] = signalI
         end
 
         # Adds output  signal instance +signalI+.
         def add_output(signalI)
+            # Checks and add the signalI.
             unless signalI.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signalI.class}"
             end
-            @outputs << signalI
+            if @outputs.has_key?(signalI.name) then
+                raise "SignalI #{signalI.name} already present."
+            end
+            @outputs[signalI.name] = signalI
         end
 
         # Adds inout signal instance +singalI+.
         def add_inout(signalI)
+            # Checks and add the signalI.
             unless signalI.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signalI.class}"
             end
-            @inouts << signalI
+            if @inouts.has_key?(signalI.name) then
+                raise "SignalI #{signalI.name} already present."
+            end
+            @inouts[signalI.name] = signalI
         end
 
         # Adds inner signal instance +signalI+.
         def add_inner(signalI)
+            # Checks and add the signalI.
             unless signalI.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signalI.class}"
             end
-            @inners << signalI
+            if @inners.has_key?(signalI.name) then
+                raise "SignalI #{signalI.name} already present."
+            end
+            @inners[signalI.name] = signalI
         end
 
         # Iterates over the input signal instances.
@@ -91,7 +107,7 @@ module HDLRuby
             # No ruby block? Return an enumerator.
             return to_enum(:each_input) unless ruby_block
             # A block? Apply it on each input signal instance.
-            @inputs.each(&ruby_block)
+            @inputs.each_value(&ruby_block)
         end
 
         # Iterates over the output signal instances.
@@ -101,7 +117,7 @@ module HDLRuby
             # No ruby block? Return an enumerator.
             return to_enum(:each_output) unless ruby_block
             # A block? Apply it on each output signal instance.
-            @outputs.each(&ruby_block)
+            @outputs.each_value(&ruby_block)
         end
 
         # Iterates over the inout signal instances.
@@ -111,7 +127,7 @@ module HDLRuby
             # No ruby block? Return an enumerator.
             return to_enum(:each_inout) unless ruby_block
             # A block? Apply it on each inout signal instance.
-            @inouts.each(&ruby_block)
+            @inouts.each_value(&ruby_block)
         end
 
         # Iterates over the inner signal instances.
@@ -121,7 +137,7 @@ module HDLRuby
             # No ruby block? Return an enumerator.
             return to_enum(:each_inner) unless ruby_block
             # A block? Apply it on each inner signal instance.
-            @inners.each(&ruby_block)
+            @inners.each_value(&ruby_block)
         end
 
         # Iterates over all the signal instances (input, output, inout, inner).
@@ -131,10 +147,30 @@ module HDLRuby
             # No ruby block? Return an enumerator.
             return to_enum(:each_signalI) unless ruby_block
             # A block? Apply it on each signal instance.
-            @inputs.each(&ruby_block)
-            @outputs.each(&ruby_block)
-            @inouts.each(&ruby_block)
-            @inners.each(&ruby_block)
+            @inputs.each_value(&ruby_block)
+            @outputs.each_value(&ruby_block)
+            @inouts.each_value(&ruby_block)
+            @inners.each_value(&ruby_block)
+        end
+
+        ## Gets an input by +name+.
+        def get_input(name)
+            return @inputs[name]
+        end
+
+        ## Gets an output by +name+.
+        def get_output(name)
+            return @outputs[name]
+        end
+
+        ## Gets an inout by +name+.
+        def get_inout(name)
+            return @inout[name]
+        end
+
+        ## Gets an inner by +name+.
+        def get_inner(name)
+            return @inner[name]
         end
 
 
@@ -142,10 +178,14 @@ module HDLRuby
 
         # Adds system instance +systemI+.
         def add_systemI(systemI)
+            # Checks and add the systemI.
             unless systemI.is_a?(SystemI)
                 raise "Invalid class for a system instance: #{systemI.class}"
             end
-            @systemIs << systemI
+            if @systemIs.has_key?(systemI.name) then
+                raise "SystemI #{systemI.name} already present."
+            end
+            @systemIs[systemI.name] = systemI
         end
 
         # Iterates over the system instances.
@@ -155,7 +195,12 @@ module HDLRuby
             # No ruby block? Return an enumerator.
             return to_enum(:each_systemI) unless ruby_block
             # A block? Apply it on each system instance.
-            @systemIs.each(&ruby_block)
+            @systemIs.each_value(&ruby_block)
+        end
+
+        ## Gets a system by +name+.
+        def get_system(name)
+            return @system[name]
         end
 
 
@@ -205,19 +250,21 @@ module HDLRuby
 
     ##
     # Describes a signal type.
-    class SignalT < SystemT
+    class SignalT
+    # class SignalT < SystemT # This is too high-level to do that
+        
+        # The name of the signal
+        attr_reader :name
 
         # The type of the signal
         attr_reader :type
 
         # Creates a new signal named +name+ with +type+.
         def initialize(name,type)
-            super(name)
+            # Check and set the name.
+            @name = name.to_s
             # Check and set the type.
-            unless type.is_a?(Type)
-                raise "Invalid class for a type: #{type.class}"
-            end
-            @type = type
+            @type = type.to_sym
         end
     end
 
@@ -859,4 +906,5 @@ module HDLRuby
     # This is the current system.
     class PortThis < Port 
     end
+
 end
