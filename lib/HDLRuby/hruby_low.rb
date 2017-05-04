@@ -271,7 +271,7 @@ module HDLRuby::Low
         # The type of the signal
         attr_reader :type
 
-        # The size of the signal
+        # The size in bits of the signal
         attr_reader :size
 
         # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
@@ -476,8 +476,18 @@ module HDLRuby::Low
     ## 
     # Describes a connection.
     class Connection
-        # Creates a new connection.
-        def initialize
+        # The expression attached to the connection if any.
+        attr_reader :expression
+
+        # Creates a new connection with a possible +expression+ as right value.
+        def initialize(expression = nil)
+            # Check and set the expression
+            if expression != nil then
+                unless expression.is_a?(Expression) then
+                    raise "Invalid class for an expression: #{expression.class}."
+                end
+            end
+            @expression = expression
             # Initialize the ports.
             @ports = []
         end
@@ -522,7 +532,7 @@ module HDLRuby::Low
         # Creates a new statement declaring +signalI+.
         def initialize(signalI)
             # Check and set the declared signal instance.
-            unless signaaIl.is_a?(SignalI)
+            unless signalI.is_a?(SignalI)
                 raise "Invalid class for declaring a signal instance: #{signal.class}"
             end
             @signalI = signalI
@@ -670,19 +680,23 @@ module HDLRuby::Low
         # The type of value.
         attr_reader :type
 
+        # The size in bits of the value
+        attr_reader :size
+
         # The content of the value.
         attr_reader :content
 
-        # Creates a new +type+ value from a +content+.
-        def initialize(type,content)
+        # Creates a new value typed +type+ and of +size+ bits from a +content+.
+        def initialize(type,size,content)
             # Check and set the type.
-            unless type.is_a?(Type)
-                raise "Invalid class for a type: #{type.class}"
+            @type = type.to_sym
+            # Check and set the size.
+            @size = size.to_i
+            # Check and set the content.
+            unless content.is_a?(Numeric) then
+                raise "Invalid type for a value content: #{content.class}."
             end
-            @type = type
-            # Set the contents casting it with the type (also avoids side
-            # effects).
-            @content = type.cast(content)
+            @content = content 
         end
     end
 
@@ -757,12 +771,12 @@ module HDLRuby::Low
 
         # Get the left child.
         def left
-            return @child[0]
+            return @children[0]
         end
 
         # Get the right child.
-        def left
-            return @child[1]
+        def right
+            return @children[1]
         end
     end
 
@@ -910,22 +924,22 @@ module HDLRuby::Low
 
 
     ##
-    # Describes a port key.
-    class PortKey < Port
+    # Describes a named port.
+    class PortName < Port
         # The accessed port.
         attr_reader :port
-        # The access key.
-        attr_reader :key
+        # The access name.
+        attr_reader :name
 
-        # Create a new port key accessing +port+ at +key+.
-        def initialize(port,key)
+        # Create a new named port accessing +port+ with +name+.
+        def initialize(port,name)
             # Check and set the accessed port.
             unless port.is_a?(Port) then
                 raise "Invalid class for a port: #{port.class}."
             end
             @port = port
-            # Check and set the key.
-            @key = key.to_sym
+            # Check and set the name.
+            @name = name.to_s
         end
     end
 

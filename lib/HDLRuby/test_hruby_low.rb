@@ -41,7 +41,7 @@ end
 
 print "\nCreating a one-bit signal type... "
 begin
-    $sig_bit = SignalT.new("bit",:bit,1)
+    $sig_bit = SignalT.new("bit",:bit,8)
     if $sig_bit.name != "bit" then
         puts "Error: invalid name: got #{$sig_bit.name} but expecting bit."
         $success = false
@@ -57,7 +57,8 @@ rescue Exception => e
 end
 
 puts "\nCreating signal instances from the previous signal type..."
-$sNames = ["i0", "i1", "i2", "i3", "o0", "o1", "io", "s0", "s1", "s2"]
+$sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7",
+           "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2"]
 $signalIs = []
 $sNames.each_with_index do |name,i|
     print "  Signal instance #{name}... "
@@ -148,7 +149,8 @@ rescue Exception => e
 end
 
 puts "\nCreating ports for further connection of the signals..."
-$pNames = ["p0i0", "p0i1", "p0i2", "p0i3", "p0o0", "p0o1", "p0io",
+$pNames = ["p0i0", "p0i1", "p0i2", "p0i3", "p0i4", "p0i5", "p0i6", "p0i7",
+           "p0o0", "p0o1", "p0o2", "p0o3", "p0o4", "p0o5", "p0io",
            "p0s0", "p0s1", "p0s2",
            "p1i0", "p1i1", "p1i2", "p1o0", "p1o1", "p1io",
            "p1s0", "p1s1", "p1s2",
@@ -162,12 +164,12 @@ $pNames.each_with_index do |name,i|
         system_port = PortThis.new
         if name[1] != "0" then
             # Sub system case.
-            system_port = PortKey.new(system_port,"systemI#{name[1]}")
+            system_port = PortName.new(system_port,"systemI#{name[1]}")
         end
         # Create the signal port
-        $ports[i] = PortKey.new(system_port,"#{name[2..3]}")
-        if $ports[i].key != name[2..3].to_sym then
-            puts "Error: invalid signal instance, got #{$ports[i].key} " +
+        $ports[i] = PortName.new(system_port,"#{name[2..3]}")
+        if $ports[i].name != name[2..3] then
+            puts "Error: invalid signal instance, got #{$ports[i].name} " +
                  " but expecting #{name[2..3]}"
             $success = false
         else
@@ -179,7 +181,7 @@ $pNames.each_with_index do |name,i|
     end
 end
 
-puts "\nCreating the connections..."
+puts "\nCreating port-only connections..."
 $cNames = { "p0i0" => ["p1i0"], "p0i1" => ["p1i1"],
             "p0i2" => ["p2i0"], "p0i3" => ["p2i1"],
             "p1o0" => ["p0o0"], "p1o1" => ["p2i2"], 
@@ -210,9 +212,86 @@ $cNames.each do |sName,dNames|
     rescue Exception => e
         puts "Error: unexpected exception raised #{e.inspect}\n"
         $success = false
-    end
-    
+    end    
 end
+
+
+puts "\nCreating expressions... "
+eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7"]
+
+# Generate an expression from a signal or constant name
+def eName2Exp(name)
+    port = $ports.find {|port| port.name == name }
+    unless port
+        return Value.new(:bit,8,name.to_i)
+    end
+    return port
+end
+
+$expressions = []
+eNames.each do |eName|
+    print "  Expression #{eName}... "
+    begin
+        left = eName2Exp(eName[0..1])
+        operator = eName[2].to_sym
+        right = eName2Exp(eName[3..-1])
+        expression = Binary.new(operator,left,right)
+        $expressions << expression
+        success = true
+        unless expression.left == left then
+            raise "Error: invalid left value, got #{expression.left} but expecting #{left}."
+            success = false
+        end
+        unless expression.right == right then
+            raise "Error: invalid right value, got #{expression.right} but expecting #{right}."
+            success = false
+        end
+        unless expression.operator == operator then
+            raise "Error: invalid operator, got #{expression.operator} but expecting #{operator}."
+            success = false
+        end
+        if success then
+            puts "Ok."
+        else
+            $success = false
+        end
+    rescue Exception => e
+        puts "Error: unexpected exception raised #{e.inspect}\n"
+        $success = false
+    end
+end
+
+
+puts "\nCreating an expression connection... "
+begin
+    connection = Connection.new($expressions[0])
+    $connections << connection
+    port = $ports[$pNames.index("p0o2")]
+    connection.add_port(port)
+    success = true
+    unless connection.expression == $expressions[0] then
+        puts "Error: invalid expression, got #{connection.expression} but expecting #{$expressions[0]}"
+        success = false
+    end
+    ports = connection.each_port.to_a
+    unless ports.size == 1 then
+        puts "Error: too many ports for the connection, got #{ports.size} but expecting 1."
+        success = false
+    end
+    unless ports[0] == port then
+        puts "Error: invalid port in connection, got #{ports[0]} but expecting #{port}."
+        success = false
+    end
+    if success then
+        puts "Ok."
+    else
+        $success = false
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
 
 puts "\nAdding connections to $systemT0... "
 begin
@@ -226,6 +305,37 @@ rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
     $success = false
 end
+
+
+puts "\nCreating statements..."
+$stNames = [ ["p0o3", $expressions[1]], ["p0o4", $expressions[2]] ]
+$statements = []
+$stNames.each do |pName,expression|
+    print "  Assignment to #{pName}... "
+    begin
+        port = $ports[$pNames.index(pName)]
+        statement = Assign.new(port,expression)
+        $statements << statement
+        success = true
+        unless statement.left == port then
+            raise "Error: invalid left value, got #{statement.left} but expecting #{port}."
+            success = false
+        end
+        unless statement.right == expression then
+            raise "Error: invalid right value, got #{statement.right} but expecting #{expression}."
+            success = false
+        end
+        if success then
+            puts "Ok."
+        else
+            $success = false
+        end
+    rescue Exception => e
+        puts "Error: unexpected exception raised #{e.inspect}\n"
+        $success = false
+    end
+end
+
 
 
 #################################################################
