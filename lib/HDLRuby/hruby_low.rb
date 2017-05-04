@@ -234,7 +234,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_connection) unless ruby_block
             # A block? Apply it on each connection.
-            @connections.each(&block)
+            @connections.each(&ruby_block)
         end
 
         # Handling the processes.
@@ -254,7 +254,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_process) unless ruby_block
             # A block? Apply it on each process.
-            @processes.each(&block)
+            @processes.each(&ruby_block)
         end
 
     end
@@ -317,7 +317,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_event) unless ruby_block
             # A block? Apply it on each event.
-            @events.each(&block)
+            @events.each(&ruby_block)
         end
 
         # Handle the blocks.

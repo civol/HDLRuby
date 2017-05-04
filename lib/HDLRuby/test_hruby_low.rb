@@ -119,7 +119,7 @@ rescue Exception => e
     $success = false
 end
 
-puts "\nInstantiating the systems... "
+print "\nInstantiating the systems... "
 begin
     $systemI0 = SystemI.new($systemT0,"systemI0")
     $systemI1 = SystemI.new($systemT1,"systemI1")
@@ -180,10 +180,58 @@ $pNames.each_with_index do |name,i|
 end
 
 puts "\nCreating the connections..."
-$cNames = { }
+$cNames = { "p0i0" => ["p1i0"], "p0i1" => ["p1i1"],
+            "p0i2" => ["p2i0"], "p0i3" => ["p2i1"],
+            "p1o0" => ["p0o0"], "p1o1" => ["p2i2"], 
+            "p2o0" => ["p0o1"], "p2o1" => ["p1i2"], 
+            "p0io" => ["p1io", "p1io"]
+          }
+$connections = []
+$cNames.each do |sName,dNames|
+    print "  Connection #{sName} => #{dNames}... "
+    begin
+        connection = Connection.new
+        $connections << connection
+        ports = [ $ports[$pNames.index(sName)] ] + 
+                dNames.map {|name| $ports[$pNames.index(name)] }
+        ports.each {|port| connection.add_port(port) }
+        success = true
+        connection.each_port.with_index do |cPort,i|
+            if cPort != ports[i] then
+                puts "Error: invalid port, got #{cPort} but expecting #{ports[i]}."
+                success = false
+            end
+        end
+        if success then
+            puts "Ok."
+        else
+            $success = false
+        end
+    rescue Exception => e
+        puts "Error: unexpected exception raised #{e.inspect}\n"
+        $success = false
+    end
+    
+end
+
+puts "\nAdding connections to $systemT0... "
+begin
+    $connections.each.with_index do |connection,i|
+        key = $cNames.keys[i]
+        print "  Adding connection #{key} => #{$cNames[key]}... "
+        $systemT0.add_connection(connection)
+        puts "Ok."
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
 
 
-puts "Testing the content of $systemT0... "
+#################################################################
+# Final global test.
+
+puts "\nTesting the content of $systemT0... "
 begin
     iCount = 0  # Input signal instances counter
     oCount = 0  # Output signal instances counter
@@ -333,6 +381,17 @@ begin
             puts "Ok."
         else
             puts "Error: unexpected systemI, got #{systemI} but expecting #{system}."
+            $success = false
+        end
+    end
+
+    puts "  Connections... "
+    $systemT0.each_connection.with_index do |connection,i|
+        print "    Connection #{i}... "
+        if connection == $connections[i] then
+            puts "Ok."
+        else
+            puts "Error: unexpected systemI, got #{connection} but expecting #{$connections[i]}."
             $success = false
         end
     end
