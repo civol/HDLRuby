@@ -2,11 +2,11 @@
 ##               Program for test the HRbuyLow module.              ##
 ######################################################################
 
-require "./hruby_low.rb"
+require "HDLRuby.rb"
 
 require "yaml"
 
-include HRubyLow
+include HDLRuby
 
 $success = true
 
