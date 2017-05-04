@@ -416,6 +416,21 @@ rescue Exception => e
     $success = false
 end
 
+print "\nAdding an even to $process... "
+begin
+    $process.add_event($event)
+    pEvent = $process.each_event.first
+    if pEvent != $event then
+        puts "Error: invalid event, got #{pEvent} but expecting #{$event}."
+        $sucess = false
+    else
+        puts "Ok."
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
 print "\nAdding a block to $process... "
 begin
     $process.add_block($block)
