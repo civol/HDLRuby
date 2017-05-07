@@ -641,8 +641,6 @@ module HDLRuby::Low
     class Case < Statement
         # The tested value
         attr_reader :condition
-        # The yes and no blocks
-        attr_reader :yes, :no
 
         # Creates a new case statement whose excution flow is decided from
         # +value+.
@@ -943,7 +941,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a port range.
-    class PortIndex < Port
+    class PortRange < Port
         # The accessed port.
         attr_reader :port
         # The access range.

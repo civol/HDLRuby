@@ -3,8 +3,7 @@
 ######################################################################
 
 require "HDLRuby.rb"
-
-require "yaml"
+require "HDLRuby/hruby_serializer.rb"
 
 include HDLRuby::Low
 
@@ -642,6 +641,19 @@ rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
     $success = false
 end
+
+
+# Now testing the conversion to YAML.
+
+print "\n\nConverting $sytemT0 to a YAML string... "
+begin
+    $yaml_str = $systemT0.to_yaml
+    puts "Ok."
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+puts "YAML result:", $yaml_str
 
     
 
