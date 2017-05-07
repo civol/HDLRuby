@@ -26,12 +26,12 @@ $success = true
 
 print "\nCreating system types... "
 begin
-    $systemT0 = SystemT.new("systemT0")
-    $systemT1 = SystemT.new("systemT1")
-    if $systemT0.name == "systemT0" then
+    $systemT0 = SystemT.new(:systemT0)
+    $systemT1 = SystemT.new(:systemT1)
+    if $systemT0.name == :systemT0 then
         puts "Ok."
     else
-        puts "Error: invalid name, got #{$systemT0.name} but expecting system0."
+        puts "Error: invalid name, got #{$systemT0.name} but expecting systemT0."
         $success = false
     end
 rescue Exception => e
@@ -41,12 +41,15 @@ end
 
 print "\nCreating a one-bit signal type... "
 begin
-    $sig_bit = SignalT.new("bit",:bit,8)
-    if $sig_bit.name != "bit" then
-        puts "Error: invalid name: got #{$sig_bit.name} but expecting bit."
+    $sig_bit = SignalT.new(:bit8,:bit,8)
+    if $sig_bit.name != :bit8 then
+        puts "Error: invalid name: got #{$sig_bit.name} but expecting bit8."
         $success = false
     elsif $sig_bit.type != :bit then
         puts "Error: invalid type: got #{$sig_bit.type} but expecting #{$bit}."
+        $success = false
+    elsif $sig_bit.size != 8 then
+        puts "Error: invalid size: got #{$sig_bit.size} but expecting 8."
         $success = false
     else
         puts "Ok."
@@ -69,7 +72,7 @@ $sNames.each_with_index do |name,i|
             puts "Error: invalid signal type, got #{$signalIs[name].signalT} " +
                  " but expecting #{$sig_bit}"
             $success = false
-        elsif $signalIs[i].name != name then
+        elsif $signalIs[i].name != name.to_sym then
             puts "Error: invalid name, got #{$signalIs[i].name} " +
                  " but expecting #{name}"
             $success = false
@@ -129,7 +132,7 @@ begin
     $systemI0 = SystemI.new($systemT0,"systemI0")
     $systemI1 = SystemI.new($systemT1,"systemI1")
     $systemI2 = SystemI.new($systemT1,"systemI2")
-    if $systemI0.name == "systemI0" then
+    if $systemI0.name == :systemI0 then
         puts "Ok."
     else
         puts "Error: invalid name, got #{$systemI0.name} but expecting system0."
@@ -172,7 +175,7 @@ $pNames.each_with_index do |name,i|
         end
         # Create the signal port
         $ports[i] = PortName.new(system_port,"#{name[2..-1]}")
-        if $ports[i].name != name[2..-1] then
+        if $ports[i].name != name[2..-1].to_sym then
             puts "Error: invalid signal instance, got #{$ports[i].name} " +
                  " but expecting #{name[2..-1]}"
             $success = false
@@ -301,7 +304,13 @@ puts "\nAdding connections to $systemT0... "
 begin
     $connections.each.with_index do |connection,i|
         key = $cNames.keys[i]
-        print "  Adding connection #{key} => #{$cNames[key]}... "
+        if key then
+            # System connections
+            print "  Adding connection #{key} => #{$cNames[key]}... "
+        else
+            # Expression connections
+            print "  Adding expression connection... "
+        end
         $systemT0.add_connection(connection)
         puts "Ok."
     end
@@ -343,7 +352,7 @@ end
 
 print "\nCreating a clock event... "
 begin
-    signalI = $signalIs.find{|signalI| signalI.name == "clk"}
+    signalI = $signalIs.find{|signalI| signalI.name == :clk}
     $event = Event.new(:posedge,signalI)
     success = true
     if $event.type != :posedge then

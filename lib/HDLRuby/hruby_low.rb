@@ -1,4 +1,4 @@
-##
+#
 # Low-level libraries for describing digital hardware.        
 #######################################################
 module HDLRuby::Low
@@ -35,8 +35,8 @@ module HDLRuby::Low
 
         # Creates a new system named +name+.
         def initialize(name)
-            # Set the name as a string.
-            @name = name.to_s
+            # Set the name as a symbol.
+            @name = name.to_sym
             # Initialize the signal instance lists.
             @inputs = {}
             @outputs = {}
@@ -277,7 +277,7 @@ module HDLRuby::Low
         # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
         def initialize(name,type,size)
             # Check and set the name.
-            @name = name.to_s
+            @name = name.to_sym
             # Check and set the type.
             @type = type.to_sym
             # Check and set the size.
@@ -292,8 +292,8 @@ module HDLRuby::Low
 
         # Creates a new beavior named +name+.
         def initialize(name = "")
-            # Set the name as a string if any.
-            @name = name.to_s
+            # Set the name as a symbol if any.
+            @name = name.to_sym
             # Initialize the sensibility list.
             @events = []
             # Initialize the block list.
@@ -446,8 +446,8 @@ module HDLRuby::Low
                 raise "Invalid class for a signal: #{signal.class}"
             end
             @signalT = signalT
-            # Set the name as a string.
-            @name = name.to_s
+            # Set the name as a symbol.
+            @name = name.to_sym
         end
     end
 
@@ -467,8 +467,8 @@ module HDLRuby::Low
             unless system.is_a?(SystemT)
                 raise "Invalid class for a system: #{system.class}"
             end
-            # Set the name as a string.
-            @name = name.to_s
+            # Set the name as a symbol.
+            @name = name.to_sym
         end
     end
 
@@ -938,8 +938,8 @@ module HDLRuby::Low
                 raise "Invalid class for a port: #{port.class}."
             end
             @port = port
-            # Check and set the name.
-            @name = name.to_s
+            # Check and set the symbol.
+            @name = name.to_sym
         end
     end
 
