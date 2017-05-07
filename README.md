@@ -1,8 +1,8 @@
 # HDLRuby
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/HDLRuby`. To experiment with that code, run `bin/console` for an interactive prompt.
+Hardware Ruby is a library for describing and simulating digital electronic systems.
 
-TODO: Delete this and the text above, and describe your gem
+*Warning*: this is very preliminary work, in the present state there is nothing but the data structures for the low-level representation.
 
 ## Installation
 

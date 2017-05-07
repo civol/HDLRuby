@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["lovic@ariake-nct.ac.jp"]
 
   spec.summary       = %q{Hardware Ruby is a library for describing and simulating digital electronic systems.}
-  spec.description   = %q{Hardware Ruby is a library for describing and simulating digital electronic systems. With this library it is possible to describe hardware using all the features of the Ruby language, e.g., object orientation, duck tping, closure. This library is also usable through irb for interactive design and simulation.}
+  spec.description   = %q{Hardware Ruby is a library for describing and simulating digital electronic systems. With this library it will possible to describe hardware using all the features of the Ruby language, e.g., object orientation, duck tping, closure. This library is also usable through irb for interactive design and simulation.}
   spec.homepage      = "https://github.com/civol"
   spec.license       = "MIT"
 
