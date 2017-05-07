@@ -323,9 +323,14 @@ module HDLRuby::Low
         # Handle the blocks.
 
         # Adds a +block+.
+        #
+        # NOTE: TimeBlock is not supported unless for TimeBehavior objects.
         def add_block(block)
             unless block.is_a?(Block)
-                raise "Invalid class for a signal: #{block.class}"
+                raise "Invalid class for a block: #{block.class}"
+            end
+            if block.is_a?(TimeBlock)
+                raise "Timed blocks are not supported in common behaviors."
             end
             @blocks << block
         end
@@ -353,6 +358,18 @@ module HDLRuby::Low
         # the relevant methods.
         def add_event(event)
             raise "Time behaviors do not have any sensitivity list."
+        end
+
+        # Handle the blocks.
+
+        # Adds a +block+.
+        # 
+        # NOTE: TimeBlock is supported.
+        def add_block(block)
+            unless block.is_a?(Block)
+                raise "Invalid class for a block: #{block.class}"
+            end
+            @blocks << block
         end
     end
 
@@ -393,9 +410,14 @@ module HDLRuby::Low
         end
 
         # Adds a +statement+.
+        #
+        # NOTE: Time is not supported unless for TimeBlock objects.
         def add_statement(statement)
-            unless statement.is_a?(Statement)
+            unless statement.is_a?(Statement) then
                 raise "Invalid class for a statement: #{statement.class}"
+            end
+            if statement.is_a?(Time) then
+                raise "Timed statements are not supported in common blocks."
             end
             @statements << statement
         end
@@ -408,6 +430,23 @@ module HDLRuby::Low
             return to_enum(:each_statement) unless ruby_block
             # A block? Apply it on each statement.
             @statements.each(&ruby_block)
+        end
+    end
+
+    # Describes a timed block.
+    #
+    # NOTE: 
+    # * this is the only kind of block that can include time statements. 
+    # * this kind of block is not synthesizable!
+    class TimeBlock < Block
+        # Adds a +statement+.
+        # 
+        # NOTE: TimeBlock is supported.
+        def add_statement(statement)
+            unless statement.is_a?(Statement) then
+                raise "Invalid class for a statement: #{statement.class}"
+            end
+            @statements << statement
         end
     end
 

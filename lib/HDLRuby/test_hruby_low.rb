@@ -269,7 +269,7 @@ eNames.each do |eName|
 end
 
 
-puts "\nCreating an expression connection... "
+print "\nCreating an expression connection... "
 begin
     connection = Connection.new($expressions[0])
     $connections << connection
