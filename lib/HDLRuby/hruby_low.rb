@@ -44,10 +44,10 @@ module HDLRuby::Low
             @inners = {}
             # Initialize the system instances list.
             @systemIs = {}
-            # Initialize the connection list.
+            # Initialize the connections list.
             @connections = []
-            # Initialize the process lists.
-            @processes = []
+            # Initialize the behaviors lists.
+            @behaviors = []
         end
 
         # Handling the signals.
@@ -237,24 +237,24 @@ module HDLRuby::Low
             @connections.each(&ruby_block)
         end
 
-        # Handling the processes.
+        # Handling the behaviors.
 
-        # Adds a +process+.
-        def add_process(process)
-            unless process.is_a?(Always)
-                raise "Invalid class for a process: #{process.class}"
+        # Adds a +behavior+.
+        def add_behavior(behavior)
+            unless behavior.is_a?(Behavior)
+                raise "Invalid class for a behavior: #{behavior.class}"
             end
-            @processes << process
+            @behaviors << behavior
         end
 
-        # Iterates over the processes.
+        # Iterates over the behaviors.
         #
         # Returns an enumerator if no ruby block is given.
-        def each_process(&ruby_block)
+        def each_behavior(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_process) unless ruby_block
-            # A block? Apply it on each process.
-            @processes.each(&ruby_block)
+            return to_enum(:each_behavior) unless ruby_block
+            # A block? Apply it on each behavior.
+            @behaviors.each(&ruby_block)
         end
 
     end
@@ -287,10 +287,10 @@ module HDLRuby::Low
 
 
     ##
-    # Describes a process.
-    class Always
+    # Describes a behavior.
+    class Behavior
 
-        # Creates a new process named +name+.
+        # Creates a new beavior named +name+.
         def initialize(name = "")
             # Set the name as a string if any.
             @name = name.to_s
@@ -343,16 +343,16 @@ module HDLRuby::Low
 
 
     ##
-    # Describes a time process.
+    # Describes a timed behavior.
     #
     # NOTE: 
-    # * this is the only kind of process that can include time statements. 
-    # * this kind of process is not synthesizable!
-    class TimeAlways
-        # Time process do not have other event than time, so deactivate
+    # * this is the only kind of behavior that can include time statements. 
+    # * this kind of behavior is not synthesizable!
+    class TimeBehavior
+        # Time behavior do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)
-            raise "Time processes do not have any sensitivity list."
+            raise "Time behaviors do not have any sensitivity list."
         end
     end
 
@@ -541,8 +541,8 @@ module HDLRuby::Low
 
 
     ## 
-    # Decribes an assignment statement.
-    class Assign < Statement
+    # Decribes a transmission statement.
+    class Transmit < Statement
         
         # The left port.
         attr_reader :left
@@ -550,7 +550,7 @@ module HDLRuby::Low
         # The right expression.
         attr_reader :right
 
-        # Creates a new assignment from a +right+ expression to a +left+
+        # Creates a new transmission from a +right+ expression to a +left+
         # port.
         def initialize(left,right)
             # Check and set the left port.

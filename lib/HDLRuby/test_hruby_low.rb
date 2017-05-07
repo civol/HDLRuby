@@ -315,10 +315,10 @@ puts "\nCreating statements..."
 $stNames = [ ["p0o3", $expressions[1]], ["p0o4", $expressions[2]] ]
 $statements = []
 $stNames.each do |pName,expression|
-    print "  Assignment to #{pName}... "
+    print "  Transmission to #{pName}... "
     begin
         port = $ports[$pNames.index(pName)]
-        statement = Assign.new(port,expression)
+        statement = Transmit.new(port,expression)
         $statements << statement
         success = true
         unless statement.left == port then
@@ -407,19 +407,19 @@ $statements.each.with_index do |statement,i|
 end
 
 
-print "\nCreating a process... "
+print "\nCreating a behavior... "
 begin
-    $process = Always.new
+    $behavior = Behavior.new
     puts "Ok."
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
     $success = false
 end
 
-print "\nAdding an even to $process... "
+print "\nAdding an even to $behavior... "
 begin
-    $process.add_event($event)
-    pEvent = $process.each_event.first
+    $behavior.add_event($event)
+    pEvent = $behavior.each_event.first
     if pEvent != $event then
         puts "Error: invalid event, got #{pEvent} but expecting #{$event}."
         $sucess = false
@@ -431,10 +431,10 @@ rescue Exception => e
     $success = false
 end
 
-print "\nAdding a block to $process... "
+print "\nAdding a block to $behavior... "
 begin
-    $process.add_block($block)
-    pBlock = $process.each_block.first
+    $behavior.add_block($block)
+    pBlock = $behavior.each_block.first
     if pBlock != $block then
         puts "Error: invalid block, got #{pBlock} but expecting #{$block}."
         $sucess = false
@@ -447,12 +447,12 @@ rescue Exception => e
 end
 
 
-print "\nAdding a process to $systemT0... "
+print "\nAdding a behavior to $systemT0... "
 begin
-    $systemT0.add_process($process)
-    sProcess = $systemT0.each_process.first
-    if sProcess != $process then
-        puts "Error: invalid process, got #{sProcess} but expecting #{$process}."
+    $systemT0.add_behavior($behavior)
+    sBehavior = $systemT0.each_behavior.first
+    if sBehavior != $behavior then
+        puts "Error: invalid behavior, got #{sBehavior} but expecting #{$behavior}."
         $sucess = false
     else
         puts "Ok."
