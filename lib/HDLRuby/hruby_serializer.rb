@@ -183,7 +183,7 @@ module HDLRuby
 
         # Converts the object to YAML string.
         def to_yaml
-            return YAML.dump(to_basic)
+            return YAML.dump_stream(*to_basic)
         end
     end
 
