@@ -128,13 +128,22 @@ end
 
 print "\nInstantiating the systems... "
 begin
-    $systemI0 = SystemI.new($systemT0,"systemI0")
-    $systemI1 = SystemI.new($systemT1,"systemI1")
-    $systemI2 = SystemI.new($systemT1,"systemI2")
-    if $systemI0.name == :systemI0 then
+    $systemI0 = SystemI.new("systemI0",$systemT0)
+    $systemI1 = SystemI.new("systemI1",$systemT1)
+    $systemI2 = SystemI.new("systemI2",$systemT1)
+    success = true
+    if $systemI0.name != :systemI0 then
+        puts "Error: invalid name, got #{$systemI0.name} but expecting systemI0."
+        success = false
+    end
+    if $systemI0.systemT != $systemT0 then
+        puts "Error: invalid system type, got #{$systemI0.systemT.name} but expecting systemT0."
+        success = false
+    end
+    if success then
         puts "Ok."
     else
-        puts "Error: invalid name, got #{$systemI0.name} but expecting system0."
+        $success = false
     end
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
@@ -645,7 +654,7 @@ end
 
 # Now testing the conversion to YAML.
 
-print "\n\nConverting $sytemT0 to a YAML string... "
+print "\n\nConverting $systemT0 to a YAML string... "
 begin
     $yaml_str = $systemT0.to_yaml
     puts "Ok."

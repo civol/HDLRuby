@@ -498,14 +498,15 @@ module HDLRuby::Low
         attr_reader :name
 
         # The instantiated system.
-        attr_reader :system
+        attr_reader :systemT
 
-        # Creates a new system instance of +system+ named +name+.
-        def initialize(system, name = "")
-            # Check and set the system.
-            unless system.is_a?(SystemT)
-                raise "Invalid class for a system: #{system.class}"
+        # Creates a new system instance of system type +systemT+ named +name+.
+        def initialize(name, systemT)
+            # Check and set the systemT.
+            unless systemT.is_a?(SystemT)
+                raise "Invalid class for a system: #{systemT.class}"
             end
+            @systemT = systemT
             # Set the name as a symbol.
             @name = name.to_sym
         end

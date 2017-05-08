@@ -47,7 +47,7 @@ module HDLRuby
             # Maybe it is a hash of named objects.
             if TO_BASICS.include?(value.first[1].class) then
                 # Yes, convert it to an array since it is a hash with names.
-                return value.map { |k,v| value_to_basic(v) }
+                return value.map { |k,v| value_to_basic(v,types) }
             else
                 # No, basic hash. They are kept as they are, but their content
                 # is converted to basic.
@@ -132,6 +132,7 @@ module HDLRuby
             if !top and TO_BASICS_TYPES.include?(self.class) then
                 # Type object, but not the top, add it to the types list
                 # without converting it.
+                # print "Adding type with name=#{self.name}\n"
                 types[self.name] = self
                 # And return the name.
                 return self.name
