@@ -65,6 +65,7 @@ module HDLRuby
         end
     end
 
+
     # Convert a +basic+ structure to a ruby object.
     def self.basic_to_value(basic)
         # Detect which kind of basic struture it is.
@@ -112,6 +113,15 @@ module HDLRuby
             # Other cases should happen.
             raise "Invalid class for a basic object: #{basic.class}."
         end
+    end
+
+
+    # Convert a stream to a HDLRuby list of objects.
+    def from_yaml(stream)
+        # Get the basic structure from the stream.
+        basic = YAML.load_stream(stream)
+        # Convert the basic structure to HDLRuby objects.
+        return basic_to_value(basic)
     end
     
     #
