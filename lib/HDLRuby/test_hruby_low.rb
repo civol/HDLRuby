@@ -64,9 +64,19 @@ $sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
            ]
 $signalIs = []
 $sNames.each_with_index do |name,i|
-    print "  Signal instance #{name}... "
+    if i > 0 then
+        print "  Signal instance #{name} (SignalT designated by name)... "
+    else
+        print "  Signal instance #{name}... "
+    end
     begin
-        $signalIs[i] = SignalI.new($sig_bit,name)
+        if i > 0 then
+            # SignalT directly used.
+            $signalIs[i] = SignalI.new($sig_bit,name)
+        else
+            # SignalT designated by name.
+            $signalIs[i] = SignalI.new(:bit8,name)
+        end
         if $signalIs[i].signalT != $sig_bit then
             puts "Error: invalid signal type, got #{$signalIs[name].signalT} " +
                  " but expecting #{$sig_bit}"
@@ -126,11 +136,10 @@ rescue Exception => e
     $success = false
 end
 
-print "\nInstantiating the systems... "
+puts "\nInstantiating the systems... "
 begin
+    print "  SystemI 0... "
     $systemI0 = SystemI.new("systemI0",$systemT0)
-    $systemI1 = SystemI.new("systemI1",$systemT1)
-    $systemI2 = SystemI.new("systemI2",$systemT1)
     success = true
     if $systemI0.name != :systemI0 then
         puts "Error: invalid name, got #{$systemI0.name} but expecting systemI0."
@@ -138,6 +147,32 @@ begin
     end
     if $systemI0.systemT != $systemT0 then
         puts "Error: invalid system type, got #{$systemI0.systemT.name} but expecting systemT0."
+        success = false
+    end
+    if success then
+        puts "Ok."
+    else
+        $success = false
+    end
+    print "  SystemI 1... "
+    $systemI1 = SystemI.new("systemI1",$systemT1)
+    if $systemI1.name != :systemI1 then
+        puts "Error: invalid name, got #{$systemI1.name} but expecting systemI1."
+        success = false
+    end
+    if $systemI1.systemT != $systemT1 then
+        puts "Error: invalid system type, got #{$systemI1.systemT.name} but expecting systemT1."
+        success = false
+    end
+    if success then
+        puts "Ok."
+    else
+        $success = false
+    end
+    print "  SystemI 2 (SystemT designated by name)... "
+    $systemI2 = SystemI.new("systemI2",:systemT1)
+    if $systemI2.systemT != $systemT1 then
+        puts "Error: invalid system type, got #{$systemI2.systemT.name} but expecting systemT1."
         success = false
     end
     if success then

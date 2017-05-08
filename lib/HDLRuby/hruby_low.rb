@@ -33,6 +33,15 @@ module HDLRuby::Low
         # The name of the system.
         attr_reader :name
 
+        # Library of the existing system types.
+        SystemTs = { }
+        private_constant :SystemTs
+
+        # Get an existing system type by +name+.
+        def self.get(name)
+            return SystemTs[name.to_sym]
+        end
+
         # Creates a new system named +name+.
         def initialize(name)
             # Set the name as a symbol.
@@ -48,6 +57,11 @@ module HDLRuby::Low
             @connections = []
             # Initialize the behaviors lists.
             @behaviors = []
+
+            # Update the library of existing system types.
+            # Note: no check is made so an exisiting system type with a same
+            # name is overwritten.
+            SystemTs[@name] = self
         end
 
         # Handling the signals.
@@ -274,6 +288,15 @@ module HDLRuby::Low
         # The size in bits of the signal
         attr_reader :size
 
+        # Library of the existing signal types.
+        SignalTs = { }
+        private_constant :SignalTs
+
+        # Get an existing signal type by +name+.
+        def self.get(name)
+            return SignalTs[name.to_sym]
+        end
+
         # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
         def initialize(name,type,size)
             # Check and set the name.
@@ -282,6 +305,11 @@ module HDLRuby::Low
             @type = type.to_sym
             # Check and set the size.
             @size = size.to_i
+
+            # Update the library of existing signal types.
+            # Note: no check is made so an exisiting signal type with a same
+            # name is overwritten.
+            SignalTs[@name] = self
         end
     end
 
@@ -481,7 +509,10 @@ module HDLRuby::Low
         # Creates a new signal instance of +signalT+ named +name+.
         def initialize(signalT, name = "")
             # Check and set the signal type.
-            unless signalT.is_a?(SignalT)
+            if signalT.respond_to?(:to_sym) then
+                # The signal is specified by name, get it.
+                signalT = SignalT.get(signalT.to_sym)
+            elsif !signalT.is_a?(SignalT)
                 raise "Invalid class for a signal: #{signal.class}"
             end
             @signalT = signalT
@@ -503,7 +534,10 @@ module HDLRuby::Low
         # Creates a new system instance of system type +systemT+ named +name+.
         def initialize(name, systemT)
             # Check and set the systemT.
-            unless systemT.is_a?(SystemT)
+            if systemT.respond_to?(:to_sym) then
+                # The system is specified by name, get it.
+                systemT = SystemT.get(systemT.to_sym)
+            elsif !systemT.is_a?(SystemT)
                 raise "Invalid class for a system: #{systemT.class}"
             end
             @systemT = systemT
