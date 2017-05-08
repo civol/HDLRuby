@@ -2,7 +2,7 @@ require 'yaml'
 
 module HDLRuby
 
-    # Gather the classes meant to support to_basic.
+    # The classes meant to support to_basic.
     TO_BASICS = [Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
                  Low::SignalI, Low::SystemI, Low::Connection, 
@@ -10,12 +10,21 @@ module HDLRuby
                  Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,
                  Low::PortConcat, Low::PortIndex, Low::PortRange,
                  Low::PortName, Low::PortThis] 
-    # Gather the name of the classes of HFLRuby supporting to_basic
+    # The names of the classes of HFLRuby supporting to_basic
     TO_BASIC_NAMES = TO_BASICS.map { |klass| klass.to_s }
+    # The classes describing types (must be described only once)
+    TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
 
 
-    # Converts a +value+ to a basic structure easy-to-write YAML string
-    def self.value_to_basic(value)
+    # Converts a +value+ to a basic structure easy-to-write YAML string.
+    #
+    # Other parameters:
+    #   +top+:: indicates if the object is the top of the
+    #   description or not. If it is the top, the namespace it comes
+    #   from is kept.
+    #   +types+:: contains the type objects which will have to be converted
+    #   separately.
+    def self.value_to_basic(value, types = {})
         # Depending on the class.
         if value.is_a?(Symbol) then
             # Symbol objects are converted to strings.
@@ -29,20 +38,30 @@ module HDLRuby
         elsif value.is_a?(Array) then
             # Arrays are kept as they are, but their content is converted
             # to basic.
-            return value.map { |elem| value_to_basic(elem) }
+            return value.map { |elem| value_to_basic(elem,types) }
         elsif value.is_a?(Hash) then
-            # Arrays are kept as they are, but their content is converted
-            # to basic.
-            return value.map do |k,v|
-                [value_to_basic(k), value_to_basic(v)]
-            end.to_h
+            # Maybe the hash is empty.
+            if value.empty? then
+                return { }
+            end
+            # Maybe it is a hash of named objects.
+            if TO_BASICS.include?(value.first[1].class) then
+                # Yes, convert it to an array since it is a hash with names.
+                return value.map { |k,v| value_to_basic(v) }
+            else
+                # No, basic hash. They are kept as they are, but their content
+                # is converted to basic.
+                return value.map do |k,v|
+                    [value_to_basic(k,types), value_to_basic(v,types)]
+                end.to_h
+            end
         else
             # For the other cases, only HDLRuby classes supporting to_basic
             # are supported.
             unless TO_BASICS.include?(value.class) then
                 raise "Invalid class for converting to basic structure: #{value.class}"
             end
-            return value.to_basic(false)
+            return value.to_basic(false,types)
         end
     end
 
@@ -103,10 +122,20 @@ module HDLRuby
         # Converts the object to a basic structure which can be dumped into an
         # easy-to-write YAML string.
         #
-        # Parameter +top+ indicates if the object is the top of the
-        # description or not. If it is the top, the namespace it comes
-        # from is kept.
-        def to_basic(top = true)
+        # Other parameters:
+        #   +top+:: indicates if the object is the top of the
+        #   description or not. If it is the top, the namespace it comes
+        #   from is kept.
+        #   +types+:: contains the type objects which will have to be converted
+        #   separately.
+        def to_basic(top = true, types = {})
+            if !top and TO_BASICS_TYPES.include?(self.class) then
+                # Type object, but not the top, add it to the types list
+                # without converting it.
+                types[self.name] = self
+                # And return the name.
+                return self.name
+            end
             # print "to_basic for class=#{self.class}\n"
             # Create the hash which will contains the content of the object.
             content = { }
@@ -131,8 +160,22 @@ module HDLRuby
                 # Remove the @ from the symbol.
                 var_sym = var_sym.to_s[1..-1]
                 # Sets the content.
-                content[var_sym] = HDLRuby.value_to_basic(var_val)
+                content[var_sym] = HDLRuby.value_to_basic(var_val,types)
             end
+
+            if top and !types.empty? then
+                # It is a top and there where types.
+                # The result is a sequence including each type and the
+                # current object.
+                result = [ result ]
+                types.each do |name,type|
+                    print "Dumping type with name=#{name}\n"
+                    type_basic = type.to_basic(true)
+                    type_basic = type_basic.last if type_basic.is_a?(Array)
+                    result.unshift(type_basic)
+                end
+            end
+
             # Return the resulting hash.
             return result
         end
