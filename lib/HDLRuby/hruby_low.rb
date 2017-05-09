@@ -42,7 +42,7 @@ module HDLRuby::Low
             return SystemTs[name.to_sym]
         end
 
-        # Creates a new system named +name+.
+        # Creates a new system type named +name+.
         def initialize(name)
             # Set the name as a symbol.
             @name = name.to_sym
@@ -551,47 +551,6 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a connection.
-    class Connection
-        # The expression attached to the connection if any.
-        attr_reader :expression
-
-        # Creates a new connection with a possible +expression+ as right value.
-        def initialize(expression = nil)
-            # Check and set the expression
-            if expression != nil then
-                unless expression.is_a?(Expression) then
-                    raise "Invalid class for an expression: #{expression.class}."
-                end
-            end
-            @expression = expression
-            # Initialize the ports.
-            @ports = []
-        end
-
-        # Handling the access points.
-
-        # Adds a +port+.
-        def add_port(port)
-            unless port.is_a?(Port)
-                raise "Invalid class for a port: #{port.class}"
-            end
-            @ports << port
-        end
-
-        # Iterates over the ports.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_port(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_port) unless ruby_block
-            # A block? Apply it on each port.
-            @ports.each(&ruby_block)
-        end
-
-    end
-
 
     ## 
     # Describes a statement.
@@ -739,6 +698,58 @@ module HDLRuby::Low
             @unit = unit.to_sym
         end
     end
+
+
+    # ## 
+    # # Describes a connection.
+    # class Connection
+    #     # The expression attached to the connection if any.
+    #     attr_reader :expression
+
+    #     # Creates a new connection with a possible +expression+ as right value.
+    #     def initialize(expression = nil)
+    #         # Check and set the expression
+    #         if expression != nil then
+    #             unless expression.is_a?(Expression) then
+    #                 raise "Invalid class for an expression: #{expression.class}."
+    #             end
+    #         end
+    #         @expression = expression
+    #         # Initialize the ports.
+    #         @ports = []
+    #     end
+
+    #     # Handling the access points.
+
+    #     # Adds a +port+.
+    #     def add_port(port)
+    #         unless port.is_a?(Port)
+    #             raise "Invalid class for a port: #{port.class}"
+    #         end
+    #         @ports << port
+    #     end
+
+    #     # Iterates over the ports.
+    #     #
+    #     # Returns an enumerator if no ruby block is given.
+    #     def each_port(&ruby_block)
+    #         # No ruby block? Return an enumerator.
+    #         return to_enum(:each_port) unless ruby_block
+    #         # A block? Apply it on each port.
+    #         @ports.each(&ruby_block)
+    #     end
+
+    # end
+
+    ## 
+    # Describes a connection.
+    #
+    # NOTE: eventhough a connection is semantically different from a
+    # transmission, it has a common structure. Therefore, it is described
+    # as a subclass of a transmit.
+    class Connection < Transmit
+    end
+
 
 
     ## 

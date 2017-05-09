@@ -1,6 +1,6 @@
-######################################################################
-##               Program for test the HRbuyLow module.              ##
-######################################################################
+########################################################################
+##            Program for testing the HDLRuby::Low module.            ##
+########################################################################
 
 require "HDLRuby.rb"
 require "HDLRuby/hruby_serializer.rb"
@@ -232,27 +232,60 @@ $pNames.each_with_index do |name,i|
 end
 
 puts "\nCreating port-only connections..."
-$cNames = { "p0i0" => ["p1i0"], "p0i1" => ["p1i1"],
-            "p0i2" => ["p2i0"], "p0i3" => ["p2i1"],
-            "p1o0" => ["p0o0"], "p1o1" => ["p2i2"], 
-            "p2o0" => ["p0o1"], "p2o1" => ["p1i2"], 
-            "p0io" => ["p1io", "p1io"]
+# $cNames = { "p0i0" => ["p1i0"], "p0i1" => ["p1i1"],
+#             "p0i2" => ["p2i0"], "p0i3" => ["p2i1"],
+#             "p1o0" => ["p0o0"], "p1o1" => ["p2i2"], 
+#             "p2o0" => ["p0o1"], "p2o1" => ["p1i2"], 
+#             "p0io" => ["p1io", "p1io"]
+#           }
+# $connections = []
+# $cNames.each do |sName,dNames|
+#     print "  Connection #{sName} => #{dNames}... "
+#     begin
+#         connection = Connection.new
+#         $connections << connection
+#         ports = [ $ports[$pNames.index(sName)] ] + 
+#                 dNames.map {|name| $ports[$pNames.index(name)] }
+#         ports.each {|port| connection.add_port(port) }
+#         success = true
+#         connection.each_port.with_index do |cPort,i|
+#             if cPort != ports[i] then
+#                 puts "Error: invalid port, got #{cPort} but expecting #{ports[i]}."
+#                 success = false
+#             end
+#         end
+#         if success then
+#             puts "Ok."
+#         else
+#             $success = false
+#         end
+#     rescue Exception => e
+#         puts "Error: unexpected exception raised #{e.inspect}\n"
+#         $success = false
+#     end    
+# end
+$cNames = { "p0i0" => "p1i0", "p0i1" => "p1i1",
+            "p0i2" => "p2i0", "p0i3" => "p2i1",
+            "p1o0" => "p0o0", "p1o1" => "p2i2", 
+            "p2o0" => "p0o1", "p2o1" => "p1i2", 
+            "p0io" => "p1io"
           }
 $connections = []
-$cNames.each do |sName,dNames|
-    print "  Connection #{sName} => #{dNames}... "
+$cNames.each do |sName,dName|
+    print "  Connection #{sName} => #{dName}... "
     begin
-        connection = Connection.new
+        left =  $ports[$pNames.index(sName)]
+        right = $ports[$pNames.index(dName)]
+        connection = Connection.new(left,right)
         $connections << connection
-        ports = [ $ports[$pNames.index(sName)] ] + 
-                dNames.map {|name| $ports[$pNames.index(name)] }
-        ports.each {|port| connection.add_port(port) }
         success = true
-        connection.each_port.with_index do |cPort,i|
-            if cPort != ports[i] then
-                puts "Error: invalid port, got #{cPort} but expecting #{ports[i]}."
-                success = false
-            end
+        if connection.left != left then
+            puts "Error: invalid port, got #{connection.keft} but expecting #{left}."
+            success = false
+        end
+        if connection.right != right then
+            puts "Error: invalid port, got #{connection.keft} but expecting #{right}."
+            success = false
         end
         if success then
             puts "Ok."
@@ -313,30 +346,40 @@ end
 
 
 print "\nCreating an expression connection... "
+# begin
+#     connection = Connection.new($expressions[0])
+#     $connections << connection
+#     port = $ports[$pNames.index("p0o2")]
+#     connection.add_port(port)
+#     success = true
+#     unless connection.expression == $expressions[0] then
+#         puts "Error: invalid expression, got #{connection.expression} but expecting #{$expressions[0]}"
+#         success = false
+#     end
+#     ports = connection.each_port.to_a
+#     unless ports.size == 1 then
+#         puts "Error: too many ports for the connection, got #{ports.size} but expecting 1."
+#         success = false
+#     end
+#     unless ports[0] == port then
+#         puts "Error: invalid port in connection, got #{ports[0]} but expecting #{port}."
+#         success = false
+#     end
+#     if success then
+#         puts "Ok."
+#     else
+#         $success = false
+#     end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+# end
 begin
-    connection = Connection.new($expressions[0])
-    $connections << connection
+    
     port = $ports[$pNames.index("p0o2")]
-    connection.add_port(port)
-    success = true
-    unless connection.expression == $expressions[0] then
-        puts "Error: invalid expression, got #{connection.expression} but expecting #{$expressions[0]}"
-        success = false
-    end
-    ports = connection.each_port.to_a
-    unless ports.size == 1 then
-        puts "Error: too many ports for the connection, got #{ports.size} but expecting 1."
-        success = false
-    end
-    unless ports[0] == port then
-        puts "Error: invalid port in connection, got #{ports[0]} but expecting #{port}."
-        success = false
-    end
-    if success then
-        puts "Ok."
-    else
-        $success = false
-    end
+    connection = Connection.new(port,$expressions[0])
+    $connections << connection
+    puts "Ok."
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
     $success = false
