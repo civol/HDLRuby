@@ -176,13 +176,15 @@ module HDLRuby
             # is the class name and whose value is the content of the
             # object.
             class_name = self.class.to_s
-            if top then
-                # Top object: keep the right-most module in the name.
-                class_name = HDLRuby.const_reduce(class_name,2)
-            else
-                # Not a top object: keep only the class name.
-                class_name = HDLRuby.const_reduce(class_name)
-            end
+            # if top then
+            #     # Top object: keep the right-most module in the name.
+            #     class_name = HDLRuby.const_reduce(class_name,2)
+            # else
+            #     # Not a top object: keep only the class name.
+            #     class_name = HDLRuby.const_reduce(class_name)
+            # end
+            # Keep only the class name
+            class_name = HDLRuby.const_reduce(class_name)
 
             result = { class_name => content }
             # Fills the contents with the instance variables value.
