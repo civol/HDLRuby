@@ -2,6 +2,13 @@ require 'yaml'
 
 module HDLRuby
 
+    # Reduce a constant +name+ to +num+ number of namespace levels.
+    def self.const_reduce(name, num = 1)
+        levels = name.split("::")
+        return levels[-([num,levels.size].min)..-1].join("::")
+    end
+
+
     # The classes meant to support to_basic.
     TO_BASICS = [Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
@@ -11,9 +18,15 @@ module HDLRuby
                  Low::PortConcat, Low::PortIndex, Low::PortRange,
                  Low::PortName, Low::PortThis] 
     # The names of the classes of HFLRuby supporting to_basic
-    TO_BASIC_NAMES = TO_BASICS.map { |klass| klass.to_s }
+    TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
     # The classes describing types (must be described only once)
     TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
+
+    # Tells if a +basic+ structure is a representation of an HDLRuby object.
+    def self.is_basic_HDLRuby?(basic)
+        return ( basic.is_a?(Hash) and basic.size == 1 and
+            TO_BASIC_NAMES.include?(HDLRuby.const_reduce(basic.keys[0])) )
+    end
 
 
     # Converts a +value+ to a basic structure easy-to-write YAML string.
@@ -68,6 +81,7 @@ module HDLRuby
 
     # Convert a +basic+ structure to a ruby object.
     def self.basic_to_value(basic)
+        # print "For basic=#{basic} (#{basic.class})\n"
         # Detect which kind of basic struture it is.
         if basic.is_a?(NilClass) or basic.is_a?(Numeric) then
             # String or Numeric objects are kept as they are.
@@ -81,16 +95,21 @@ module HDLRuby
             return basic.map { |elem| basic_to_value(elem) }
         elsif basic.is_a?(Hash) then
             # Is the hash representing a class?
-            if basic.size == 1 and TO_BASIC_NAMES.include?(basic.keys[0]) then
+            # print "basic.size = #{basic.size}\n"
+            if basic.size == 1 then
+                # print "name = #{HDLRuby.const_reduce(basic.keys[0])}\n"
+            end
+            if is_basic_HDLRuby?(basic) then
                 # Yes, rebuild the object.
                 # First get the class.
-                klass = HDLRuby.const_get(basic.key[0])
+                klass = HDLRuby.const_get(basic.keys[0])
+                # print "klass=#{klass}\n"
                 # The the content.
                 content = basic.values[0]
                 # Single instance variables are set with the constructure,
                 # separate them from the multiple instances.
                 multiples,singles = content.partition do |k,v|
-                    v.is_a?(Hash) or v.is_a?(Array)
+                    (v.is_a?(Hash) or v.is_a?(Array)) and !is_basic_HDLRuby?(v)
                 end
                 # Create the object.
                 object = klass.new(*singles.map{|k,v| basic_to_value(v) })
@@ -104,11 +123,14 @@ module HDLRuby
                         object.send(add_meth, basic_to_value(elem) )
                     end
                 end
+                return object
+            else
+                # No, this a standard hash, keep it as is but convert its 
+                # contents.
+                return basic.map do |k,v|
+                    [ basic_to_value(k), basic_to_value(v) ]
+                end.to_h
             end
-            # No, this a standard hash, keep it as is but convert its contents.
-            return basic.map do |k,v|
-                [ basic_to_value(k), basic_to_value(v) ]
-            end.to_h
         else
             # Other cases should happen.
             raise "Invalid class for a basic object: #{basic.class}."
@@ -117,7 +139,7 @@ module HDLRuby
 
 
     # Convert a stream to a HDLRuby list of objects.
-    def from_yaml(stream)
+    def self.from_yaml(stream)
         # Get the basic structure from the stream.
         basic = YAML.load_stream(stream)
         # Convert the basic structure to HDLRuby objects.
@@ -145,7 +167,7 @@ module HDLRuby
                 # print "Adding type with name=#{self.name}\n"
                 types[self.name] = self
                 # And return the name.
-                return self.name
+                return self.name.to_s
             end
             # print "to_basic for class=#{self.class}\n"
             # Create the hash which will contains the content of the object.
@@ -156,10 +178,10 @@ module HDLRuby
             class_name = self.class.to_s
             if top then
                 # Top object: keep the right-most module in the name.
-                class_name = class_name.split("::")[-2..-1].join("::")
+                class_name = HDLRuby.const_reduce(class_name,2)
             else
                 # Not a top object: keep only the class name.
-                class_name = class_name.split("::").last
+                class_name = HDLRuby.const_reduce(class_name)
             end
 
             result = { class_name => content }
@@ -180,7 +202,7 @@ module HDLRuby
                 # current object.
                 result = [ result ]
                 types.each do |name,type|
-                    print "Dumping type with name=#{name}\n"
+                    # print "Dumping type with name=#{name}\n"
                     type_basic = type.to_basic(true)
                     type_basic = type_basic.last if type_basic.is_a?(Array)
                     result.unshift(type_basic)

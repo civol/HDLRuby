@@ -72,10 +72,10 @@ $sNames.each_with_index do |name,i|
     begin
         if i > 0 then
             # SignalT directly used.
-            $signalIs[i] = SignalI.new($sig_bit,name)
+            $signalIs[i] = SignalI.new(name,$sig_bit)
         else
             # SignalT designated by name.
-            $signalIs[i] = SignalI.new(:bit8,name)
+            $signalIs[i] = SignalI.new(name,:bit8)
         end
         if $signalIs[i].signalT != $sig_bit then
             puts "Error: invalid signal type, got #{$signalIs[name].signalT} " +
@@ -124,12 +124,12 @@ end
 
 print "\nCompleting $systemT1 for further use... "
 begin
-    $systemT1.add_input(SignalI.new($sig_bit,"i0"))
-    $systemT1.add_input(SignalI.new($sig_bit,"i1"))
-    $systemT1.add_input(SignalI.new($sig_bit,"i2"))
-    $systemT1.add_output(SignalI.new($sig_bit,"o0"))
-    $systemT1.add_output(SignalI.new($sig_bit,"o1"))
-    $systemT1.add_inout(SignalI.new($sig_bit,"io"))
+    $systemT1.add_input(SignalI.new("i0",$sig_bit))
+    $systemT1.add_input(SignalI.new("i1",$sig_bit))
+    $systemT1.add_input(SignalI.new("i2",$sig_bit))
+    $systemT1.add_output(SignalI.new("o0",$sig_bit))
+    $systemT1.add_output(SignalI.new("o1",$sig_bit))
+    $systemT1.add_inout(SignalI.new("io",$sig_bit))
     puts "Ok."
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
@@ -698,6 +698,29 @@ rescue Exception => e
     $success = false
 end
 puts "YAML result:", $yaml_str
+
+print "\n\n Regenerating the objects from the YAML string... "
+begin
+    $systemTx = HDLRuby.from_yaml($yaml_str)[-1]
+    $yaml_str2 = $systemTx.to_yaml
+    puts "YAML result2:", $yaml_str2
+    if ($yaml_str != $yaml_str2) then
+        puts "Error: the regenerated system type is different from the original one."
+        strs = $yaml_str.each_line
+        $yaml_str2.each_line.with_index do |line2,i|
+            line = strs.next
+            if line2 != line then
+                print "  line ##{i} differs.\n    Got #{line2}    But #{line}"
+            end
+        end
+        $success = false
+    end
+    puts "Ok."
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
+
 
     
 

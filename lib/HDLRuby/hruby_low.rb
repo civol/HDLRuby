@@ -507,17 +507,18 @@ module HDLRuby::Low
         attr_reader :signalT
 
         # Creates a new signal instance of +signalT+ named +name+.
-        def initialize(signalT, name = "")
+        def initialize(name, signalT)
+            # Set the name as a symbol.
+            @name = name.to_sym
             # Check and set the signal type.
             if signalT.respond_to?(:to_sym) then
                 # The signal is specified by name, get it.
                 signalT = SignalT.get(signalT.to_sym)
-            elsif !signalT.is_a?(SignalT)
-                raise "Invalid class for a signal: #{signal.class}"
+            end
+            if !signalT.is_a?(SignalT) then
+                raise "Invalid class for a signal: #{signalT.class}"
             end
             @signalT = signalT
-            # Set the name as a symbol.
-            @name = name.to_sym
         end
     end
 
@@ -533,16 +534,19 @@ module HDLRuby::Low
 
         # Creates a new system instance of system type +systemT+ named +name+.
         def initialize(name, systemT)
-            # Check and set the systemT.
-            if systemT.respond_to?(:to_sym) then
-                # The system is specified by name, get it.
-                systemT = SystemT.get(systemT.to_sym)
-            elsif !systemT.is_a?(SystemT)
-                raise "Invalid class for a system: #{systemT.class}"
-            end
-            @systemT = systemT
+            # print "initialize with name=#{name}, systemT=#{systemT}\n"
             # Set the name as a symbol.
             @name = name.to_sym
+            # Check and set the systemT.
+            if systemT.respond_to?(:to_sym) then
+                # print "systemT symbol: #{systemT.to_sym}\n"
+                # The system is specified by name, get it.
+                systemT = SystemT.get(systemT.to_sym)
+            end
+            if !systemT.is_a?(SystemT) then
+                raise "Invalid class for a system type: #{systemT.class}"
+            end
+            @systemT = systemT
         end
     end
 
@@ -787,15 +791,15 @@ module HDLRuby::Low
             @operator = operator.to_sym
         end
 
-        # Iterates over the children of the operation.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_children(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_input) unless ruby_block
-            # A block? Apply it on each children.
-            @children.each(&ruby_block)
-        end
+        # # Iterates over the children of the operation.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_children(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_input) unless ruby_block
+        #     # A block? Apply it on each children.
+        #     @children.each(&ruby_block)
+        # end
     end
 
 
@@ -812,13 +816,17 @@ module HDLRuby::Low
             unless child.is_a?(Expression)
                 raise "Invalid class for an expression: #{child.class}"
             end
-            @children = [ child ]
+            # @children = [ child ]
+            @child = child
         end
 
-        # Get the child.
-        def child
-            return @children[0]
-        end
+        # # Get the child.
+        # def child
+        #     return @children[0]
+        # end
+
+        # The child.
+        attr_reader :child
     end
 
 
@@ -838,18 +846,26 @@ module HDLRuby::Low
             unless right.is_a?(Expression)
                 raise "Invalid class for an expression: #{right.class}"
             end
-            @children = [ left, right ]
+            # @children = [ left, right ]
+            @left = left
+            @right = right
         end
 
-        # Get the left child.
-        def left
-            return @children[0]
-        end
+        # # Get the left child.
+        # def left
+        #     return @children[0]
+        # end
 
-        # Get the right child.
-        def right
-            return @children[1]
-        end
+        # # Get the right child.
+        # def right
+        #     return @children[1]
+        # end
+
+        # The left child.
+        attr_reader :left
+
+        # The right child.
+        attr_reader :right
     end
 
 
@@ -872,23 +888,35 @@ module HDLRuby::Low
             unless right.is_a?(Expression)
                 raise "Invalid class for an expression: #{right.class}"
             end
-            @children = [ left, middle, right ]
+            # @children = [ left, middle, right ]
+            @left = left
+            @middle = middle
+            @right = right
         end
 
-        # Get the left child.
-        def left
-            return @child[0]
-        end
+        # # Get the left child.
+        # def left
+        #     return @child[0]
+        # end
 
-        # Get the middle child.
-        def middle
-            return @child[1]
-        end
+        # # Get the middle child.
+        # def middle
+        #     return @child[1]
+        # end
 
-        # Get the right child.
-        def left
-            return @child[2]
-        end
+        # # Get the right child.
+        # def left
+        #     return @child[2]
+        # end
+
+        # The left child.
+        attr_reader :left
+
+        # The middle child.
+        attr_reader :middle
+
+        # The right child.
+        attr_reader :right
     end
 
 
