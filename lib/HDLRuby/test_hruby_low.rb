@@ -58,6 +58,26 @@ end
 #     $success = false
 # end
 
+print "\nCreating a 8-bit data type... "
+begin
+    $bit8 = Type.new(:bit8,:bit,8)
+    if $bit8.name != :bit8 then
+        puts "Error: invalid name: got #{$bit8.name} but expecting bit8."
+        $success = false
+    elsif $bit8.base != :bit then
+        puts "Error: invalid type: got #{$bit8.type} but expecting bit."
+        $success = false
+    elsif $bit8.size != 8 then
+        puts "Error: invalid size: got #{$bit8.size} but expecting 8."
+        $success = false
+    else
+        puts "Ok."
+    end
+rescue Exception => e
+    puts "Error: unexpected exception raised #{e.inspect}\n"
+    $success = false
+end
+
 # puts "\nCreating signal instances from the previous signal type..."
 # $sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
 #            "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2",
@@ -102,18 +122,14 @@ $sNames.each_with_index do |name,i|
     print "  Signal #{name}... "
     begin
         # SignalT directly used.
-        $signals[i] = Signal.new(name,:bit,8)
+        $signals[i] = Signal.new(name,:bit8)
         if $signals[i].name != name.to_sym then
             puts "Error: invalid signal name, got #{$signalIs[i].name} " +
                  " but expecting #{name}"
             $success = false
-        elsif $signals[i].type != :bit then
+        elsif $signals[i].type != $bit8 then
             puts "Error: invalid signal type, got #{$signals[i].type} " +
                  " but expecting #{:bit}"
-            $success = false
-        elsif $signals[i].size != 8 then
-            puts "Error: invalid signal size, got #{$signals[i].size} " +
-                 " but expecting #{8}"
             $success = false
         else
             puts "Ok."
@@ -192,12 +208,12 @@ print "\nCompleting $systemT1 for further use... "
 #     $success = false
 # end
 begin
-    $systemT1.add_input(Signal.new("i0",:bit,8))
-    $systemT1.add_input(Signal.new("i1",:bit,8))
-    $systemT1.add_input(Signal.new("i2",:bit,8))
-    $systemT1.add_output(Signal.new("o0",:bit,8))
-    $systemT1.add_output(Signal.new("o1",:bit,8))
-    $systemT1.add_inout(Signal.new("io",:bit,8))
+    $systemT1.add_input(Signal.new("i0",:bit8))
+    $systemT1.add_input(Signal.new("i1",:bit8))
+    $systemT1.add_input(Signal.new("i2",:bit8))
+    $systemT1.add_output(Signal.new("o0",:bit8))
+    $systemT1.add_output(Signal.new("o1",:bit8))
+    $systemT1.add_inout(Signal.new("io",:bit8))
     puts "Ok."
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"

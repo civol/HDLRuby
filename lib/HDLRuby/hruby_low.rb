@@ -448,6 +448,44 @@ module HDLRuby::Low
     #         SignalTs[@name] = self
     #     end
     # end
+    
+    ##
+    # Describes a data type.
+    class Type
+        # The name of the type
+        attr_reader :name
+
+        # The base type
+        attr_reader :base
+
+        # The size in bits
+        attr_reader :size
+
+        # Library of the existing types.
+        Types = { }
+        private_constant :Types
+
+        # Get an existing signal type by +name+.
+        def self.get(name)
+            return Types[name.to_sym]
+        end
+
+        # Creates a new type named +name+ based of +base+ and of +size+ bits.
+        def initialize(name,base,size)
+            # Check and set the name.
+            @name = name.to_sym
+            # Check and set the base.
+            @base = base.to_sym
+            # Check and set the size.
+            @size = size.to_i
+
+            # Update the library of existing types.
+            # Note: no check is made so an exisiting type with a same
+            # name is overwritten.
+            Types[@name] = self
+        end
+    end
+
 
 
     ##
@@ -691,17 +729,18 @@ module HDLRuby::Low
         # The type of the signal
         attr_reader :type
 
-        # The size in bits of the signal
-        attr_reader :size
-
-        # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
-        def initialize(name,type,size)
+        # Creates a new signal named +name+ typed as +type+.
+        def initialize(name,type)
             # Check and set the name.
             @name = name.to_sym
             # Check and set the type.
-            @type = type.to_sym
-            # Check and set the size.
-            @size = size.to_i
+            if type.respond_to?(:to_sym)
+                @type = Type.get(type)
+            elsif type.is_a?(Type) then
+                @type = type
+            else
+                raise "Invalid class for a type: #{type.class}."
+            end
         end
     end
 

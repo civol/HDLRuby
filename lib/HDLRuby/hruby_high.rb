@@ -143,22 +143,22 @@ module HDLRuby::High
     # end
 
 
-    ##
-    # Describes a high-level behavior type.
-    #
-    # NOTE: behavior types do not support mixins!
-    class BehaviorT < HDLRuby::Low::Behavior
-        include HType
+    # ##
+    # # Describes a high-level behavior type.
+    # #
+    # # NOTE: behavior types do not support mixins!
+    # class BehaviorT < HDLRuby::Low::Behavior
+    #     include HType
 
-        # Library of the existing behavior types.
-        BehaviorTs = { }
-        private_constant :BehaviorTs
+    #     # Library of the existing behavior types.
+    #     BehaviorTs = { }
+    #     private_constant :BehaviorTs
 
-        # Get an existing behavior type by +name+.
-        def self.get(name)
-            return BehaviorTs[name.to_sym]
-        end
-    end
+    #     # Get an existing behavior type by +name+.
+    #     def self.get(name)
+    #         return BehaviorTs[name.to_sym]
+    #     end
+    # end
 
 
     ##
@@ -206,24 +206,29 @@ module HDLRuby::High
     end
 
 
+    # ##
+    # # Describes a high-level behavior instance.
+    # class BehaviorI
+    #     # Creates a new behavior instance of behavior type +behaviorT+ named 
+    #     # +name+.
+    #     def initialize(name, behaviorT)
+    #         # Set the name as a symbol.
+    #         @name = name.to_sym
+    #         # Check and set the behaviorT.
+    #         if behaviorT.respond_to?(:to_sym) then
+    #             # The system is specified by name, get it.
+    #             behaviorT = BehaviorT.get(behaviorT.to_sym)
+    #         end
+    #         if !behaviorT.is_a?(SystemT) then
+    #             raise "Invalid class for a behavior type: #{behaviorT.class}"
+    #         end
+    #         @behaviorT = behaviorT
+    #     end
+    # end
+
     ##
-    # Describes a high-level behavior instance.
-    class BehaviorI
-        # Creates a new behavior instance of behavior type +behaviorT+ named 
-        # +name+.
-        def initialize(name, behaviorT)
-            # Set the name as a symbol.
-            @name = name.to_sym
-            # Check and set the behaviorT.
-            if behaviorT.respond_to?(:to_sym) then
-                # The system is specified by name, get it.
-                behaviorT = BehaviorT.get(behaviorT.to_sym)
-            end
-            if !behaviorT.is_a?(SystemT) then
-                raise "Invalid class for a behavior type: #{behaviorT.class}"
-            end
-            @behaviorT = behaviorT
-        end
+    # Describes a high-level behavior.
+    class Behavior < HDLRuby::Low::Behavior
     end
 
 
