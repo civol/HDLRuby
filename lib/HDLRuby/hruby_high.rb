@@ -137,12 +137,10 @@ module HDLRuby::High
     end
 
 
-    ##
-    # Describes a high-level signal type.
-    class SignalT < HDLRuby::Low::SignalT
-        include HMix
-        include HType
-    end
+    # ##
+    # # Describes a high-level signal type.
+    # class SignalT < HDLRuby::High::SystemT
+    # end
 
 
     ##
@@ -176,11 +174,17 @@ module HDLRuby::High
 
     # Declares a high-level system type named +name+, with +includes+ mixins
     # hardware types and using +block+ for instantiating.
-    def system(name, *includes, &block)
+    def def_sys(name, *includes, &block)
         # print "system block=#{block}\n"
         # Creates the resulting system.
         return SystemT.new(name,*includes,&block)
     end
+
+    # # Declares a high-level signal type named +name+, with +includes+ mixins
+    # # hardware types and using +block+ for instantiating.
+    # def def_sig(name, *includes, &block)
+    #     return SignalT.new(name,*includes,&block)
+    # end
 
 
     # Classes describing harware instances.
@@ -192,9 +196,13 @@ module HDLRuby::High
     end
 
 
+    # ##
+    # # Describes a high-level signal instance.
+    # class SignalI < HDLRuby::Low::SystemI
+    # end
     ##
-    # Describes a high-level signal instance.
-    class SignalI < HDLRuby::Low::SystemI
+    # Describes a high-level signal.
+    class Signal < HDLRuby::Low::Signal
     end
 
 
@@ -215,6 +223,15 @@ module HDLRuby::High
                 raise "Invalid class for a behavior type: #{behaviorT.class}"
             end
             @behaviorT = behaviorT
+        end
+    end
+
+
+    # Ensures constants defined is this module are prioritary.
+    def self.included(base)
+        if base.const_defined?(:Signal) then
+            base.send(:remove_const,:Signal)
+            base.const_set(:Signal,HDLRuby::Low::Signal)
         end
     end
 

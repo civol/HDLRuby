@@ -66,141 +66,141 @@ module HDLRuby::Low
 
         # Handling the signals.
 
-        # Adds input signal instance +signalI+.
-        def add_input(signalI)
-            # Checks and add the signalI.
-            unless signalI.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signalI.class}"
-            end
-            if @inputs.has_key?(signalI.name) then
-                raise "SignalI #{signalI.name} already present."
-            end
-            @inputs[signalI.name] = signalI
-        end
+        # # Adds input signal instance +signalI+.
+        # def add_input(signalI)
+        #     # Checks and add the signalI.
+        #     unless signalI.is_a?(SignalI)
+        #         raise "Invalid class for a signal instance: #{signalI.class}"
+        #     end
+        #     if @inputs.has_key?(signalI.name) then
+        #         raise "SignalI #{signalI.name} already present."
+        #     end
+        #     @inputs[signalI.name] = signalI
+        # end
 
-        # Adds output  signal instance +signalI+.
-        def add_output(signalI)
-            # Checks and add the signalI.
-            unless signalI.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signalI.class}"
-            end
-            if @outputs.has_key?(signalI.name) then
-                raise "SignalI #{signalI.name} already present."
-            end
-            @outputs[signalI.name] = signalI
-        end
+        # # Adds output  signal instance +signalI+.
+        # def add_output(signalI)
+        #     # Checks and add the signalI.
+        #     unless signalI.is_a?(SignalI)
+        #         raise "Invalid class for a signal instance: #{signalI.class}"
+        #     end
+        #     if @outputs.has_key?(signalI.name) then
+        #         raise "SignalI #{signalI.name} already present."
+        #     end
+        #     @outputs[signalI.name] = signalI
+        # end
 
-        # Adds inout signal instance +singalI+.
-        def add_inout(signalI)
-            # Checks and add the signalI.
-            unless signalI.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signalI.class}"
-            end
-            if @inouts.has_key?(signalI.name) then
-                raise "SignalI #{signalI.name} already present."
-            end
-            @inouts[signalI.name] = signalI
-        end
+        # # Adds inout signal instance +singalI+.
+        # def add_inout(signalI)
+        #     # Checks and add the signalI.
+        #     unless signalI.is_a?(SignalI)
+        #         raise "Invalid class for a signal instance: #{signalI.class}"
+        #     end
+        #     if @inouts.has_key?(signalI.name) then
+        #         raise "SignalI #{signalI.name} already present."
+        #     end
+        #     @inouts[signalI.name] = signalI
+        # end
 
-        # Adds inner signal instance +signalI+.
-        def add_inner(signalI)
-            # Checks and add the signalI.
-            unless signalI.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signalI.class}"
-            end
-            if @inners.has_key?(signalI.name) then
-                raise "SignalI #{signalI.name} already present."
-            end
-            @inners[signalI.name] = signalI
-        end
+        # # Adds inner signal instance +signalI+.
+        # def add_inner(signalI)
+        #     # Checks and add the signalI.
+        #     unless signalI.is_a?(SignalI)
+        #         raise "Invalid class for a signal instance: #{signalI.class}"
+        #     end
+        #     if @inners.has_key?(signalI.name) then
+        #         raise "SignalI #{signalI.name} already present."
+        #     end
+        #     @inners[signalI.name] = signalI
+        # end
 
-        # Iterates over the input signal instances.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_input(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_input) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @inputs.each_value(&ruby_block)
-        end
+        # # Iterates over the input signal instances.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_input(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_input) unless ruby_block
+        #     # A block? Apply it on each input signal instance.
+        #     @inputs.each_value(&ruby_block)
+        # end
 
-        # Iterates over the output signal instances.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_output(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_output) unless ruby_block
-            # A block? Apply it on each output signal instance.
-            @outputs.each_value(&ruby_block)
-        end
+        # # Iterates over the output signal instances.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_output(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_output) unless ruby_block
+        #     # A block? Apply it on each output signal instance.
+        #     @outputs.each_value(&ruby_block)
+        # end
 
-        # Iterates over the inout signal instances.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_inout(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_inout) unless ruby_block
-            # A block? Apply it on each inout signal instance.
-            @inouts.each_value(&ruby_block)
-        end
+        # # Iterates over the inout signal instances.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_inout(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_inout) unless ruby_block
+        #     # A block? Apply it on each inout signal instance.
+        #     @inouts.each_value(&ruby_block)
+        # end
 
-        # Iterates over the inner signal instances.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_inner(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_inner) unless ruby_block
-            # A block? Apply it on each inner signal instance.
-            @inners.each_value(&ruby_block)
-        end
+        # # Iterates over the inner signal instances.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_inner(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_inner) unless ruby_block
+        #     # A block? Apply it on each inner signal instance.
+        #     @inners.each_value(&ruby_block)
+        # end
 
-        # Iterates over all the signal instances (input, output, inout, inner).
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_signalI(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_signalI) unless ruby_block
-            # A block? Apply it on each signal instance.
-            @inputs.each_value(&ruby_block)
-            @outputs.each_value(&ruby_block)
-            @inouts.each_value(&ruby_block)
-            @inners.each_value(&ruby_block)
-        end
+        # # Iterates over all the signal instances (input, output, inout, inner).
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_signalI(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_signalI) unless ruby_block
+        #     # A block? Apply it on each signal instance.
+        #     @inputs.each_value(&ruby_block)
+        #     @outputs.each_value(&ruby_block)
+        #     @inouts.each_value(&ruby_block)
+        #     @inners.each_value(&ruby_block)
+        # end
 
-        ## Gets an input by +name+.
-        def get_input(name)
-            return @inputs[name]
-        end
+        # ## Gets an input by +name+.
+        # def get_input(name)
+        #     return @inputs[name]
+        # end
 
-        ## Gets an output by +name+.
-        def get_output(name)
-            return @outputs[name]
-        end
+        # ## Gets an output by +name+.
+        # def get_output(name)
+        #     return @outputs[name]
+        # end
 
-        ## Gets an inout by +name+.
-        def get_inout(name)
-            return @inouts[name]
-        end
+        # ## Gets an inout by +name+.
+        # def get_inout(name)
+        #     return @inouts[name]
+        # end
 
-        ## Gets an inner by +name+.
-        def get_inner(name)
-            return @inners[name]
-        end
+        # ## Gets an inner by +name+.
+        # def get_inner(name)
+        #     return @inners[name]
+        # end
 
-        ## Gets a signal instance by +name+.
-        def get_signalI(name)
-            # Try in the inputs.
-            signalI = get_input(name)
-            return signalI if signalI
-            # Try in the outputs.
-            signalI = get_output(name)
-            return signalI if signalI
-            # Try in the inouts.
-            signalI = get_inout(name)
-            return signalI if signalI
-            # Not found yet, look into the inners.
-            return get_inner(name)
-        end
+        # ## Gets a signal instance by +name+.
+        # def get_signalI(name)
+        #     # Try in the inputs.
+        #     signalI = get_input(name)
+        #     return signalI if signalI
+        #     # Try in the outputs.
+        #     signalI = get_output(name)
+        #     return signalI if signalI
+        #     # Try in the inouts.
+        #     signalI = get_inout(name)
+        #     return signalI if signalI
+        #     # Not found yet, look into the inners.
+        #     return get_inner(name)
+        # end
 
         # Handling the system instances.
 
@@ -214,6 +214,142 @@ module HDLRuby::Low
                 raise "SystemI #{systemI.name} already present."
             end
             @systemIs[systemI.name] = systemI
+        end
+        
+        # Adds input signal +signal+.
+        def add_input(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @inputs.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @inputs[signal.name] = signal
+        end
+
+        # Adds output  signal +signal+.
+        def add_output(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @outputs.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @outputs[signal.name] = signal
+        end
+
+        # Adds inout signal +signal+.
+        def add_inout(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @inouts.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @inouts[signal.name] = signal
+        end
+
+        # Adds inner signal +signal+.
+        def add_inner(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @inners.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @inners[signal.name] = signal
+        end
+
+        # Iterates over the input signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_input(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_input) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @inputs.each_value(&ruby_block)
+        end
+
+        # Iterates over the output signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_output(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_output) unless ruby_block
+            # A block? Apply it on each output signal instance.
+            @outputs.each_value(&ruby_block)
+        end
+
+        # Iterates over the inout signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inout(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_inout) unless ruby_block
+            # A block? Apply it on each inout signal instance.
+            @inouts.each_value(&ruby_block)
+        end
+
+        # Iterates over the inner signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inner(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_inner) unless ruby_block
+            # A block? Apply it on each inner signal instance.
+            @inners.each_value(&ruby_block)
+        end
+
+        # Iterates over all the signals (input, output, inout, inner).
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal) unless ruby_block
+            # A block? Apply it on each signal instance.
+            @inputs.each_value(&ruby_block)
+            @outputs.each_value(&ruby_block)
+            @inouts.each_value(&ruby_block)
+            @inners.each_value(&ruby_block)
+        end
+
+        ## Gets an input signal by +name+.
+        def get_input(name)
+            return @inputs[name]
+        end
+
+        ## Gets an output signal by +name+.
+        def get_output(name)
+            return @outputs[name]
+        end
+
+        ## Gets an inout signal by +name+.
+        def get_inout(name)
+            return @inouts[name]
+        end
+
+        ## Gets an inner signal by +name+.
+        def get_inner(name)
+            return @inners[name]
+        end
+
+        ## Gets a signal by +name+.
+        def get_signal(name)
+            # Try in the inputs.
+            signal = get_input(name)
+            return signal if signal
+            # Try in the outputs.
+            signal = get_output(name)
+            return signal if signal
+            # Try in the inouts.
+            signal = get_inout(name)
+            return signal if signal
+            # Not found yet, look into the inners.
+            return get_inner(name)
         end
 
         # Iterates over the system instances.
@@ -274,44 +410,44 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a signal type.
-    class SignalT
-    # class SignalT < SystemT # This is too high-level to do that
-        
-        # The name of the signal
-        attr_reader :name
+    # ##
+    # # Describes a signal type.
+    # class SignalT
+    # # class SignalT < SystemT # This is too high-level to do that
+    #     
+    #     # The name of the signal
+    #     attr_reader :name
 
-        # The type of the signal
-        attr_reader :type
+    #     # The type of the signal
+    #     attr_reader :type
 
-        # The size in bits of the signal
-        attr_reader :size
+    #     # The size in bits of the signal
+    #     attr_reader :size
 
-        # Library of the existing signal types.
-        SignalTs = { }
-        private_constant :SignalTs
+    #     # Library of the existing signal types.
+    #     SignalTs = { }
+    #     private_constant :SignalTs
 
-        # Get an existing signal type by +name+.
-        def self.get(name)
-            return SignalTs[name.to_sym]
-        end
+    #     # Get an existing signal type by +name+.
+    #     def self.get(name)
+    #         return SignalTs[name.to_sym]
+    #     end
 
-        # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
-        def initialize(name,type,size)
-            # Check and set the name.
-            @name = name.to_sym
-            # Check and set the type.
-            @type = type.to_sym
-            # Check and set the size.
-            @size = size.to_i
+    #     # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
+    #     def initialize(name,type,size)
+    #         # Check and set the name.
+    #         @name = name.to_sym
+    #         # Check and set the type.
+    #         @type = type.to_sym
+    #         # Check and set the size.
+    #         @size = size.to_i
 
-            # Update the library of existing signal types.
-            # Note: no check is made so an exisiting signal type with a same
-            # name is overwritten.
-            SignalTs[@name] = self
-        end
-    end
+    #         # Update the library of existing signal types.
+    #         # Note: no check is made so an exisiting signal type with a same
+    #         # name is overwritten.
+    #         SignalTs[@name] = self
+    #     end
+    # end
 
 
     ##
@@ -407,18 +543,31 @@ module HDLRuby::Low
     class Event
         # The type of event.
         attr_reader :type
-        # The signal instance of the event.
-        attr_reader :signalI
+        # # The signal instance of the event.
+        # attr_reader :signalI
+        # The signal of the event.
+        attr_reader :signal
         
-        # Creates a new +type+ sort of event on signal instance +signalI+.
-        def initialize(type,signalI)
+        # # Creates a new +type+ sort of event on signal instance +signalI+.
+        # def initialize(type,signalI)
+        #     # Check and set the type.
+        #     @type = type.to_sym
+        #     # Check and set the signal instance.
+        #     unless signalI.is_a?(SignalI)
+        #         raise "Invalid class for a signal instance: #{signalI.class}"
+        #     end
+        #     @signalI = signalI
+        # end
+
+        # Creates a new +type+ sort of event on signal +signal+.
+        def initialize(type,signal)
             # Check and set the type.
             @type = type.to_sym
-            # Check and set the signal instance.
-            unless signalI.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signalI.class}"
+            # Check and set the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal: #{signal.class}"
             end
-            @signalI = signalI
+            @signal = signal
         end
     end
 
@@ -497,39 +646,63 @@ module HDLRuby::Low
     end
 
 
+    # ##
+    # # Describes a signal instance.
+    # class SignalI
+    #     # The name of the instance if any.
+    #     attr_reader :name
+
+    #     # The instantiated signal type.
+    #     attr_reader :signalT
+
+    #     # Creates a new signal instance of +signalT+ named +name+.
+    #     def initialize(name, signalT)
+    #         # Set the name as a symbol.
+    #         @name = name.to_sym
+    #         # Check and set the signal type.
+    #         if signalT.respond_to?(:to_sym) then
+    #             # The signal is specified by name, get it.
+    #             signalT = SignalT.get(signalT.to_sym)
+    #         end
+    #         if !signalT.is_a?(SignalT) then
+    #             raise "Invalid class for a signal: #{signalT.class}"
+    #         end
+    #         @signalT = signalT
+    #     end
+
+    #     # Delegate inner accesses to the signal type.
+    #     extend Forwardable
+    #     
+    #     # @!method type
+    #     #   @see SignalT#type
+    #     # @!method size
+    #     #   @see SignalT#size
+    #     def_delegators :@signalT,
+    #                    :type, :size
+    # end
+
     ##
-    # Describes a signal instance.
-    class SignalI
-        # The name of the instance if any.
+    # Describes a signal.
+    class Signal
+        
+        # The name of the signal
         attr_reader :name
 
-        # The instantiated signal type.
-        attr_reader :signalT
+        # The type of the signal
+        attr_reader :type
 
-        # Creates a new signal instance of +signalT+ named +name+.
-        def initialize(name, signalT)
-            # Set the name as a symbol.
+        # The size in bits of the signal
+        attr_reader :size
+
+        # Creates a new signal named +name+ typed as +type+ and of +size+ bits.
+        def initialize(name,type,size)
+            # Check and set the name.
             @name = name.to_sym
-            # Check and set the signal type.
-            if signalT.respond_to?(:to_sym) then
-                # The signal is specified by name, get it.
-                signalT = SignalT.get(signalT.to_sym)
-            end
-            if !signalT.is_a?(SignalT) then
-                raise "Invalid class for a signal: #{signalT.class}"
-            end
-            @signalT = signalT
+            # Check and set the type.
+            @type = type.to_sym
+            # Check and set the size.
+            @size = size.to_i
         end
-
-        # Delegate inner accesses to the signal type.
-        extend Forwardable
-        
-        # @!method type
-        #   @see SignalT#type
-        # @!method size
-        #   @see SignalT#size
-        def_delegators :@signalT,
-                       :type, :size
     end
 
 
@@ -592,9 +765,11 @@ module HDLRuby::Low
         #   @see SystemT#each_behavior
         def_delegators :@systemT,
                        :each_input, :each_output, :each_inout, :each_inner,
-                       :each_signalI,
+                       # :each_signalI,
+                       :each_signal,
                        :get_input, :get_output, :get_inout, :get_inner,
-                       :get_signalI,
+                       # :get_signalI,
+                       :get_signal,
                        :each_systemI, :get_systemI,
                        :each_connection, :each_behavior
     end
@@ -613,15 +788,25 @@ module HDLRuby::Low
     # Describes a declare statement.
     class Declare < Statement
         # The declared signal instance.
-        attr_reader :signalI
+        # attr_reader :signalI
+        attr_reader :signal
 
-        # Creates a new statement declaring +signalI+.
-        def initialize(signalI)
+        # # Creates a new statement declaring +signalI+.
+        # def initialize(signalI)
+        #     # Check and set the declared signal instance.
+        #     unless signalI.is_a?(SignalI)
+        #         raise "Invalid class for declaring a signal instance: #{signal.class}"
+        #     end
+        #     @signalI = signalI
+        # end
+
+        # Creates a new statement declaring +signal+.
+        def initialize(signal)
             # Check and set the declared signal instance.
-            unless signalI.is_a?(SignalI)
-                raise "Invalid class for declaring a signal instance: #{signal.class}"
+            unless signal.is_a?(Signal)
+                raise "Invalid class for declaring a signal: #{signal.class}"
             end
-            @signalI = signalI
+            @signal = signal
         end
     end
 
@@ -1109,6 +1294,19 @@ module HDLRuby::Low
     #
     # This is the current system.
     class PortThis < Port 
+    end
+
+    module WithSignal
+        Signal = HDLRuby::Low::Signal
+    end
+
+
+    # Ensures constants defined is this module are prioritary.
+    def self.included(base)
+        if base.const_defined?(:Signal) then
+            base.send(:remove_const,:Signal)
+            base.const_set(:Signal,HDLRuby::Low::Signal)
+        end
     end
 
 end

@@ -10,17 +10,22 @@ module HDLRuby
 
 
     # The classes meant to support to_basic.
-    TO_BASICS = [Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior, 
+    TO_BASICS = [
+                 # Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior,
+                 Low::SystemT, Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
-                 Low::SignalI, Low::SystemI, Low::Connection, 
+                 # Low::SignalI, Low::SystemI, Low::Connection, 
+                 Low::Signal, Low::SystemI, Low::Connection, 
                  Low::Declare, Low::Transmit, Low::If, Low::Case, Low::Time, 
                  Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,
                  Low::PortConcat, Low::PortIndex, Low::PortRange,
-                 Low::PortName, Low::PortThis] 
+                 Low::PortName, Low::PortThis
+                ] 
     # The names of the classes of HFLRuby supporting to_basic
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
     # The classes describing types (must be described only once)
-    TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
+    # TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
+    TO_BASICS_TYPES = [Low::SystemT]
 
     # Tells if a +basic+ structure is a representation of an HDLRuby object.
     def self.is_basic_HDLRuby?(basic)
