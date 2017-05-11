@@ -174,7 +174,7 @@ module HDLRuby::High
 
     # Declares a high-level system type named +name+, with +includes+ mixins
     # hardware types and using +block+ for instantiating.
-    def def_sys(name, *includes, &block)
+    def system(name, *includes, &block)
         # print "system block=#{block}\n"
         # Creates the resulting system.
         return SystemT.new(name,*includes,&block)
