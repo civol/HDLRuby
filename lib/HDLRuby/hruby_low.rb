@@ -520,6 +520,16 @@ module HDLRuby::Low
             end
             @signalT = signalT
         end
+
+        # Delegate inner accesses to the signal type.
+        extend Forwardable
+        
+        # @!method type
+        #   @see SignalT#type
+        # @!method size
+        #   @see SignalT#size
+        def_delegators :@signalT,
+                       :type, :size
     end
 
 
@@ -548,6 +558,45 @@ module HDLRuby::Low
             end
             @systemT = systemT
         end
+
+        # Delegate inner accesses to the system type.
+        extend Forwardable
+        
+        # @!method each_input
+        #   @see SystemT#each_input
+        # @!method each_output
+        #   @see SystemT#each_output
+        # @!method each_inout
+        #   @see SystemT#each_inout
+        # @!method each_inner
+        #   @see SystemT#each_inner
+        # @!method each_signalI
+        #   @see SystemT#each_signalI
+        # @!method get_input
+        #   @see SystemT#get_input
+        # @!method get_output
+        #   @see SystemT#get_output
+        # @!method get_inout
+        #   @see SystemT#get_inout
+        # @!method get_inner
+        #   @see SystemT#get_inner
+        # @!method get_signalI
+        #   @see SystemT#get_signalI
+        # @!method each_systemI
+        #   @see SystemT#each_systemI
+        # @!method get_systemI
+        #   @see SystemT#get_systemI
+        # @!method each_connection
+        #   @see SystemT#each_connection
+        # @!method each_behavior
+        #   @see SystemT#each_behavior
+        def_delegators :@systemT,
+                       :each_input, :each_output, :each_inout, :each_inner,
+                       :each_signalI,
+                       :get_input, :get_output, :get_inout, :get_inner,
+                       :get_signalI,
+                       :each_systemI, :get_systemI,
+                       :each_connection, :each_behavior
     end
 
 
