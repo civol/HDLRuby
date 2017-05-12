@@ -1,21 +1,14 @@
-require "HDLRuby.rb"
+require "HDLRuby/hruby_base"
+require "HDLRuby/hruby_low"
 
 #
 # High-level libraries for describing digital hardware.        
 #######################################################
 module HDLRuby::High
 
-    # # Service methods: should not be used directly.
+    Base = HDLRuby::Base
+    Low  = HDLRuby::Low
 
-    # # Instantiate hardware type +htype+ to an instance of class +i_class+ with
-    # # name +i_name+ and possible +args+ arguments.
-    # def self.instantiate(htype,i_class,i_name,*args)
-    #     # Create the eigen type.
-    #     eigen = htype.class.new("")
-    #     eigen.instance_eval(*args,htype.instance_proc) if htype.instance_proc
-    #     # Create the instance.
-    #     return i_class.new(i_name,eigen)
-    # end
 
     ##
     # Module providing high-level features to hardware types.
@@ -72,7 +65,25 @@ module HDLRuby::High
             end
         end
 
-        # Instantiate the hardware type 
+        # Declares high-level input signals named +names+.
+        def input(*names)
+            ICIICI
+        end
+
+        # Declares high-level output signals named +names+.
+        def output(*names)
+            ICIICI
+        end
+
+        # Declares high-level inout signals named +names+.
+        def inout(*names)
+            ICIICI
+        end
+
+        # Declares high-level inner signals named +names+.
+        def signal(*names)
+            ICIICI
+        end
     end
 
     ##
@@ -117,7 +128,7 @@ module HDLRuby::High
 
     ## 
     # Describes a high-level system type.
-    class SystemT < HDLRuby::Low::SystemT
+    class SystemT < Base::SystemT
         include HMix
         include HType
 
@@ -137,38 +148,6 @@ module HDLRuby::High
     end
 
 
-    # ##
-    # # Describes a high-level signal type.
-    # class SignalT < HDLRuby::High::SystemT
-    # end
-
-
-    # ##
-    # # Describes a high-level behavior type.
-    # #
-    # # NOTE: behavior types do not support mixins!
-    # class BehaviorT < HDLRuby::Low::Behavior
-    #     include HType
-
-    #     # Library of the existing behavior types.
-    #     BehaviorTs = { }
-    #     private_constant :BehaviorTs
-
-    #     # Get an existing behavior type by +name+.
-    #     def self.get(name)
-    #         return BehaviorTs[name.to_sym]
-    #     end
-    # end
-
-
-    ##
-    # Describes a high-level data type.
-    #
-    # NOTE: data types do not support mixins nor instantiation.
-    class DataT
-    end
-
-
 
     # Methods for declaring type elements.
 
@@ -180,55 +159,24 @@ module HDLRuby::High
         return SystemT.new(name,*includes,&block)
     end
 
-    # # Declares a high-level signal type named +name+, with +includes+ mixins
-    # # hardware types and using +block+ for instantiating.
-    # def def_sig(name, *includes, &block)
-    #     return SignalT.new(name,*includes,&block)
-    # end
-
 
     # Classes describing harware instances.
 
 
     ##
     # Describes a high-level system instance.
-    class SystemI < HDLRuby::Low::SystemI
+    class SystemI < Base::SystemI
     end
 
 
-    # ##
-    # # Describes a high-level signal instance.
-    # class SignalI < HDLRuby::Low::SystemI
-    # end
-    ##
     # Describes a high-level signal.
-    class Signal < HDLRuby::Low::Signal
+    class Signal < Base::Signal
     end
 
-
-    # ##
-    # # Describes a high-level behavior instance.
-    # class BehaviorI
-    #     # Creates a new behavior instance of behavior type +behaviorT+ named 
-    #     # +name+.
-    #     def initialize(name, behaviorT)
-    #         # Set the name as a symbol.
-    #         @name = name.to_sym
-    #         # Check and set the behaviorT.
-    #         if behaviorT.respond_to?(:to_sym) then
-    #             # The system is specified by name, get it.
-    #             behaviorT = BehaviorT.get(behaviorT.to_sym)
-    #         end
-    #         if !behaviorT.is_a?(SystemT) then
-    #             raise "Invalid class for a behavior type: #{behaviorT.class}"
-    #         end
-    #         @behaviorT = behaviorT
-    #     end
-    # end
 
     ##
     # Describes a high-level behavior.
-    class Behavior < HDLRuby::Low::Behavior
+    class Behavior < Base::Behavior
     end
 
 

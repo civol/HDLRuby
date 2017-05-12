@@ -1,5 +1,4 @@
 require "HDLRuby/version"
-require "HDLRuby/hruby_low"
 require "HDLRuby/hruby_high"
 
 ##

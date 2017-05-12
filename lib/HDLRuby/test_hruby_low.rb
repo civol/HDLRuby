@@ -390,7 +390,7 @@ eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7"]
 def eName2Exp(name)
     port = $ports.find {|port| port.name == name }
     unless port
-        return Value.new(:bit,8,name.to_i)
+        return Value.new(:bit8,name.to_i)
     end
     return port
 end

@@ -12,8 +12,7 @@ $success = true
 
 print "Creating an empty system type... "
 begin
-    system :systemT0
-    $systemT0 = SystemT.get(:systemT0)
+    $systemT0 = system :systemT0
     unless $systemT0 then
         raise "Error: created system type not found."
         $success =false
@@ -39,10 +38,9 @@ end
 
 print "\nCreating a system type including a system instance... "
 begin
-   system :systemT1 do
+   $systemT1 = system :systemT1 do
        systemT0 :my_system
    end
-   $systemT1 = SystemT.get(:systemT1)
    unless $systemT1 then
        raise "Error: created system type not found."
        $success =false
