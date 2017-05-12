@@ -9,40 +9,78 @@ module HDLRuby::High
     Base = HDLRuby::Base
     Low  = HDLRuby::Low
 
+    # Handle the namespaces for accessing the hardware referencing methods.
+
+    # The namespace stack.
+    NameSpace = [self]
+    private_constant :NameSpace
+
+    # Pushes namespace +obj+.
+    def self.space_push(obj)
+        NameSpace.push(obj)
+    end
+
+    # Pops a namespace.
+    def self.space_pop
+        if NameSpace.size <= 1 then
+            raise "Internal error: cannot pop further namespaces."
+        end
+        NameSpace.pop
+    end
+
+    # Gets the top of the stack.
+    def self.space_top
+        NameSpace[-1]
+    end
+
+    # Registers hardware referencing method +name+ to the current namespace.
+    def self.space_reg(name,&block)
+        # print "registering #{name} in #{NameSpace[-1]}\n"
+        # Register it in the top object of the namespace stack.
+        if NameSpace[-1].respond_to?(:define_method) then
+            NameSpace[-1].send(:define_method,name.to_sym,&block)
+        else
+            NameSpace[-1].send(:define_singleton_method,name.to_sym,&block)
+        end
+    end
+
+    # Looks up and calls method +name+ from the namespace stack with arguments
+    # +args+.
+    def self.space_call(name,*args)
+        # print "space_call with name=#{name}\n"
+        # Ensures name is a symbol.
+        name = name.to_sym
+        # Look from the top of the stack.
+        NameSpace.reverse_each do |space|
+            if space.respond_to?(name) then
+                # The method is found, call it.
+                return space.send(name,*args)
+            end
+        end
+        # Not found.
+        raise NoMethodError.new("undefined method",name)
+    end
+
 
     ##
     # Module providing high-level features to hardware types.
     module HType
+        High = HDLRuby::High
+
         # The proc used for instantiating the hardware type.
         attr_reader :instance_proc
         
         # The instantiation target class.
         attr_reader :instance_class
 
-        # # Sets the proc for instantiating the hardware type to +block+.
-        # def instance_proc=(block)
-        #     # Checks and sets the proc.
-        #     unless block.is_a?(Proc) then
-        #         raise "Invalid class for an instantiation proc: #{block.class}."
-        #     end
-        #     @instance_proc = block
-        # end
-
-        # # Sets the instantiation target class to +klass+.
-        # def instance_class=(klass)
-        #     # Checks and sets the class.
-        #     unless klass.is_a?(Class) then
-        #         raise "Invalid class for an instantiation class: #{klass.class}."
-        #     end
-        #     @instance_class = klass
-        # end
-
         # Instantiate the hardware type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
             eigen = self.class.new("")
+            High.space_push(eigen)
             eigen.instance_eval(*args,&@instance_proc) if @instance_proc
+            High.space_pop
             # Create the instance.
             return @instance_class.new(i_name,eigen)
         end
@@ -56,13 +94,29 @@ module HDLRuby::High
             @instance_proc = block
             # Set the target instantiation class.
             @instance_class = klass
+
+            # Unnamed types do not have associated access method.
+            return if name.empty?
+
             # Set the hdl-like instantiation method.
-            HDLRuby::High.send(:define_method,name.to_sym) do |i_name,*args|
+            # HDLRuby::High.send(:define_method,name.to_sym) do |i_name,*args|
+            #     # Instantiate.
+            #     instance = self.instantiate(i_name,*args)
+            #     # Add the instance.
+            #     binding.receiver.send(add_instance,instance)
+            # end
+            obj = self # For using the right self within the proc
+            High.space_reg(name.to_sym) do |i_name,*args|
                 # Instantiate.
-                instance = self.instantiate(i_name,*args)
+                instance = obj.instantiate(i_name,*args)
                 # Add the instance.
-                binding.receiver.send(add_instance,instance)
+                High.space_top.send(add_instance,instance)
             end
+        end
+
+        # Missing methods are looked up in the upper level of the namespace.
+        def method_missing(m, *args, &block)
+            High.space_call(m,*args,&block)
         end
 
         # Declares high-level input signals named +names+.
