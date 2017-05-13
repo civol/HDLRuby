@@ -1,0 +1,43 @@
+---
+Type:
+  name: bit8
+  base: bit
+  size: 8
+---
+SystemT:
+  name: adder
+  inputs:
+  - Signal:
+      name: x
+      type: bit8
+  - Signal:
+      name: y
+      type: bit8
+  outputs:
+  - Signal:
+      name: s
+      type: bit8
+  inouts: {}
+  inners: {}
+  systemIs: {}
+  connections:
+  - Connection:
+      left:
+        PortName:
+          port:
+            PortThis: {}
+          name: o
+      right:
+        Binary:
+          operator: "+"
+          left:
+            PortName:
+              port:
+                PortThis: {}
+              name: i0
+          right:
+            PortName:
+              port:
+                PortThis: {}
+              name: i1
+  behaviors: []

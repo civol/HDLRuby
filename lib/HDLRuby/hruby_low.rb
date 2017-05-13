@@ -1,6 +1,6 @@
 require "HDLRuby/hruby_base"
 
-#
+##
 # Low-level libraries for describing digital hardware.        
 #######################################################
 module HDLRuby::Low

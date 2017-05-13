@@ -1,4 +1,4 @@
-#
+##
 # Library for describing the basic structures of the hardware component.
 #
 # NOTE: not meant do be used directly, please @see HDLRuby::High and
