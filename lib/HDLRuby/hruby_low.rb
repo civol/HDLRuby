@@ -632,7 +632,8 @@ module HDLRuby::Low
 
 
     # Ensures constants defined is this module are prioritary.
-    def self.included(base)
+    # @!visibility private
+    def self.included(base) # :nodoc:
         if base.const_defined?(:Signal) then
             base.send(:remove_const,:Signal)
             base.const_set(:Signal,HDLRuby::Low::Signal)

@@ -28,7 +28,7 @@ module HDLRuby::High
         NameSpace.pop
     end
 
-    # Gets the top of the stack.
+    # Gets the top of the namespace stack.
     def self.space_top
         NameSpace[-1]
     end
@@ -565,7 +565,8 @@ module HDLRuby::High
 
 
     # Ensures constants defined is this module are prioritary.
-    def self.included(base)
+    # @!visibility private
+    def self.included(base) # :nodoc:
         if base.const_defined?(:Signal) then
             base.send(:remove_const,:Signal)
             base.const_set(:Signal,HDLRuby::High::Signal)
