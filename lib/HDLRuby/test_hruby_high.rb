@@ -66,6 +66,9 @@ begin
        {header: bit[4], data: bit[28]}.inner :frame
        union(int: signed[32], uint: bit[32]).inout :value
        sigT0.inner :my_sig
+
+       behavior(i0.posedge) do
+       end
    end
    unless $systemT1 then
        raise "Error: created system type not found."
@@ -177,6 +180,22 @@ begin
     elsif !systemI1Inouts[0].type.get_type(:int).is_a?(TypeVector) then
         puts "Error: invalid inout type record for int, got #{systemI1Inouts[0].type.get_type(:data).class} but expecting TypeVector."
         $success = false
+    end
+
+    systemI1Behaviors = $systemI1.each_behavior.to_a
+    if systemI1Behaviors.size != 1 then
+        puts "Error: invalid number of behaviors, got #{systemI1Behaviors.size} but expecting 1."
+        $success = false
+    end
+    systemI1Behavior = systemI1Behaviors[0]
+    systemI1Events = systemI1Behavior.each_event.to_a
+    if systemI1Events.size != 1 then
+        puts "Error: invalid number of events, got #{systemI1Events.size} but expecting 1."
+        $success = false
+    elsif systemI1Events[0].type != :posedge then
+        puts "Error: invalid type of event, got #{systemI1Events[0].type} but expecting posedge."
+    elsif systemI1Events[0].port.name != :i0 then
+        puts "Error: invalid event port, got #{systemI1Events[0].port.name} but expecting i0."
     end
 
     puts "Ok."

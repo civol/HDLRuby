@@ -58,22 +58,81 @@ module HDLRuby::High
             end
         end
         # Not found.
-        raise NoMethodError.new("undefined method",name)
+        raise NoMethodError.new("undefined local variable or method `#{name}'.")
     end
 
 
+
     ##
-    # Module providing high-level features to hardware types.
-    module HType
+    # Module providing mixin properties to hardware types.
+    module HMix
+        # Tells this is a hardware type supporting mixins.
+        #
+        # NOTE: only there for being checked through respond_to?
+        def is_hmix?
+            return true
+        end
+
+        # Mixins hardware types +htypes+.
+        def include(*htypes)
+            # Initialize the list of mixins hardware types if required.
+            @includes ||= []
+            # Check and add the hardware types.
+            htypes.each do |htype|
+                unless htype.respond_to?(:is_hmix?) then
+                    raise "Invalid class for mixin: #{htype.class}"
+                end
+                @includes << htype
+            end
+        end
+
+        # Mixins hardware types +htypes+ by extension.
+        def extend(htypes)
+            # Initialize the list of mixins hardware types if required.
+            @extends ||= []
+            # Check and add the hardware types.
+            htypes.each do |htype|
+                unless htype.respond_to?(:is_hmix?) then
+                    raise "Invalid class for mixin: #{htype.class}"
+                end
+                @includes << htype
+            end
+        end
+    end
+
+
+    # Classes describing hardware types.
+
+    ## 
+    # Describes a high-level system type.
+    class SystemT < Base::SystemT
         High = HDLRuby::High
 
-        # The proc used for instantiating the hardware type.
+        include HMix
+
+        ##
+        # Creates a new high-level system type named +name+ and inheriting
+        # from +mixins+.
+        #
+        # The proc +block+ is executed when instantiating the system.
+        def initialize(name, *mixins, &block)
+            # Initialize the system type structure.
+            super(name)
+            self.include(*mixins)
+            unless name.empty? then
+                # Named system instance, generate the instantiation command.
+                make_instantiater(name,SystemI,:add_systemI,&block)
+            end
+        end
+
+
+        # The proc used for instantiating the system type.
         attr_reader :instance_proc
         
         # The instantiation target class.
         attr_reader :instance_class
 
-        # Instantiate the hardware type to an instance named +i_name+ with
+        # Instantiate the system type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
@@ -146,67 +205,16 @@ module HDLRuby::High
                 self.add_inner(Signal.new(name,void))
             end
         end
-    end
 
-    ##
-    # Module providing mixin properties to hardware types.
-    module HMix
-        # Tells this is a hardware type supporting mixins.
-        #
-        # NOTE: only there for being checked through respond_to?
-        def is_hmix?
-            return true
-        end
-
-        # Mixins hardware types +htypes+.
-        def include(*htypes)
-            # Initialize the list of mixins hardware types if required.
-            @includes ||= []
-            # Check and add the hardware types.
-            htypes.each do |htype|
-                unless htype.respond_to?(:is_hmix?) then
-                    raise "Invalid class for mixin: #{htype.class}"
-                end
-                @includes << htype
+        # Declares a high-level behavior activated on a list of +events+, and
+        # built by executing +block+.
+        def behavior(*events, &block)
+            # Preprocess the events.
+            events.map! do |event|
+                event.to_event
             end
-        end
-
-        # Mixins hardware types +htypes+ by extension.
-        def extend(htypes)
-            # Initialize the list of mixins hardware types if required.
-            @extends ||= []
-            # Check and add the hardware types.
-            htypes.each do |htype|
-                unless htype.respond_to?(:is_hmix?) then
-                    raise "Invalid class for mixin: #{htype.class}"
-                end
-                @includes << htype
-            end
-        end
-    end
-
-
-    # Classes describing hardware types.
-
-    ## 
-    # Describes a high-level system type.
-    class SystemT < Base::SystemT
-        include HMix
-        include HType
-
-        ##
-        # Creates a new high-level system type named +name+ and inheriting
-        # from +mixins+.
-        #
-        # The proc +block+ is executed when instantiating the system.
-        def initialize(name, *mixins, &block)
-            # Initialize the system type structure.
-            super(name)
-            self.include(*mixins)
-            unless name.empty? then
-                # Named system instance, generate the instantiation command.
-                make_instantiater(name,SystemI,:add_systemI,&block)
-            end
+            # Create and add the resulting system.
+            self.add_behavior(Behavior.new(*events,&block))
         end
     end
 
@@ -380,6 +388,16 @@ module HDLRuby::High
             return @types[name.to_sym]
         end
 
+        # Iterates over the sub name/type pair.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each(&ruby_block)
+        end
+
         # Iterates over the sub types.
         #
         # Returns an enumerator if no ruby block is given.
@@ -540,9 +558,268 @@ module HDLRuby::High
     end
 
 
+    ## 
+    # Describes a high-level statement.
+    class Statement
+        # Converts to a statement
+        #
+        # May be redefined in sub classes.
+        def to_stmnt
+            return self
+        end
+    end
+
+
+    ##
+    # Module giving high-level expression properties
+    module HExpression
+        # Converts to an expression.
+        #
+        # NOTE: to be redefined in case of non-expression class.
+        def to_expr
+            return self
+        end
+
+        # Adds the unary operations generation.
+        [:"-@",:"@+",:"!",:"~"].each do |operator|
+            define_method(operator) do
+                return Unary.new(self.to_expr)
+            end
+        end
+
+        # Adds the binary operations generation.
+        [:"+",:"-",:"*",:"/",:"%",:"**",
+         :"&",:"|",:"^",:"<<",:">>",:"&&",:"||",
+         :"==",:"<",:">",:"<=",:">="].each do |operator|
+            define_method(operator) do |right|
+                return Binary.new(self.to_expr,right)
+            end
+        end
+    end
+
+
+    ##
+    # Module giving high-level properties for handling the arrow (<=) operator.
+    module HArrow
+        High = HDLRuby::High
+
+        # Creates a transmit, or connection with an +expr+.
+        #
+        # NOTE: it is converted afterward to an expression if required.
+        def <=(expr)
+            if High.space_top.is_a?(Block) then
+                # We are in a block, so generate and add a Transmit.
+                High.space_top.
+                    add_statement(Transmit.new(self.to_port,expr.to_expr))
+            else
+                # We are in a system type, so generate and add a Connection.
+                High.space_top.
+                    add_connection(Connection.new(self.to_port,expr.to_expr))
+            end
+        end
+    end
+
+
+
+    ##
+    # Describes a high-level unary expression
+    class Unary < Base::Unary
+        include HExpression
+    end
+
+
+    ##
+    # Describes a high-level binary expression
+    class Binary < Base::Binary
+        include HExpression
+    end
+
+
+    # ##
+    # # Describes a high-level ternary expression
+    # class Ternary < Base::Ternary
+    #     include HExpression
+    # end
+
+    ##
+    # Describes a section operation (generalization of the ternary operator).
+    #
+    # NOTE: choice is using the value of +select+ as an index.
+    class Select < Base::Select
+        include HExpression
+    end
+
+
+    ##
+    # Describes z high-level concat expression.
+    class Concat < Base::Concat
+        include HExpression
+    end
+
+    # Extends the Array class for conversion to a high-level expression.
+    class ::Array
+        include HArrow
+        # Converts to a high-level expression.
+        def to_expr
+            expr = Concat.new
+            self.each {|elem| expr.add_expression(elem.to_expr) }
+            expr
+        end
+
+        # Converts to a high-level port.
+        def to_port
+            expr = PortConcat.new
+            self.each {|elem| expr.add_port(elem.to_port) }
+            expr
+        end
+    end
+
+
+
+    ##
+    # Describes a high-level value.
+    class Value < Base::Value
+        include HExpression
+    end
+
+    # Extends the Numeric class for conversion to a high-level expression.
+    class ::Numeric
+        # Converts to a high-level expression.
+        def to_expr
+            return Value.new(self.class.to_s,self)
+        end
+    end
+
+
+
+    ## 
+    # Module giving high-level port properties.
+    module HPort
+        # Properties of expressions are also required
+        def self.included(klass)
+            klass.class_eval do
+                include HExpression
+                include HArrow
+            end
+        end
+
+        # Converts to a port.
+        #
+        # NOTE: to be redefined in case of non-port class.
+        def to_port
+            return self
+        end
+
+        # Converts to an event.
+        def to_event
+            return Event.new(:change,event)
+        end
+
+        # Creates an access to elements of range +rng+ of the signal.
+        #
+        # NOTE: +rng+ can be a single number in which case it is an index.
+        def [](rng)
+            if rng.respond_to?(:to_i) then
+                # Index case
+                return PortIndex.new(self.to_port,rng)
+            else
+                # Range case
+                return PortRange.new(self.to_port,rng)
+            end
+        end
+    end
+
+
+    ##
+    # Describes a high-level concat port.
+    class PortConcat < Base::PortConcat
+        include HPort
+    end
+
+    ##
+    # Describes a high-level index port.
+    class PortIndex < Base::PortIndex
+        include HPort
+    end
+
+    ##
+    # Describes a high-level range port.
+    class PortRange < Base::PortRange
+        include HPort
+    end
+
+    ##
+    # Describes a high-level name port.
+    class PortName < Base::PortName
+        include HPort
+    end
+
+    ##
+    # Describes a this port.
+    class PortThis < Base::PortThis
+        include HPort
+        
+        # The only useful instance of port this.
+        This = PortThis.new
+    end
+
+    # Gives access to the *this* port.
+    def this
+        PortThis::This
+    end
+
+
+    ##
+    # Describes a high-level event.
+    class Event < Base::Event
+        # Converts to an event.
+        def to_event
+            return self
+        end
+    end
+
+
+    ## 
+    # Decribes a transmission statement.
+    class Transmit < Base::Transmit
+        High = HDLRuby::High
+
+        # Converts the transmission to a comparison expression.
+        #
+        # NOTE: required because the <= operator is ambigous and by
+        # default produces a Transmit or a Connection.
+        def to_expr
+            # Remove the transission from the block.
+            High.space_top.delete_statement(self)
+            # Generate an expression.
+            return Binary.new(:<=,self.left,self.right)
+        end
+    end
+
+    ## 
+    # Describes a connection.
+    class Connection < Base::Connection
+        High = HDLRuby::High
+
+        # Converts the connection to a comparison expression.
+        #
+        # NOTE: required because the <= operator is ambigous and by
+        # default produces a Transmit or a Connection.
+        def to_expr
+            # Remove the connection from the system type.
+            High.space_top.delete_connection(self)
+            # Generate an expression.
+            return Binary.new(:<=,self.left,self.right)
+        end
+    end
+
+
+    ##
     # Describes a high-level signal.
     class Signal < Base::Signal
         High = HDLRuby::High
+
+        include HPort
 
         # Creates a new signal named +name+ typed as +type+.
         def initialize(name,type)
@@ -554,14 +831,142 @@ module HDLRuby::High
                 obj = self # For using the right self within the proc
                 High.space_reg(name) { obj }
             end
+
+            # Hierarchical type allows access to sub ports, so generate
+            # the corresponding methods.
+            if type.respond_to?(:each_name) then
+                type.each_name do |name|
+                    self.define_singleton_method(name) do
+                        PortName.new(self.to_port,name)
+                    end
+                end
+            end
         end
+
+        # Creates a positive edge event from the signal.
+        def posedge
+            return Event.new(:posedge,self.to_port)
+        end
+
+        # Creates a negative edge event from the signal.
+        def negedge
+            return Event.new(:negedge,self.to_port)
+        end
+
+        # Creates an edge event from the signal.
+        def edge
+            return Event.new(:edge,self.to_port)
+        end
+
+        # Creates a change event from the signal.
+        def change
+            return Event.new(:change,self.to_port)
+        end
+
+        # Converts to a port.
+        def to_port
+            return PortName.new(this,self.name)
+        end
+
+        # Converts to an expression.
+        def to_expr
+            return self.to_port
+        end
+    end
+
+
+    ##
+    # Describes a high-level block.
+    class Block < Base::Block
+        # Creates a new +type+ sort of block.
+        def initialize(type)
+            # Initialize the block.
+            super(type)
+
+            # High-level blocks can include inner signals.
+            @inners = {}
+        end
+
+        # Adds inner signal +signal+.
+        def add_inner(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @inners.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @inners[signal.name] = signal
+        end
+
+        # Iterates over the inner signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inner(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_inner) unless ruby_block
+            # A block? Apply it on each inner signal instance.
+            @inners.each_value(&ruby_block)
+        end
+        alias :each_signal :each_inner
+
+        ## Gets an inner signal by +name+.
+        def get_inner(name)
+            return @inners[name]
+        end
+        alias :get_signal :get_inner
+
+        # Declares high-level untyped inner signals named +names+.
+        def inner(*names)
+            names.each do |name|
+                self.add_inner(Signal.new(name,void))
+            end
+        end
+
+        # Creates and adds a new block typed +type+ built from +block+.
+        def add_block(type,&block)
+            # Creates and adds the block.
+            par_block = Block.new(:par)
+            self.add_statement(par_block)
+            # Build it by executing block.
+            High.space_push(par_block)
+            self.instance_eval(&block)
+            High.space_pop
+        end
+
+        # Creates a new parallel block built from +block+.
+        def par(&block)
+            self.add_block(:par,&block)
+        end
+
+        # Creates a new sequential block built from +block+.
+        def seq(&block)
+            self.add_block(:seq,&block)
+        end
+
     end
 
 
     ##
     # Describes a high-level behavior.
     class Behavior < Base::Behavior
+        High = HDLRuby::High
+
+        # Creates a new behavior activated on a list of +events+, and
+        # built by executing +block+.
+        def initialize(*events,&block)
+            # Initialize the behavior
+            super()
+            # Add the events.
+            events.each { |event| self.add_event(event) }
+            # Build the behavior with a default parallel block.
+            High.space_push(Block.new(:par))
+            self.instance_eval(&block)
+            High.space_pop
+        end
     end
+
+
 
 
     # Ensures constants defined is this module are prioritary.

@@ -44,6 +44,26 @@ module HDLRuby::Base
             @systemIs[systemI.name] = systemI
         end
 
+        # Iterates over the system instances.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_systemI(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemI) unless ruby_block
+            # A block? Apply it on each system instance.
+            @systemIs.each_value(&ruby_block)
+        end
+
+        # Gets a system instance by +name+.
+        def get_systemI(name)
+            return @systemIs[name]
+        end
+
+        # Deletes system instance systemI.
+        def delete_systemI(systemI)
+            @systemIs.delete(systemI.name)
+        end
+
         # Handling the signals.
         
         # Adds input signal +signal+.
@@ -182,19 +202,24 @@ module HDLRuby::Base
             return get_inner(name)
         end
 
-        # Iterates over the system instances.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_systemI(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_systemI) unless ruby_block
-            # A block? Apply it on each system instance.
-            @systemIs.each_value(&ruby_block)
+        # Deletes input +signal+.
+        def delete_input(signal)
+            @inputs.delete(signal.name)
         end
 
-        ## Gets a system instance by +name+.
-        def get_systemI(name)
-            return @systemIs[name]
+        # Deletes output +signal+.
+        def delete_output(signal)
+            @outputs.delete(signal.name)
+        end
+
+        # Deletes inout +signal+.
+        def delete_inout(signal)
+            @inouts.delete(signal.name)
+        end
+
+        # Deletes inner +signal+.
+        def delete_inner(signal)
+            @inners.delete(signal.name)
         end
 
         # Handling the connections.
@@ -217,6 +242,11 @@ module HDLRuby::Base
             @connections.each(&ruby_block)
         end
 
+        # Deletes +connection+.
+        def delete_connection(connection)
+            @connections.delete(connection)
+        end
+
         # Handling the behaviors.
 
         # Adds a +behavior+.
@@ -235,6 +265,11 @@ module HDLRuby::Base
             return to_enum(:each_behavior) unless ruby_block
             # A block? Apply it on each behavior.
             @behaviors.each(&ruby_block)
+        end
+
+        # Deletes +behavior+.
+        def delete_behavior(behavior)
+            @behaviors.delete(behavior)
         end
 
     end
@@ -347,92 +382,18 @@ module HDLRuby::Base
         # The type of event.
         attr_reader :type
 
-        # The signal of the event.
-        attr_reader :signal
+        # The port of the event.
+        attr_reader :port
 
-        # Creates a new +type+ sort of event on signal +signal+.
-        def initialize(type,signal)
+        # Creates a new +type+ sort of event on signal +port+.
+        def initialize(type,port)
             # Check and set the type.
             @type = type.to_sym
-            # Check and set the signal.
-            unless signal.is_a?(Signal)
-                raise "Invalid class for a signal: #{signal.class}"
+            # Check and set the port.
+            unless port.is_a?(Port)
+                raise "Invalid class for a port: #{port.class}"
             end
-            @signal = signal
-        end
-    end
-
-
-    ## 
-    # Describes a block.
-    class Block
-        # The type of block.
-        attr_reader :type
-
-        # Creates a new +type+ sort of block.
-        def initialize(type)
-            # Check and set the type.
-            @type = type.to_sym
-            # Initializes the list of statements.
-            @statements = []
-        end
-
-        # Adds a +statement+.
-        #
-        # NOTE: Time is not supported unless for TimeBlock objects.
-        def add_statement(statement)
-            unless statement.is_a?(Statement) then
-                raise "Invalid class for a statement: #{statement.class}"
-            end
-            if statement.is_a?(Time) then
-                raise "Timed statements are not supported in common blocks."
-            end
-            @statements << statement
-        end
-
-        # Iterates over the statements.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_statement(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_statement) unless ruby_block
-            # A block? Apply it on each statement.
-            @statements.each(&ruby_block)
-        end
-    end
-
-    # Describes a timed block.
-    #
-    # NOTE: 
-    # * this is the only kind of block that can include time statements. 
-    # * this kind of block is not synthesizable!
-    class TimeBlock < Block
-        # Adds a +statement+.
-        # 
-        # NOTE: TimeBlock is supported.
-        def add_statement(statement)
-            unless statement.is_a?(Statement) then
-                raise "Invalid class for a statement: #{statement.class}"
-            end
-            @statements << statement
-        end
-    end
-
-
-    ##
-    # Decribes a piece of software code.
-    class Code
-        ## The type of code.
-        attr_reader :code
-
-        # Creates a new piece of +type+ code from +content+.
-        def initialize(type,content)
-            # Check and set type.
-            @type = type.to_sym
-            # Set the content.
-            @content = content
-            # Freeze it to avoid dynamic tempering of the hardware.
-            content.freeze
+            @port = port
         end
     end
 
@@ -533,21 +494,21 @@ module HDLRuby::Base
     end
 
 
-    ##
-    # Describes a declare statement.
-    class Declare < Statement
-        # The declared signal instance.
-        attr_reader :signal
+    # ##
+    # # Describes a declare statement.
+    # class Declare < Statement
+    #     # The declared signal instance.
+    #     attr_reader :signal
 
-        # Creates a new statement declaring +signal+.
-        def initialize(signal)
-            # Check and set the declared signal instance.
-            unless signal.is_a?(Signal)
-                raise "Invalid class for declaring a signal: #{signal.class}"
-            end
-            @signal = signal
-        end
-    end
+    #     # Creates a new statement declaring +signal+.
+    #     def initialize(signal)
+    #         # Check and set the declared signal instance.
+    #         unless signal.is_a?(Signal)
+    #             raise "Invalid class for declaring a signal: #{signal.class}"
+    #         end
+    #         @signal = signal
+    #     end
+    # end
 
 
     ## 
@@ -583,7 +544,7 @@ module HDLRuby::Base
         # The condition
         attr_reader :condition
 
-        # The yes and no blocks
+        # The yes and no statements
         attr_reader :yes, :no
 
         # Creates a new at statement with a +condition+ and a +yes+ and +no+
@@ -594,16 +555,16 @@ module HDLRuby::Base
                 raise "Invalid class for a condition: #{condition.class}"
             end
             @condition = condition
-            # Check and set the yes block.
-            unless yes.is_a?(Block)
-                raise "Invalid class for a yes block: #{yes.class}"
+            # Check and set the yes statement.
+            unless yes.is_a?(Statement)
+                raise "Invalid class for a statement: #{yes.class}"
             end
-            @yes = block
-            # Check and set the yes block.
-            unless no.is_a?(Block)
-                raise "Invalid class for a no block: #{no.class}"
+            @yes = yes
+            # Check and set the yes statement.
+            unless no.is_a?(Statement)
+                raise "Invalid class for a statement: #{no.class}"
             end
-            @no = block
+            @no = no
         end
     end
 
@@ -627,15 +588,15 @@ module HDLRuby::Base
         end
 
         # Adds a possible +match+ for the case's value that lead to the 
-        # execution of +block+.
-        def add_when(match,block)
+        # execution of +statement+.
+        def add_when(match,statement)
             # Checks and sets the match.
             unless match.is_a?(Expression)
                 raise "Invalid class for a case match: #{match.class}"
             end
-            # Checks and sets the block.
-            unless block.is_a?(Block)
-                raise "Invalid class for a block: #{block.class}"
+            # Checks and sets the statement.
+            unless statement.is_a?(Statement)
+                raise "Invalid class for a statement: #{statement.class}"
             end
             @whens << [match,block]
         end
@@ -670,6 +631,85 @@ module HDLRuby::Base
             @value = value
             # Check and set the unit.
             @unit = unit.to_sym
+        end
+    end
+
+
+    ## 
+    # Describes a block.
+    class Block < Statement
+        # The type of block.
+        attr_reader :type
+
+        # Creates a new +type+ sort of block.
+        def initialize(type)
+            # Check and set the type.
+            @type = type.to_sym
+            # Initializes the list of statements.
+            @statements = []
+        end
+
+        # Adds a +statement+.
+        #
+        # NOTE: Time is not supported unless for TimeBlock objects.
+        def add_statement(statement)
+            unless statement.is_a?(Statement) then
+                raise "Invalid class for a statement: #{statement.class}"
+            end
+            if statement.is_a?(Time) then
+                raise "Timed statements are not supported in common blocks."
+            end
+            @statements << statement
+        end
+
+        # Iterates over the statements.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_statement(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement) unless ruby_block
+            # A block? Apply it on each statement.
+            @statements.each(&ruby_block)
+        end
+
+        # Deletes +statement+.
+        def delete_statement(statement)
+            @statements.delete(statement)
+        end
+    end
+
+    # Describes a timed block.
+    #
+    # NOTE: 
+    # * this is the only kind of block that can include time statements. 
+    # * this kind of block is not synthesizable!
+    class TimeBlock < Block
+        # Adds a +statement+.
+        # 
+        # NOTE: TimeBlock is supported.
+        def add_statement(statement)
+            unless statement.is_a?(Statement) then
+                raise "Invalid class for a statement: #{statement.class}"
+            end
+            @statements << statement
+        end
+    end
+
+
+    ##
+    # Decribes a piece of software code.
+    class Code
+        ## The type of code.
+        attr_reader :code
+
+        # Creates a new piece of +type+ code from +content+.
+        def initialize(type,content)
+            # Check and set type.
+            @type = type.to_sym
+            # Set the content.
+            @content = content
+            # Freeze it to avoid dynamic tempering of the hardware.
+            content.freeze
         end
     end
 
@@ -784,36 +824,41 @@ module HDLRuby::Base
 
 
     ##
-    # Describes a ternary operation.
-    class Ternary < Operation
-        # The left child.
-        attr_reader :left
+    # Describes a section operation (generalization of the ternary operator).
+    #
+    # NOTE: choice is using the value of +select+ as an index.
+    class Select < Operation
+        # The selection child (connection).
+        attr_reader :select
 
-        # The middle child.
-        attr_reader :middle
-
-        # The right child.
-        attr_reader :right
-
-        # Creates a new ternary expression applying +operator+ on +left+
-        # +middle+ and +right+ children expressions.
-        def initialize(operator,left,middle,right)
+        # Creates a new operator selecting from the value of +select+ one
+        # of the +choices+.
+        def initialize(select,*choices)
             # Initialize as a general operation.
-            super(operator)
-            # Check and set the children.
-            unless left.is_a?(Expression)
-                raise "Invalid class for an expression: #{left.class}"
+            super(:"?")
+            # Check and set the selection.
+            unless select.is_a?(Expression)
+                raise "Invalid class for an expression: #{select.class}"
             end
-            unless middle.is_a?(Expression)
-                raise "Invalid class for an expression: #{middle.class}"
+            @select = select
+            # Check and set the choices.
+            @choices = []
+            choices.each do |choice|
+                unless choice.is_a?(Expression)
+                    raise "Invalid class for an expression: #{choice.class}"
+                end
+                @choices << choice
             end
-            unless right.is_a?(Expression)
-                raise "Invalid class for an expression: #{right.class}"
-            end
-            # @children = [ left, middle, right ]
-            @left = left
-            @middle = middle
-            @right = right
+        end
+
+        # Iterates over the choices.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_choice(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_choice) unless ruby_block
+            # A block? Apply it on each choice.
+            @choices.each(&ruby_block)
         end
     end
 

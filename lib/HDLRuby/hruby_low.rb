@@ -492,10 +492,10 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a declare statement.
-    class Declare < Base::Declare
-    end
+    # ##
+    # # Describes a declare statement.
+    # class Declare < Base::Declare
+    # end
 
 
     ## 
@@ -579,9 +579,17 @@ module HDLRuby::Low
     end
 
 
+    # ##
+    # # Describes a ternary operation.
+    # class Ternary < Base::Ternary
+    # end
+
+    
     ##
-    # Describes a ternary operation.
-    class Ternary < Base::Ternary
+    # Describes a section operation (generalization of the ternary operator).
+    #
+    # NOTE: choice is using the value of +select+ as an index.
+    class Select < Base::Select
     end
 
 

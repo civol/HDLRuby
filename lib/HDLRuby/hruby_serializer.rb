@@ -16,8 +16,10 @@ module HDLRuby
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
                  # Low::SignalI, Low::SystemI, Low::Connection, 
                  Low::Signal, Low::SystemI, Low::Connection, 
-                 Low::Declare, Low::Transmit, Low::If, Low::Case, Low::Time, 
-                 Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,
+                 # Low::Declare, 
+                 Low::Transmit, Low::If, Low::Case, Low::Time, 
+                 # Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,
+                 Low::Value, Low::Unary, Low::Binary, Low::Select, Low::Concat,
                  Low::PortConcat, Low::PortIndex, Low::PortRange,
                  Low::PortName, Low::PortThis
                 ] 

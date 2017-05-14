@@ -542,14 +542,14 @@ print "\nCreating a clock event... "
 #     $success = false
 # end
 begin
-    signal = $signals.find{|signal| signal.name == :clk}
-    $event = Event.new(:posedge,signal)
+    port = $ports.find{|port| port.name == :clk}
+    $event = Event.new(:posedge,port)
     success = true
     if $event.type != :posedge then
         puts "Error: invalid type of event, got #{$event.type} but expecting :posedge."
         success = false
-    elsif $event.signal != signal then
-        puts "Error: invalid signal, got #{$event.signalI} but expecting #{signalI}."
+    elsif $event.port != port then
+        puts "Error: invalid port, got #{$event.port} but expecting #{port}."
         success = false
     end
     if success then
