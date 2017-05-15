@@ -74,6 +74,12 @@ begin
            seq do
                value.int[7..0] <= i2 + i3
            end
+           hif i3 > i2 do
+               value.int[15..8] <= i3
+           end
+           helse do
+               value.int[15..8] <= i2
+           end
        end
    end
    unless $systemT1 then
@@ -232,7 +238,7 @@ begin
         $success = false
     end
     systemI1Statements = systemI1Block.each_statement.to_a
-    if systemI1Statements.size != 2 then
+    if systemI1Statements.size != 3 then
         puts "Error: invalid number of statements, got #{systemI1Statements.size} but expecting 2."
         $success = false
     elsif !systemI1Statements[0].is_a?(Transmit) then
@@ -249,6 +255,18 @@ begin
         $success = false
     elsif systemI1Statements[0].right.right.name != :i1 then
         puts "Error: invalid first statement right right, got #{systemI1Statements[0].right.left.name} but expecting i1."
+        $success = false
+    elsif !systemI1Statements[2].is_a?(If) then
+        puts "Error: invalid third statement, got #{systemI1Statements[2].class} but expecting If."
+        $success = false
+    elsif systemI1Statements[2].condition.operator != :> then
+        puts "Error: invalid third statement condition operator, got #{systemI1Statements[2].operator} but expecting <."
+        $success = false
+    elsif !systemI1Statements[2].yes.is_a?(Block) then
+        puts "Error: invalid third statement yes, got #{systemI1Statements[2].yes.class} but expecting Block."
+        $success = false
+    elsif !systemI1Statements[2].no.is_a?(Block) then
+        puts "Error: invalid third statement no, got #{systemI1Statements[2].no.class} but expecting Block."
         $success = false
     end
     systemI1Seq = systemI1Statements[1]
