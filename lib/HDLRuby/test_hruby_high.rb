@@ -36,7 +36,7 @@ rescue Exception => e
     $success = false
 end
 
-print "Creating the char type (bit[8])... "
+print "Creating the unsigned char type (bit[8])... "
 begin
     type(:uchar) { bit[8] }
     puts "Ok."
@@ -47,7 +47,7 @@ end
 
 print "Converting systemT0 to a type... "
 begin
-    type(:sigT0) { $systemT0.to_type }
+    $uchar = type(:sigT0) { $systemT0.to_type }
     puts "Ok."
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
@@ -57,7 +57,7 @@ end
 
 print "\nCreating a system type with content (also using the created char type)... "
 begin
-   $systemT1 = system :systemT1 do
+   $systemT1 = system :systemT1 do |x,y,z|
        systemT0 :my_system
        input :i0, :i1
        output :o0
@@ -68,6 +68,7 @@ begin
        sigT0.inner :my_sig
 
        o0 <= i0 + i1
+       x <= y + z
 
        behavior(i0.posedge) do
            o1 <= i0 * i1
@@ -98,7 +99,7 @@ end
 
 print "Instantiate it... "
 begin
-    $systemI1 = $systemT1.instantiate("systemI1")
+    $systemI1 = $systemT1.instantiate("systemI1",Signal.new(:"",$uchar),Signal.new(:"",$uchar),Signal.new(:"",$uchar))
     systemI1Is = $systemI1.each_systemI.to_a
     if systemI1Is.size != 1 then
         puts "Error: invalid number of inner system instances, got #{systemI1Is.size} but expecting 1."
@@ -195,8 +196,8 @@ begin
     end
 
     systemI1Connections = $systemI1.each_connection.to_a
-    if systemI1Connections.size != 1 then
-        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 1."
+    if systemI1Connections.size != 2 then
+        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 2."
         $success = false
     elsif systemI1Connections[0].left.name != :o0 then
         puts "Error: invalid left for connection, got #{systemI1Connections[0].left.name} but expecting o0."

@@ -167,7 +167,7 @@ module HDLRuby::High
             # Create the eigen type.
             eigen = self.class.new("")
             High.space_push(eigen)
-            eigen.instance_eval(*args,&@instance_proc) if @instance_proc
+            eigen.instance_exec(*args,&@instance_proc) if @instance_proc
             High.space_pop
             # Create the instance.
             return @instance_class.new(i_name,eigen)
@@ -539,6 +539,7 @@ module HDLRuby::High
         end
         # Name it.
         type.name = name
+        return type
     end
 
     # Extends the Hash class for declaring signals of structure types.
