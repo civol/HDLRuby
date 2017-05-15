@@ -63,13 +63,13 @@ module HDLRuby::High
     end
 
     # Registers hardware referencing method +name+ to the current namespace.
-    def self.space_reg(name,&block)
+    def self.space_reg(name,&ruby_block)
         # print "registering #{name} in #{NameSpace[-1]}\n"
         # Register it in the top object of the namespace stack.
         if NameSpace[-1].respond_to?(:define_method) then
-            NameSpace[-1].send(:define_method,name.to_sym,&block)
+            NameSpace[-1].send(:define_method,name.to_sym,&ruby_block)
         else
-            NameSpace[-1].send(:define_singleton_method,name.to_sym,&block)
+            NameSpace[-1].send(:define_singleton_method,name.to_sym,&ruby_block)
         end
     end
 
@@ -143,14 +143,14 @@ module HDLRuby::High
         # Creates a new high-level system type named +name+ and inheriting
         # from +mixins+.
         #
-        # The proc +block+ is executed when instantiating the system.
-        def initialize(name, *mixins, &block)
+        # The proc +ruby_block+ is executed when instantiating the system.
+        def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
             super(name)
             self.include(*mixins)
             unless name.empty? then
                 # Named system instance, generate the instantiation command.
-                make_instantiater(name,SystemI,:add_systemI,&block)
+                make_instantiater(name,SystemI,:add_systemI,&ruby_block)
             end
         end
 
@@ -176,10 +176,10 @@ module HDLRuby::High
         # Generates the instantiation capabilities including an instantiation
         # method +name+ for hdl-like instantiation, target instantiation as
         # +klass+, added to the calling object with +add_instance+, and
-        # whose eigen type is initialized by +block+.
-        def make_instantiater(name,klass,add_instance,&block)
+        # whose eigen type is initialized by +ruby_block+.
+        def make_instantiater(name,klass,add_instance,&ruby_block)
             # Set the instanciater.
-            @instance_proc = block
+            @instance_proc = ruby_block
             # Set the target instantiation class.
             @instance_class = klass
 
@@ -203,8 +203,8 @@ module HDLRuby::High
         end
 
         # Missing methods are looked up in the upper level of the namespace.
-        def method_missing(m, *args, &block)
-            High.space_call(m,*args,&block)
+        def method_missing(m, *args, &ruby_block)
+            High.space_call(m,*args,&ruby_block)
         end
 
         # Declares high-level untyped input signals named +names+.
@@ -236,32 +236,32 @@ module HDLRuby::High
         end
 
         # Declares a high-level behavior activated on a list of +events+, and
-        # built by executing +block+.
-        def behavior(*events, &block)
+        # built by executing +ruby_block+.
+        def behavior(*events, &ruby_block)
             # Preprocess the events.
             events.map! do |event|
                 event.to_event
             end
             # Create and add the resulting system.
-            self.add_behavior(Behavior.new(*events,&block))
+            self.add_behavior(Behavior.new(*events,&ruby_block))
         end
 
 
-        # Creates a new parallel block built from +block+.
+        # Creates a new parallel block built from +ruby_block+.
         #
         # This methods first creates a new behavior to put the block in.
-        def par(&block)
+        def par(&ruby_block)
             self.behavior do
-                par(&block)
+                par(&ruby_block)
             end
         end
 
-        # Creates a new sequential block built from +block+.
+        # Creates a new sequential block built from +ruby_block+.
         #
         # This methods first creates a new behavior to put the block in.
-        def seq(&block)
+        def seq(&ruby_block)
             self.behavior do
-                seq(&block)
+                seq(&ruby_block)
             end
         end
     end
@@ -269,11 +269,11 @@ module HDLRuby::High
     # Methods for declaring system types.
 
     # Declares a high-level system type named +name+, with +includes+ mixins
-    # hardware types and using +block+ for instantiating.
-    def system(name, *includes, &block)
-        # print "system block=#{block}\n"
+    # hardware types and using +ruby_block+ for instantiating.
+    def system(name, *includes, &ruby_block)
+        # print "system ruby_block=#{ruby_block}\n"
         # Creates the resulting system.
-        return SystemT.new(name,*includes,&block)
+        return SystemT.new(name,*includes,&ruby_block)
     end
     
 
@@ -513,6 +513,9 @@ module HDLRuby::High
     # The signed bit type.
     Type.new(:signed)
 
+    # The numeric type (for all the Ruby Numeric types).
+    Type.new(:numeric)
+
 
     # The type constructors.
 
@@ -526,10 +529,10 @@ module HDLRuby::High
         return TypeUnion.new(:"",content)
     end
 
-    # Creates type named +name+ and using +block+ for building it.
-    def type(name,&block)
+    # Creates type named +name+ and using +ruby_block+ for building it.
+    def type(name,&ruby_block)
         # Builds the type.
-        type = HDLRuby::High.space_top.instance_eval(&block)
+        type = HDLRuby::High.space_top.instance_eval(&ruby_block)
         # Ensures type is really a type.
         unless type.is_a?(Type) then
             raise "Invalid class for a type: #{type.class}."
@@ -612,25 +615,28 @@ module HDLRuby::High
         High = HDLRuby::High
 
         # Creates a new if statement with a +condition+ that when met lead
-        # to the selection of the block generated by the execution of +block+.
-        def initialize(condition, &block)
-            # Build the yes block by execution block.
+        # to the selection of the block generated by the execution of
+        # +ruby_block+.
+        def initialize(condition, &ruby_block)
+            # Create the yes block.
             yes_block = Block.new(:par)
+            # Built it by executing ruby_block in context.
             High.space_push(yes_block)
-            High.space_top.instance_eval(&block)
+            High.space_top.instance_eval(&ruby_block)
             High.space_pop
             # Creates the if statement.
             super(condition,yes_block)
         end
 
-        # Sets the no block generated by the execution of +block+.
+        # Sets the no block generated by the execution of +ruby_block+.
         #
         # No can only be set once.
-        def helse(&block)
-            # Build the yes block by execution block.
+        def helse(&ruby_block)
+            # Create the no block.
             no_block = Block.new(:par)
+            # Built it by executing ruby_block in context.
             High.space_push(no_block)
-            High.space_top.instance_eval(&block)
+            High.space_top.instance_eval(&ruby_block)
             High.space_pop
             # Sets the no block.
             self.no = no_block
@@ -780,7 +786,7 @@ module HDLRuby::High
     class ::Numeric
         # Converts to a high-level expression.
         def to_expr
-            return Value.new(self.class.to_s,self)
+            return Value.new(HDLRuby::High.numeric,self)
         end
     end
 
@@ -814,11 +820,18 @@ module HDLRuby::High
         # NOTE: +rng+ can be a single number in which case it is an index.
         def [](rng)
             if rng.respond_to?(:to_i) then
+                # Number range: convert it to an expression.
+                rng = rng.to_i.to_expr
+            end 
+            if rng.is_a?(HDLRuby::Base::Expression) then
                 # Index case
                 return PortIndex.new(self.to_port,rng)
             else
-                # Range case
-                return PortRange.new(self.to_port,rng)
+                # Range case, ensure it is made among expression.
+                first = rng.first.to_expr
+                last = rng.last.to_expr
+                # Abd create the port.
+                return PortRange.new(self.to_port,first..last)
             end
         end
     end
@@ -1000,8 +1013,8 @@ module HDLRuby::High
         end
 
         # Missing methods are looked up in the upper level of the namespace.
-        def method_missing(m, *args, &block)
-            High.space_call(m,*args,&block)
+        def method_missing(m, *args, &ruby_block)
+            High.space_call(m,*args,&ruby_block)
         end
 
         # Adds inner signal +signal+.
@@ -1040,34 +1053,34 @@ module HDLRuby::High
             end
         end
 
-        # Creates and adds a new block typed +type+ built from +block+.
-        def add_block(type,&block)
+        # Creates and adds a new block typed +type+ built from +ruby_block+.
+        def add_block(type,&ruby_block)
             # Creates and adds the block.
             par_block = Block.new(type)
             self.add_statement(par_block)
-            # Build it by executing block.
+            # Build it by executing the ruby block.
             High.space_push(par_block)
-            self.instance_eval(&block)
+            self.instance_eval(&ruby_block)
             High.space_pop
         end
 
-        # Creates a new parallel block built from +block+.
-        def par(&block)
-            self.add_block(:par,&block)
+        # Creates a new parallel block built from +ruby_block+.
+        def par(&ruby_block)
+            self.add_block(:par,&ruby_block)
         end
 
-        # Creates a new sequential block built from +block+.
-        def seq(&block)
-            self.add_block(:seq,&block)
+        # Creates a new sequential block built from +ruby_block+.
+        def seq(&ruby_block)
+            self.add_block(:seq,&ruby_block)
         end
 
         # Creates a new if statement with a +condition+ that when met lead
-        # to the selection of +block+.
+        # to the selection of +ruby_block+.
         #
         # NOTE: the else part is defined through the helse method.
-        def hif(condition,&block)
+        def hif(condition,&ruby_block)
             # Creates the if statement.
-            self.add_statement(If.new(condition,&block))
+            self.add_statement(If.new(condition,&ruby_block))
         end
 
         # Adds a else block to the previous if statement.
@@ -1097,7 +1110,7 @@ module HDLRuby::High
             # Create and add a default par block for the behavior.
             block = Block.new(:par)
             self.add_block(block)
-            # Build the block by executing the ruby_block in context.
+            # Build the block by executing the ruby block in context.
             High.space_push(block)
             High.space_top.instance_eval(&ruby_block)
             High.space_pop

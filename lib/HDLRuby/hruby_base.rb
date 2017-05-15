@@ -955,7 +955,10 @@ module HDLRuby::Base
             end
             @port = port
             # Check and set the index.
-            @index = index.to_i
+            unless index.is_a?(Expression) then
+                raise "Invalid class for a port index: #{index.class}."
+            end
+            @index = index
         end
     end
 
@@ -977,7 +980,15 @@ module HDLRuby::Base
             end
             @port = port
             # Check and set the range.
-            @range = range.first..range.last
+            first = range.first
+            unless first.is_a?(Expression) then
+                raise "Invalid class for a range first: #{first.class}."
+            end
+            last = range.last
+            unless last.is_a?(Expression) then
+                raise "Invalid class for a range last: #{last.class}."
+            end
+            @range = first..last
         end
     end
 
