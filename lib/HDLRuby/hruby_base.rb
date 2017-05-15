@@ -547,9 +547,9 @@ module HDLRuby::Base
         # The yes and no statements
         attr_reader :yes, :no
 
-        # Creates a new at statement with a +condition+ and a +yes+ and +no+
+        # Creates a new if statement with a +condition+ and a +yes+ and +no+
         # blocks.
-        def initialize(condition, yes, no)
+        def initialize(condition, yes, no = nil)
             # Check and set the condition.
             unless condition.is_a?(Expression)
                 raise "Invalid class for a condition: #{condition.class}"
@@ -560,6 +560,20 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{yes.class}"
             end
             @yes = yes
+            # Check and set the yes statement.
+            if no and !no.is_a?(Statement)
+                raise "Invalid class for a statement: #{no.class}"
+            end
+            @no = no
+        end
+
+        # Sets the no block.
+        #
+        # No can only be set once.
+        def no=(no)
+            if @no != nil then
+                raise "No already set in if statement."
+            end
             # Check and set the yes statement.
             unless no.is_a?(Statement)
                 raise "Invalid class for a statement: #{no.class}"
@@ -573,7 +587,7 @@ module HDLRuby::Base
     # Describes a case statement.
     class Case < Statement
         # The tested value
-        attr_reader :condition
+        attr_reader :value
 
         # Creates a new case statement whose excution flow is decided from
         # +value+.

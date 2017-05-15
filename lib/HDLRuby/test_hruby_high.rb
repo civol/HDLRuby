@@ -67,7 +67,13 @@ begin
        union(int: signed[32], uint: bit[32]).inout :value
        sigT0.inner :my_sig
 
+       o0 <= i0 + i1
+
        behavior(i0.posedge) do
+           o1 <= i0 * i1
+           seq do
+               value.int[7..0] <= i2 + i3
+           end
        end
    end
    unless $systemT1 then
@@ -182,6 +188,24 @@ begin
         $success = false
     end
 
+    systemI1Connections = $systemI1.each_connection.to_a
+    if systemI1Connections.size != 1 then
+        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 1."
+        $success = false
+    elsif systemI1Connections[0].left.name != :o0 then
+        puts "Error: invalid left for connection, got #{systemI1Connections[0].left.name} but expecting o0."
+        $success = false
+    elsif systemI1Connections[0].right.operator != :+ then
+        puts "Error: invalid right operator for connection, got #{systemI1Connections[0].right.operator} but expecting +."
+        $success = false
+    elsif systemI1Connections[0].right.left.name != :i0 then
+        puts "Error: invalid right left for connection, got #{systemI1Connections[0].right.left.name} but expecting i0."
+        $success = false
+    elsif systemI1Connections[0].right.right.name != :i1 then
+        puts "Error: invalid right right for connection, got #{systemI1Connections[0].right.right.name} but expecting i1."
+        $success = false
+    end
+
     systemI1Behaviors = $systemI1.each_behavior.to_a
     if systemI1Behaviors.size != 1 then
         puts "Error: invalid number of behaviors, got #{systemI1Behaviors.size} but expecting 1."
@@ -196,6 +220,70 @@ begin
         puts "Error: invalid type of event, got #{systemI1Events[0].type} but expecting posedge."
     elsif systemI1Events[0].port.name != :i0 then
         puts "Error: invalid event port, got #{systemI1Events[0].port.name} but expecting i0."
+    end
+    systemI1Blocks = systemI1Behavior.each_block.to_a
+    if systemI1Blocks.size != 1 then
+        puts "Error: invalid number of blocks, got #{systemI1Blocks.size} but expecting 1."
+        $success = false
+    end
+    systemI1Block = systemI1Blocks[0]
+    if systemI1Block.type != :par then
+        puts "Error: invalid block type, got #{systemI1Block.type} but expecting par."
+        $success = false
+    end
+    systemI1Statements = systemI1Block.each_statement.to_a
+    if systemI1Statements.size != 2 then
+        puts "Error: invalid number of statements, got #{systemI1Statements.size} but expecting 2."
+        $success = false
+    elsif !systemI1Statements[0].is_a?(Transmit) then
+        puts "Error: invalid first statement, got #{systemI1Statements[0].class} but expecting Transmit."
+        $success = false
+    elsif systemI1Statements[0].left.name != :o1 then
+        puts "Error: invalid first statement left, got #{systemI1Statements[0].left.name} but expecting o1."
+        $success = false
+    elsif systemI1Statements[0].right.operator != :* then
+        puts "Error: invalid first statement right operator, got #{systemI1Statements[0].right.operator} but expecting *."
+        $success = false
+    elsif systemI1Statements[0].right.left.name != :i0 then
+        puts "Error: invalid first statement right left, got #{systemI1Statements[0].right.left.name} but expecting i0."
+        $success = false
+    elsif systemI1Statements[0].right.right.name != :i1 then
+        puts "Error: invalid first statement right right, got #{systemI1Statements[0].right.left.name} but expecting i1."
+        $success = false
+    end
+    systemI1Seq = systemI1Statements[1]
+    if !systemI1Seq.is_a?(Block) then
+        puts "Error: invalid second statement, got #{systemI1Seq.class} but expecting Block."
+        $success = false
+    elsif systemI1Seq.type != :seq then
+        puts "Error: invalid type of block, got #{systemI1Seq.type} but expecting seq."
+        $success = false
+    end
+    systemI1SeqStatements = systemI1Seq.each_statement.to_a
+    if systemI1SeqStatements.size != 1 then
+        puts "Error: invalid number of statements, got #{systemI1Statements.size} but expecting 1."
+        $success = false
+    elsif !systemI1SeqStatements[0].is_a?(Transmit) then
+        puts "Error: invalid first statement, got #{systemI1SeqStatements[0].class} but expecting Transmit."
+        $success = false
+    elsif systemI1SeqStatements[0].right.operator != :+ then
+        puts "Error: invalid first statement right operator, got #{systemI1SeqStatements[0].right.operator} but expecting +."
+        $success = false
+    elsif !systemI1SeqStatements[0].left.is_a?(PortRange) then
+        puts "Error: invalid first statement left port, got #{systemI1SeqStatements[0].left.class} but expecting PortRange."
+        $success = false
+    elsif systemI1SeqStatements[0].left.range != (7..0) then
+        puts "Error: invalid first statement left port range, got #{systemI1SeqStatements[0].left.range} but expecting 7..0."
+        $success = false
+    elsif !systemI1SeqStatements[0].left.port.is_a?(PortName) then
+        puts "Error: invalid first statement left left port, got #{systemI1SeqStatements[0].left.port.class} but expecting PortName."
+        $success = false
+    elsif systemI1SeqStatements[0].left.port.name != :int then
+        puts "Error: invalid first statement left left port name, got #{systemI1SeqStatements[0].left.port.name} but expecting int."
+        $success = false
+    elsif systemI1SeqStatements[0].left.port.port.name != :value then
+        puts "Error: invalid first statement left left left port name, got #{systemI1SeqStatements[0].left.port.port.name} but expecting value."
+        $success = false
     end
 
     puts "Ok."
