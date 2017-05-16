@@ -9,88 +9,6 @@ module HDLRuby::High
     Base = HDLRuby::Base
     Low  = HDLRuby::Low
 
-    # Handle the namespaces for accessing the hardware referencing methods.
-
-    # The namespace stack.
-    NameSpace = [self]
-    private_constant :NameSpace
-
-    # Pushes namespace +obj+.
-    def self.space_push(obj)
-        NameSpace.push(obj)
-    end
-
-    # Pops a namespace.
-    def self.space_pop
-        if NameSpace.size <= 1 then
-            raise "Internal error: cannot pop further namespaces."
-        end
-        NameSpace.pop
-    end
-
-    # Gets the top of the namespace stack.
-    def self.space_top
-        NameSpace[-1]
-    end
-
-    # Gets the enclosing system type if any.
-    def self.cur_systemT
-        if NameSpace.size <= 1 then
-            raise "Not within a system type."
-        else
-            return NameSpace.reverse_each.find { |elem| elem.is_a?(SystemT) }
-        end
-    end
-
-    # Gets the enclosing behavior if any.
-    def self.cur_behavior
-        # Gets the enclosing system type.
-        systemT = self.cur_systemT
-        # Gets the current behavior from it.
-        unless systemT.each_behavior.any? then
-            raise "Not within a behavior."
-        end
-        return systemT.each.reverse_each.first
-    end
-
-    # Gets the enclosing block if any.
-    def self.cur_block
-        if NameSpace[-1].is_a?(Block)
-            return NameSpace[-1]
-        else
-            raise "Not within a block."
-        end
-    end
-
-    # Registers hardware referencing method +name+ to the current namespace.
-    def self.space_reg(name,&ruby_block)
-        # print "registering #{name} in #{NameSpace[-1]}\n"
-        # Register it in the top object of the namespace stack.
-        if NameSpace[-1].respond_to?(:define_method) then
-            NameSpace[-1].send(:define_method,name.to_sym,&ruby_block)
-        else
-            NameSpace[-1].send(:define_singleton_method,name.to_sym,&ruby_block)
-        end
-    end
-
-    # Looks up and calls method +name+ from the namespace stack with arguments
-    # +args+.
-    def self.space_call(name,*args)
-        # print "space_call with name=#{name}\n"
-        # Ensures name is a symbol.
-        name = name.to_sym
-        # Look from the top of the stack.
-        NameSpace.reverse_each do |space|
-            if space.respond_to?(name) then
-                # The method is found, call it.
-                return space.send(name,*args)
-            end
-        end
-        # Not found.
-        raise NoMethodError.new("undefined local variable or method `#{name}'.")
-    end
-
-
 
     ##
     # Module providing mixin properties to hardware types.
@@ -501,21 +419,6 @@ module HDLRuby::High
     end
 
 
-    
-    # Creates the basic types.
-
-    # The void type.
-    Type.new(:void)
-
-    # The bit type.
-    Type.new(:bit)
-
-    # The signed bit type.
-    Type.new(:signed)
-
-    # The numeric type (for all the Ruby Numeric types).
-    Type.new(:numeric)
-
 
     # The type constructors.
 
@@ -542,43 +445,6 @@ module HDLRuby::High
         return type
     end
 
-    # Extends the Hash class for declaring signals of structure types.
-    class ::Hash
-        # Declares high-level input signals named +names+ of the current type.
-        def input(*names)
-            names.each do |name|
-                HDLRuby::High.space_top.
-                    add_input(Signal.new(name,TypeStruct.new(:"",self)))
-            end
-        end
-
-        # Declares high-level untyped output signals named +names+ of the
-        # current type.
-        def output(*names)
-            names.each do |name|
-                HDLRuby::High.space_top.
-                    add_output(Signal.new(name,TypeStruct.new(:"",self)))
-            end
-        end
-
-        # Declares high-level untyped inout signals named +names+ of the
-        # current type.
-        def inout(*names)
-            names.each do |name|
-                HDLRuby::High.space_top.
-                    add_inout(Signal.new(name,TypeStruct.new(:"",self)))
-            end
-        end
-
-        # Declares high-level untyped inner signals named +names+ of the
-        # current type.
-        def inner(*names)
-            names.each do |name|
-                HDLRuby::High.space_top.
-                    add_inner(Signal.new(name,TypeStruct.new(:"",self)))
-            end
-        end
-    end
 
     # Extends the system type class for converting it to a data type.
     class SystemT
@@ -738,57 +604,10 @@ module HDLRuby::High
     end
 
 
-    # Extends the Array class for conversion to a high-level expression.
-    class ::Array
-        include HArrow
-
-        # Converts to a high-level expression.
-        def to_expr
-            expr = Concat.new
-            self.each {|elem| expr.add_expression(elem.to_expr) }
-            expr
-        end
-
-        # Converts to a high-level port.
-        def to_port
-            expr = PortConcat.new
-            self.each {|elem| expr.add_port(elem.to_port) }
-            expr
-        end
-    end
-
-
-    # TODO
-    # # Extends the symbol class for auto declaration of input or output.
-    # class ::Symbol
-    #     High = HDLRuby::High
-
-    #     # Converts to a high-level expression.
-    #     def to_expr
-    #         self.to_port
-    #     end
-
-    #     # Converts to a high-level port.
-    #     def to_port
-    #         ICIICI
-    #     end
-    # end
-
-
-
-
     ##
     # Describes a high-level value.
     class Value < Base::Value
         include HExpression
-    end
-
-    # Extends the Numeric class for conversion to a high-level expression.
-    class ::Numeric
-        # Converts to a high-level expression.
-        def to_expr
-            return Value.new(HDLRuby::High.numeric,self)
-        end
     end
 
 
@@ -1129,5 +948,215 @@ module HDLRuby::High
             base.const_set(:Signal,HDLRuby::High::Signal)
         end
     end
+
+
+
+
+    # Handle the namespaces for accessing the hardware referencing methods.
+
+    # The universe, i.e., the top system type.
+    Universe = SystemT.new(:"") {}
+    # The universe does not have input, output, nor inout.
+    class << Universe
+        undef_method :input
+        undef_method :output
+        undef_method :inout
+        undef_method :add_input
+        undef_method :add_output
+        undef_method :add_inout
+    end
+
+    # The namespace stack: never empty, the top is a nameless system without
+    # input nor output.
+    NameSpace = [Universe]
+    private_constant :NameSpace
+
+    # Pushes namespace +obj+.
+    def self.space_push(obj)
+        NameSpace.push(obj)
+    end
+
+    # Pops a namespace.
+    def self.space_pop
+        if NameSpace.size <= 1 then
+            raise "Internal error: cannot pop further namespaces."
+        end
+        NameSpace.pop
+    end
+
+    # Gets the top of the namespace stack.
+    def self.space_top
+        NameSpace[-1]
+    end
+
+    # Gets the enclosing system type if any.
+    def self.cur_systemT
+        if NameSpace.size <= 1 then
+            raise "Not within a system type."
+        else
+            return NameSpace.reverse_each.find { |elem| elem.is_a?(SystemT) }
+        end
+    end
+
+    # Gets the enclosing behavior if any.
+    def self.cur_behavior
+        # Gets the enclosing system type.
+        systemT = self.cur_systemT
+        # Gets the current behavior from it.
+        unless systemT.each_behavior.any? then
+            raise "Not within a behavior."
+        end
+        return systemT.each.reverse_each.first
+    end
+
+    # Gets the enclosing block if any.
+    def self.cur_block
+        if NameSpace[-1].is_a?(Block)
+            return NameSpace[-1]
+        else
+            raise "Not within a block."
+        end
+    end
+
+    # Registers hardware referencing method +name+ to the current namespace.
+    def self.space_reg(name,&ruby_block)
+        # print "registering #{name} in #{NameSpace[-1]}\n"
+        # Register it in the top object of the namespace stack.
+        if NameSpace[-1].respond_to?(:define_method) then
+            NameSpace[-1].send(:define_method,name.to_sym,&ruby_block)
+        else
+            NameSpace[-1].send(:define_singleton_method,name.to_sym,&ruby_block)
+        end
+    end
+
+    # Looks up and calls method +name+ from the namespace stack with arguments
+    # +args+.
+    def self.space_call(name,*args)
+        # print "space_call with name=#{name}\n"
+        # Ensures name is a symbol.
+        name = name.to_sym
+        # Look from the top of the stack.
+        NameSpace.reverse_each do |space|
+            if space.respond_to?(name) then
+                # The method is found, call it.
+                return space.send(name,*args)
+            end
+        end
+        # Not found.
+        raise NoMethodError.new("undefined local variable or method `#{name}'.")
+    end
+
+
+
+    
+    # Creates the basic types.
+    
+    # Defines a basic type +name+.
+    def self.define_type(name)
+        name = name.to_sym
+        type = Type.new(name)
+        self.send(:define_method,name) { type }
+    end
+
+    # The void type.
+    define_type :void
+
+    # The bit type.
+    define_type :bit
+
+    # The signed bit type.
+    define_type :signed
+
+    # The numeric type (for all the Ruby Numeric types).
+    define_type :numeric
+
+
+
+    # Extends the standard classes for support of HDLRuby.
+
+
+    # Extends the Numeric class for conversion to a high-level expression.
+    class ::Numeric
+        # Converts to a high-level expression.
+        def to_expr
+            return Value.new(numeric,self)
+        end
+    end
+
+
+    # Extends the Hash class for declaring signals of structure types.
+    class ::Hash
+        # Declares high-level input signals named +names+ of the current type.
+        def input(*names)
+            names.each do |name|
+                HDLRuby::High.space_top.
+                    add_input(Signal.new(name,TypeStruct.new(:"",self)))
+            end
+        end
+
+        # Declares high-level untyped output signals named +names+ of the
+        # current type.
+        def output(*names)
+            names.each do |name|
+                HDLRuby::High.space_top.
+                    add_output(Signal.new(name,TypeStruct.new(:"",self)))
+            end
+        end
+
+        # Declares high-level untyped inout signals named +names+ of the
+        # current type.
+        def inout(*names)
+            names.each do |name|
+                HDLRuby::High.space_top.
+                    add_inout(Signal.new(name,TypeStruct.new(:"",self)))
+            end
+        end
+
+        # Declares high-level untyped inner signals named +names+ of the
+        # current type.
+        def inner(*names)
+            names.each do |name|
+                HDLRuby::High.space_top.
+                    add_inner(Signal.new(name,TypeStruct.new(:"",self)))
+            end
+        end
+    end
+
+
+    # Extends the Array class for conversion to a high-level expression.
+    class ::Array
+        include HArrow
+
+        # Converts to a high-level expression.
+        def to_expr
+            expr = Concat.new
+            self.each {|elem| expr.add_expression(elem.to_expr) }
+            expr
+        end
+
+        # Converts to a high-level port.
+        def to_port
+            expr = PortConcat.new
+            self.each {|elem| expr.add_port(elem.to_port) }
+            expr
+        end
+    end
+
+
+    # TODO
+    # # Extends the symbol class for auto declaration of input or output.
+    # class ::Symbol
+    #     High = HDLRuby::High
+
+    #     # Converts to a high-level expression.
+    #     def to_expr
+    #         self.to_port
+    #     end
+
+    #     # Converts to a high-level port.
+    #     def to_port
+    #         ICIICI
+    #     end
+    # end
 
 end
