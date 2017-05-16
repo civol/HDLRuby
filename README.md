@@ -2,7 +2,7 @@
 
 Hardware Ruby is a library for describing and simulating digital electronic systems.
 
-*Warning*: this is very preliminary work, in the present state there is nothing but the data structures for the low-level representation.
+__Warning__: this is very preliminary work, in the present state there is nothing but the data structures for the low-level representation.
 
 ## Installation
 
@@ -22,7 +22,46 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Using HDLRuby
+
+You can use HDLRuby in a ruby program by loading `HDLRuby.rb` in your ruby file:
+
+```ruby
+require 'HDLRuby'
+```
+
+Then, including `HDLRuby::High` will setup Ruby for supporting the high-level
+description of hardware components.
+
+```ruby
+include HDLRuby::High
+```
+
+Alternatively, you can also setup Ruby for supporting the building of a
+low-level representation of hardware as follows:
+
+```ruby
+include HDLRuby::Low
+```
+
+It is then possible to load a low level representations of hardware as
+follows, where `stream` is a stream containing the representation.
+
+```ruby
+hardwares = HDLRuby::from_yaml(stream)
+```
+
+For instance, you can load a sample description of an 8-bit adder as follows:
+
+```ruby
+HDLRuby::from_yaml(File.read("#{$:[0]}/HDLRuby/low_samples/adder.yaml"))
+```
+
+__Notes__:
+- The low level representation of hardware can only be built through standard
+  Ruby class constructors, and does not include any validity check of the
+  resulting hardware.
+- `HDLRuby::High` and `HDLRuby::Low` cannot be included at the same time.
 
 ## Development
 

@@ -1,5 +1,6 @@
 require "HDLRuby/version"
 require "HDLRuby/hruby_high"
+require "HDLRuby/hruby_serializer"
 
 ##
 # Module including the classes implementing the high-level and low-level
