@@ -99,7 +99,7 @@ end
 
 print "Instantiate it... "
 begin
-    $systemI1 = $systemT1.instantiate("systemI1",Signal.new(:"",$uchar),Signal.new(:"",$uchar),Signal.new(:"",$uchar))
+    $systemI1 = $systemT1.instantiate("systemI1",Signal.new(:"",$uchar,:inner),Signal.new(:"",$uchar,:inner),Signal.new(:"",$uchar,:inner))
     systemI1Is = $systemI1.each_systemI.to_a
     if systemI1Is.size != 1 then
         puts "Error: invalid number of inner system instances, got #{systemI1Is.size} but expecting 1."

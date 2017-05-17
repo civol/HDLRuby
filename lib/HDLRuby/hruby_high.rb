@@ -9,6 +9,15 @@ module HDLRuby::High
     Base = HDLRuby::Base
     Low  = HDLRuby::Low
 
+    # Some useful constants
+
+    Infinity = +1.0/0.0
+    
+    # Gets the infinity.
+    def infinity
+        return HDLRuby::High::Infinity
+    end
+
 
     ##
     # Module providing mixin properties to hardware types.
@@ -128,28 +137,28 @@ module HDLRuby::High
         # Declares high-level untyped input signals named +names+.
         def input(*names)
             names.each do |name|
-                self.add_input(Signal.new(name,void))
+                self.add_input(Signal.new(name,void,:input))
             end
         end
 
         # Declares high-level untyped output signals named +names+.
         def output(*names)
             names.each do |name|
-                self.add_output(Signal.new(name,void))
+                self.add_output(Signal.new(name,void,:output))
             end
         end
 
         # Declares high-level untyped inout signals named +names+.
         def inout(*names)
             names.each do |name|
-                self.add_inout(Signal.new(name,void))
+                self.add_inout(Signal.new(name,void,:inout))
             end
         end
 
         # Declares high-level untyped inner signals named +names+.
         def inner(*names)
             names.each do |name|
-                self.add_inner(Signal.new(name,void))
+                self.add_inner(Signal.new(name,void,:inner))
             end
         end
 
@@ -249,12 +258,35 @@ module HDLRuby::High
             return self.name == :void
         end
 
+        # The widths of the basic types.
+        WITHDS = { :bit => 1, :unsigned => 1, :signed => 1,
+                   :fixnum => 32, :float => 64, :bignum => High::Infinity }
+
+        # The signs of the basic types.
+        SIGNS = { :signed => true, :fixnum => true, :float => true,
+                  :bignum => true }
+        SIGNS.default = false
+
+        # Gets the bitwidth of the type, nil for undefined.
+        #
+        # NOTE: must be redefined for specific types.
+        def width
+            return WIDTHS[self.name]
+        end
+
+        # Tells if the type signed, false for unsigned.
+        def signed?
+            return SIGNS[self.name]
+        end
+
+        # Tells if the type 
+
         # Signal creation through the type.
 
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
             names.each do |name|
-                High.space_top.add_input(Signal.new(name,self))
+                High.space_top.add_input(Signal.new(name,self,:input))
             end
         end
 
@@ -262,7 +294,7 @@ module HDLRuby::High
         # current type.
         def output(*names)
             names.each do |name|
-                High.space_top.add_output(Signal.new(name,self))
+                High.space_top.add_output(Signal.new(name,self,:output))
             end
         end
 
@@ -270,7 +302,7 @@ module HDLRuby::High
         # current type.
         def inout(*names)
             names.each do |name|
-                High.space_top.add_inout(Signal.new(name,self))
+                High.space_top.add_inout(Signal.new(name,self,:inout))
             end
         end
 
@@ -278,7 +310,7 @@ module HDLRuby::High
         # current type.
         def inner(*names)
             names.each do |name|
-                High.space_top.add_inner(Signal.new(name,self))
+                High.space_top.add_inner(Signal.new(name,self,:inner))
             end
         end
     end
@@ -764,8 +796,20 @@ module HDLRuby::High
 
         include HPort
 
-        # Creates a new signal named +name+ typed as +type+.
-        def initialize(name,type)
+        # The valid bounding directions.
+        DIRS = [ :no, :input, :output, :inout, :inner ]
+
+        # The object the signal is bounded to if any.
+        attr_reader :bound
+
+        # The bounding direction.
+        attr_reader :dir
+
+        # Creates a new signal named +name+ typed as +type+ and with
+        # +dir+ as bounding direction (:no for unbounded).
+        #
+        # NOTE: +dir+ can be :no, :input, :output, :inout or :inner
+        def initialize(name,type,dir)
             # Initialize the type structure.
             super(name,type)
 
@@ -784,6 +828,13 @@ module HDLRuby::High
                     end
                 end
             end
+
+            # Check and set the bound.
+            unless DIRS.include?(dir) then
+                raise "Invalid bounding direction: #{dir}."
+            end
+            @dir = dir
+            @bound = High.space_top unless @dir == :no
         end
 
         # Creates a positive edge event from the signal.
@@ -869,7 +920,7 @@ module HDLRuby::High
         # Declares high-level untyped inner signals named +names+.
         def inner(*names)
             names.each do |name|
-                self.add_inner(Signal.new(name,void))
+                self.add_inner(Signal.new(name,void,:inner))
             end
         end
 
@@ -1090,7 +1141,7 @@ module HDLRuby::High
         def input(*names)
             names.each do |name|
                 HDLRuby::High.space_top.
-                    add_input(Signal.new(name,TypeStruct.new(:"",self)))
+                    add_input(Signal.new(name,TypeStruct.new(:"",self),:input))
             end
         end
 
@@ -1099,7 +1150,7 @@ module HDLRuby::High
         def output(*names)
             names.each do |name|
                 HDLRuby::High.space_top.
-                    add_output(Signal.new(name,TypeStruct.new(:"",self)))
+                    add_output(Signal.new(name,TypeStruct.new(:"",self),:output))
             end
         end
 
@@ -1108,7 +1159,7 @@ module HDLRuby::High
         def inout(*names)
             names.each do |name|
                 HDLRuby::High.space_top.
-                    add_inout(Signal.new(name,TypeStruct.new(:"",self)))
+                    add_inout(Signal.new(name,TypeStruct.new(:"",self),:inout))
             end
         end
 
@@ -1117,7 +1168,7 @@ module HDLRuby::High
         def inner(*names)
             names.each do |name|
                 HDLRuby::High.space_top.
-                    add_inner(Signal.new(name,TypeStruct.new(:"",self)))
+                    add_inner(Signal.new(name,TypeStruct.new(:"",self),:inner))
             end
         end
     end
@@ -1143,20 +1194,19 @@ module HDLRuby::High
     end
 
 
-    # TODO
-    # # Extends the symbol class for auto declaration of input or output.
-    # class ::Symbol
-    #     High = HDLRuby::High
+    # Extends the symbol class for auto declaration of input or output.
+    class ::Symbol
+        High = HDLRuby::High
 
-    #     # Converts to a high-level expression.
-    #     def to_expr
-    #         self.to_port
-    #     end
+        # Converts to a high-level expression.
+        def to_expr
+            self.to_port
+        end
 
-    #     # Converts to a high-level port.
-    #     def to_port
-    #         ICIICI
-    #     end
-    # end
+        # Converts to a high-level port refering to an unbounded signal.
+        def to_port
+            return Signal.new(self,void,:no).to_port
+        end
+    end
 
 end
