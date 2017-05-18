@@ -67,8 +67,9 @@ begin
        union(int: signed[32], uint: bit[32]).inout :value
        sigT0.inner :my_sig
 
-       o0 <= i0 + i1
-       x <= y + z
+       o0 <= i0 + i1     # Standard connection
+       x <= y + z        # Connection of generic parameters
+       +:a <= +:b + +:c  # Connection of auto signals
 
        behavior(i0.posedge) do
            o1 <= i0 * i1
@@ -196,8 +197,8 @@ begin
     end
 
     systemI1Connections = $systemI1.each_connection.to_a
-    if systemI1Connections.size != 2 then
-        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 2."
+    if systemI1Connections.size != 3 then
+        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 3."
         $success = false
     elsif systemI1Connections[0].left.name != :o0 then
         puts "Error: invalid left for connection, got #{systemI1Connections[0].left.name} but expecting o0."

@@ -1207,6 +1207,7 @@ module HDLRuby::High
         def to_ref
             return Signal.new(self,void,:no).to_ref
         end
+        alias :+@ :to_ref
     end
 
 end
