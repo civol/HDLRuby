@@ -933,6 +933,7 @@ module HDLRuby::High
             High.space_push(par_block)
             self.instance_eval(&ruby_block)
             High.space_pop
+            par_block
         end
 
         # Creates a new parallel block built from +ruby_block+.

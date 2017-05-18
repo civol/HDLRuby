@@ -230,6 +230,7 @@ module HDLRuby::Base
                 raise "Invalid class for a connection: #{connection.class}"
             end
             @connections << connection
+            connection
         end
 
         # Iterates over the connections.
@@ -255,6 +256,7 @@ module HDLRuby::Base
                 raise "Invalid class for a behavior: #{behavior.class}"
             end
             @behaviors << behavior
+            behavior
         end
 
         # Iterates over the behaviors.
@@ -310,6 +312,7 @@ module HDLRuby::Base
                 raise "Invalid class for a event: #{event.class}"
             end
             @events << event
+            event
         end
 
         # Iterates over the events of the sensibility list.
@@ -335,6 +338,7 @@ module HDLRuby::Base
                 raise "Timed blocks are not supported in common behaviors."
             end
             @blocks << block
+            block
         end
 
         # Iterates over the blocks.
@@ -372,6 +376,7 @@ module HDLRuby::Base
                 raise "Invalid class for a block: #{block.class}"
             end
             @blocks << block
+            block
         end
     end
 
@@ -613,6 +618,7 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{statement.class}"
             end
             @whens << [match,block]
+            [match,block]
         end
 
         # Iterates over the match cases.
@@ -674,6 +680,7 @@ module HDLRuby::Base
                 raise "Timed statements are not supported in common blocks."
             end
             @statements << statement
+            statement
         end
 
         # Iterates over the statements.
@@ -706,6 +713,7 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{statement.class}"
             end
             @statements << statement
+            statement
         end
     end
 
