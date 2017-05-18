@@ -382,18 +382,18 @@ module HDLRuby::Base
         # The type of event.
         attr_reader :type
 
-        # The port of the event.
-        attr_reader :port
+        # The reference of the event.
+        attr_reader :ref
 
-        # Creates a new +type+ sort of event on signal +port+.
-        def initialize(type,port)
+        # Creates a new +type+ sort of event on signal refered by +ref+.
+        def initialize(type,ref)
             # Check and set the type.
             @type = type.to_sym
-            # Check and set the port.
-            unless port.is_a?(Port)
-                raise "Invalid class for a port: #{port.class}"
+            # Check and set the reference.
+            unless ref.is_a?(Ref)
+                raise "Invalid class for a reference: #{ref.class}"
             end
-            @port = port
+            @ref = ref
         end
     end
 
@@ -515,18 +515,18 @@ module HDLRuby::Base
     # Decribes a transmission statement.
     class Transmit < Statement
         
-        # The left port.
+        # The left reference.
         attr_reader :left
         
         # The right expression.
         attr_reader :right
 
         # Creates a new transmission from a +right+ expression to a +left+
-        # port.
+        # reference.
         def initialize(left,right)
-            # Check and set the left port.
-            unless left.is_a?(Port)
-                raise "Invalid class for a port (left value): #{left.class}"
+            # Check and set the left reference.
+            unless left.is_a?(Ref)
+                raise "Invalid class for a reference (left value): #{left.class}"
             end
             @left = left
             # Check and set the right expression.
@@ -904,59 +904,60 @@ module HDLRuby::Base
 
 
     ## 
-    # Describes a port expression.
+    # Describes a reference expression.
     #
     # NOTE: this is an abstract class which is not to be used directly.
-    class Port < Expression
+    class Ref < Expression
     end
 
 
     ##
-    # Describes port concatenation.
-    class PortConcat < Port
+    # Describes concatenation reference.
+    class RefConcat < Ref
 
-        # Creates a new port concatenation several +ports+ together.
-        def initialize(*ports)
-            # Check and set the ports.
-            ports.each do |port|
-                unless port.is_a?(Expression) then
-                    raise "Invalid class for an port: #{port.class}"
+        # Creates a new reference concatenating the references of +refs+
+        # together.
+        def initialize(*refs)
+            # Check and set the refs.
+            refs.each do |ref|
+                unless ref.is_a?(Expression) then
+                    raise "Invalid class for an reference: #{ref.class}"
                 end
             end
-            @ports = ports
+            @refs = refs
         end
 
-        # Iterates over the concatenated ports.
+        # Iterates over the concatenated references.
         #
         # Returns an enumerator if no ruby block is given.
-        def each_port(&ruby_block)
+        def each_ref(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_input) unless ruby_block
             # A block? Apply it on each children.
-            @ports.each(&ruby_block)
+            @refs.each(&ruby_block)
         end
     end
 
 
     ## 
-    # Describes a port index.
-    class PortIndex < Port
-        # The accessed port.
-        attr_reader :port
+    # Describes a index reference.
+    class RefIndex < Ref
+        # The accessed reference.
+        attr_reader :ref
 
         # The access index.
         attr_reader :index
 
-        # Create a new port index accessing +port+ at +index+.
-        def initialize(port,index)
-            # Check and set the accessed port.
-            unless port.is_a?(Port) then
-                raise "Invalid class for a port: #{port.class}."
+        # Create a new index reference accessing +ref+ at +index+.
+        def initialize(ref,index)
+            # Check and set the accessed reference.
+            unless ref.is_a?(Ref) then
+                raise "Invalid class for a reference: #{ref.class}."
             end
-            @port = port
+            @ref = ref
             # Check and set the index.
             unless index.is_a?(Expression) then
-                raise "Invalid class for a port index: #{index.class}."
+                raise "Invalid class for an index reference: #{index.class}."
             end
             @index = index
         end
@@ -964,21 +965,21 @@ module HDLRuby::Base
 
 
     ## 
-    # Describes a port range.
-    class PortRange < Port
-        # The accessed port.
-        attr_reader :port
+    # Describes a range reference.
+    class RefRange < Ref
+        # The accessed reference.
+        attr_reader :ref
 
         # The access range.
         attr_reader :range
 
-        # Create a new port range accessing +port+ at +range+.
-        def initialize(port,range)
-            # Check and set the accessed port.
-            unless port.is_a?(Port) then
-                raise "Invalid class for a port: #{port.class}."
+        # Create a new range reference accessing +ref+ at +range+.
+        def initialize(ref,range)
+            # Check and set the accessed reference.
+            unless ref.is_a?(Ref) then
+                raise "Invalid class for a reference: #{ref.class}."
             end
-            @port = port
+            @ref = ref
             # Check and set the range.
             first = range.first
             unless first.is_a?(Expression) then
@@ -994,21 +995,21 @@ module HDLRuby::Base
 
 
     ##
-    # Describes a named port.
-    class PortName < Port
-        # The accessed port.
-        attr_reader :port
+    # Describes a name reference.
+    class RefName < Ref
+        # The accessed reference.
+        attr_reader :ref
 
         # The access name.
         attr_reader :name
 
-        # Create a new named port accessing +port+ with +name+.
-        def initialize(port,name)
-            # Check and set the accessed port.
-            unless port.is_a?(Port) then
-                raise "Invalid class for a port: #{port.class}."
+        # Create a new named reference accessing +ref+ with +name+.
+        def initialize(ref,name)
+            # Check and set the accessed reference.
+            unless ref.is_a?(Ref) then
+                raise "Invalid class for a reference: #{ref.class}."
             end
-            @port = port
+            @ref = ref
             # Check and set the symbol.
             @name = name.to_sym
         end
@@ -1016,9 +1017,9 @@ module HDLRuby::Base
 
 
     ## 
-    # Describe a this port.
+    # Describe a this reference.
     #
     # This is the current system.
-    class PortThis < Port 
+    class RefThis < Ref 
     end
 end

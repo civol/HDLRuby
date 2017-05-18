@@ -282,7 +282,7 @@ rescue Exception => e
     $success = false
 end
 
-puts "\nCreating ports for further connection of the signals..."
+puts "\nCreating references for further connection of the signals..."
 $pNames = ["p0i0", "p0i1", "p0i2", "p0i3", "p0i4", "p0i5", "p0i6", "p0i7",
            "p0o0", "p0o1", "p0o2", "p0o3", "p0o4", "p0o5", "p0io",
            "p0s0", "p0s1", "p0s2", "p0clk",
@@ -290,20 +290,20 @@ $pNames = ["p0i0", "p0i1", "p0i2", "p0i3", "p0i4", "p0i5", "p0i6", "p0i7",
            "p1s0", "p1s1", "p1s2",
            "p2i0", "p2i1", "p2i2", "p2o0", "p2o1", "p2io",
            "p2s0", "p2s1", "p2s2"]
-$ports = []
+$refs = []
 $pNames.each_with_index do |name,i|
-    print "  Port #{name}... "
+    print "  Ref #{name}... "
     begin
-        # Create the system port.
-        system_port = PortThis.new
+        # Create the system reference.
+        system_ref = RefThis.new
         if name[1] != "0" then
             # Sub system case.
-            system_port = PortName.new(system_port,"systemI#{name[1]}")
+            system_ref = RefName.new(system_ref,"systemI#{name[1]}")
         end
-        # Create the signal port
-        $ports[i] = PortName.new(system_port,"#{name[2..-1]}")
-        if $ports[i].name != name[2..-1].to_sym then
-            puts "Error: invalid signal, got #{$ports[i].name} " +
+        # Create the signal reference.
+        $refs[i] = RefName.new(system_ref,"#{name[2..-1]}")
+        if $refs[i].name != name[2..-1].to_sym then
+            puts "Error: invalid signal, got #{$refs[i].name} " +
                  " but expecting #{name[2..-1]}"
             $success = false
         else
@@ -315,7 +315,7 @@ $pNames.each_with_index do |name,i|
     end
 end
 
-puts "\nCreating port-only connections..."
+puts "\nCreating reference-only connections..."
 # $cNames = { "p0i0" => ["p1i0"], "p0i1" => ["p1i1"],
 #             "p0i2" => ["p2i0"], "p0i3" => ["p2i1"],
 #             "p1o0" => ["p0o0"], "p1o1" => ["p2i2"], 
@@ -328,13 +328,13 @@ puts "\nCreating port-only connections..."
 #     begin
 #         connection = Connection.new
 #         $connections << connection
-#         ports = [ $ports[$pNames.index(sName)] ] + 
-#                 dNames.map {|name| $ports[$pNames.index(name)] }
-#         ports.each {|port| connection.add_port(port) }
+#         refs = [ $refs[$pNames.index(sName)] ] + 
+#                 dNames.map {|name| $refs[$pNames.index(name)] }
+#         refs.each {|ref| connection.add_ref(ref) }
 #         success = true
-#         connection.each_port.with_index do |cPort,i|
-#             if cPort != ports[i] then
-#                 puts "Error: invalid port, got #{cPort} but expecting #{ports[i]}."
+#         connection.each_ref.with_index do |cRef,i|
+#             if cRef != refs[i] then
+#                 puts "Error: invalid reference, got #{cRef} but expecting #{refs[i]}."
 #                 success = false
 #             end
 #         end
@@ -358,17 +358,17 @@ $connections = []
 $cNames.each do |sName,dName|
     print "  Connection #{sName} => #{dName}... "
     begin
-        left =  $ports[$pNames.index(sName)]
-        right = $ports[$pNames.index(dName)]
+        left =  $refs[$pNames.index(sName)]
+        right = $refs[$pNames.index(dName)]
         connection = Connection.new(left,right)
         $connections << connection
         success = true
         if connection.left != left then
-            puts "Error: invalid port, got #{connection.keft} but expecting #{left}."
+            puts "Error: invalid reference, got #{connection.keft} but expecting #{left}."
             success = false
         end
         if connection.right != right then
-            puts "Error: invalid port, got #{connection.keft} but expecting #{right}."
+            puts "Error: invalid reference, got #{connection.keft} but expecting #{right}."
             success = false
         end
         if success then
@@ -388,11 +388,11 @@ eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7"]
 
 # Generate an expression from a signal or constant name
 def eName2Exp(name)
-    port = $ports.find {|port| port.name == name }
-    unless port
+    ref = $refs.find {|ref| ref.name == name }
+    unless ref
         return Value.new(:bit8,name.to_i)
     end
-    return port
+    return ref
 end
 
 $expressions = []
@@ -433,20 +433,20 @@ print "\nCreating an expression connection... "
 # begin
 #     connection = Connection.new($expressions[0])
 #     $connections << connection
-#     port = $ports[$pNames.index("p0o2")]
-#     connection.add_port(port)
+#     ref = $refs[$pNames.index("p0o2")]
+#     connection.add_ref(ref)
 #     success = true
 #     unless connection.expression == $expressions[0] then
 #         puts "Error: invalid expression, got #{connection.expression} but expecting #{$expressions[0]}"
 #         success = false
 #     end
-#     ports = connection.each_port.to_a
-#     unless ports.size == 1 then
-#         puts "Error: too many ports for the connection, got #{ports.size} but expecting 1."
+#     refs = connection.each_ref.to_a
+#     unless refs.size == 1 then
+#         puts "Error: too many references for the connection, got #{refs.size} but expecting 1."
 #         success = false
 #     end
-#     unless ports[0] == port then
-#         puts "Error: invalid port in connection, got #{ports[0]} but expecting #{port}."
+#     unless refs[0] == ref then
+#         puts "Error: invalid reference in connection, got #{refs[0]} but expecting #{ref}."
 #         success = false
 #     end
 #     if success then
@@ -460,8 +460,8 @@ print "\nCreating an expression connection... "
 # end
 begin
     
-    port = $ports[$pNames.index("p0o2")]
-    connection = Connection.new(port,$expressions[0])
+    ref = $refs[$pNames.index("p0o2")]
+    connection = Connection.new(ref,$expressions[0])
     $connections << connection
     puts "Ok."
 rescue Exception => e
@@ -496,12 +496,12 @@ $statements = []
 $stNames.each do |pName,expression|
     print "  Transmission to #{pName}... "
     begin
-        port = $ports[$pNames.index(pName)]
-        statement = Transmit.new(port,expression)
+        ref = $refs[$pNames.index(pName)]
+        statement = Transmit.new(ref,expression)
         $statements << statement
         success = true
-        unless statement.left == port then
-            raise "Error: invalid left value, got #{statement.left} but expecting #{port}."
+        unless statement.left == ref then
+            raise "Error: invalid left value, got #{statement.left} but expecting #{ref}."
             success = false
         end
         unless statement.right == expression then
@@ -542,14 +542,14 @@ print "\nCreating a clock event... "
 #     $success = false
 # end
 begin
-    port = $ports.find{|port| port.name == :clk}
-    $event = Event.new(:posedge,port)
+    ref = $refs.find{|ref| ref.name == :clk}
+    $event = Event.new(:posedge,ref)
     success = true
     if $event.type != :posedge then
         puts "Error: invalid type of event, got #{$event.type} but expecting :posedge."
         success = false
-    elsif $event.port != port then
-        puts "Error: invalid port, got #{$event.port} but expecting #{port}."
+    elsif $event.ref != ref then
+        puts "Error: invalid reference, got #{$event.ref} but expecting #{ref}."
         success = false
     end
     if success then

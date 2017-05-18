@@ -20,8 +20,8 @@ module HDLRuby
                  Low::Transmit, Low::If, Low::Case, Low::Time, 
                  # Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,
                  Low::Value, Low::Unary, Low::Binary, Low::Select, Low::Concat,
-                 Low::PortConcat, Low::PortIndex, Low::PortRange,
-                 Low::PortName, Low::PortThis
+                 Low::RefConcat, Low::RefIndex, Low::RefRange,
+                 Low::RefName, Low::RefThis
                 ] 
     # The names of the classes of HFLRuby supporting to_basic
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }

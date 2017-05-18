@@ -600,42 +600,42 @@ module HDLRuby::Low
 
 
     ## 
-    # Describes a port expression.
+    # Describes a reference expression.
     #
     # NOTE: this is an abstract class which is not to be used directly.
-    class Port < Base::Port
+    class Ref < Base::Ref
     end
 
 
     ##
-    # Describes port concatenation.
-    class PortConcat < Base::PortConcat
+    # Describes reference concatenation.
+    class RefConcat < Base::RefConcat
     end
 
 
     ## 
-    # Describes a port index.
-    class PortIndex < Base::PortIndex
+    # Describes an index reference.
+    class RefIndex < Base::RefIndex
     end
 
 
     ## 
-    # Describes a port range.
-    class PortRange < Base::PortRange
+    # Describes a range reference.
+    class RefRange < Base::RefRange
     end
 
 
     ##
-    # Describes a named port.
-    class PortName < Base::PortName
+    # Describes a name reference.
+    class RefName < Base::RefName
     end
 
 
     ## 
-    # Describe a this port.
+    # Describe a this reference.
     #
     # This is the current system.
-    class PortThis < Base::PortThis
+    class RefThis < Base::RefThis
     end
 
 

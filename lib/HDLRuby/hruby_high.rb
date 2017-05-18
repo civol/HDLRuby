@@ -589,11 +589,11 @@ module HDLRuby::High
             if High.space_top.is_a?(Block) then
                 # We are in a block, so generate and add a Transmit.
                 High.space_top.
-                    add_statement(Transmit.new(self.to_port,expr.to_expr))
+                    add_statement(Transmit.new(self.to_ref,expr.to_expr))
             else
                 # We are in a system type, so generate and add a Connection.
                 High.space_top.
-                    add_connection(Connection.new(self.to_port,expr.to_expr))
+                    add_connection(Connection.new(self.to_ref,expr.to_expr))
             end
         end
     end
@@ -645,8 +645,8 @@ module HDLRuby::High
 
 
     ## 
-    # Module giving high-level port properties.
-    module HPort
+    # Module giving high-level reference properties.
+    module HRef
         # Properties of expressions are also required
         def self.included(klass)
             klass.class_eval do
@@ -655,10 +655,10 @@ module HDLRuby::High
             end
         end
 
-        # Converts to a port.
+        # Converts to a reference.
         #
-        # NOTE: to be redefined in case of non-port class.
-        def to_port
+        # NOTE: to be redefined in case of non-reference class.
+        def to_ref
             return self
         end
 
@@ -677,50 +677,50 @@ module HDLRuby::High
             end 
             if rng.is_a?(HDLRuby::Base::Expression) then
                 # Index case
-                return PortIndex.new(self.to_port,rng)
+                return RefIndex.new(self.to_ref,rng)
             else
                 # Range case, ensure it is made among expression.
                 first = rng.first.to_expr
                 last = rng.last.to_expr
-                # Abd create the port.
-                return PortRange.new(self.to_port,first..last)
+                # Abd create the reference.
+                return RefRange.new(self.to_ref,first..last)
             end
         end
     end
 
 
     ##
-    # Describes a high-level concat port.
-    class PortConcat < Base::PortConcat
-        include HPort
+    # Describes a high-level concat reference.
+    class RefConcat < Base::RefConcat
+        include HRef
     end
 
     ##
-    # Describes a high-level index port.
-    class PortIndex < Base::PortIndex
-        include HPort
+    # Describes a high-level index reference.
+    class RefIndex < Base::RefIndex
+        include HRef
     end
 
     ##
-    # Describes a high-level range port.
-    class PortRange < Base::PortRange
-        include HPort
+    # Describes a high-level range reference.
+    class RefRange < Base::RefRange
+        include HRef
     end
 
     ##
-    # Describes a high-level name port.
-    class PortName < Base::PortName
-        include HPort
+    # Describes a high-level name reference.
+    class RefName < Base::RefName
+        include HRef
     end
 
     ##
-    # Describes a this port.
-    class PortThis < Base::PortThis
+    # Describes a this reference.
+    class RefThis < Base::RefThis
         High = HDLRuby::High
-        include HPort
+        include HRef
         
-        # The only useful instance of port this.
-        This = PortThis.new
+        # The only useful instance of RefThis.
+        This = RefThis.new
 
         # Gets the enclosing system type.
         def system
@@ -738,9 +738,9 @@ module HDLRuby::High
         end
     end
 
-    # Gives access to the *this* port.
+    # Gives access to the *this* reference.
     def this
-        PortThis::This
+        RefThis::This
     end
 
 
@@ -794,7 +794,7 @@ module HDLRuby::High
     class Signal < Base::Signal
         High = HDLRuby::High
 
-        include HPort
+        include HRef
 
         # The valid bounding directions.
         DIRS = [ :no, :input, :output, :inout, :inner ]
@@ -819,12 +819,12 @@ module HDLRuby::High
                 High.space_reg(name) { obj }
             end
 
-            # Hierarchical type allows access to sub ports, so generate
+            # Hierarchical type allows access to sub references, so generate
             # the corresponding methods.
             if type.respond_to?(:each_name) then
                 type.each_name do |name|
                     self.define_singleton_method(name) do
-                        PortName.new(self.to_port,name)
+                        RefName.new(self.to_ref,name)
                     end
                 end
             end
@@ -839,32 +839,32 @@ module HDLRuby::High
 
         # Creates a positive edge event from the signal.
         def posedge
-            return Event.new(:posedge,self.to_port)
+            return Event.new(:posedge,self.to_ref)
         end
 
         # Creates a negative edge event from the signal.
         def negedge
-            return Event.new(:negedge,self.to_port)
+            return Event.new(:negedge,self.to_ref)
         end
 
         # Creates an edge event from the signal.
         def edge
-            return Event.new(:edge,self.to_port)
+            return Event.new(:edge,self.to_ref)
         end
 
         # Creates a change event from the signal.
         def change
-            return Event.new(:change,self.to_port)
+            return Event.new(:change,self.to_ref)
         end
 
-        # Converts to a port.
-        def to_port
-            return PortName.new(this,self.name)
+        # Converts to a reference.
+        def to_ref
+            return RefName.new(this,self.name)
         end
 
         # Converts to an expression.
         def to_expr
-            return self.to_port
+            return self.to_ref
         end
     end
 
@@ -1185,10 +1185,10 @@ module HDLRuby::High
             expr
         end
 
-        # Converts to a high-level port.
-        def to_port
-            expr = PortConcat.new
-            self.each {|elem| expr.add_port(elem.to_port) }
+        # Converts to a high-level reference.
+        def to_ref
+            expr = RefConcat.new
+            self.each {|elem| expr.add_ref(elem.to_ref) }
             expr
         end
     end
@@ -1200,12 +1200,12 @@ module HDLRuby::High
 
         # Converts to a high-level expression.
         def to_expr
-            self.to_port
+            self.to_ref
         end
 
-        # Converts to a high-level port refering to an unbounded signal.
-        def to_port
-            return Signal.new(self,void,:no).to_port
+        # Converts to a high-level reference refering to an unbounded signal.
+        def to_ref
+            return Signal.new(self,void,:no).to_ref
         end
     end
 

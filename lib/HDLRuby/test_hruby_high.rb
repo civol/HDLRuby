@@ -225,8 +225,8 @@ begin
         $success = false
     elsif systemI1Events[0].type != :posedge then
         puts "Error: invalid type of event, got #{systemI1Events[0].type} but expecting posedge."
-    elsif systemI1Events[0].port.name != :i0 then
-        puts "Error: invalid event port, got #{systemI1Events[0].port.name} but expecting i0."
+    elsif systemI1Events[0].ref.name != :i0 then
+        puts "Error: invalid event reference, got #{systemI1Events[0].ref.name} but expecting i0."
     end
     systemI1Blocks = systemI1Behavior.each_block.to_a
     if systemI1Blocks.size != 1 then
@@ -288,20 +288,20 @@ begin
     elsif systemI1SeqStatements[0].right.operator != :+ then
         puts "Error: invalid first statement right operator, got #{systemI1SeqStatements[0].right.operator} but expecting +."
         $success = false
-    elsif !systemI1SeqStatements[0].left.is_a?(PortRange) then
-        puts "Error: invalid first statement left port, got #{systemI1SeqStatements[0].left.class} but expecting PortRange."
+    elsif !systemI1SeqStatements[0].left.is_a?(RefRange) then
+        puts "Error: invalid first statement left reference, got #{systemI1SeqStatements[0].left.class} but expecting RefRange."
         $success = false
     elsif systemI1SeqStatements[0].left.range != (7..0) then
-        puts "Error: invalid first statement left port range, got #{systemI1SeqStatements[0].left.range} but expecting 7..0."
+        puts "Error: invalid first statement left reference range, got #{systemI1SeqStatements[0].left.range} but expecting 7..0."
         $success = false
-    elsif !systemI1SeqStatements[0].left.port.is_a?(PortName) then
-        puts "Error: invalid first statement left left port, got #{systemI1SeqStatements[0].left.port.class} but expecting PortName."
+    elsif !systemI1SeqStatements[0].left.ref.is_a?(RefName) then
+        puts "Error: invalid first statement left left reference, got #{systemI1SeqStatements[0].left.ref.class} but expecting RefName."
         $success = false
-    elsif systemI1SeqStatements[0].left.port.name != :int then
-        puts "Error: invalid first statement left left port name, got #{systemI1SeqStatements[0].left.port.name} but expecting int."
+    elsif systemI1SeqStatements[0].left.ref.name != :int then
+        puts "Error: invalid first statement left left reference name, got #{systemI1SeqStatements[0].left.ref.name} but expecting int."
         $success = false
-    elsif systemI1SeqStatements[0].left.port.port.name != :value then
-        puts "Error: invalid first statement left left left port name, got #{systemI1SeqStatements[0].left.port.port.name} but expecting value."
+    elsif systemI1SeqStatements[0].left.ref.ref.name != :value then
+        puts "Error: invalid first statement left left left reference name, got #{systemI1SeqStatements[0].left.ref.ref.name} but expecting value."
         $success = false
     end
 
