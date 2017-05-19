@@ -178,8 +178,14 @@ module HDLRuby::High
             events.map! do |event|
                 event.to_event
             end
-            # Create and add the resulting system.
+            # Create and add the resulting behavior.
             self.add_behavior(Behavior.new(*events,&ruby_block))
+        end
+
+        # Declares a high-level timed behavior built by executing +ruby_block+.
+        def timed(&ruby_block)
+            # Create and add the resulting behavior.
+            self.add_behavior(TimeBehavior.new(&ruby_block))
         end
 
 
@@ -684,11 +690,11 @@ module HDLRuby::High
         # +ruby_block+.
         def initialize(condition, &ruby_block)
             # Create the yes block.
-            yes_block = Block.new(:par)
-            # Built it by executing ruby_block in context.
-            High.space_push(yes_block)
-            High.space_top.instance_eval(&ruby_block)
-            High.space_pop
+            yes_block = High.block(:par,&ruby_block)
+            # # Built it by executing ruby_block in context.
+            # High.space_push(yes_block)
+            # High.space_top.instance_eval(&ruby_block)
+            # High.space_pop
             # Creates the if statement.
             super(condition,yes_block)
         end
@@ -698,11 +704,11 @@ module HDLRuby::High
         # No can only be set once.
         def helse(&ruby_block)
             # Create the no block.
-            no_block = Block.new(:par)
-            # Built it by executing ruby_block in context.
-            High.space_push(no_block)
-            High.space_top.instance_eval(&ruby_block)
-            High.space_pop
+            no_block = High.block(:par,&ruby_block)
+            # # Built it by executing ruby_block in context.
+            # High.space_push(no_block)
+            # High.space_top.instance_eval(&ruby_block)
+            # High.space_pop
             # Sets the no block.
             self.no = no_block
         end
@@ -712,6 +718,12 @@ module HDLRuby::High
     ## 
     # Describes a high-level case statement.
     class Case < Base::Case
+    end
+
+
+    ##
+    # Describes a high-level time statement.
+    class TimeDelay < Base::TimeDelay
     end
 
 
@@ -752,7 +764,7 @@ module HDLRuby::High
         #
         # NOTE: it is converted afterward to an expression if required.
         def <=(expr)
-            if High.space_top.is_a?(Block) then
+            if High.space_top.is_a?(HDLRuby::Base::Block) then
                 # We are in a block, so generate and add a Transmit.
                 High.space_top.
                     add_statement(Transmit.new(self.to_ref,expr.to_expr))
@@ -1035,18 +1047,20 @@ module HDLRuby::High
     end
 
 
+    
     ##
-    # Describes a high-level block.
-    class Block < Base::Block
+    # Module giving the properties of a high-level block.
+    module HBlock
         High = HDLRuby::High
 
-        # Creates a new +type+ sort of block.
-        def initialize(type)
-            # Initialize the block.
-            super(type)
-
+        # Build the block by executing +ruby_block+.
+        def build(&ruby_block)
             # High-level blocks can include inner signals.
             @inners = {}
+            # Build the block.
+            High.space_push(self)
+            self.instance_eval(&ruby_block)
+            High.space_pop
         end
 
         # Missing methods are looked up in the upper level of the namespace.
@@ -1090,16 +1104,17 @@ module HDLRuby::High
             end
         end
 
-        # Creates and adds a new block typed +type+ built from +ruby_block+.
+        # Creates a block typed +type+ built by executing +ruby_block+.
+        def block(type,&ruby_block)
+            return High.block(type,&ruby_block)
+        end
+
+        # Creates and adds a new block typed +type+ built by
+        # executing +ruby_block+.
         def add_block(type,&ruby_block)
             # Creates and adds the block.
-            par_block = Block.new(type)
-            self.add_statement(par_block)
-            # Build it by executing the ruby block.
-            High.space_push(par_block)
-            self.instance_eval(&ruby_block)
-            High.space_pop
-            par_block
+            block = block(type,&ruby_block)
+            self.add_statement(block)
         end
 
         # Creates a new parallel block built from +ruby_block+.
@@ -1134,6 +1149,56 @@ module HDLRuby::High
 
 
     ##
+    # Describes a high-level block.
+    class Block < Base::Block
+        High = HDLRuby::High
+
+        include High::HBlock
+
+        # Creates a new +type+ sort of block and build it by executing
+        # +ruby_block+.
+        def initialize(type,&ruby_block)
+            # Initialize the block.
+            super(type)
+            build(&ruby_block)
+        end
+    end
+
+
+    # Describes a timed block.
+    #
+    # NOTE: 
+    # * this is the only kind of block that can include time statements. 
+    # * this kind of block is not synthesizable!
+    class TimeBlock < Base::TimeBlock
+        High = HDLRuby::High
+
+        include High::HBlock
+
+        # Creates a new +type+ sort of block and build it by executing
+        # +ruby_block+.
+        def initialize(type,&ruby_block)
+            # Initialize the block.
+            super(type)
+            build(&ruby_block)
+        end
+    end
+
+    # Declares a block of type +type+, that can be timed or not depending 
+    # on the enclosing object and build it by executing the enclosing
+    # +ruby_block+.
+    #
+    # NOTE: not a method to include since it can only be used with
+    # a behavior or a block. Hence set as module method.
+    def self.block(type,&ruby_block)
+        if space_top.is_a?(TimeBlock) then
+            return TimeBlock.new(type,&ruby_block)
+        else
+            return Block.new(type,&ruby_block)
+        end
+    end
+
+    ##
     # Describes a high-level behavior.
     class Behavior < Base::Behavior
         High = HDLRuby::High
@@ -1146,15 +1211,41 @@ module HDLRuby::High
             # Add the events.
             events.each { |event| self.add_event(event) }
             # Create and add a default par block for the behavior.
-            block = Block.new(:par)
+            block = block(:par,&ruby_block)
             self.add_block(block)
-            # Build the block by executing the ruby block in context.
-            High.space_push(block)
-            High.space_top.instance_eval(&ruby_block)
-            High.space_pop
+            # # Build the block by executing the ruby block in context.
+            # High.space_push(block)
+            # High.space_top.instance_eval(&ruby_block)
+            # High.space_pop
+        end
+
+
+        # Creates a block typed +type+ built by executing +ruby_block+.
+        def block(type,&ruby_block)
+            return High.block(type,&ruby_block)
         end
     end
 
+    ##
+    # Describes a high-level timed behavior.
+    class TimeBehavior < Base::TimeBehavior
+        High = HDLRuby::High
+
+        # Creates a new timed behavior built by executing +ruby_block+.
+        def initialize(&ruby_block)
+            # Initialize the behavior
+            super()
+            # Create and add a default par block for the behavior.
+            # NOTE: this block is forced to TimeBlock, so do not use
+            # block(:par).
+            block = TimeBlock.new(:par,&ruby_block)
+            self.add_block(block)
+            # # Build the block by executing the ruby block in context.
+            # High.space_push(block)
+            # High.space_top.instance_eval(&ruby_block)
+            # High.space_pop
+        end
+    end
 
 
 
@@ -1297,10 +1388,32 @@ module HDLRuby::High
 
     # Extends the Numeric class for conversion to a high-level expression.
     class ::Numeric
+
         # Converts to a high-level expression.
         def to_expr
-            return Value.new(numeric,self)
+            return HDLRuby::High::Value.new(numeric,self)
         end
+
+        # Converts to a time statement in picoseconds.
+        def ps
+            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:ps))
+        end
+
+        # Converts to a time statement in nanoseconds.
+        def ns
+            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:ns))
+        end
+
+        # Converts to a time statement in milliseconds.
+        def ms
+            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:ms))
+        end
+
+        # Converts to time statement in seconds.
+        def s
+            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:s))
+        end
+
     end
 
 

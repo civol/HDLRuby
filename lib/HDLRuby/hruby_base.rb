@@ -360,7 +360,7 @@ module HDLRuby::Base
     # NOTE: 
     # * this is the only kind of behavior that can include time statements. 
     # * this kind of behavior is not synthesizable!
-    class TimeBehavior
+    class TimeBehavior < Behavior
         # Time behavior do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)
@@ -636,7 +636,7 @@ module HDLRuby::Base
 
     ## 
     # Describes a time statement: not synthesizable!
-    class Time < Statement
+    class TimeDelay < Statement
         # The time unit.
         attr_reader :unit
 
@@ -672,12 +672,12 @@ module HDLRuby::Base
 
         # Adds a +statement+.
         #
-        # NOTE: Time is not supported unless for TimeBlock objects.
+        # NOTE: TimeDelay is not supported unless for TimeBlock objects.
         def add_statement(statement)
             unless statement.is_a?(Statement) then
                 raise "Invalid class for a statement: #{statement.class}"
             end
-            if statement.is_a?(Time) then
+            if statement.is_a?(TimeDelay) then
                 raise "Timed statements are not supported in common blocks."
             end
             @statements << statement

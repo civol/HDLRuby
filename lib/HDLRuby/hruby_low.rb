@@ -174,7 +174,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a time statement: not synthesizable!
-    class Time < Base::Type
+    class TimeDelay < Base::TimeDelay
     end
 
 
