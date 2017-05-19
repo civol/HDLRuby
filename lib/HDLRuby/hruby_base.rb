@@ -68,6 +68,7 @@ module HDLRuby::Base
         
         # Adds input signal +signal+.
         def add_input(signal)
+            # print "add_input with signal: #{signal.name}\n"
             # Checks and add the signal.
             unless signal.is_a?(Signal)
                 raise "Invalid class for a signal instance: #{signal.class}"
@@ -169,22 +170,22 @@ module HDLRuby::Base
 
         ## Gets an input signal by +name+.
         def get_input(name)
-            return @inputs[name]
+            return @inputs[name.to_sym]
         end
 
         ## Gets an output signal by +name+.
         def get_output(name)
-            return @outputs[name]
+            return @outputs[name.to_sym]
         end
 
         ## Gets an inout signal by +name+.
         def get_inout(name)
-            return @inouts[name]
+            return @inouts[name.to_sym]
         end
 
         ## Gets an inner signal by +name+.
         def get_inner(name)
-            return @inners[name]
+            return @inners[name.to_sym]
         end
 
         ## Gets a signal by +name+.

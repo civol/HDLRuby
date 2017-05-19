@@ -251,7 +251,24 @@ module HDLRuby::High
             return TypeVector.new(:"",self,rng)
         end
 
-        # Type handling.
+        # Type handling: these methods may have to be overriden when 
+        # subclassing.
+
+        # Gets the type as left value.
+        #
+        # NOTE: used for asymetric types like TypeSystemI.
+        def left
+            # By default self.
+            self
+        end
+
+        # Gets the type as right value.
+        #
+        # NOTE: used for asymetric types like TypeSystemI.
+        def right
+            # By default self.
+            self
+        end
 
         # Tells if the type is specified or not.
         def is_void?
@@ -279,14 +296,21 @@ module HDLRuby::High
             return SIGNS[self.name]
         end
 
-        # Tells if the type 
+        # Instantiate the type with arguments +args+ if required.
+        #
+        # NOTE: actually, only TypeSystemT actually require instantiation.
+        def instantiate
+            self
+        end
+
 
         # Signal creation through the type.
 
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
             names.each do |name|
-                High.space_top.add_input(Signal.new(name,self,:input))
+                High.space_top.add_input(
+                    Signal.new(name,self.instantiate,:input))
             end
         end
 
@@ -294,7 +318,8 @@ module HDLRuby::High
         # current type.
         def output(*names)
             names.each do |name|
-                High.space_top.add_output(Signal.new(name,self,:output))
+                High.space_top.add_output(
+                    Signal.new(name,self.instantiate,:output))
             end
         end
 
@@ -302,7 +327,8 @@ module HDLRuby::High
         # current type.
         def inout(*names)
             names.each do |name|
-                High.space_top.add_inout(Signal.new(name,self,:inout))
+                High.space_top.add_inout(
+                    Signal.new(name,self.instantiate,:inout))
             end
         end
 
@@ -310,7 +336,8 @@ module HDLRuby::High
         # current type.
         def inner(*names)
             names.each do |name|
-                High.space_top.add_inner(Signal.new(name,self,:inner))
+                High.space_top.add_inner(
+                    Signal.new(name,self.instantiate,:inner))
             end
         end
     end
@@ -358,6 +385,23 @@ module HDLRuby::High
                 rng = rng.first..rng.last
             end
             @range = rng
+        end
+
+        # Type handling: these methods may have to be overriden when 
+        # subclassing.
+
+        # Gets the bitwidth of the type, nil for undefined.
+        #
+        # NOTE: must be redefined for specific types.
+        def width
+            first = rng.first
+            last  = rng.last
+            return @base.width * (first-last).abs
+        end
+
+        # Tells if the type signed, false for unsigned.
+        def signed?
+            return @base.signed?
         end
     end
 
@@ -421,33 +465,137 @@ module HDLRuby::High
     ##
     # Describes a structure type.
     class TypeStruct < TypeHierarchy
+        # Type handling: these methods may have to be overriden when 
+        # subclassing.
+
+        # Gets the bitwidth of the type, nil for undefined.
+        #
+        # NOTE: must be redefined for specific types.
+        def width
+            return @types.reduce(0) {|sum,type| sum + type.width }
+        end
     end
 
 
     ##
     # Describes an union type.
     class TypeUnion < TypeHierarchy
+        # Type handling: these methods may have to be overriden when 
+        # subclassing.
+
+        # Gets the bitwidth of the type, nil for undefined.
+        #
+        # NOTE: must be redefined for specific types.
+        def width
+            return @types.max{ |type| type.width }.width
+        end
     end
 
     ##
     # Describes a type made of a system type.
-    class TypeSystem < Type
+    #
+    # NOTE: must be instantiated before being used.
+    class TypeSystemT < Type
         # The system type.
         attr_reader :systemT
 
-        # Creates a new type named +name+ made of system type +systemT+.
-        def initialize(name,systemT)
+        # Creates a new type named +name+ made of system type +systemT+
+        # using signal names of +left_names+ as left values and signal names
+        # of +right_names+ as right values.
+        def initialize(name,systemT,left_names,right_names)
             # Initialize the type.
             super(name)
-
             # Check and set the system type.
-            # NOTE: more check are required to ensure the system type can
-            # be made a signal type.
             unless systemT.is_a?(SystemT) then
                 raise "Invalid class for a system type: #{systemT.class}."
             end
             @systemT = systemT
+
+            # Check and set the left and right names.
+            @left_names = left_names.map {|name| name.to_sym }
+            @right_names = right_names.map {|name| name.to_sym }
         end
+
+        # Instantiate the type with arguments +args+.
+        # Returns a new type named +name+ based on a system instance.
+        #
+        # NOTE: to be called when creating a signal of this type, it
+        # will instantiate the embedded system.
+        def instantiate(*args)
+            # Instantiate the system type and create the type instance
+            # from it.
+            return TypeSystemI.new(:"",@systemT.instantiate(:"",*args),
+                                  @left_names, @right_names)
+        end
+        alias :call :instantiate
+    end
+
+
+    ##
+    # Describes a type made of a system instance.
+    class TypeSystemI < TypeHierarchy
+        # The system instance.
+        attr_reader :systemI
+
+        # Creates a new type named +name+ made of system type +systemI+
+        # using signal names of +left_names+ as left values and signal names
+        # of +right_names+ as right values.
+        def initialize(name,systemI,left_names,right_names)
+            # Check and set the system instance.
+            unless systemI.is_a?(SystemI) then
+                raise "Invalid class for a system type: #{systemI.class}."
+            end
+            @systemI = systemI
+
+            # Initialize the type: each external signal becomes an
+            # element of the corresponding hierarchical type.
+            super(name, systemI.each_input.map do |signal|
+                            [signal.name, signal.type]
+                        end + 
+                        systemI.each_output.map do |signal|
+                            [signal.name, signal.type]
+                        end + 
+                        systemI.each_inout.map do |signal|
+                            [signal.name, signal.type]
+                        end)
+
+
+            # Check and set the left and right names.
+            @left_names = left_names.map {|name| name.to_sym }
+            @right_names = right_names.map {|name| name.to_sym }
+
+            # Generates the left-value and the right-value side of the type
+            # from the inputs and the outputs of the system.
+            @left = struct(@left_names.map do |name|
+                signal = @systemI.get_signal(name)
+                unless signal then
+                    raise "Unkown signal in system #{@systemI.name}: #{name}."
+                end
+                [name, signal.type]
+            end)
+            @right = struct(@right_names.map do |name|
+                signal = @systemI.get_signal(name)
+                unless signal then
+                    raise "Unkown signal in system #{@systemI.name}: #{name}."
+                end
+                [name, signal.type]
+            end)
+        end
+
+
+        # Type handling: these methods may have to be overriden when 
+        # subclassing.
+        
+        # Gets the type as left value.
+        def left
+            return @left
+        end
+
+        # Gets the type as right value.
+        def right
+            return @right
+        end
+
     end
 
 
@@ -480,9 +628,10 @@ module HDLRuby::High
 
     # Extends the system type class for converting it to a data type.
     class SystemT
-        # Converts the system type to a data type.
-        def to_type
-            return TypeSystem.new(:"",self)
+        # Converts the system type to a data type using +left+ signals
+        # as left values and +right+ signals as right values.
+        def to_type(left,right)
+            return TypeSystemT.new(:"",self,left,right)
         end
     end
 

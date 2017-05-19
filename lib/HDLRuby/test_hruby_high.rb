@@ -12,7 +12,7 @@ $success = true
 
 print "Creating an empty system type... "
 begin
-    $systemT0 = system :systemT0
+    $systemT0 = system :systemT0 
     unless $systemT0 then
         raise "Error: created system type not found."
         $success =false
@@ -22,36 +22,36 @@ begin
         $success = false
     end
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 print "Instantiate it... "
 begin
     $systemI0 = $systemT0.instantiate("systemI0")
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 print "Creating the unsigned char type (bit[8])... "
 begin
-    type(:uchar) { bit[8] }
+    $uchar = type(:uchar) { bit[8] }
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 print "Converting systemT0 to a type... "
 begin
-    $uchar = type(:sigT0) { $systemT0.to_type }
+    $sigT0 = type(:sigT0) { $systemT0.to_type([],[]) }
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
@@ -93,9 +93,9 @@ begin
        $success = false
    end
    puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 print "Instantiate it... "
@@ -170,11 +170,8 @@ begin
     elsif systemI1Inners[1].name != :my_sig then
         puts "Error: invalid inner signal, got #{systemI1Inners[1].name} but expecting my_sig."
         $success = false
-    elsif !systemI1Inners[1].type.is_a?(TypeSystem) then
+    elsif !systemI1Inners[1].type.is_a?(TypeSystemI) then
         puts "Error: invalid inner type, got #{systemI1Inners[1].type.class} but expecting TypeSystem."
-        $success = false
-    elsif systemI1Inners[1].type.systemT != $systemT0 then
-        puts "Error: invalid inner type's system, got #{systemI1Inners[1].type.systemT.name} but expecting systemT0."
         $success = false
     end
 
@@ -312,8 +309,67 @@ begin
 #     $success = false
 end
 
+print "\nCreating a simple generic system with 2 inputs and 2 outputs... "
+begin
+    $systemT2 = system :systemT2 do |type|
+        input :clk
+        type.input :i0,:i1
+        type.output :o0,:o1
+    end
+    puts "Ok."
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
 
-    
+print "Converting it to a type... "
+begin
+    $sigT2 = type(:sigT2) { $systemT2.to_type([:i0,:i1],[:o0,:o1]) }
+    unless $sigT2.is_a?(TypeSystemT) then
+        raise "Invalid type class: got #{$sigT2.class} but expecting TypeSystemT."
+    end
+    puts "Ok."
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
+
+print "Using it in a new system and instantiate the result... "
+begin
+    $systemT3 = system :systemT3 do
+        sigT2.(uchar).input :x,:y
+        sigT2.(uchar).output :z
+    end
+    $systemI3 = $systemT3.instantiate("systemI3")
+    systemI3inputs = $systemI3.each_input.to_a
+    success = true
+    [:i0,:i1,:o0,:o1].each do |name|
+        unless systemI3inputs[0].respond_to?(name) then
+            puts "Error: systemI3's input does not include #{name} sub signal."
+            success = false
+        end
+    end
+    [:i0,:i1].each do |name|
+        unless systemI3inputs[0].type.left.get_type(name) then
+            puts "Error: systemI3's input type's left side does not include #{name} sub type."
+            success = false
+        end
+    end
+    [:o0,:o1].each do |name|
+        unless systemI3inputs[0].type.right.get_type(name) then
+            puts "Error: systemI3's input type's right side does not include #{name} sub type."
+            success = false
+        end
+    end
+    if (success) then
+        puts "Ok."
+    else
+        $success = false
+    end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
 
 if $success then
     puts "\nSuccess."
