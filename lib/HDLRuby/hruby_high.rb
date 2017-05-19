@@ -81,6 +81,15 @@ module HDLRuby::High
             end
         end
 
+        # Opens for extension.
+        #
+        # NOTE: actually executes +ruby_block+ in the context.
+        def open(&ruby_block)
+            High.space_push(self)
+            High.space_top.instance_eval(&ruby_block)
+            High.space_pop
+        end
+
 
         # The proc used for instantiating the system type.
         attr_reader :instance_proc
@@ -197,7 +206,7 @@ module HDLRuby::High
 
     # Declares a high-level system type named +name+, with +includes+ mixins
     # hardware types and using +ruby_block+ for instantiating.
-    def system(name, *includes, &ruby_block)
+    def system(name = :"", *includes, &ruby_block)
         # print "system ruby_block=#{ruby_block}\n"
         # Creates the resulting system.
         return SystemT.new(name,*includes,&ruby_block)
@@ -653,6 +662,14 @@ module HDLRuby::High
             # Sets the hdl-like access to the system instance.
             obj = self # For using the right self within the proc
             High.space_reg(name) { obj }
+        end
+
+        # Opens for extension.
+        #
+        # NOTE: actually executes +ruby_block+ in the context of the
+        #       systemT.
+        def open(&ruby_block)
+            return self.systemT.open(&ruby_block)
         end
     end
 
@@ -1270,6 +1287,8 @@ module HDLRuby::High
 
     # The numeric type (for all the Ruby Numeric types).
     define_type :numeric
+
+
 
 
 

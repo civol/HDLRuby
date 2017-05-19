@@ -371,6 +371,31 @@ begin
 #     $success = false
 end
 
+print "\nExtending systemI3... "
+begin
+    $systemI3.open do
+        z <= x & y
+    end
+    $systemI3Connections = $systemI3.each_connection.to_a
+    success = true
+    unless $systemI3Connections.size == 1 then
+        puts "Invalid number of connection: got #{$systemI3Connections.size} but expecting 1."
+        success = false
+    end
+    unless $systemI3Connections[0].right.operator == :& then
+        puts "Invalid operator for connection's right: got #{$systemI3Connections[0].right.operator} but expecting &."
+        success = false
+    end
+    if success then
+        puts "Ok."
+    else
+        $success = false
+    end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
+
 if $success then
     puts "\nSuccess."
 else
