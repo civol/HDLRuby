@@ -172,11 +172,20 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a time statement: not synthesizable!
-    class TimeDelay < Base::TimeDelay
+    ##
+    # Describes a delay: not synthesizable.
+    class Delay < Base::Delay
     end
 
+    ## 
+    # Describes a wait delay statement: not synthesizable!
+    class TimeWait < Base::TimeWait
+    end
+
+    ## 
+    # Describes a timed loop statement: not synthesizable!
+    class TimeRepeat < Base::TimeRepeat
+    end
 
 
     ## 

@@ -722,8 +722,24 @@ module HDLRuby::High
 
 
     ##
-    # Describes a high-level time statement.
-    class TimeDelay < Base::TimeDelay
+    # Describes a delay: not synthesizable.
+    class Delay < Base::Delay
+        High = HDLRuby::High
+
+        def !
+            High.space_top.wait(self)    
+        end
+    end
+
+    ##
+    # Describes a high-level wait delay statement.
+    class TimeWait < Base::TimeWait
+    end
+
+
+    ## 
+    # Describes a timed loop statement: not synthesizable!
+    class TimeRepeat < Base::TimeRepeat
     end
 
 
@@ -1182,7 +1198,22 @@ module HDLRuby::High
             super(type)
             build(&ruby_block)
         end
+
+        # Adds a wait +delay+ statement in the block.
+        def wait(delay)
+            self.add_statement(TimeWait.new(delay))
+        end
+
+        # Adds a loop until +delay+ statement in the block whose
+        # loop content is built using +ruby_block+.
+        def repeat(delay,&ruby_block)
+            # Build the content block.
+            content = High.block(:par,&ruby_block)
+            # Create and add the statement.
+            self.add_statement(TimeRepeat.new(content,delay))
+        end
     end
+
 
     # Declares a block of type +type+, that can be timed or not depending 
     # on the enclosing object and build it by executing the enclosing
@@ -1391,29 +1422,28 @@ module HDLRuby::High
 
         # Converts to a high-level expression.
         def to_expr
-            return HDLRuby::High::Value.new(numeric,self)
+            return Value.new(numeric,self)
         end
 
-        # Converts to a time statement in picoseconds.
+        # Converts to a delay in picoseconds.
         def ps
-            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:ps))
+            return Delay.new(self,:ps)
         end
 
-        # Converts to a time statement in nanoseconds.
+        # Converts to a delay in nanoseconds.
         def ns
-            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:ns))
+            return Delay.new(self,:ns)
         end
 
-        # Converts to a time statement in milliseconds.
+        # Converts to a delay in milliseconds.
         def ms
-            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:ms))
+            return Delay.new(self,:ms)
         end
 
-        # Converts to time statement in seconds.
+        # Converts to a delay in seconds.
         def s
-            HDLRuby::High.space_top.add_statement(TimeDelay.new(self,:s))
+            return Delay.new(self,:s)
         end
-
     end
 
 

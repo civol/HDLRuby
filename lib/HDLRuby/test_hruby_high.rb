@@ -87,14 +87,16 @@ begin
 
        timed do
            clk <= 0
-           10.ns
+           !10.ns
            clk <= 1
-           10.ns
+           !10.ns
            clk <= 0
-           10.ns
-           clk <= 1
-           10.ns
-           clk <= 0
+           repeat(1000.ns) do
+               !10.ns
+               clk <= 1
+               !10.ns
+               clk <= 0
+           end
        end
    end
    unless $systemT1 then
@@ -334,24 +336,36 @@ begin
         success = false
     end
     systemI1TimeStms = systemI1TimeBlks[0].each_statement.to_a
-    unless systemI1TimeStms.size == 9 then
-        puts "Error: invalid number of timed statements: got #{systemI1TimeStms.size} but expecting 9."
+    unless systemI1TimeStms.size == 6 then
+        puts "Error: invalid number of timed statements: got #{systemI1TimeStms.size} but expecting 6."
         success = false
     end
     unless systemI1TimeStms[0].is_a?(Transmit) then
         puts "Error: invalid class for first timed statements: got #{systemI1TimeStms[0].class} but expecting Transmit."
         success = false
     end
-    unless systemI1TimeStms[1].is_a?(TimeDelay) then
+    unless systemI1TimeStms[1].is_a?(TimeWait) then
         puts "Error: invalid class for second timed statements: got #{systemI1TimeStms[1].class} but expecting TimeDelay."
         success = false
     end
-    unless systemI1TimeStms[1].unit == :ns then
+    unless systemI1TimeStms[1].delay.unit == :ns then
         puts "Error: invalid unit for second timed statements: got #{systemI1TimeStms[1].unit} but expecting ns."
         success = false
     end
-    unless systemI1TimeStms[1].value == 10 then
+    unless systemI1TimeStms[1].delay.value == 10 then
         puts "Error: invalid value for second timed statements: got #{systemI1TimeStms[1].value} but expecting 10."
+        success = false
+    end
+    unless systemI1TimeStms[-1].is_a?(TimeRepeat) then
+        puts "Error: invalid class for last time statement: got #{systemI1TimeStms[-1].class} but expecting TimeRepeat."
+        success = false
+    end
+    unless systemI1TimeStms[-1].delay.value == 1000 then
+        puts "Error: invalid value for second timed statements: got #{systemI1TimeStms[-1].value} but expecting 10."
+        success = false
+    end
+    unless systemI1TimeStms[-1].statement.each_statement.to_a.size == 4 then
+        puts "Error: invalid number of statements in the timed repeat: got #{systemI1TimeStms[-1].statement.each_statement.to_a.size} but expecting 4."
         success = false
     end
 

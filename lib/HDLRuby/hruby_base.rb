@@ -634,24 +634,69 @@ module HDLRuby::Base
     end
 
 
-    ## 
-    # Describes a time statement: not synthesizable!
-    class TimeDelay < Statement
+    ##
+    # Describes a delay: not synthesizable.
+    class Delay
         # The time unit.
         attr_reader :unit
 
         # The time value.
         attr_reader :value
 
-        # Creates a new time statement waiting +value+ +unit+ of time.
+        # Creates a new delay of +value+ +unit+ of time.
         def initialize(value,unit)
             # Check and set the value.
             unless value.is_a?(Numeric)
-                raise "Invalid class for a value: #{value.class}"
+                raise "Invalid class for a delay value: #{value.class}."
             end
             @value = value
             # Check and set the unit.
             @unit = unit.to_sym
+        end
+    end
+
+
+    ## 
+    # Describes a wait statement: not synthesizable!
+    class TimeWait < Statement
+        # The delay to wait.
+        attr_reader :delay
+
+        # Creates a new statement waiting +delay+.
+        def initialize(delay)
+            # Check and set the delay.
+            unless delay.is_a?(Delay)
+                raise "Invalid class for a delay: #{delay.class}."
+            end
+            @delay = delay
+        end
+
+    end
+
+
+    ## 
+    # Describes a timed loop statement: not synthesizable!
+    class TimeRepeat < Statement
+        # The delay until the loop is repeated
+        attr_reader :delay
+
+        # The statement to execute.
+        attr_reader :statement
+
+        # Creates a new timed loop statement execute in a loop +statement+ until
+        # +delay+ has passed.
+        def initialize(statement,delay)
+            # Check and set the statement.
+            unless statement.is_a?(Statement)
+                raise "Invalid class for a statement: #{statement.class}."
+            end
+            @statement = statement
+
+            # Check and set the delay.
+            unless delay.is_a?(Delay)
+                raise "Invalid class for a delay: #{delay.class}."
+            end
+            @delay = delay
         end
     end
 
@@ -672,12 +717,12 @@ module HDLRuby::Base
 
         # Adds a +statement+.
         #
-        # NOTE: TimeDelay is not supported unless for TimeBlock objects.
+        # NOTE: TimeWait is not supported unless for TimeBlock objects.
         def add_statement(statement)
             unless statement.is_a?(Statement) then
                 raise "Invalid class for a statement: #{statement.class}"
             end
-            if statement.is_a?(TimeDelay) then
+            if statement.is_a?(TimeWait) then
                 raise "Timed statements are not supported in common blocks."
             end
             @statements << statement
