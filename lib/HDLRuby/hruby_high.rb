@@ -558,7 +558,7 @@ module HDLRuby::High
         def initialize(name,systemI,left_names,right_names)
             # Check and set the system instance.
             unless systemI.is_a?(SystemI) then
-                raise "Invalid class for a system type: #{systemI.class}."
+                raise "Invalid class for a system instance: #{systemI.class}."
             end
             @systemI = systemI
 
@@ -1170,7 +1170,7 @@ module HDLRuby::High
     class Block < Base::Block
         High = HDLRuby::High
 
-        include High::HBlock
+        include HBlock
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
@@ -1190,7 +1190,7 @@ module HDLRuby::High
     class TimeBlock < Base::TimeBlock
         High = HDLRuby::High
 
-        include High::HBlock
+        include HBlock
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
@@ -1521,6 +1521,52 @@ module HDLRuby::High
             return Signal.new(self,void,:no).to_ref
         end
         alias :+@ :to_ref
+    end
+
+
+
+    # Exetend SystemT and Block to allow local modifications of HDLRuby::High
+    # classes.
+
+    META = [ :SystemT, :HMix,
+             :Type, :TypeExtend, :TypeVector,
+             :TypeHierarchy, :TypeStruct, :TypeUnion, 
+             :TypeSystemT, :TypeSystemI,
+             :SystemI,
+             :If, :Case, :Delay, :TimeWait, :TimeRepeat,
+             :HExpression, :HArrow, :Unary, :Binary, :Select, :Concat, :Value,
+             :HRef, :RefConcat, :RefIndex, :RefRange, :RefName, :RefThis,
+             :Event, :Transmit, :Connection, :Signal,
+             :HBlock, :Block, :TimeBlock,
+             :Behavior, :TimeBehavior ]
+
+    ##
+    # Module providing methods for each meta-programmation of HDLRuby::High
+    # features.
+    module MetaChanger
+        # Work in progress: require generation step to advance.
+    end
+
+    class SystemT
+        META.each do |cst|
+            obj = High.const_get(cst)
+            if obj.is_a?(Class) then
+                self.const_set(cst,Class.new(obj))
+            end
+        end
+
+        include MetaChanger
+    end
+
+    class Block
+        META.each do |cst|
+            obj = High.const_get(cst)
+            if obj.is_a?(Class) then
+                self.const_set(cst,Class.new(obj))
+            end
+        end
+
+        include MetaChanger
     end
 
 end
