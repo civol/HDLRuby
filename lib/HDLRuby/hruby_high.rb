@@ -754,7 +754,8 @@ module HDLRuby::High
         end
 
         # Adds the unary operations generation.
-        [:"-@",:"@+",:"!",:"~"].each do |operator|
+        [:"-@",:"@+",:"!",:"~",
+         :boolean, :bit, :signed, :unsigned].each do |operator|
             define_method(operator) do
                 return Unary.new(operator,self.to_expr)
             end
@@ -762,7 +763,7 @@ module HDLRuby::High
 
         # Adds the binary operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
-         :"&",:"|",:"^",:"<<",:">>",:"&&",:"||",
+         :"&",:"|",:"^",:"<<",:">>",
          :"==",:"<",:">",:"<=",:">="].each do |operator|
             define_method(operator) do |right|
                 return Binary.new(operator,self.to_expr,right.to_expr)
