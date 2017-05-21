@@ -215,7 +215,8 @@ module HDLRuby::High
     def system(name = :"", *includes, &ruby_block)
         # print "system ruby_block=#{ruby_block}\n"
         # Creates the resulting system.
-        return SystemT.new(name,*includes,&ruby_block)
+        # return SystemT.new(name,*includes,&ruby_block)
+        return make_changer(SystemT).new(name,*includes,&ruby_block)
     end
     
 
@@ -1224,9 +1225,11 @@ module HDLRuby::High
     # a behavior or a block. Hence set as module method.
     def self.block(type,&ruby_block)
         if space_top.is_a?(TimeBlock) then
-            return TimeBlock.new(type,&ruby_block)
+            # return TimeBlock.new(type,&ruby_block)
+            return make_changer(TimeBlock).new(type,&ruby_block)
         else
-            return Block.new(type,&ruby_block)
+            # return Block.new(type,&ruby_block)
+            return make_changer(Block).new(type,&ruby_block)
         end
     end
 
@@ -1270,7 +1273,8 @@ module HDLRuby::High
             # Create and add a default par block for the behavior.
             # NOTE: this block is forced to TimeBlock, so do not use
             # block(:par).
-            block = TimeBlock.new(:par,&ruby_block)
+            # block = TimeBlock.new(:par,&ruby_block)
+            block = make_changer(TimeBlock).new(:par,&ruby_block)
             self.add_block(block)
             # # Build the block by executing the ruby block in context.
             # High.space_push(block)
@@ -1528,7 +1532,7 @@ module HDLRuby::High
     # Exetend SystemT and Block to allow local modifications of HDLRuby::High
     # classes.
 
-    META = [ :SystemT, :HMix,
+    CHANGEABLE = [ :SystemT, :HMix,
              :Type, :TypeExtend, :TypeVector,
              :TypeHierarchy, :TypeStruct, :TypeUnion, 
              :TypeSystemT, :TypeSystemI,
@@ -1540,33 +1544,27 @@ module HDLRuby::High
              :HBlock, :Block, :TimeBlock,
              :Behavior, :TimeBehavior ]
 
+    # ##
+    # # Module providing methods for each meta-programmation of HDLRuby::High
+    # # features.
+    # module MetaChanger
+    #     # Work in progress: require generation step to advance.
+    # end
+
     ##
-    # Module providing methods for each meta-programmation of HDLRuby::High
-    # features.
-    module MetaChanger
-        # Work in progress: require generation step to advance.
-    end
-
-    class SystemT
-        META.each do |cst|
-            obj = High.const_get(cst)
+    # Creates a copy class where the basic classes of HDLRuby::High can be
+    # modified without impacting the other objects.
+    def make_changer(klass)
+        # Creates the new class.
+        klass = Class.new(klass)
+        # Fill it with sub classes.
+        CHANGEABLE.each do |cst|
+            obj = HDLRuby::High.const_get(cst)
             if obj.is_a?(Class) then
-                self.const_set(cst,Class.new(obj))
+                klass.const_set(cst,Class.new(obj))
             end
         end
-
-        include MetaChanger
-    end
-
-    class Block
-        META.each do |cst|
-            obj = High.const_get(cst)
-            if obj.is_a?(Class) then
-                self.const_set(cst,Class.new(obj))
-            end
-        end
-
-        include MetaChanger
+        return klass
     end
 
 end
