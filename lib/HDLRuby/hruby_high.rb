@@ -1561,7 +1561,14 @@ module HDLRuby::High
         CHANGEABLE.each do |cst|
             obj = HDLRuby::High.const_get(cst)
             if obj.is_a?(Class) then
+                # obj is a class, subclass it for side effect-less
+                # modifications.
                 klass.const_set(cst,Class.new(obj))
+            elsif obj.is_a?(Module) then
+                # obj is a module, create a new module and include obj in
+                # it for side effect-less modifications.
+                klass.const_set(cst,Module.new)
+                klass.const_get(cst).include(obj)
             end
         end
         return klass
