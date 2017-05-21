@@ -215,8 +215,8 @@ module HDLRuby::High
     def system(name = :"", *includes, &ruby_block)
         # print "system ruby_block=#{ruby_block}\n"
         # Creates the resulting system.
-        # return SystemT.new(name,*includes,&ruby_block)
-        return make_changer(SystemT).new(name,*includes,&ruby_block)
+        return SystemT.new(name,*includes,&ruby_block)
+        # return make_changer(SystemT).new(name,*includes,&ruby_block)
     end
     
 
@@ -1074,7 +1074,7 @@ module HDLRuby::High
         # Build the block by executing +ruby_block+.
         def build(&ruby_block)
             # High-level blocks can include inner signals.
-            @inners = {}
+            @inners ||= {}
             # Build the block.
             High.space_push(self)
             self.instance_eval(&ruby_block)
@@ -1122,16 +1122,11 @@ module HDLRuby::High
             end
         end
 
-        # Creates a block typed +type+ built by executing +ruby_block+.
-        def block(type,&ruby_block)
-            return High.block(type,&ruby_block)
-        end
-
         # Creates and adds a new block typed +type+ built by
         # executing +ruby_block+.
         def add_block(type,&ruby_block)
             # Creates and adds the block.
-            block = block(type,&ruby_block)
+            block = High.block(type,&ruby_block)
             self.add_statement(block)
         end
 
@@ -1175,9 +1170,10 @@ module HDLRuby::High
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
-        def initialize(type,&ruby_block)
+        def initialize(type, extensions = [], &ruby_block)
             # Initialize the block.
             super(type)
+            extensions.each { |extension| build(&extension) }
             build(&ruby_block)
         end
     end
@@ -1195,9 +1191,10 @@ module HDLRuby::High
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
-        def initialize(type,&ruby_block)
+        def initialize(type, extensions = [], &ruby_block)
             # Initialize the block.
             super(type)
+            extensions.each { |extension| build(&extension) }
             build(&ruby_block)
         end
 
@@ -1225,12 +1222,21 @@ module HDLRuby::High
     # a behavior or a block. Hence set as module method.
     def self.block(type,&ruby_block)
         if space_top.is_a?(TimeBlock) then
-            # return TimeBlock.new(type,&ruby_block)
-            return make_changer(TimeBlock).new(type,&ruby_block)
+            return TimeBlock.new(type,space_top.block_extensions,&ruby_block)
+            # return make_changer(TimeBlock).new(type,&ruby_block)
         else
-            # return Block.new(type,&ruby_block)
-            return make_changer(Block).new(type,&ruby_block)
+            return Block.new(type,space_top.block_extensions,&ruby_block)
+            # return make_changer(Block).new(type,&ruby_block)
         end
+    end
+
+    # Declares a specifically timed block of type +type+ and build it by
+    # executing the enclosing +ruby_block+.
+    #
+    # NOTE: not a method to include since it can only be used with
+    # a behavior or a block. Hence set as module method.
+    def self.time_block(type,&ruby_block)
+        return TimeBlock.new(type,space_top.block_extensions,&ruby_block)
     end
 
     ##
@@ -1246,7 +1252,7 @@ module HDLRuby::High
             # Add the events.
             events.each { |event| self.add_event(event) }
             # Create and add a default par block for the behavior.
-            block = block(:par,&ruby_block)
+            block = High.block(:par,&ruby_block)
             self.add_block(block)
             # # Build the block by executing the ruby block in context.
             # High.space_push(block)
@@ -1255,10 +1261,10 @@ module HDLRuby::High
         end
 
 
-        # Creates a block typed +type+ built by executing +ruby_block+.
-        def block(type,&ruby_block)
-            return High.block(type,&ruby_block)
-        end
+        # # Creates a block typed +type+ built by executing +ruby_block+.
+        # def block(type,&ruby_block)
+        #     return High.block(type,&ruby_block)
+        # end
     end
 
     ##
@@ -1273,8 +1279,8 @@ module HDLRuby::High
             # Create and add a default par block for the behavior.
             # NOTE: this block is forced to TimeBlock, so do not use
             # block(:par).
-            # block = TimeBlock.new(:par,&ruby_block)
-            block = make_changer(TimeBlock).new(:par,&ruby_block)
+            block = High.time_block(:par,&ruby_block)
+            # block = make_changer(TimeBlock).new(:par,&ruby_block)
             self.add_block(block)
             # # Build the block by executing the ruby block in context.
             # High.space_push(block)
@@ -1332,6 +1338,16 @@ module HDLRuby::High
     # Gets the top of the namespace stack.
     def self.space_top
         NameSpace[-1]
+    end
+
+    # Iterates over each namespace.
+    #
+    # Returns an enumerator if no ruby block is given.
+    def self.space_each(&ruby_block)
+        # No ruby block? Return an enumerator.
+        return to_enum(:space_each) unless ruby_block
+        # A block? Apply it on each system instance.
+        NameSpace.each(&ruby_block)
     end
 
     # Gets the enclosing system type if any.
@@ -1529,49 +1545,145 @@ module HDLRuby::High
 
 
 
-    # Exetend SystemT and Block to allow local modifications of HDLRuby::High
-    # classes.
+    # # Exetend SystemT and Block to allow local modifications of HDLRuby::High
+    # # classes.
 
-    CHANGEABLE = [ :SystemT, :HMix,
-             :Type, :TypeExtend, :TypeVector,
-             :TypeHierarchy, :TypeStruct, :TypeUnion, 
-             :TypeSystemT, :TypeSystemI,
-             :SystemI,
-             :If, :Case, :Delay, :TimeWait, :TimeRepeat,
-             :HExpression, :HArrow, :Unary, :Binary, :Select, :Concat, :Value,
-             :HRef, :RefConcat, :RefIndex, :RefRange, :RefName, :RefThis,
-             :Event, :Transmit, :Connection, :Signal,
-             :HBlock, :Block, :TimeBlock,
-             :Behavior, :TimeBehavior ]
+    # CHANGEABLE = [ :SystemT, :HMix,
+    #          :Type, :TypeExtend, :TypeVector,
+    #          :TypeHierarchy, :TypeStruct, :TypeUnion, 
+    #          :TypeSystemT, :TypeSystemI,
+    #          :SystemI,
+    #          :If, :Case, :Delay, :TimeWait, :TimeRepeat,
+    #          :HExpression, :HArrow, :Unary, :Binary, :Select, :Concat, :Value,
+    #          :HRef, :RefConcat, :RefIndex, :RefRange, :RefName, :RefThis,
+    #          :Event, :Transmit, :Connection, :Signal,
+    #          :HBlock, :Block, :TimeBlock,
+    #          :Behavior, :TimeBehavior ]
 
     # ##
-    # # Module providing methods for each meta-programmation of HDLRuby::High
-    # # features.
-    # module MetaChanger
-    #     # Work in progress: require generation step to advance.
+    # # Module providing methods for changing the base objects of HDLRuby::High
+    # # while hiding the (highly variable in the current state) actual class
+    # # and module hierarchy.
+    # module Changer
+    #     # Changes the behavior of the local expressions by executing
+    #     # +ruby_block+.
+    #     def expression_eval(&ruby_block)
+    #         HExpression.module_eval(&ruby_block)
+    #     end
+
+    #     # Changes the behavior of the local signals by executing +ruby_block+.
+    #     def signal_eval(&ruby_block)
+    #         Signal.class_eval(&ruby_block)
+    #     end
+
+    #     # Changes the behavior of the local system types by executing
+    #     # +ruby_block+.
+    #     def systemT_eval(&ruby_block)
+    #         SystemT.class_eval(&ruby_block)
+    #     end
+
+    #     # Changes the behavior of the local system instances by executing
+    #     # +ruby_block+.
+    #     def systemI_eval(&ruby_block)
+    #         SystemI.class_eval(&ruby_block)
+    #     end
+
+    #     # Changes the behavior of the local blocks by executing
+    #     # +ruby_block+.
+    #     def block_eval(&ruby_block)
+    #         HBlock.module_eval(&ruby_block)
+    #     end
+    # end
+
+    # ##
+    # # Creates a copy class where the basic classes of HDLRuby::High can be
+    # # modified without impacting the other objects.
+    # def make_changer(klass)
+    #     # Creates the new class.
+    #     klass = Class.new(klass)
+    #     # Fill it with sub classes.
+    #     CHANGEABLE.each do |cst|
+    #         obj = HDLRuby::High.const_get(cst)
+    #         if obj.is_a?(Class) then
+    #             # obj is a class, subclass it for side effect-less changes.
+    #             klass.const_set(cst,Class.new(obj))
+    #         elsif obj.is_a?(Module) then
+    #             # obj is a module, create a new module and include obj in
+    #             # it for side effect-less changes.
+    #             klass.const_set(cst,Module.new)
+    #             klass.const_get(cst).include(obj)
+    #         end
+    #     end
+    #     klass.include(Changer)
+    #     return klass
     # end
 
     ##
-    # Creates a copy class where the basic classes of HDLRuby::High can be
-    # modified without impacting the other objects.
-    def make_changer(klass)
-        # Creates the new class.
-        klass = Class.new(klass)
-        # Fill it with sub classes.
-        CHANGEABLE.each do |cst|
-            obj = HDLRuby::High.const_get(cst)
-            if obj.is_a?(Class) then
-                # obj is a class, subclass it for side effect-less
-                # modifications.
-                klass.const_set(cst,Class.new(obj))
-            elsif obj.is_a?(Module) then
-                # obj is a module, create a new module and include obj in
-                # it for side effect-less modifications.
-                klass.const_set(cst,Module.new)
-                klass.const_get(cst).include(obj)
-            end
+    # Module providing methods for changing the base objects of HDLRuby::High
+    # while hiding the (highly variable in the current state) actual class
+    # and module hierarchy.
+    module Changer
+        High = HDLRuby::High
+
+        # Get the block extensions.
+        def block_extensions
+            @block_extensions ||= []
+            return @block_extensions
         end
-        return klass
+
+        # Changes the behavior of the local blocks by executing
+        # +ruby_block+.
+        def block_eval(&ruby_block)
+            @block_extensions ||= []
+            @block_extensions << ruby_block
+        end
+
+        # # Upadate a +block+ class with the existing extensions.
+        # def ruby_block_update(block)
+        #     High.space_each do
+        #         block = ruby_block_update_self(block)
+        #     end
+        #     return block
+        # end
+        # def ruby_block_update_self(block)
+        #     if @block_extensions then
+        #         @block_extensions.each do |extension|
+        #             block = proc do
+        #                 block.call
+        #                 extension.call
+        #             end
+        #         end
+        #     end
+        #     return block
+        # end
+
+        # # Creates a block typed +type+ built by executing +ruby_block+.
+        # def block(type,&ruby_block)
+        #     ruby_block = ruby_block_update(ruby_block)
+        #     result = High.block(type,&ruby_block)
+        #     return result
+        # end
+
+        # # Creates a secifically timed block typed +type+ built by executing
+        # # +ruby_block+.
+        # def time_block(type,&ruby_block)
+        #     ruby_block = ruby_block_update(ruby_block)
+        #     result = High.time_block(type,&ruby_block)
+        #     return result
+        # end
+    end
+
+
+    class SystemT
+        include Changer
+    end
+
+    class Block
+        include Changer
+    end
+
+    class TimeBlock
+        include Changer
     end
 
 end

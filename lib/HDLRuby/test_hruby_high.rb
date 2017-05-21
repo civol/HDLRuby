@@ -441,13 +441,39 @@ begin
 #     $success = false
 end
 
-print "\nExtending systemI3... "
+print "\nExtending systemI3 and do a bit of meta programming... "
 begin
     $systemI3.open do
         z <= x & y
+        block_eval do
+            def hello(name)
+                $hello = "Hello #{name}."
+            end
+        end
+        par do
+            hello("everybody")
+        end
+    end
+    success = true
+    unless $hello == "Hello everybody." then
+        puts "Change of the block classes had no effect."
+        success = false
+    end
+    begin
+        system :fake do
+            par do
+                hello("no one.")
+            end
+        end.instantiate(:faker)
+        puts "The hello method should not be in a general block class."
+        success = false
+    rescue Exception => e
+        unless ( e.is_a?(NoMethodError) and e.message.include?("hello") ) then
+            puts "Error: unexpected exception #{e.inspect}."
+            success = false
+        end
     end
     $systemI3Connections = $systemI3.each_connection.to_a
-    success = true
     unless $systemI3Connections.size == 1 then
         puts "Invalid number of connection: got #{$systemI3Connections.size} but expecting 1."
         success = false
