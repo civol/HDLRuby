@@ -445,7 +445,7 @@ print "\nExtending systemI3 and do a bit of meta programming... "
 begin
     $systemI3.open do
         z <= x & y
-        block_eval do
+        block_open do
             def hello(name)
                 $hello = "Hello #{name}."
             end

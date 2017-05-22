@@ -1625,6 +1625,8 @@ module HDLRuby::High
     module Changer
         High = HDLRuby::High
 
+        # Methods for changing locally blocks.
+
         # Get the block extensions.
         def block_extensions
             @block_extensions ||= []
@@ -1633,44 +1635,10 @@ module HDLRuby::High
 
         # Changes the behavior of the local blocks by executing
         # +ruby_block+.
-        def block_eval(&ruby_block)
+        def block_open(&ruby_block)
             @block_extensions ||= []
             @block_extensions << ruby_block
         end
-
-        # # Upadate a +block+ class with the existing extensions.
-        # def ruby_block_update(block)
-        #     High.space_each do
-        #         block = ruby_block_update_self(block)
-        #     end
-        #     return block
-        # end
-        # def ruby_block_update_self(block)
-        #     if @block_extensions then
-        #         @block_extensions.each do |extension|
-        #             block = proc do
-        #                 block.call
-        #                 extension.call
-        #             end
-        #         end
-        #     end
-        #     return block
-        # end
-
-        # # Creates a block typed +type+ built by executing +ruby_block+.
-        # def block(type,&ruby_block)
-        #     ruby_block = ruby_block_update(ruby_block)
-        #     result = High.block(type,&ruby_block)
-        #     return result
-        # end
-
-        # # Creates a secifically timed block typed +type+ built by executing
-        # # +ruby_block+.
-        # def time_block(type,&ruby_block)
-        #     ruby_block = ruby_block_update(ruby_block)
-        #     result = High.time_block(type,&ruby_block)
-        #     return result
-        # end
     end
 
 
