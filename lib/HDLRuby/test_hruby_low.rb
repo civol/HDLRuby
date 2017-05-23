@@ -606,10 +606,16 @@ $statements.each.with_index do |statement,i|
 end
 
 
-print "\nCreating a behavior... "
+print "\nCreating a behavior with $block... "
 begin
-    $behavior = Behavior.new
-    puts "Ok."
+    $behavior = Behavior.new($block)
+    block = $behavior.block
+    if block != $block then
+        puts "Error: invalid block, got #{block} but expecting #{$block}."
+        $sucess = false
+    else
+        puts "Ok."
+    end
 rescue Exception => e
     puts "Error: unexpected exception raised #{e.inspect}\n"
     $success = false
@@ -630,20 +636,20 @@ rescue Exception => e
     $success = false
 end
 
-print "\nAdding a block to $behavior... "
-begin
-    $behavior.add_block($block)
-    pBlock = $behavior.each_block.first
-    if pBlock != $block then
-        puts "Error: invalid block, got #{pBlock} but expecting #{$block}."
-        $sucess = false
-    else
-        puts "Ok."
-    end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
-end
+# print "\nAdding a block to $behavior... "
+# begin
+#     $behavior.add_block($block)
+#     pBlock = $behavior.each_block.first
+#     if pBlock != $block then
+#         puts "Error: invalid block, got #{pBlock} but expecting #{$block}."
+#         $sucess = false
+#     else
+#         puts "Ok."
+#     end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+# end
 
 
 print "\nAdding a behavior to $systemT0... "

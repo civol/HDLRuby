@@ -79,7 +79,58 @@ module HDLRuby::High
                 # Named system instance, generate the instantiation command.
                 make_instantiater(name,SystemI,:add_systemI,&ruby_block)
             end
+            # Initialise the set of unbounded signals.
+            @unbounds = {}
         end
+
+        # Adds unbounded signal +signal+.
+        def add_unbound(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Base::Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @unbounds.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @unbounds[signal.name] = signal
+        end
+
+        # Iterates over unbounded signals, or, if provided, the unbounded
+        # signals refered by +ref+.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_unbound(ref = nil, &ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal) unless ruby_block
+            if ref then
+                # A reference and a block? Apply it on each signal instance
+                # indicated by the reference.
+                if ref.respond_to?(:name) then
+                    # Name reference: if it correspond to an unbounded signal
+                    # it is necesserily its name (no path for unbounded signals)
+                    unbound = self.get_unbound(ref.name)
+                    return ruby_block.call(unbound) if unbound
+                    return nil
+                elsif res.respond_to?(:each_ref) then
+                    ref.each_ref do |subref|
+                        self.each_unbound(subref,&ruby_block)
+                    end
+                else
+                    self.each_unbound(ref,&rubyblock)
+                end
+            else
+                # No reference but a block? Apply it on each signal instance.
+                @unbounds.each_value(&ruby_block)
+            end
+        end
+
+        ## Gets an unbound input signal by +name+.
+        def get_unbound(name)
+            # print "Get unbound with name=#{name}\n"
+            return @unbounds[name.to_sym]
+        end
+
+
 
         # Opens for extension.
         #
@@ -87,7 +138,51 @@ module HDLRuby::High
         def open(&ruby_block)
             High.space_push(self)
             High.space_top.instance_eval(&ruby_block)
+            High.space_top.postprocess
             High.space_pop
+        end
+
+        # Post processes the system type.
+        #
+        # NOTE: for now, binds the unbounded signals.
+        def postprocess
+            # Look for each unbounded outputs: they are the left value
+            # signals.
+            uouts = []
+            each_connection do |connection|
+                self.each_unbound(connection.left) do |unbound|
+                    uouts << unbound
+                end
+            end
+            self.each_behavior do |behavior|
+                behavior.block.each_statement do |statement|
+                    if statement.is_a?(Transmit) then
+                        self.each_unbound(statement.left) do |unbound|
+                            uouts << unbound
+                        end
+                    end
+                end
+            end
+            # Bind them.
+            uouts.each { |output| self.bind(output,:output) }
+
+            # Bind the remaining unbounded signals as input.
+            self.each_unbound do |signal|
+                self.bind(signal,:input)
+            end
+        end
+
+        # Binds an unbounded +signal+ with direction +dir+.
+        def bind(signal,dir)
+            @unbounds.delete(signal.name)
+            signal.dir = dir
+            if dir == :input then
+                self.add_input(signal)
+            elsif dir == :output then
+                self.add_output(signal)
+            else
+                raise "Internal error: a signal can only be bounded to an input or an output."
+            end
         end
 
 
@@ -103,7 +198,8 @@ module HDLRuby::High
             # Create the eigen type.
             eigen = self.class.new("")
             High.space_push(eigen)
-            eigen.instance_exec(*args,&@instance_proc) if @instance_proc
+            High.space_top.instance_exec(*args,&@instance_proc) if @instance_proc
+            High.space_top.postprocess
             High.space_pop
             # Create the instance.
             return @instance_class.new(i_name,eigen)
@@ -995,8 +1091,8 @@ module HDLRuby::High
         # The valid bounding directions.
         DIRS = [ :no, :input, :output, :inout, :inner ]
 
-        # The object the signal is bounded to if any.
-        attr_reader :bound
+        # # The object the signal is bounded to if any.
+        # attr_reader :bound
 
         # The bounding direction.
         attr_reader :dir
@@ -1026,11 +1122,24 @@ module HDLRuby::High
             end
 
             # Check and set the bound.
+            self.dir = dir
+            # @bound = High.space_top unless @dir == :no
+        end
+
+        # Tells if the signal is bounded or not.
+        def is_bounded?
+            return (@dir and @dir != :no)
+        end
+
+        # Sets the direction to +dir+ if the signal is not already bounded.
+        def dir=(dir)
+            if is_bounded? then
+                raise "Error: signal #{self.name} already bounded."
+            end
             unless DIRS.include?(dir) then
-                raise "Invalid bounding direction: #{dir}."
+                raise "Invalid bounding for signal #{self.name} direction: #{dir}."
             end
             @dir = dir
-            @bound = High.space_top unless @dir == :no
         end
 
         # Creates a positive edge event from the signal.
@@ -1244,27 +1353,32 @@ module HDLRuby::High
     class Behavior < Base::Behavior
         High = HDLRuby::High
 
-        # Creates a new behavior activated on a list of +events+, and
-        # built by executing +ruby_block+.
+        # # Creates a new behavior executing +block+ activated on a list of
+        # # +events+, and built by executing +ruby_block+.
+        # def initialize(*events,&ruby_block)
+        #     # Initialize the behavior
+        #     super()
+        #     # Add the events.
+        #     events.each { |event| self.add_event(event) }
+        #     # Create a default par block for the behavior.
+        #     block = High.block(:par,&ruby_block)
+        #     self.add_block(block)
+        #     # # Build the block by executing the ruby block in context.
+        #     # High.space_push(block)
+        #     # High.space_top.instance_eval(&ruby_block)
+        #     # High.space_pop
+        # end
+
+        # Creates a new behavior executing +block+ activated on a list of
+        # +events+, and built by executing +ruby_block+.
         def initialize(*events,&ruby_block)
-            # Initialize the behavior
-            super()
+            # Create a default par block for the behavior.
+            block = High.block(:par,&ruby_block)
+            # Initialize the behavior with it.
+            super(block)
             # Add the events.
             events.each { |event| self.add_event(event) }
-            # Create and add a default par block for the behavior.
-            block = High.block(:par,&ruby_block)
-            self.add_block(block)
-            # # Build the block by executing the ruby block in context.
-            # High.space_push(block)
-            # High.space_top.instance_eval(&ruby_block)
-            # High.space_pop
         end
-
-
-        # # Creates a block typed +type+ built by executing +ruby_block+.
-        # def block(type,&ruby_block)
-        #     return High.block(type,&ruby_block)
-        # end
     end
 
     ##
@@ -1272,20 +1386,30 @@ module HDLRuby::High
     class TimeBehavior < Base::TimeBehavior
         High = HDLRuby::High
 
+        # # Creates a new timed behavior built by executing +ruby_block+.
+        # def initialize(&ruby_block)
+        #     # Initialize the behavior
+        #     super()
+        #     # Create and add a default par block for the behavior.
+        #     # NOTE: this block is forced to TimeBlock, so do not use
+        #     # block(:par).
+        #     block = High.time_block(:par,&ruby_block)
+        #     # block = make_changer(TimeBlock).new(:par,&ruby_block)
+        #     self.add_block(block)
+        #     # # Build the block by executing the ruby block in context.
+        #     # High.space_push(block)
+        #     # High.space_top.instance_eval(&ruby_block)
+        #     # High.space_pop
+        # end
+
         # Creates a new timed behavior built by executing +ruby_block+.
         def initialize(&ruby_block)
-            # Initialize the behavior
-            super()
-            # Create and add a default par block for the behavior.
+            # Create a default par block for the behavior.
             # NOTE: this block is forced to TimeBlock, so do not use
             # block(:par).
             block = High.time_block(:par,&ruby_block)
-            # block = make_changer(TimeBlock).new(:par,&ruby_block)
-            self.add_block(block)
-            # # Build the block by executing the ruby block in context.
-            # High.space_push(block)
-            # High.space_top.instance_eval(&ruby_block)
-            # High.space_pop
+            # Initialize the behavior with it.
+            super(block)
         end
     end
 
@@ -1538,7 +1662,11 @@ module HDLRuby::High
 
         # Converts to a high-level reference refering to an unbounded signal.
         def to_ref
-            return Signal.new(self,void,:no).to_ref
+            # Create the unbounded signal and add it to the upper system type.
+            signal = Signal.new(self,void,:no)
+            High.cur_systemT.add_unbound(signal)
+            # Convert it to a reference and return the result.
+            return signal.to_ref
         end
         alias :+@ :to_ref
     end

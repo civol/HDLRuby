@@ -126,8 +126,8 @@ begin
         success = false
     end
     systemI1Ins = $systemI1.each_input.to_a
-    if systemI1Ins.size != 5 then
-        puts "Error: invalid number of input signals, got #{systemI1Ins.size} but expecting 5."
+    if systemI1Ins.size != 7 then
+        puts "Error: invalid number of input signals, got #{systemI1Ins.size} but expecting 7."
         success = false
     elsif systemI1Ins[0].name != :clk then
         puts "Error: invalid input signal, got #{systemI1Ins[0].name} but expecting clk."
@@ -162,8 +162,8 @@ begin
     end
 
     systemI1Outs = $systemI1.each_output.to_a
-    if systemI1Outs.size != 2 then
-        puts "Error: invalid number of output signals, got #{systemI1Outs.size} but expecting 2."
+    if systemI1Outs.size != 3 then
+        puts "Error: invalid number of output signals, got #{systemI1Outs.size} but expecting 3."
         success = false
     elsif systemI1Outs[0].name != :o0 then
         puts "Error: invalid output signal, got #{systemI1Outs[0].name} but expecting o0."
@@ -248,12 +248,13 @@ begin
     elsif systemI1Events[0].ref.name != :i0 then
         puts "Error: invalid event reference, got #{systemI1Events[0].ref.name} but expecting i0."
     end
-    systemI1Blocks = systemI1Behavior.each_block.to_a
-    if systemI1Blocks.size != 1 then
-        puts "Error: invalid number of blocks, got #{systemI1Blocks.size} but expecting 1."
-        success = false
-    end
-    systemI1Block = systemI1Blocks[0]
+    # systemI1Blocks = systemI1Behavior.each_block.to_a
+    # if systemI1Blocks.size != 1 then
+    #     puts "Error: invalid number of blocks, got #{systemI1Blocks.size} but expecting 1."
+    #     success = false
+    # end
+    # systemI1Block = systemI1Blocks[0]
+    systemI1Block = systemI1Behavior.block
     if systemI1Block.type != :par then
         puts "Error: invalid block type, got #{systemI1Block.type} but expecting par."
         success = false
@@ -330,12 +331,13 @@ begin
         puts "Error: invalid behavior class: got #{systemI1Time.class} but expecting TimeBehavior."
         success = false
     end
-    systemI1TimeBlks = systemI1Time.each_block.to_a
-    unless systemI1TimeBlks.size == 1 then
-        puts "Error: invalid number of timed blocks: got #{systemI1TimeBlks.size} but expecting 1."
-        success = false
-    end
-    systemI1TimeStms = systemI1TimeBlks[0].each_statement.to_a
+    # systemI1TimeBlks = systemI1Time.each_block.to_a
+    # unless systemI1TimeBlks.size == 1 then
+    #     puts "Error: invalid number of timed blocks: got #{systemI1TimeBlks.size} but expecting 1."
+    #     success = false
+    # end
+    # systemI1TimeStms = systemI1TimeBlks[0].each_statement.to_a
+    systemI1TimeStms = systemI1Time.block.each_statement.to_a
     unless systemI1TimeStms.size == 6 then
         puts "Error: invalid number of timed statements: got #{systemI1TimeStms.size} but expecting 6."
         success = false

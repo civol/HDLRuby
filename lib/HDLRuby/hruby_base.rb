@@ -188,19 +188,36 @@ module HDLRuby::Base
             return @inners[name.to_sym]
         end
 
-        ## Gets a signal by +name+.
-        def get_signal(name)
-            # Try in the inputs.
-            signal = get_input(name)
-            return signal if signal
-            # Try in the outputs.
-            signal = get_output(name)
-            return signal if signal
-            # Try in the inouts.
-            signal = get_inout(name)
-            return signal if signal
-            # Not found yet, look into the inners.
-            return get_inner(name)
+        ## Gets a signal by +path+.
+        def get_signal(path)
+            if path.respond_to?(:each) then
+                # Path is iterable: look for the first name.
+                path = path.each
+                name = path.each.next
+                # Maybe it is a system instance.
+                systemI = self.get_systemI(name)
+                if systemI then
+                    # Yes, look for the remaining of the path into the
+                    # corresponding system type.
+                    return systemI.systemT.get_signal(path)
+                else
+                    # Maybe it is a signal name.
+                    return self.get_signal(name)
+                end
+            else
+                # Path is a single name, look for the signal in the system's
+                # Try in the inputs.
+                signal = get_input(path)
+                return signal if signal
+                # Try in the outputs.
+                signal = get_output(path)
+                return signal if signal
+                # Try in the inouts.
+                signal = get_inout(path)
+                return signal if signal
+                # Not found yet, look into the inners.
+                return get_inner(path)
+            end
         end
 
         # Deletes input +signal+.
@@ -297,17 +314,35 @@ module HDLRuby::Base
     # Describes a behavior.
     class Behavior
 
-        # Creates a new beavior.
-        def initialize
-            # Initialize the sensibility list.
+        # # Creates a new behavior.
+        # def initialize
+        #     # Initialize the sensitivity list.
+        #     @events = []
+        #     # Initialize the block list.
+        #     @blocks = []
+        # end
+
+        # The block executed by the behavior.
+        attr_reader :block
+
+        # Creates a new behavior executing +block+.
+        def initialize(block)
+            # Initialize the sensitivity list.
             @events = []
-            # Initialize the block list.
-            @blocks = []
+            # Check and set the block.
+            unless block.is_a?(Block)
+                raise "Invalid class for a block: #{block.class}."
+            end
+            # Time blocks are only supported in Time Behaviors.
+            if block.is_a?(TimeBlock)
+                raise "Timed blocks are not supported in common behaviors."
+            end
+            @block = block
         end
 
-        # Handle the sensibility list.
+        # Handle the sensitivity list.
 
-        # Adds an +event+ to the sensibility list.
+        # Adds an +event+ to the sensitivity list.
         def add_event(event)
             unless event.is_a?(Event)
                 raise "Invalid class for a event: #{event.class}"
@@ -316,7 +351,7 @@ module HDLRuby::Base
             event
         end
 
-        # Iterates over the events of the sensibility list.
+        # Iterates over the events of the sensitivity list.
         #
         # Returns an enumerator if no ruby block is given.
         def each_event(&ruby_block)
@@ -326,31 +361,31 @@ module HDLRuby::Base
             @events.each(&ruby_block)
         end
 
-        # Handle the blocks.
+        # # Handle the blocks.
 
-        # Adds a +block+.
-        #
-        # NOTE: TimeBlock is not supported unless for TimeBehavior objects.
-        def add_block(block)
-            unless block.is_a?(Block)
-                raise "Invalid class for a block: #{block.class}"
-            end
-            if block.is_a?(TimeBlock)
-                raise "Timed blocks are not supported in common behaviors."
-            end
-            @blocks << block
-            block
-        end
+        # # Adds a +block+.
+        # #
+        # # NOTE: TimeBlock is not supported unless for TimeBehavior objects.
+        # def add_block(block)
+        #     unless block.is_a?(Block)
+        #         raise "Invalid class for a block: #{block.class}"
+        #     end
+        #     if block.is_a?(TimeBlock)
+        #         raise "Timed blocks are not supported in common behaviors."
+        #     end
+        #     @blocks << block
+        #     block
+        # end
 
-        # Iterates over the blocks.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_block(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_block) unless ruby_block
-            # A block? Apply it on each block.
-            @blocks.each(&ruby_block)
-        end
+        # # Iterates over the blocks.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_block(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_block) unless ruby_block
+        #     # A block? Apply it on each block.
+        #     @blocks.each(&ruby_block)
+        # end
     end
 
 
@@ -361,24 +396,36 @@ module HDLRuby::Base
     # * this is the only kind of behavior that can include time statements. 
     # * this kind of behavior is not synthesizable!
     class TimeBehavior < Behavior
+        # Creates a new time behavior executing +block+.
+        def initialize(block)
+            # Initialize the sensitivity list.
+            @events = []
+            # Check and set the block.
+            unless block.is_a?(Block)
+                raise "Invalid class for a block: #{block.class}."
+            end
+            # Time blocks are supported here.
+            @block = block
+        end
+
         # Time behavior do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)
             raise "Time behaviors do not have any sensitivity list."
         end
 
-        # Handle the blocks.
+        # # Handle the blocks.
 
-        # Adds a +block+.
-        # 
-        # NOTE: TimeBlock is supported.
-        def add_block(block)
-            unless block.is_a?(Block)
-                raise "Invalid class for a block: #{block.class}"
-            end
-            @blocks << block
-            block
-        end
+        # # Adds a +block+.
+        # # 
+        # # NOTE: TimeBlock is supported.
+        # def add_block(block)
+        #     unless block.is_a?(Block)
+        #         raise "Invalid class for a block: #{block.class}"
+        #     end
+        #     @blocks << block
+        #     block
+        # end
     end
 
 
@@ -962,6 +1009,19 @@ module HDLRuby::Base
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Ref < Expression
+        # Iterates over the names of the path indicated by the reference.
+        #
+        # NOTE: this is not a method for iterating over all the names included
+        # in the reference. For instance, this method will return nil without
+        # iterating if a RefConcat or is met.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def path_each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:path_each) unless ruby_block
+            # A block? Apply it on... nothing by default.
+            return nil
+        end
     end
 
 
@@ -1015,6 +1075,14 @@ module HDLRuby::Base
             end
             @index = index
         end
+
+        # Iterates over the names of the path indicated by the reference.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def path_each(&ruby_block)
+            # Recurse on the base reference.
+            return ref.path_each(&ruby_block)
+        end
     end
 
 
@@ -1045,6 +1113,14 @@ module HDLRuby::Base
             end
             @range = first..last
         end
+
+        # Iterates over the names of the path indicated by the reference.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def path_each(&ruby_block)
+            # Recurse on the base reference.
+            return ref.path_each(&ruby_block)
+        end
     end
 
 
@@ -1066,6 +1142,18 @@ module HDLRuby::Base
             @ref = ref
             # Check and set the symbol.
             @name = name.to_sym
+        end
+
+        # Iterates over the names of the path indicated by the reference.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def path_each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:path_each) unless ruby_block
+            # Recurse on the base reference.
+            ref.path_each(&ruby_block)
+            # Applies the block on the current name.
+            ruby_block.call(@name)
         end
     end
 
