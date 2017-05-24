@@ -189,7 +189,10 @@ module HDLRuby::Base
         end
 
         ## Gets a signal by +path+.
+        #
+        #  NOTE: +path+ can also be a single name or a reference object.
         def get_signal(path)
+            path = path.path_each if path.respond_to?(:path_each) # Ref case.
             if path.respond_to?(:each) then
                 # Path is iterable: look for the first name.
                 path = path.each

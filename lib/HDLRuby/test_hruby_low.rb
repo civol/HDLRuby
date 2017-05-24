@@ -655,10 +655,13 @@ begin
             # $cNames
             next
         end
+        # Get the path.
         path = connection.left.path_each
         print "    left path[#{i}]=#{path.to_a}... "
-        signal = $systemT0.get_signal(path)
-        print "signal #{signal.name}... "
+        signal_p = $systemT0.get_signal(path)
+        # And test from the refernce directly (must be identical).
+        signal_r = $systemT0.get_signal(connection.left)
+        print "signal #{signal_p.name}... "
         exp_left_str = $cNames.keys[i]
         case exp_left_str[1]
         when "0" then
@@ -670,10 +673,18 @@ begin
         else
             raise "Test-internal error: could not find signal for #{exp_left_str}."
         end
-        if exp_left == signal then
+        success = true
+        if exp_left != signal_p then
+            puts "Error: invalid signal from path #{path}, got #{signal_p.name} but expecting #{exp_left.name}."
+            success = false
+        end
+        if exp_left != signal_r then
+            puts "Error: invalid signal from reference #{path}, got #{signal_r.name} but expecting #{exp_left.name}."
+            success = false
+        end
+        if success then
             puts "Ok."
         else
-            puts "Error: invalid signal from path #{path}, got #{signal.name} but expecting #{exp_left.name}."
             $success = false
         end
     end
