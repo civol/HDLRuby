@@ -38,25 +38,6 @@ rescue Exception => e
     $success = false
 end
 
-# print "\nCreating a 8-bit signal type... "
-# begin
-#     $sig_bit = SignalT.new(:bit8,:bit,8)
-#     if $sig_bit.name != :bit8 then
-#         puts "Error: invalid name: got #{$sig_bit.name} but expecting bit8."
-#         $success = false
-#     elsif $sig_bit.type != :bit then
-#         puts "Error: invalid type: got #{$sig_bit.type} but expecting #{$bit}."
-#         $success = false
-#     elsif $sig_bit.size != 8 then
-#         puts "Error: invalid size: got #{$sig_bit.size} but expecting 8."
-#         $success = false
-#     else
-#         puts "Ok."
-#     end
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-# end
 
 print "\nCreating a 8-bit data type... "
 begin
@@ -78,41 +59,6 @@ rescue Exception => e
     $success = false
 end
 
-# puts "\nCreating signal instances from the previous signal type..."
-# $sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
-#            "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2",
-#            ]
-# $signalIs = []
-# $sNames.each_with_index do |name,i|
-#     if i > 0 then
-#         print "  Signal instance #{name} (SignalT designated by name)... "
-#     else
-#         print "  Signal instance #{name}... "
-#     end
-#     begin
-#         if i > 0 then
-#             # SignalT directly used.
-#             $signalIs[i] = SignalI.new(name,$sig_bit)
-#         else
-#             # SignalT designated by name.
-#             $signalIs[i] = SignalI.new(name,:bit8)
-#         end
-#         if $signalIs[i].signalT != $sig_bit then
-#             puts "Error: invalid signal type, got #{$signalIs[name].signalT} " +
-#                  " but expecting #{$sig_bit}"
-#             $success = false
-#         elsif $signalIs[i].name != name.to_sym then
-#             puts "Error: invalid name, got #{$signalIs[i].name} " +
-#                  " but expecting #{name}"
-#             $success = false
-#         else
-#             puts "Ok."
-#         end
-#     rescue Exception => e
-#         puts "Error: unexpected exception raised #{e.inspect}\n"
-#         $success = false
-#     end
-# end
 puts "\nCreating signals..."
 $sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
            "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2",
@@ -141,32 +87,6 @@ $sNames.each_with_index do |name,i|
 end
 
 puts "\nAdding them to $systemT0 as input, output or inout... "
-# $signalIs.each do |signalI|
-#     begin
-#         name = signalI.name
-#         print "  For signal instance #{name}... "
-#         if name[0..1] == "io" then
-#             # Inout
-#             $systemT0.add_inout(signalI)
-#         elsif name[0] == "i" then
-#             # Input
-#             $systemT0.add_input(signalI)
-#         elsif name[0] == "o" then
-#             # Output
-#             $systemT0.add_output(signalI)
-#         elsif name[0] == "s" then
-#             # Inner
-#             $systemT0.add_inner(signalI)
-#         else
-#             # Default: input (should be the clock).
-#             $systemT0.add_input(signalI)
-#         end
-#         puts "Ok."
-#     rescue Exception => e
-#         puts "Error: unexpected exception raised #{e.inspect}\n"
-#         $success = false
-#     end
-# end
 $signals.each do |signal|
     begin
         name = signal.name
@@ -195,18 +115,6 @@ $signals.each do |signal|
 end
 
 print "\nCompleting $systemT1 for further use... "
-# begin
-#     $systemT1.add_input(SignalI.new("i0",$sig_bit))
-#     $systemT1.add_input(SignalI.new("i1",$sig_bit))
-#     $systemT1.add_input(SignalI.new("i2",$sig_bit))
-#     $systemT1.add_output(SignalI.new("o0",$sig_bit))
-#     $systemT1.add_output(SignalI.new("o1",$sig_bit))
-#     $systemT1.add_inout(SignalI.new("io",$sig_bit))
-#     puts "Ok."
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-# end
 begin
     $systemT1.add_input(Signal.new("i0",:bit8))
     $systemT1.add_input(Signal.new("i1",:bit8))
@@ -316,38 +224,6 @@ $pNames.each_with_index do |name,i|
 end
 
 puts "\nCreating reference-only connections..."
-# $cNames = { "p0i0" => ["p1i0"], "p0i1" => ["p1i1"],
-#             "p0i2" => ["p2i0"], "p0i3" => ["p2i1"],
-#             "p1o0" => ["p0o0"], "p1o1" => ["p2i2"], 
-#             "p2o0" => ["p0o1"], "p2o1" => ["p1i2"], 
-#             "p0io" => ["p1io", "p1io"]
-#           }
-# $connections = []
-# $cNames.each do |sName,dNames|
-#     print "  Connection #{sName} => #{dNames}... "
-#     begin
-#         connection = Connection.new
-#         $connections << connection
-#         refs = [ $refs[$pNames.index(sName)] ] + 
-#                 dNames.map {|name| $refs[$pNames.index(name)] }
-#         refs.each {|ref| connection.add_ref(ref) }
-#         success = true
-#         connection.each_ref.with_index do |cRef,i|
-#             if cRef != refs[i] then
-#                 puts "Error: invalid reference, got #{cRef} but expecting #{refs[i]}."
-#                 success = false
-#             end
-#         end
-#         if success then
-#             puts "Ok."
-#         else
-#             $success = false
-#         end
-#     rescue Exception => e
-#         puts "Error: unexpected exception raised #{e.inspect}\n"
-#         $success = false
-#     end    
-# end
 $cNames = { "p0i0" => "p1i0", "p0i1" => "p1i1",
             "p0i2" => "p2i0", "p0i3" => "p2i1",
             "p1o0" => "p0o0", "p1o1" => "p2i2", 
@@ -430,34 +306,6 @@ end
 
 
 print "\nCreating an expression connection... "
-# begin
-#     connection = Connection.new($expressions[0])
-#     $connections << connection
-#     ref = $refs[$pNames.index("p0o2")]
-#     connection.add_ref(ref)
-#     success = true
-#     unless connection.expression == $expressions[0] then
-#         puts "Error: invalid expression, got #{connection.expression} but expecting #{$expressions[0]}"
-#         success = false
-#     end
-#     refs = connection.each_ref.to_a
-#     unless refs.size == 1 then
-#         puts "Error: too many references for the connection, got #{refs.size} but expecting 1."
-#         success = false
-#     end
-#     unless refs[0] == ref then
-#         puts "Error: invalid reference in connection, got #{refs[0]} but expecting #{ref}."
-#         success = false
-#     end
-#     if success then
-#         puts "Ok."
-#     else
-#         $success = false
-#     end
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-# end
 begin
     
     ref = $refs[$pNames.index("p0o2")]
@@ -521,26 +369,6 @@ end
 
 
 print "\nCreating a clock event... "
-# begin
-#     signalI = $signalIs.find{|signalI| signalI.name == :clk}
-#     $event = Event.new(:posedge,signalI)
-#     success = true
-#     if $event.type != :posedge then
-#         puts "Error: invalid type of event, got #{$event.type} but expecting :posedge."
-#         success = false
-#     elsif $event.signalI != signalI then
-#         puts "Error: invalid signalI, got #{$event.signalI} but expecting #{signalI}."
-#         success = false
-#     end
-#     if success then
-#         puts "Ok."
-#     else
-#         $success = false
-#     end
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-# end
 begin
     ref = $refs.find{|ref| ref.name == :clk}
     $event = Event.new(:posedge,ref)
@@ -636,21 +464,6 @@ rescue Exception => e
     $success = false
 end
 
-# print "\nAdding a block to $behavior... "
-# begin
-#     $behavior.add_block($block)
-#     pBlock = $behavior.each_block.first
-#     if pBlock != $block then
-#         puts "Error: invalid block, got #{pBlock} but expecting #{$block}."
-#         $sucess = false
-#     else
-#         puts "Ok."
-#     end
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-# end
-
 
 print "\nAdding a behavior to $systemT0... "
 begin
@@ -675,31 +488,6 @@ begin
     iCount = 0  # Input signal instances counter
     oCount = 0  # Output signal instances counter
     ioCount = 0 # Inout signal instances counter
-    # puts "  Inputs... "
-    # $systemT0.each_input.with_index do |input,i|
-    #     print "    Input #{i}... "
-    #     signalI = $signalIs[i]
-    #     iCount += 1
-    #     if input == signalI then
-    #         puts "Ok."
-    #     else
-    #         puts "Error: unexpected input, got #{input} but expecting #{signalI}."
-    #         $success = false
-    #     end
-    # end
-    # puts "  Inputs by name... "
-    # $signalIs.each do |input|
-    #     if /i[0-9]/.match(input.name) then
-    #         print "    Input #{input.name}... "
-    #         signalI = $systemT0.get_input(input.name)
-    #         if input == signalI then
-    #             puts "Ok."
-    #         else
-    #             puts "Error: unexpected input, got #{signalI} but expecting #{input}."
-    #             $success = false
-    #         end
-    #     end
-    # end
     puts "  Inputs... "
     $systemT0.each_input.with_index do |input,i|
         print "    Input #{i}... "
@@ -726,31 +514,6 @@ begin
         end
     end
 
-    # puts "  Outputs... "
-    # $systemT0.each_output.with_index do |output,i|
-    #     print "    Output #{i}... "
-    #     signalI = $signalIs[i+iCount]
-    #     oCount += 1
-    #     if output == signalI then
-    #         puts "Ok."
-    #     else
-    #         puts "Error: unexpected output, got #{output} but expecting #{signalI}."
-    #         $success = false
-    #     end
-    # end
-    # puts "  Outputs by name... "
-    # $signalIs.each do |output|
-    #     if /o[0-9]/.match(output.name) then
-    #         print "    Output #{output.name}... "
-    #         signalI = $systemT0.get_output(output.name)
-    #         if output == signalI then
-    #             puts "Ok."
-    #         else
-    #             puts "Error: unexpected output, got #{signalI} but expecting #{output}."
-    #             $success = false
-    #         end
-    #     end
-    # end
     puts "  Outputs... "
     $systemT0.each_output.with_index do |output,i|
         print "    Output #{i}... "
@@ -777,31 +540,6 @@ begin
         end
     end
 
-    # puts "  Inouts... "
-    # $systemT0.each_inout.with_index do |inout,i|
-    #     print "    Inout #{i}... "
-    #     signalI = $signalIs[i+iCount+oCount]
-    #     ioCount += 1
-    #     if inout == signalI then
-    #         puts "Ok."
-    #     else
-    #         puts "Error: unexpected output, got #{inout} but expecting #{signalI}."
-    #         $success = false
-    #     end
-    # end
-    # puts "  Inouts by name... "
-    # $signalIs.each do |inout|
-    #     if /io/.match(inout.name) then
-    #         print "    Inout #{inout.name}... "
-    #         signalI = $systemT0.get_inout(inout.name)
-    #         if inout == signalI then
-    #             puts "Ok."
-    #         else
-    #             puts "Error: unexpected inout, got #{signalI} but expecting #{inout}."
-    #             $success = false
-    #         end
-    #     end
-    # end
     puts "  Inouts... "
     $systemT0.each_inout.with_index do |inout,i|
         print "    Inout #{i}... "
@@ -828,30 +566,6 @@ begin
         end
     end
 
-    # puts "  Inners... "
-    # $systemT0.each_inner.with_index do |inner,i|
-    #     print "    Inner #{i}... "
-    #     signalI = $signalIs[i+iCount+oCount+ioCount]
-    #     if inner == signalI then
-    #         puts "Ok."
-    #     else
-    #         puts "Error: unexpected inner, got #{inner} but expecting #{signalI}."
-    #         $success = false
-    #     end
-    # end
-    # puts "  Inners by name... "
-    # $signalIs.each do |inner|
-    #     if /s[0-9]/.match(inner.name) then
-    #         print "    Inner #{inner.name}... "
-    #         signalI = $systemT0.get_inner(inner.name)
-    #         if inner == signalI then
-    #             puts "Ok."
-    #         else
-    #             puts "Error: unexpected inner, got #{signalI} but expecting #{inner}."
-    #             $success = false
-    #         end
-    #     end
-    # end
     puts "  Inners... "
     $systemT0.each_inner.with_index do |inner,i|
         print "    Inner #{i}... "
@@ -877,31 +591,9 @@ begin
         end
     end
 
-    # puts "  All signal instances... "
-    # $systemT0.each_signalI.with_index do |any,i|
-    #     print "    SignalI #{i}... "
-    #     signalI = $signalIs[i]
-    #     if any == signalI then
-    #         puts "Ok."
-    #     else
-    #         puts "Error: unexpected signalI, got #{any} but expecting #{signalI}."
-    #         $success = false
-    #     end
-    # end
-    # puts "  All signal instances by name... "
-    # $signalIs.each do |signal|
-    #     print "    SignalI #{signal.name}... "
-    #     signalI = $systemT0.get_signalI(signal.name)
-    #     if signal == signalI then
-    #         puts "Ok."
-    #     else
-    #         puts "Error: unexpected signalI, got #{signalI} but expecting #{signal}."
-    #         $success = false
-    #     end
-    # end
-    puts "  All signal instances... "
+    puts "  All signals... "
     $systemT0.each_signal.with_index do |any,i|
-        print "    SignalI #{i}... "
+        print "    Signal #{i}... "
         signal = $signals[i]
         if any == signal then
             puts "Ok."
@@ -952,6 +644,36 @@ begin
             puts "Ok."
         else
             puts "Error: unexpected systemI, got #{connection} but expecting #{$connections[i]}."
+            $success = false
+        end
+    end
+
+    puts "  Reference path... "
+    $systemT0.each_connection.with_index do |connection,i|
+        unless connection.right.is_a?(HDLRuby::Base::Ref) then
+            # Skip connections to expression since they are not defined through
+            # $cNames
+            next
+        end
+        path = connection.left.path_each
+        print "    left path[#{i}]=#{path.to_a}... "
+        signal = $systemT0.get_signal(path)
+        print "signal #{signal.name}... "
+        exp_left_str = $cNames.keys[i]
+        case exp_left_str[1]
+        when "0" then
+            exp_left = $systemT0.get_signal(exp_left_str[2..-1])
+        when "1" then
+            exp_left = $systemI1.systemT.get_signal(exp_left_str[2..-1])
+        when "2" then
+            exp_left = $systemI2.systemT.get_signal(exp_left_str[2..-1])
+        else
+            raise "Test-internal error: could not find signal for #{exp_left_str}."
+        end
+        if exp_left == signal then
+            puts "Ok."
+        else
+            puts "Error: invalid signal from path #{path}, got #{signal.name} but expecting #{exp_left.name}."
             $success = false
         end
     end
