@@ -204,7 +204,12 @@ module HDLRuby
                 # Remove the @ from the symbol.
                 var_sym = var_sym.to_s[1..-1]
                 # Sets the content.
-                content[var_sym] = HDLRuby.value_to_basic(var_val,types)
+                # content[var_sym] = HDLRuby.value_to_basic(var_val,types)
+                value = HDLRuby.value_to_basic(var_val,types)
+                # Empty values are skipped
+                unless value.respond_to?(:empty?) and value.empty? then
+                    content[var_sym] = value
+                end
             end
 
             if top and !types.empty? then

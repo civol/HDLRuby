@@ -17,14 +17,11 @@ SystemT:
   - Signal:
       name: s
       type: bit8
-  inouts: {}
-  inners: {}
-  systemIs: {}
   connections:
   - Connection:
       left:
         RefName:
-          port:
+          ref:
             RefThis: {}
           name: s
       right:
@@ -32,12 +29,11 @@ SystemT:
           operator: "+"
           left:
             RefName:
-              port:
+              ref:
                 RefThis: {}
               name: x
           right:
             RefName:
-              port:
+              ref:
                 RefThis: {}
               name: y
-  behaviors: []
