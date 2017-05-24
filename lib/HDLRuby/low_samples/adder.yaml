@@ -23,21 +23,21 @@ SystemT:
   connections:
   - Connection:
       left:
-        PortName:
+        RefName:
           port:
-            PortThis: {}
-          name: o
+            RefThis: {}
+          name: s
       right:
         Binary:
           operator: "+"
           left:
-            PortName:
+            RefName:
               port:
-                PortThis: {}
-              name: i0
+                RefThis: {}
+              name: x
           right:
-            PortName:
+            RefName:
               port:
-                PortThis: {}
-              name: i1
+                RefThis: {}
+              name: y
   behaviors: []
