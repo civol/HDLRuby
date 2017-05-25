@@ -168,6 +168,20 @@ module HDLRuby::Base
             @inners.each_value(&ruby_block)
         end
 
+        # Iterates over all the signals of the system type and its system
+        # instances.
+        def each_signal_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_deep) unless ruby_block
+            # A block?
+            # First iterate over the current system type's signals.
+            self.each_signal(&ruby_block)
+            # Then recurse on the system instances.
+            self.each_systemI do |systemI|
+                systemI.each_signal_deep(&ruby_block)
+            end
+        end
+
         ## Gets an input signal by +name+.
         def get_input(name)
             return @inputs[name.to_sym]
@@ -269,6 +283,20 @@ module HDLRuby::Base
             @connections.delete(connection)
         end
 
+        # Iterates over all the connections of the system type and its system
+        # instances.
+        def each_connection_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_connection_deep) unless ruby_block
+            # A block?
+            # First iterate over current system type's connection.
+            self.each_connection(&ruby_block)
+            # Then recurse on the system instances.
+            self.each_systemI do |systemI|
+                systemI.each_connection_deep(&ruby_block)
+            end
+        end
+
         # Handling the behaviors.
 
         # Adds a +behavior+.
@@ -290,9 +318,49 @@ module HDLRuby::Base
             @behaviors.each(&ruby_block)
         end
 
+        # Iterates over all the behaviors of the system type and its system
+        # instances.
+        def each_behavior_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_behavior_deep) unless ruby_block
+            # A block?
+            # First iterate over current system type's behavior.
+            self.each_behavior(&ruby_block)
+            # Then recurse on the system instances.
+            self.each_systemI do |systemI|
+                systemI.each_behavior_deep(&ruby_block)
+            end
+        end
+
         # Deletes +behavior+.
         def delete_behavior(behavior)
             @behaviors.delete(behavior)
+        end
+
+        # Iterates over all the blocks of the system type and its system
+        # instances.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A block?
+            # First apply it on the current's block.
+            ruby_block.call(self)
+            # Then apply it on each behavior's block deeply.
+            self.each_behavior_deep do |behavior|
+                behavior.block.each_block_deep(&ruby_block)
+            end
+        end
+
+        # Iterates over all the stamements of the system type and its system
+        # instances.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A block?
+            # Apply it on each block deeply.
+            self.each_block_deep do |block|
+                block.each_statement(&ruby_block)
+            end
         end
 
     end
@@ -509,8 +577,8 @@ module HDLRuby::Base
         #   @see SystemT#each_inout
         # @!method each_inner
         #   @see SystemT#each_inner
-        # @!method each_signalI
-        #   @see SystemT#each_signalI
+        # @!method each_signal
+        #   @see SystemT#each_signal
         # @!method get_input
         #   @see SystemT#get_input
         # @!method get_output
@@ -519,7 +587,7 @@ module HDLRuby::Base
         #   @see SystemT#get_inout
         # @!method get_inner
         #   @see SystemT#get_inner
-        # @!method get_signalI
+        # @!method get_signal
         #   @see SystemT#get_signalI
         # @!method each_systemI
         #   @see SystemT#each_systemI
@@ -531,10 +599,8 @@ module HDLRuby::Base
         #   @see SystemT#each_behavior
         def_delegators :@systemT,
                        :each_input, :each_output, :each_inout, :each_inner,
-                       # :each_signalI,
-                       :each_signal,
+                       :each_signal, :each_signal_deep,
                        :get_input, :get_output, :get_inout, :get_inner,
-                       # :get_signalI,
                        :get_signal,
                        :each_systemI, :get_systemI,
                        :each_connection, :each_behavior
@@ -636,6 +702,16 @@ module HDLRuby::Base
             end
             @no = no
         end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A block?
+            # Apply it on the yes and the no blocks.
+            self.yes.each_block_deep(&ruby_block)
+            self.no.each_block_deep(&ruby_block)
+        end
     end
 
 
@@ -680,6 +756,17 @@ module HDLRuby::Base
             return to_enum(:each_when) unless ruby_block
             # A block? Apply it on each when case.
             @whens.each(&ruby_block)
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A block?
+            # Apply it on each when's block.
+            self.each_when do |value,block|
+                block.each_block_deep(&ruby_block)
+            end
         end
     end
 
@@ -792,6 +879,30 @@ module HDLRuby::Base
         # Deletes +statement+.
         def delete_statement(statement)
             @statements.delete(statement)
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A block?
+            # Apply it on each statement which contains blocks.
+            self.each_statement do |statement|
+                if statement.respond_to?(:each_block_deep) then
+                    statement.each_block_deep(&ruby_block)
+                end
+            end
+        end
+
+        # Iterates over all the stamements of the block and its sub blocks.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A block?
+            # Apply it on each block deeply.
+            self.each_block_deep do |block|
+                block.each_statement(&ruby_block)
+            end
         end
     end
 

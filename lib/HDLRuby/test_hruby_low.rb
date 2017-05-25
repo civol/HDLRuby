@@ -637,6 +637,19 @@ begin
         end
     end
 
+    print "  All signals including system instance signal ones... "
+    signals_deep = $systemT0.each_signal_deep.to_a
+    exp_signals = $systemT0.each_signal.to_a + $systemI1.each_signal.to_a +
+                  $systemI2.each_signal.to_a
+    signals_deep.sort_by! { |signal| signal.to_s }
+    exp_signals.sort_by! { |signal| signal.to_s }
+    if signals_deep == exp_signals then
+        puts "Ok."
+    else
+        puts "Error: did not get the right signals with :each_signal_deep."
+        $success = false
+    end
+
     puts "  Connections... "
     $systemT0.each_connection.with_index do |connection,i|
         print "    Connection #{i}... "

@@ -130,6 +130,21 @@ module HDLRuby::High
             return @unbounds[name.to_sym]
         end
 
+        # Iterates over all the signals of the system type and its system
+        # instances but excluding the unbounded signals.
+        def each_signal_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_deep) unless ruby_block
+            # A block?
+            # First, apply on the signals and and system instances.
+            super(&ruby_block)
+            # Apply on the behaviors (since in HDLRuby:High, blocks can
+            # include signals).
+            self.each_beahior do |behavior|
+                behavior.block.each_signal_deep(&ruby_block)
+            end
+        end
+
 
 
         # Opens for extension.
@@ -1228,6 +1243,19 @@ module HDLRuby::High
         def inner(*names)
             names.each do |name|
                 self.add_inner(Signal.new(name,void,:inner))
+            end
+        end
+        
+        # Iterates over all the signals of the block and its sub block's ones.
+        def each_signal_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_deep) unless ruby_block
+            # A block?
+            # First, apply on the signals of the block.
+            self.each_signal(&ruby_block)
+            # Then apply on each sub block. 
+            self.each_block_deep do |block|
+                block.each_signal_deep(&ruby_block)
             end
         end
 
