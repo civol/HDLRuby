@@ -959,6 +959,16 @@ module HDLRuby::Base
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Expression
+        # Iterates over all the references encountered in the expression.
+        #
+        # NOTE: do not iterate *inside* the references.
+        def each_ref_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_ref_deep) unless ruby_block
+            # A block?
+            # If the expression is a reference, applies ruby_block on it.
+            ruby_block.call(self) if self.is_a?(Ref)
+        end
     end
 
     
@@ -1021,6 +1031,17 @@ module HDLRuby::Base
             # @children = [ child ]
             @child = child
         end
+
+        # Iterates over all the references encountered in the expression.
+        #
+        # NOTE: do not iterate *inside* the references.
+        def each_ref_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_ref_deep) unless ruby_block
+            # A block?
+            # Recurse on the child.
+            child.each_ref_deep(&ruby_block)
+        end
     end
 
 
@@ -1048,6 +1069,18 @@ module HDLRuby::Base
             # @children = [ left, right ]
             @left = left
             @right = right
+        end
+
+        # Iterates over all the references encountered in the expression.
+        #
+        # NOTE: do not iterate *inside* the references.
+        def each_ref_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_ref_deep) unless ruby_block
+            # A block?
+            # Recurse on the children.
+            left.each_ref_deep(&ruby_block)
+            right.each_ref_deep(&ruby_block)
         end
     end
 
@@ -1088,6 +1121,20 @@ module HDLRuby::Base
             return to_enum(:each_choice) unless ruby_block
             # A block? Apply it on each choice.
             @choices.each(&ruby_block)
+        end
+
+        # Iterates over all the references encountered in the expression.
+        #
+        # NOTE: do not iterate *inside* the references.
+        def each_ref_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_ref_deep) unless ruby_block
+            # A block?
+            # Recurse on the children.
+            self.select.each_ref_deep(&ruby_block)
+            self.each_choice do |choice|
+                choice.each_ref_deep(&ruby_block)
+            end
         end
     end
 

@@ -264,7 +264,13 @@ eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7"]
 
 # Generate an expression from a signal or constant name
 def eName2Exp(name)
-    ref = $refs.find {|ref| ref.name == name }
+    ref = $refs.find do |ref|
+        if ref.ref.respond_to?(:name) then
+            ref.ref.name == name
+        else
+            ref.name
+        end
+    end
     unless ref
         return Value.new(:bit8,name.to_i)
     end
@@ -282,16 +288,38 @@ eNames.each do |eName|
         $expressions << expression
         success = true
         unless expression.left == left then
-            raise "Error: invalid left value, got #{expression.left} but expecting #{left}."
+            puts "Error: invalid left value, got #{expression.left} but expecting #{left}."
             success = false
         end
         unless expression.right == right then
-            raise "Error: invalid right value, got #{expression.right} but expecting #{right}."
+            puts "Error: invalid right value, got #{expression.right} but expecting #{right}."
             success = false
         end
         unless expression.operator == operator then
-            raise "Error: invalid operator, got #{expression.operator} but expecting #{operator}."
+            puts "Error: invalid operator, got #{expression.operator} but expecting #{operator}."
             success = false
+        end
+        all_refs = expression.each_ref_deep.to_a
+        unless all_refs[0] == expression.left then
+            puts "Error: invalid first result for each_ref_deep, got #{all_refs[0]} but expecting #{expression.left}."
+            success = false
+        end
+        if expression.right.is_a?(HDLRuby::Base::Ref) then
+            unless all_refs[1] == expression.right then
+                puts "Error: invalid second result for each_ref_deep, got #{all_refs[1]} but expecting #{expression.right}."
+                success = false
+            end
+        else
+            if all_refs.size > 1 then
+                puts "Error: too many signals for each_ref_deep, got #{all_refs.size} but expecting 1."
+                success = false
+            end
+        end
+        if success then
+            unless all_refs.size < 3 then
+                puts "Error: too many signals for each_ref_deep, got #{all_refs.size} but expecting 2."
+                sucess = false
+            end
         end
         if success then
             puts "Ok."
