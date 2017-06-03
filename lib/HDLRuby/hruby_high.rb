@@ -25,7 +25,7 @@ module HDLRuby::High
         # Tells this is a hardware type supporting mixins.
         #
         # NOTE: only there for being checked through respond_to?
-        def is_hmix?
+        def hmix?
             return true
         end
 
@@ -35,7 +35,7 @@ module HDLRuby::High
             @includes ||= []
             # Check and add the hardware types.
             htypes.each do |htype|
-                unless htype.respond_to?(:is_hmix?) then
+                unless htype.respond_to?(:hmix?) then
                     raise "Invalid class for mixin: #{htype.class}"
                 end
                 @includes << htype
@@ -48,7 +48,7 @@ module HDLRuby::High
             @extends ||= []
             # Check and add the hardware types.
             htypes.each do |htype|
-                unless htype.respond_to?(:is_hmix?) then
+                unless htype.respond_to?(:hmix?) then
                     raise "Invalid class for mixin: #{htype.class}"
                 end
                 @includes << htype
@@ -249,10 +249,87 @@ module HDLRuby::High
             end
         end
 
+        # Tells if the system type is generic or not.
+        #
+        # NOTE: a system type is generic if one of its signal is generic.
+        def generic?
+            return self.each_signal_deep.any? do |signal|
+                signal.type.generic?
+            end
+        end
+
+        # Set up the parent structure of the whole system.
+        def make_parents_deep
+            # Connections.
+            self.each_connection_deep.each(:make_parents_deep)
+            # Statements.
+            self.each_statement_deep.each(:make_parents_deep)
+        end
+
+        # # Resolves the unknown signal types and conflicts.
+        # def resolve_types
+        #     # Gather each typed construction and parition them among the
+        #     # the processable and the non processable (e.g.: void + void
+        #     # cannot be processed as is.)
+        #     typed_pro = []
+        #     typed_unk = {}
+        #     self.each_typed_deep do |typed|
+        #         if typed.ref? then
+        #             # Reference cases.
+        #             if typed.type.generic? then
+        #                 # The reference's type is not processable yet.
+        #                 typed_unk[self.get_signal(typed)] << typed
+        #             else
+        #                 # The regerence's type is processable.
+        #                 typed_pro << typed
+        #             end
+        #         else
+        #             # Other cases: look for a non-generically typed child.
+        #             if typed.each_child.any? {|child|!child.type.generic? } then
+        #                 # The typed object is processable.
+        #                 typed_pro << typed
+        #             else
+        #                 # The typed object is not processable yet.
+        #                 typed.each_child do |child|
+        #                     if child.ref? then
+        #                         typed_unk[self.get_signal(typed)] << typed
+        #                     else
+        #                         typed_unk[child] << typed
+        #                     end
+        #                 end
+        #             end
+        #         end
+        #     end
+
+        #     # Process the processable types until there is no unprocessable
+        #     # types left.
+        #     begin
+        #         resolved = []
+        #         typed_pro.each do |typed|
+        #             unless typed.resolve_type(self) then
+        #                 raise "Internal error: type unresolvable."
+        #             end
+        #             ICIICI
+        #             resolved_signals += arrow.each_ref.map do |ref|
+        #                 self.get_signal(ref)
+        #             end
+        #         end
+        #         typed_pro = resolved_signals.each.reduce([]) do |ar,signal|
+        #             ar.concat(typed_unk[signal])
+        #         end
+        #     end while !typed_pro.empty?
+        # end
+            
+
+
         # Missing methods are looked up in the upper level of the namespace.
         def method_missing(m, *args, &ruby_block)
             High.space_call(m,*args,&ruby_block)
         end
+
+
+
+        # Methods used for declaring a system in HDLRuby::High
 
         # Declares high-level untyped input signals named +names+.
         def input(*names)
@@ -350,7 +427,12 @@ module HDLRuby::High
         end
 
         # Sets the +name+.
+        #
+        # NOTE: can only be done if the name is not already set.
         def name=(name)
+            unless @name.empty? then
+                raise "Name of type already set to: #{@name}."
+            end
             # Checks and sets the name.
             name = name.to_sym
             if name.empty? then
@@ -372,14 +454,6 @@ module HDLRuby::High
             end
         end
 
-        # Creates a new vector type of range +rng+ and with current type as
-        # base.
-        def [](rng)
-            return TypeVector.new(:"",self,rng)
-        end
-
-        # Type handling: these methods may have to be overriden when 
-        # subclassing.
 
         # Gets the type as left value.
         #
@@ -395,11 +469,6 @@ module HDLRuby::High
         def right
             # By default self.
             self
-        end
-
-        # Tells if the type is specified or not.
-        def is_void?
-            return self.name == :void
         end
 
         # The widths of the basic types.
@@ -423,6 +492,77 @@ module HDLRuby::High
             return SIGNS[self.name]
         end
 
+        # Tells if the type is specified or not.
+        def void?
+            return self.name == :void
+        end
+
+        # Tells if a type is generic or not.
+        def generic?
+            return self.void?
+        end
+
+        # Checks the compatibility with +type+
+        def compatible?(type)
+            # If type is void, compatible anyway.
+            return true if type.name == :void
+            # Default: base types cases.
+            case self.name
+            when :void then
+                # void is compatible with anything.
+                return true
+            when :bit then
+                # bit is compatible with [void,] bit signed and unsigned.
+                return [:bit,:signed,:unsigned].include?(type.name)
+            when :signed then
+                # Signed is compatible with [void,] bit and signed.
+                return [:bit,:signed].include?(type.name)
+            when :unsigned then
+                # Unsigned is compatible with [void,] bit and unsigned.
+                return [:bit,:unsigned].include?(type.name)
+            else
+                # Unknown type for compatibility: not compatible by default.
+                return false
+            end
+        end
+
+        # Merges with +type+
+        def merge(type)
+            # If type is void, return self.
+            return self if type.name == :void
+            # Default: base types cases.
+            case self.name
+            when :void then
+                # void: return type
+                return type
+            when :bit then
+                # bit is compatible with [void,] bit signed and unsigned.
+                if [:bit,:signed,:unsigned].include?(type.name) then
+                    return type
+                else
+                    raise "Incompatible types for merging: #{self}, #{type}."
+                end
+            when :signed then
+                # Signed is compatible with [void,] bit and signed.
+                if [:bit,:signed].include?(type.name) then
+                    return self
+                else
+                    raise "Incompatible types for merging: #{self}, #{type}."
+                end
+            when :unsigned then
+                # Unsigned is compatible with [void,] bit and unsigned.
+                if [:bit,:unsigned].include?(type.name)
+                    return self
+                else
+                    raise "Incompatible types for merging: #{self}, #{type}."
+                end
+            else
+                # Unknown type for compatibility: not compatible by default.
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+        end
+
+
         # Instantiate the type with arguments +args+ if required.
         #
         # NOTE: actually, only TypeSystemT actually require instantiation.
@@ -430,6 +570,13 @@ module HDLRuby::High
             self
         end
 
+        # Type creation in HDLRuby::High.
+
+        # Creates a new vector type of range +rng+ and with current type as
+        # base.
+        def [](rng)
+            return TypeVector.new(:"",self,rng)
+        end
 
         # Signal creation through the type.
 
@@ -487,6 +634,37 @@ module HDLRuby::High
             end
             @base = base
         end
+
+        # Tells if a type is generic or not.
+        def generic?
+            # The type is generic if the base is generic.
+            return @base.generic?
+        end
+
+        # Checks the compatibility with +type+
+        def compatible?(type)
+            # If type is void, compatible anyway.
+            return true if type.name == :void
+            # Compatible if same name and compatible base.
+            return false unless type.respond_to?(:base)
+            return ( @name == type.name and 
+                     @base.compatible?(type.base) )
+        end
+
+        # Merges with +type+
+        def merge(type)
+            # If type is void, return self anway.
+            return self if type.name == :void
+            # Compatible if same name and compatible base.
+            unless type.respond_to?(:base) then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            if @name == type.name then
+                return TypeExtend.new(@name,self.base.merge(type.base))
+            else
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+        end
     end
 
 
@@ -521,15 +699,51 @@ module HDLRuby::High
         #
         # NOTE: must be redefined for specific types.
         def width
-            first = rng.first
-            last  = rng.last
+            first = @rng.first
+            last  = @rng.last
             return @base.width * (first-last).abs
+        end
+
+        # Gets the direction of the range.
+        def dir
+            return (@rng.last - @rng.first)
         end
 
         # Tells if the type signed, false for unsigned.
         def signed?
             return @base.signed?
         end
+
+        # Tells if a type is generic or not.
+        def generic?
+            # The type is generic if the base is generic.
+            return self.base.generic?
+        end
+
+        # Checks the compatibility with +type+
+        def compatible?(type)
+            # if type is void, compatible anyway.
+            return true if type.name == :void
+            # Compatible if same width and compatible base.
+            return false unless type.respond_to?(:dir)
+            return false unless type.respond_to?(:base)
+            return ( self.dir == type.dir and
+                     self.base.compatible?(type.base) )
+        end
+
+        # Merges with +type+
+        def merge(type)
+            # if type is void, return self anyway.
+            return self if type.name == :void
+            # Compatible if same width and compatible base.
+            unless type.respond_to?(:dir) and type.respond_to?(:base) then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            unless self.dir == type.dir then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            return TypeVector.new(@name,@rng,@base.merge(type.base))
+        end  
     end
 
 
@@ -586,6 +800,12 @@ module HDLRuby::High
             # A block? Apply it on each input signal instance.
             @types.each_key(&ruby_block)
         end
+
+        # Tells if a type is generic or not.
+        def generic?
+            # The type is generic if one of the sub types is generic.
+            return self.each_type.any? { |type| type.generic? }
+        end
     end
 
 
@@ -601,12 +821,59 @@ module HDLRuby::High
         def width
             return @types.reduce(0) {|sum,type| sum + type.width }
         end
+
+        # Checks the compatibility with +type+
+        def compatible?(type)
+            # If type is void, compatible anyway.
+            return true if type.name == :void
+            # Not compatible if different types.
+            return false unless type.is_a?(TypeStruct)
+            # Not compatibe unless each entry has the same name in same order.
+            return false unless self.each_name == type.each_name
+            self.each do |name,sub|
+                return false unless sub.compatible?(self.get_type(name))
+            end
+            return true
+        end
+
+        # Merges with +type+
+        def merge(type)
+            # if type is void, return self anyway.
+            return self if type.name == :void
+            # Not compatible if different types.
+            unless type.is_a?(TypeStruct) then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            # Not compatibe unless each entry has the same name and same order.
+            unless self.each_name == type.each_name then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            # Creates the new type content
+            content = {}
+            self.each do |name,sub|
+                content[name] = self.get_type(name).merge(sub)
+            end
+            return TypeStruct.new(@name,content)
+        end  
     end
 
 
     ##
     # Describes an union type.
     class TypeUnion < TypeHierarchy
+        # Creates a new union type named +name+ whose hierachy is given
+        # by +content+.
+        def initialize(name,content)
+            # Initialize the type structure.
+            super(name,content)
+            # Check the content: a union cannot contain any generic sub-type.
+            self.each_type do |type|
+                if type.generic? then
+                    raise "Union types cannot contain any generic sub-type."
+                end
+            end
+        end
+
         # Type handling: these methods may have to be overriden when 
         # subclassing.
 
@@ -615,6 +882,12 @@ module HDLRuby::High
         # NOTE: must be redefined for specific types.
         def width
             return @types.max{ |type| type.width }.width
+        end
+
+        # Tells if a type is generic or not.
+        def generic?
+            # No.
+            return false
         end
     end
 
@@ -723,6 +996,24 @@ module HDLRuby::High
             return @right
         end
 
+
+        # Tells if a type is generic or not.
+        def generic?
+            return (self.left.generic? or self.right.generic?)
+        end
+
+        # Checks the compatibility with +type+
+        def compatible?(type)
+            # Not compatible, must use left or right for connections.
+            return false
+        end
+
+        # Merges with +type+
+        def merge(type)
+            # Cannot merge, must use left or right for connections.
+            raise "Incompatible types for merging: #{self}, #{type}."
+        end
+
     end
 
 
@@ -792,6 +1083,9 @@ module HDLRuby::High
     end
 
 
+    # Classes describing hardware statements, connections and expressions
+
+
     ## 
     # Describes a high-level if statement.
     class If < Base::If
@@ -858,6 +1152,11 @@ module HDLRuby::High
     ##
     # Module giving high-level expression properties
     module HExpression
+        # The system type the expression has been resolved in, if any.
+        attr_reader :systemT
+        # The type of the expression if resolved.
+        attr_reader :type
+
         # Converts to an expression.
         #
         # NOTE: to be redefined in case of non-expression class.
@@ -879,6 +1178,100 @@ module HDLRuby::High
          :"==",:"<",:">",:"<=",:">="].each do |operator|
             define_method(operator) do |right|
                 return Binary.new(operator,self.to_expr,right.to_expr)
+            end
+        end
+
+        # Methods for conversion for HDLRuby::Low: type processing, flattening
+        # and so on
+
+        # The type of the expression if any.
+        attr_reader :type
+
+        # Sets the data +type+.
+        def type=(type)
+            # Check and set the type.
+            unless type.is_a?(Type) then
+                raise "Invalid class for a type: #{type.class}."
+            end
+            @type = type
+        end
+
+        # The parent construct.
+        attr_reader :parent
+
+        # Sets the +parent+ construct.
+        def parent=(parent)
+            # Check and set the type.
+            unless ( parent.is_a?(Base::Expression) or
+                     parent.is_a?(Base::Transmit) or
+                     parent.is_a?(Base::If) or
+                     parent.is_a?(Base::Select) ) then
+                raise "Invalid class for a type: #{type.class}."
+            end
+            @parent = parent
+        end
+
+        # Iterates over the expression parents if any (actually at most once).
+        def each_parent(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_parent) unless ruby_block
+            # A block? Apply it on the parent.
+            ruby_block.call(@parent)
+        end
+
+        # Methods for conversion for HDLRuby::Low: type processing, flattening
+        # and so on
+
+        # Make the current expression a parent and recurse.
+        def make_parents_deep
+            # Set the parents of the children and recurse on them.
+            self.each_child do |child|
+                if child.respond_to?(:parent=) then
+                    child.parent = self
+                else
+                    child.add_parent(self)
+                end
+                child.make_parents_deep
+            end
+        end
+
+        # Resolves the unknown signal types and conflicts in the context
+        # of system type +systemT+.
+        # Returns true if the resolution succeeded.
+        #
+        # NOTE: sets the type of the expression.
+        def resolve_types(systemT)
+            # Only typed expression can be used for resolving types.
+            unless @type then
+                raise "Cannot resolve type: nil type."
+            end
+            # Resolve the children.
+            self.each_child do |child|
+                if child.type == nil then
+                    # The child's type is unknown, should not happen.
+                    raise "Cannot resolve type: child's type is nil."
+                end
+                # Check if the type is compatible with the child's.
+                if @type.compatible?(child.type) then
+                    # Yes, compute and set the new type for both.
+                    @type = child.type = type.merge(child.type)
+                else
+                    # Incombatible types, cannot resolve type.
+                    raise "Cannot resolve type: #{@type} and child's #{child.type} are incompatible."
+                end
+            end
+            # Resolve the parents.
+            self.each_parent do |parent|
+                if parent.type == nil then
+                    # Simple sets the parent's type to current one.
+                    parent.type = @type
+                elsif @type.compatible?(parent.type) then
+                    # Yes, compute and set the new type for both.
+                    @type = parent.type = type.merge(parent.type)
+                else
+                    # Incombatible types, cannot resolve type.
+                    raise "Cannot resolve type: #{@type} and #{parent.type} are incompatible."
+                end
             end
         end
     end
@@ -1142,13 +1535,13 @@ module HDLRuby::High
         end
 
         # Tells if the signal is bounded or not.
-        def is_bounded?
+        def bounded?
             return (@dir and @dir != :no)
         end
 
         # Sets the direction to +dir+ if the signal is not already bounded.
         def dir=(dir)
-            if is_bounded? then
+            if self.bounded? then
                 raise "Error: signal #{self.name} already bounded."
             end
             unless DIRS.include?(dir) then

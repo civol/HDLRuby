@@ -356,10 +356,56 @@ module HDLRuby::Base
         def each_statement_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_statement_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on each block deeply.
             self.each_block_deep do |block|
-                block.each_statement(&ruby_block)
+                block.each_statement_deep(&ruby_block)
+            end
+        end
+
+        # Iterates over all the statements and connections of the system type
+        # and its system instances.
+        def each_arrow_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_arrow_deep) unless ruby_block
+            # A block?
+            # First, apply it on each connection.
+            self.each_connection do |connection|
+                ruby_block.call(connection)
+            end
+            # Then recurse over its blocks.
+            self.each_behavior do |behavior|
+                behavior.each_block_deep(&ruby_block)
+            end
+            # Finally recurse on its system instances.
+            self.each_systemI do |systemI|
+                systemI.each_arrow_deep(&ruby_block)
+            end
+        end
+
+        # Iterates over all the object executed when a specific event is
+        # activated (they include the behaviors and the connections).
+        #
+        # NOTE: the arguments of the ruby block are the object and an enumerator
+        # over the set of events it is sensitive to.
+        def each_sensitive_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_sensitive_deep) unless ruby_block
+            # A block?
+            # First iterate over the current system type's connections.
+            self.each_connection do |connection|
+                ruby_block.call(connection,
+                                connection.each_ref_deep.lazy.map do |ref|
+                    Event.new(:change,ref)
+                end)
+            end
+            # First iterate over the current system type's behaviors.
+            self.each_behavior do |behavior|
+                ruby_block.call(behavior,behavior.each_event)
+            end
+            # Then recurse on the system instances.
+            self.each_systemI do |systemI|
+                systemI.each_sensitive_deep(&ruby_block)
             end
         end
 
@@ -588,22 +634,41 @@ module HDLRuby::Base
         # @!method get_inner
         #   @see SystemT#get_inner
         # @!method get_signal
-        #   @see SystemT#get_signalI
+        #   @see SystemT#get_signal
+        # @!method each_signal
+        #   @see SystemT#each_signal
+        # @!method each_signal_deep
+        #   @see SystemT#each_signal_deep
         # @!method each_systemI
         #   @see SystemT#each_systemI
         # @!method get_systemI
         #   @see SystemT#get_systemI
+        # @!method each_statement_deep
+        #   @see SystemT#each_statement_deep
         # @!method each_connection
         #   @see SystemT#each_connection
+        # @!method each_connection_deep
+        #   @see SystemT#each_connection_deep
+        # @!method each_arrow_deep
+        #   @see SystemT#each_arrow_deep
         # @!method each_behavior
         #   @see SystemT#each_behavior
+        # @!method each_behavior_deep
+        #   @see SystemT#each_behavior_deep
+        # @!method each_block_deep
+        #   @see SystemT#each_block_deep
+        # @!method each_sensitive_deep
+        #   @see SystemT#each_sensitive_deep
         def_delegators :@systemT,
                        :each_input, :each_output, :each_inout, :each_inner,
                        :each_signal, :each_signal_deep,
                        :get_input, :get_output, :get_inout, :get_inner,
                        :get_signal,
                        :each_systemI, :get_systemI,
-                       :each_connection, :each_behavior
+                       :each_connection, :each_connection_deep,
+                       :each_statement_deep, :each_arrow_deep,
+                       :each_behavior, :each_behavior_deep, :each_block_deep,
+                       :each_sensitive_deep
     end
 
 
@@ -656,6 +721,15 @@ module HDLRuby::Base
                 raise "Invalid class for an expression (right value): #{right.class}"
             end
             @right = right
+        end
+
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the children.
+            ruby_block.call(@left)
+            ruby_block.call(@right)
         end
     end
 
@@ -959,6 +1033,11 @@ module HDLRuby::Base
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Expression
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # By default: no child.
+        end
+
         # Iterates over all the references encountered in the expression.
         #
         # NOTE: do not iterate *inside* the references.
@@ -1032,6 +1111,14 @@ module HDLRuby::Base
             @child = child
         end
 
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the child.
+            ruby_block.call(@child)
+        end
+
         # Iterates over all the references encountered in the expression.
         #
         # NOTE: do not iterate *inside* the references.
@@ -1040,7 +1127,7 @@ module HDLRuby::Base
             return to_enum(:each_ref_deep) unless ruby_block
             # A block?
             # Recurse on the child.
-            child.each_ref_deep(&ruby_block)
+            @child.each_ref_deep(&ruby_block)
         end
     end
 
@@ -1069,6 +1156,15 @@ module HDLRuby::Base
             # @children = [ left, right ]
             @left = left
             @right = right
+        end
+
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the children.
+            ruby_block.call(@left)
+            ruby_block.call(@right)
         end
 
         # Iterates over all the references encountered in the expression.
@@ -1111,6 +1207,15 @@ module HDLRuby::Base
                 end
                 @choices << choice
             end
+        end
+
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the children.
+            ruby_block.call(@select)
+            @choices.each(&ruby_block)
         end
 
         # Iterates over the choices.
@@ -1162,6 +1267,7 @@ module HDLRuby::Base
             # A block? Apply it on each children.
             @expressions.each(&ruby_block)
         end
+        alias :each_child :each_expression
     end
 
 
@@ -1182,6 +1288,13 @@ module HDLRuby::Base
             return to_enum(:path_each) unless ruby_block
             # A block? Apply it on... nothing by default.
             return nil
+        end
+
+        # Iterates over the reference children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the children: default none.
         end
     end
 
@@ -1211,6 +1324,7 @@ module HDLRuby::Base
             # A block? Apply it on each children.
             @refs.each(&ruby_block)
         end
+        alias :each_child :each_ref
     end
 
 
@@ -1243,6 +1357,14 @@ module HDLRuby::Base
         def path_each(&ruby_block)
             # Recurse on the base reference.
             return ref.path_each(&ruby_block)
+        end
+
+        # Iterates over the reference children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the child.
+            ruby_block.call(@ref)
         end
     end
 
@@ -1282,6 +1404,14 @@ module HDLRuby::Base
             # Recurse on the base reference.
             return ref.path_each(&ruby_block)
         end
+
+        # Iterates over the reference children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the child.
+            ruby_block.call(@ref)
+        end
     end
 
 
@@ -1315,6 +1445,14 @@ module HDLRuby::Base
             ref.path_each(&ruby_block)
             # Applies the block on the current name.
             ruby_block.call(@name)
+        end
+
+        # Iterates over the reference children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the child.
+            ruby_block.call(@ref)
         end
     end
 
