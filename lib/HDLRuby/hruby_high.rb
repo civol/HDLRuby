@@ -79,59 +79,59 @@ module HDLRuby::High
                 # Named system instance, generate the instantiation command.
                 make_instantiater(name,SystemI,:add_systemI,&ruby_block)
             end
-            # Initialise the set of unbounded signals.
-            @unbounds = {}
+            # # Initialise the set of unbounded signals.
+            # @unbounds = {}
         end
 
-        # Adds unbounded signal +signal+.
-        def add_unbound(signal)
-            # Checks and add the signal.
-            unless signal.is_a?(Base::Signal)
-                raise "Invalid class for a signal instance: #{signal.class}"
-            end
-            if @unbounds.has_key?(signal.name) then
-                raise "Signal #{signal.name} already present."
-            end
-            @unbounds[signal.name] = signal
-        end
+        # # Adds unbounded signal +signal+.
+        # def add_unbound(signal)
+        #     # Checks and add the signal.
+        #     unless signal.is_a?(Base::Signal)
+        #         raise "Invalid class for a signal instance: #{signal.class}"
+        #     end
+        #     if @unbounds.has_key?(signal.name) then
+        #         raise "Signal #{signal.name} already present."
+        #     end
+        #     @unbounds[signal.name] = signal
+        # end
 
-        # Iterates over unbounded signals, or, if provided, the unbounded
-        # signals refered by +ref+.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_unbound(ref = nil, &ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_signal) unless ruby_block
-            if ref then
-                # A reference and a block? Apply it on each signal instance
-                # indicated by the reference.
-                if ref.respond_to?(:name) then
-                    # Name reference: if it correspond to an unbounded signal
-                    # it is necesserily its name (no path for unbounded signals)
-                    unbound = self.get_unbound(ref.name)
-                    return ruby_block.call(unbound) if unbound
-                    return nil
-                elsif res.respond_to?(:each_ref) then
-                    ref.each_ref do |subref|
-                        self.each_unbound(subref,&ruby_block)
-                    end
-                else
-                    self.each_unbound(ref,&rubyblock)
-                end
-            else
-                # No reference but a block? Apply it on each signal instance.
-                @unbounds.each_value(&ruby_block)
-            end
-        end
+        # # Iterates over unbounded signals, or, if provided, the unbounded
+        # # signals refered by +ref+.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_unbound(ref = nil, &ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_signal) unless ruby_block
+        #     if ref then
+        #         # A reference and a block? Apply it on each signal instance
+        #         # indicated by the reference.
+        #         if ref.respond_to?(:name) then
+        #             # Name reference: if it correspond to an unbounded signal
+        #             # it is necesserily its name (no path for unbounded signals)
+        #             unbound = self.get_unbound(ref.name)
+        #             return ruby_block.call(unbound) if unbound
+        #             return nil
+        #         elsif res.respond_to?(:each_ref) then
+        #             ref.each_ref do |subref|
+        #                 self.each_unbound(subref,&ruby_block)
+        #             end
+        #         else
+        #             self.each_unbound(ref,&rubyblock)
+        #         end
+        #     else
+        #         # No reference but a block? Apply it on each signal instance.
+        #         @unbounds.each_value(&ruby_block)
+        #     end
+        # end
 
-        ## Gets an unbound input signal by +name+.
-        def get_unbound(name)
-            # print "Get unbound with name=#{name}\n"
-            return @unbounds[name.to_sym]
-        end
+        # ## Gets an unbound input signal by +name+.
+        # def get_unbound(name)
+        #     # print "Get unbound with name=#{name}\n"
+        #     return @unbounds[name.to_sym]
+        # end
 
         # Iterates over all the signals of the system type and its system
-        # instances but excluding the unbounded signals.
+        # instances.
         def each_signal_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal_deep) unless ruby_block
@@ -153,52 +153,52 @@ module HDLRuby::High
         def open(&ruby_block)
             High.space_push(self)
             High.space_top.instance_eval(&ruby_block)
-            High.space_top.postprocess
+            # High.space_top.postprocess
             High.space_pop
         end
 
-        # Post processes the system type.
-        #
-        # NOTE: for now, binds the unbounded signals.
-        def postprocess
-            # Look for each unbounded outputs: they are the left value
-            # signals.
-            uouts = []
-            each_connection do |connection|
-                self.each_unbound(connection.left) do |unbound|
-                    uouts << unbound
-                end
-            end
-            self.each_behavior do |behavior|
-                behavior.block.each_statement do |statement|
-                    if statement.is_a?(Transmit) then
-                        self.each_unbound(statement.left) do |unbound|
-                            uouts << unbound
-                        end
-                    end
-                end
-            end
-            # Bind them.
-            uouts.each { |output| self.bind(output,:output) }
+        # # Post processes the system type.
+        # #
+        # # NOTE: for now, binds the unbounded signals.
+        # def postprocess
+        #     # Look for each unbounded outputs: they are the left value
+        #     # signals.
+        #     uouts = []
+        #     each_connection do |connection|
+        #         self.each_unbound(connection.left) do |unbound|
+        #             uouts << unbound
+        #         end
+        #     end
+        #     self.each_behavior do |behavior|
+        #         behavior.block.each_statement do |statement|
+        #             if statement.is_a?(Transmit) then
+        #                 self.each_unbound(statement.left) do |unbound|
+        #                     uouts << unbound
+        #                 end
+        #             end
+        #         end
+        #     end
+        #     # Bind them.
+        #     uouts.each { |output| self.bind(output,:output) }
 
-            # Bind the remaining unbounded signals as input.
-            self.each_unbound do |signal|
-                self.bind(signal,:input)
-            end
-        end
+        #     # Bind the remaining unbounded signals as input.
+        #     self.each_unbound do |signal|
+        #         self.bind(signal,:input)
+        #     end
+        # end
 
-        # Binds an unbounded +signal+ with direction +dir+.
-        def bind(signal,dir)
-            @unbounds.delete(signal.name)
-            signal.dir = dir
-            if dir == :input then
-                self.add_input(signal)
-            elsif dir == :output then
-                self.add_output(signal)
-            else
-                raise "Internal error: a signal can only be bounded to an input or an output."
-            end
-        end
+        # # Binds an unbounded +signal+ with direction +dir+.
+        # def bind(signal,dir)
+        #     @unbounds.delete(signal.name)
+        #     signal.dir = dir
+        #     if dir == :input then
+        #         self.add_input(signal)
+        #     elsif dir == :output then
+        #         self.add_output(signal)
+        #     else
+        #         raise "Internal error: a signal can only be bounded to an input or an output."
+        #     end
+        # end
 
 
         # The proc used for instantiating the system type.
@@ -214,7 +214,7 @@ module HDLRuby::High
             eigen = self.class.new("")
             High.space_push(eigen)
             High.space_top.instance_exec(*args,&@instance_proc) if @instance_proc
-            High.space_top.postprocess
+            # High.space_top.postprocess
             High.space_pop
             # Create the instance.
             return @instance_class.new(i_name,eigen)
@@ -331,31 +331,31 @@ module HDLRuby::High
 
         # Methods used for declaring a system in HDLRuby::High
 
-        # Declares high-level untyped input signals named +names+.
+        # Declares high-level bit input signals named +names+.
         def input(*names)
             names.each do |name|
-                self.add_input(Signal.new(name,void,:input))
+                self.add_input(Signal.new(name,bit,:input))
             end
         end
 
-        # Declares high-level untyped output signals named +names+.
+        # Declares high-level bit output signals named +names+.
         def output(*names)
             names.each do |name|
-                self.add_output(Signal.new(name,void,:output))
+                self.add_output(Signal.new(name,bit,:output))
             end
         end
 
-        # Declares high-level untyped inout signals named +names+.
+        # Declares high-level bit inout signals named +names+.
         def inout(*names)
             names.each do |name|
-                self.add_inout(Signal.new(name,void,:inout))
+                self.add_inout(Signal.new(name,bit,:inout))
             end
         end
 
-        # Declares high-level untyped inner signals named +names+.
+        # Declares high-level bit inner signals named +names+.
         def inner(*names)
             names.each do |name|
-                self.add_inner(Signal.new(name,void,:inner))
+                self.add_inner(Signal.new(name,bit,:inner))
             end
         end
 
@@ -492,33 +492,33 @@ module HDLRuby::High
             return SIGNS[self.name]
         end
 
-        # Tells if the type is specified or not.
-        def void?
-            return self.name == :void
-        end
+        # # Tells if the type is specified or not.
+        # def void?
+        #     return self.name == :void
+        # end
 
-        # Tells if a type is generic or not.
-        def generic?
-            return self.void?
-        end
+        # # Tells if a type is generic or not.
+        # def generic?
+        #     return self.void?
+        # end
 
         # Checks the compatibility with +type+
         def compatible?(type)
-            # If type is void, compatible anyway.
-            return true if type.name == :void
+            # # If type is void, compatible anyway.
+            # return true if type.name == :void
             # Default: base types cases.
             case self.name
-            when :void then
-                # void is compatible with anything.
-                return true
+            # when :void then
+            #     # void is compatible with anything.
+            #     return true
             when :bit then
-                # bit is compatible with [void,] bit signed and unsigned.
+                # bit is compatible with bit signed and unsigned.
                 return [:bit,:signed,:unsigned].include?(type.name)
             when :signed then
-                # Signed is compatible with [void,] bit and signed.
+                # Signed is compatible with bit and signed.
                 return [:bit,:signed].include?(type.name)
             when :unsigned then
-                # Unsigned is compatible with [void,] bit and unsigned.
+                # Unsigned is compatible with bit and unsigned.
                 return [:bit,:unsigned].include?(type.name)
             else
                 # Unknown type for compatibility: not compatible by default.
@@ -528,29 +528,29 @@ module HDLRuby::High
 
         # Merges with +type+
         def merge(type)
-            # If type is void, return self.
-            return self if type.name == :void
+            # # If type is void, return self.
+            # return self if type.name == :void
             # Default: base types cases.
             case self.name
-            when :void then
-                # void: return type
-                return type
+            # when :void then
+            #     # void: return type
+            #     return type
             when :bit then
-                # bit is compatible with [void,] bit signed and unsigned.
+                # bit is compatible with bit signed and unsigned.
                 if [:bit,:signed,:unsigned].include?(type.name) then
                     return type
                 else
                     raise "Incompatible types for merging: #{self}, #{type}."
                 end
             when :signed then
-                # Signed is compatible with [void,] bit and signed.
+                # Signed is compatible with bit and signed.
                 if [:bit,:signed].include?(type.name) then
                     return self
                 else
                     raise "Incompatible types for merging: #{self}, #{type}."
                 end
             when :unsigned then
-                # Unsigned is compatible with [void,] bit and unsigned.
+                # Unsigned is compatible with bit and unsigned.
                 if [:bit,:unsigned].include?(type.name)
                     return self
                 else
@@ -643,8 +643,8 @@ module HDLRuby::High
 
         # Checks the compatibility with +type+
         def compatible?(type)
-            # If type is void, compatible anyway.
-            return true if type.name == :void
+            # # If type is void, compatible anyway.
+            # return true if type.name == :void
             # Compatible if same name and compatible base.
             return false unless type.respond_to?(:base)
             return ( @name == type.name and 
@@ -653,8 +653,8 @@ module HDLRuby::High
 
         # Merges with +type+
         def merge(type)
-            # If type is void, return self anway.
-            return self if type.name == :void
+            # # If type is void, return self anway.
+            # return self if type.name == :void
             # Compatible if same name and compatible base.
             unless type.respond_to?(:base) then
                 raise "Incompatible types for merging: #{self}, #{type}."
@@ -722,8 +722,8 @@ module HDLRuby::High
 
         # Checks the compatibility with +type+
         def compatible?(type)
-            # if type is void, compatible anyway.
-            return true if type.name == :void
+            # # if type is void, compatible anyway.
+            # return true if type.name == :void
             # Compatible if same width and compatible base.
             return false unless type.respond_to?(:dir)
             return false unless type.respond_to?(:base)
@@ -733,8 +733,8 @@ module HDLRuby::High
 
         # Merges with +type+
         def merge(type)
-            # if type is void, return self anyway.
-            return self if type.name == :void
+            # # if type is void, return self anyway.
+            # return self if type.name == :void
             # Compatible if same width and compatible base.
             unless type.respond_to?(:dir) and type.respond_to?(:base) then
                 raise "Incompatible types for merging: #{self}, #{type}."
@@ -824,8 +824,8 @@ module HDLRuby::High
 
         # Checks the compatibility with +type+
         def compatible?(type)
-            # If type is void, compatible anyway.
-            return true if type.name == :void
+            # # If type is void, compatible anyway.
+            # return true if type.name == :void
             # Not compatible if different types.
             return false unless type.is_a?(TypeStruct)
             # Not compatibe unless each entry has the same name in same order.
@@ -838,8 +838,8 @@ module HDLRuby::High
 
         # Merges with +type+
         def merge(type)
-            # if type is void, return self anyway.
-            return self if type.name == :void
+            # # if type is void, return self anyway.
+            # return self if type.name == :void
             # Not compatible if different types.
             unless type.is_a?(TypeStruct) then
                 raise "Incompatible types for merging: #{self}, #{type}."
@@ -858,38 +858,38 @@ module HDLRuby::High
     end
 
 
-    ##
-    # Describes an union type.
-    class TypeUnion < TypeHierarchy
-        # Creates a new union type named +name+ whose hierachy is given
-        # by +content+.
-        def initialize(name,content)
-            # Initialize the type structure.
-            super(name,content)
-            # Check the content: a union cannot contain any generic sub-type.
-            self.each_type do |type|
-                if type.generic? then
-                    raise "Union types cannot contain any generic sub-type."
-                end
-            end
-        end
+    # ##
+    # # Describes an union type.
+    # class TypeUnion < TypeHierarchy
+    #     # Creates a new union type named +name+ whose hierachy is given
+    #     # by +content+.
+    #     def initialize(name,content)
+    #         # Initialize the type structure.
+    #         super(name,content)
+    #         # Check the content: a union cannot contain any generic sub-type.
+    #         self.each_type do |type|
+    #             if type.generic? then
+    #                 raise "Union types cannot contain any generic sub-type."
+    #             end
+    #         end
+    #     end
 
-        # Type handling: these methods may have to be overriden when 
-        # subclassing.
+    #     # Type handling: these methods may have to be overriden when 
+    #     # subclassing.
 
-        # Gets the bitwidth of the type, nil for undefined.
-        #
-        # NOTE: must be redefined for specific types.
-        def width
-            return @types.max{ |type| type.width }.width
-        end
+    #     # Gets the bitwidth of the type, nil for undefined.
+    #     #
+    #     # NOTE: must be redefined for specific types.
+    #     def width
+    #         return @types.max{ |type| type.width }.width
+    #     end
 
-        # Tells if a type is generic or not.
-        def generic?
-            # No.
-            return false
-        end
-    end
+    #     # Tells if a type is generic or not.
+    #     def generic?
+    #         # No.
+    #         return false
+    #     end
+    # end
 
     ##
     # Describes a type made of a system type.
@@ -1025,10 +1025,10 @@ module HDLRuby::High
         return TypeStruct.new(:"",content)
     end
 
-    # Creates an unnamed union type from a +content+.
-    def union(content)
-        return TypeUnion.new(:"",content)
-    end
+    # # Creates an unnamed union type from a +content+.
+    # def union(content)
+    #     return TypeUnion.new(:"",content)
+    # end
 
     # Creates type named +name+ and using +ruby_block+ for building it.
     def type(name,&ruby_block)
@@ -1506,9 +1506,9 @@ module HDLRuby::High
         attr_reader :dir
 
         # Creates a new signal named +name+ typed as +type+ and with
-        # +dir+ as bounding direction (:no for unbounded).
+        # +dir+ as bounding direction.
         #
-        # NOTE: +dir+ can be :no, :input, :output, :inout or :inner
+        # NOTE: +dir+ can be :input, :output, :inout or :inner
         def initialize(name,type,dir)
             # Initialize the type structure.
             super(name,type)
@@ -1632,10 +1632,10 @@ module HDLRuby::High
         end
         alias :get_signal :get_inner
 
-        # Declares high-level untyped inner signals named +names+.
+        # Declares high-level bit inner signals named +names+.
         def inner(*names)
             names.each do |name|
-                self.add_inner(Signal.new(name,void,:inner))
+                self.add_inner(Signal.new(name,bit,:inner))
             end
         end
         
@@ -1964,8 +1964,8 @@ module HDLRuby::High
         self.send(:define_method,name) { type }
     end
 
-    # The void type.
-    define_type :void
+    # # The void type.
+    # define_type :void
 
     # The bit type.
     define_type :bit
@@ -2076,20 +2076,20 @@ module HDLRuby::High
     class ::Symbol
         High = HDLRuby::High
 
-        # Converts to a high-level expression.
-        def to_expr
-            self.to_ref
-        end
+        # # Converts to a high-level expression.
+        # def to_expr
+        #     self.to_ref
+        # end
 
-        # Converts to a high-level reference refering to an unbounded signal.
-        def to_ref
-            # Create the unbounded signal and add it to the upper system type.
-            signal = Signal.new(self,void,:no)
-            High.cur_systemT.add_unbound(signal)
-            # Convert it to a reference and return the result.
-            return signal.to_ref
-        end
-        alias :+@ :to_ref
+        # # Converts to a high-level reference refering to an unbounded signal.
+        # def to_ref
+        #     # Create the unbounded signal and add it to the upper system type.
+        #     signal = Signal.new(self,void,:no)
+        #     High.cur_systemT.add_unbound(signal)
+        #     # Convert it to a reference and return the result.
+        #     return signal.to_ref
+        # end
+        # alias :+@ :to_ref
     end
 
 

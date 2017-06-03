@@ -65,12 +65,12 @@ begin
        uchar.input :i2, :i3
        bit[7..0].output :o1
        {header: bit[4], data: bit[28]}.inner :frame
-       union(int: signed[32], uint: bit[32]).inout :value
+       {int: signed[32], uint: bit[32]}.inout :value
        sigT0.inner :my_sig
 
        o0 <= i0 + i1     # Standard connection
        x <= y + z        # Connection of generic parameters
-       +:a <= +:b + +:c  # Connection of auto signals
+       # +:a <= +:b + +:c  # Connection of auto signals
 
        behavior(i0.posedge) do
            o1 <= i0 * i1
@@ -126,8 +126,8 @@ begin
         success = false
     end
     systemI1Ins = $systemI1.each_input.to_a
-    if systemI1Ins.size != 7 then
-        puts "Error: invalid number of input signals, got #{systemI1Ins.size} but expecting 7."
+    if systemI1Ins.size != 5 then
+        puts "Error: invalid number of input signals, got #{systemI1Ins.size} but expecting 5."
         success = false
     elsif systemI1Ins[0].name != :clk then
         puts "Error: invalid input signal, got #{systemI1Ins[0].name} but expecting clk."
@@ -138,8 +138,8 @@ begin
     elsif systemI1Ins[1].name != :i0 then
         puts "Error: invalid input signal, got #{systemI1Ins[0].name} but expecting i0."
         success = false
-    elsif systemI1Ins[1].type.name != :void then
-        puts "Error: invalid type for i0, got #{systemI1Ins[0].type.name} but expecting void."
+    elsif systemI1Ins[1].type.name != :bit then
+        puts "Error: invalid type for i0, got #{systemI1Ins[0].type.name} but expecting bit."
         success = false
     elsif systemI1Ins[2].name != :i1 then
         puts "Error: invalid input signal, got #{systemI1Ins[1].name} but expecting i1."
@@ -162,8 +162,8 @@ begin
     end
 
     systemI1Outs = $systemI1.each_output.to_a
-    if systemI1Outs.size != 3 then
-        puts "Error: invalid number of output signals, got #{systemI1Outs.size} but expecting 3."
+    if systemI1Outs.size != 2 then
+        puts "Error: invalid number of output signals, got #{systemI1Outs.size} but expecting 2."
         success = false
     elsif systemI1Outs[0].name != :o0 then
         puts "Error: invalid output signal, got #{systemI1Outs[0].name} but expecting o0."
@@ -204,8 +204,8 @@ begin
     elsif systemI1Inouts[0].name != :value then
         puts "Error: invalid inout signal, got #{systemI1Inouts[0].name} but expecting value."
         success = false
-    elsif !systemI1Inouts[0].type.is_a?(TypeUnion) then
-        puts "Error: invalid inout type, got #{systemI1Inouts[0].type.class} but expecting TypeUnion."
+    elsif !systemI1Inouts[0].type.is_a?(TypeStruct) then
+        puts "Error: invalid inout type, got #{systemI1Inouts[0].type.class} but expecting TypeStruct."
         success = false
     elsif !systemI1Inouts[0].type.get_type(:uint).is_a?(TypeVector) then
         puts "Error: invalid inout type record for uint, got #{systemI1Inouts[0].type.get_type(:header).class} but expecting TypeVector."
@@ -216,8 +216,8 @@ begin
     end
 
     systemI1Connections = $systemI1.each_connection.to_a
-    if systemI1Connections.size != 3 then
-        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 3."
+    if systemI1Connections.size != 2 then
+        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 2."
         success = false
     elsif systemI1Connections[0].left.name != :o0 then
         puts "Error: invalid left for connection, got #{systemI1Connections[0].left.name} but expecting o0."
