@@ -62,27 +62,27 @@ begin
        systemT0 :my_system
        input :i0, :i1
        output :o0
-       uchar.input :i2, :i3
+       uchar.input :i2
+       [7..0].input :i3
        bit[7..0].output :o1
        {header: bit[4], data: bit[28]}.inner :frame
        {int: signed[32], uint: bit[32]}.inout :value
        sigT0.inner :my_sig
 
-       o0 <= i0 + i1     # Standard connection
-       x <= y + z        # Connection of generic parameters
-       # +:a <= +:b + +:c  # Connection of auto signals
+       o0 <= i0 + i1       # Standard connection
+       x <= mux(o0, y, z)  # Connection of generic parameters with a mux
 
        behavior(i0.posedge) do
-           o1 <= i0 * i1
+           (o1 <= i0 * i1).hif(i0 != 0)
            seq do
                value.int[7..0] <= i2 + i3
            end
-           hif i3 > i2 do
+           hif (i3 > i2) {
                value.int[15..8] <= i3
-           end
-           helse do
+           }
+           helse {
                value.int[15..8] <= i2
-           end
+           }
        end
 
        timed do
@@ -98,6 +98,8 @@ begin
                clk <= 0
            end
        end
+       # Connection converted to behavior through a at.
+       (o1 <= i2 + i3).at(clk.posedge)
    end
    unless $systemT1 then
        raise "Error: created system type not found."
@@ -234,8 +236,8 @@ begin
     end
 
     systemI1Behaviors = $systemI1.each_behavior.to_a
-    if systemI1Behaviors.size != 2 then
-        puts "Error: invalid number of behaviors, got #{systemI1Behaviors.size} but expecting 2."
+    if systemI1Behaviors.size != 3 then
+        puts "Error: invalid number of behaviors, got #{systemI1Behaviors.size} but expecting 3."
         success = false
     end
     systemI1Behavior = systemI1Behaviors[0]
@@ -248,12 +250,6 @@ begin
     elsif systemI1Events[0].ref.name != :i0 then
         puts "Error: invalid event reference, got #{systemI1Events[0].ref.name} but expecting i0."
     end
-    # systemI1Blocks = systemI1Behavior.each_block.to_a
-    # if systemI1Blocks.size != 1 then
-    #     puts "Error: invalid number of blocks, got #{systemI1Blocks.size} but expecting 1."
-    #     success = false
-    # end
-    # systemI1Block = systemI1Blocks[0]
     systemI1Block = systemI1Behavior.block
     if systemI1Block.type != :par then
         puts "Error: invalid block type, got #{systemI1Block.type} but expecting par."
@@ -368,6 +364,42 @@ begin
     end
     unless systemI1TimeStms[-1].statement.each_statement.to_a.size == 4 then
         puts "Error: invalid number of statements in the timed repeat: got #{systemI1TimeStms[-1].statement.each_statement.to_a.size} but expecting 4."
+        success = false
+    end
+
+    systemI1At = systemI1Behaviors[2]
+    systemI1AtEvents = systemI1At.each_event.to_a
+    if systemI1AtEvents.size != 1 then
+        puts "Error: invalid number of events, got #{systemI1AtEvents.size} but expecting 1."
+        success = false
+    elsif systemI1AtEvents[0].type != :posedge then
+        puts "Error: invalid type of event, got #{systemI1AtEvents[0].type} but expecting posedge."
+    elsif systemI1AtEvents[0].ref.name != :clk then
+        puts "Error: invalid event reference, got #{systemI1AtEvents[0].ref.name} but expecting clk."
+    end
+    systemI1AtBlock = systemI1At.block
+    if systemI1AtBlock.type != :par then
+        puts "Error: invalid block type, got #{systemI1AtBlock.type} but expecting par."
+        success = false
+    end
+    systemI1AtStatements = systemI1AtBlock.each_statement.to_a
+    if systemI1AtStatements.size != 1 then
+        puts "Error: invalid number of statements, got #{systemI1AtStatements.size} but expecting 1."
+        success = false
+    elsif !systemI1AtStatements[0].is_a?(Transmit) then
+        puts "Error: invalid first statement, got #{systemI1AtStatements[0].class} but expecting Transmit."
+        success = false
+    elsif systemI1AtStatements[0].left.name != :o1 then
+        puts "Error: invalid first statement left, got #{systemI1AtStatements[0].left.name} but expecting o1."
+        success = false
+    elsif systemI1AtStatements[0].right.operator != :+ then
+        puts "Error: invalid first statement right operator, got #{systemI1AtStatements[0].right.operator} but expecting +."
+        success = false
+    elsif systemI1AtStatements[0].right.left.name != :i2 then
+        puts "Error: invalid first statement right left, got #{systemI1AtStatements[0].right.left.name} but expecting i2."
+        success = false
+    elsif systemI1AtStatements[0].right.right.name != :i3 then
+        puts "Error: invalid first statement right right, got #{systemI1AtStatements[0].right.left.name} but expecting i3."
         success = false
     end
 

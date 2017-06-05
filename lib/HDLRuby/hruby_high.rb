@@ -57,6 +57,24 @@ module HDLRuby::High
     end
 
 
+    ##
+    # Module providing methods for declaring select expressions.
+    module Hmux
+        # Creates an operator selecting from +select+ one of the +choices+.
+        #
+        # NOTE: +choices+ can either be a list of arguments or an array.
+        # If +choices+ has only two entries
+        # (and it is not a has), +value+ will be converted to a boolean.
+        def mux(select,*choices)
+            # Process the choices.
+            choices = choices.flatten(1) if choices.size == 1
+            choices.map! { |choice| choice.to_expr }
+            # Generate the select expression.
+            return Select.new(select.to_expr,*choices)
+        end
+    end
+
+
     # Classes describing hardware types.
 
     ## 
@@ -81,6 +99,66 @@ module HDLRuby::High
             end
             # # Initialise the set of unbounded signals.
             # @unbounds = {}
+        end
+
+        # Creates and adds a set of inputs typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inputs(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    self.add_input(Signal.new(name,type,:input))
+                else
+                    signal = name.clone
+                    signal.dir = :input
+                    self.add_input(signal)
+                end
+            end
+        end
+
+        # Creates and adds a set of outputs typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_outputs(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    self.add_output(Signal.new(name,type,:output))
+                else
+                    signal = name.clone
+                    signal.dir = :output
+                    self.add_output(signal)
+                end
+            end
+        end
+
+        # Creates and adds a set of inouts typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inouts(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    self.add_inout(Signal.new(name,type,:inout))
+                else
+                    signal = name.clone
+                    signal.dir = :inout
+                    self.add_inout(signal)
+                end
+            end
+        end
+
+        # Creates and adds a set of inners typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inners(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    self.add_inner(Signal.new(name,type,:inner))
+                else
+                    signal = name.clone
+                    signal.dir = :inner
+                    self.add_inner(signal)
+                end
+            end
         end
 
         # # Adds unbounded signal +signal+.
@@ -329,34 +407,26 @@ module HDLRuby::High
 
 
 
-        # Methods used for declaring a system in HDLRuby::High
+        # Methods used for describing a system in HDLRuby::High
 
         # Declares high-level bit input signals named +names+.
         def input(*names)
-            names.each do |name|
-                self.add_input(Signal.new(name,bit,:input))
-            end
+            self.make_inputs(bit,*names)
         end
 
         # Declares high-level bit output signals named +names+.
         def output(*names)
-            names.each do |name|
-                self.add_output(Signal.new(name,bit,:output))
-            end
+            self.make_outputs(bit,*names)
         end
 
         # Declares high-level bit inout signals named +names+.
         def inout(*names)
-            names.each do |name|
-                self.add_inout(Signal.new(name,bit,:inout))
-            end
+            self.make_inouts(bit,*names)
         end
 
         # Declares high-level bit inner signals named +names+.
         def inner(*names)
-            names.each do |name|
-                self.add_inner(Signal.new(name,bit,:inner))
-            end
+            self.make_inners(bit,*names)
         end
 
         # Declares a high-level behavior activated on a list of +events+, and
@@ -394,6 +464,8 @@ module HDLRuby::High
                 seq(&ruby_block)
             end
         end
+
+        include Hmux
     end
 
     # Methods for declaring system types.
@@ -582,37 +654,25 @@ module HDLRuby::High
 
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
-            names.each do |name|
-                High.space_top.add_input(
-                    Signal.new(name,self.instantiate,:input))
-            end
+            High.space_top.make_inputs(self.instantiate,*names)
         end
 
         # Declares high-level untyped output signals named +names+ of the
         # current type.
         def output(*names)
-            names.each do |name|
-                High.space_top.add_output(
-                    Signal.new(name,self.instantiate,:output))
-            end
+            High.space_top.make_outputs(self.instantiate,*names)
         end
 
         # Declares high-level untyped inout signals named +names+ of the
         # current type.
         def inout(*names)
-            names.each do |name|
-                High.space_top.add_inout(
-                    Signal.new(name,self.instantiate,:inout))
-            end
+            High.space_top.make_inouts(self.instantiate,*names)
         end
 
         # Declares high-level untyped inner signals named +names+ of the
         # current type.
         def inner(*names)
-            names.each do |name|
-                High.space_top.add_inner(
-                    Signal.new(name,self.instantiate,:inner))
-            end
+            High.space_top.make_inners(self.instantiate,*names)
         end
     end
 
@@ -1086,10 +1146,25 @@ module HDLRuby::High
     # Classes describing hardware statements, connections and expressions
 
 
+    ##
+    # Module giving high-level statement properties
+    module HStatement
+        # Creates a new if statement with a +condition+ enclosing the statement.
+        #
+        # NOTE: the else part is defined through the helse method.
+        def hif(condition)
+            # Creates the if statement.
+            return If.new(condition) { self }
+        end
+    end
+
+
     ## 
     # Describes a high-level if statement.
     class If < Base::If
         High = HDLRuby::High
+
+        include HStatement
 
         # Creates a new if statement with a +condition+ that when met lead
         # to the selection of the block generated by the execution of
@@ -1108,9 +1183,9 @@ module HDLRuby::High
         # Sets the no block generated by the execution of +ruby_block+.
         #
         # No can only be set once.
-        def helse(&ruby_block)
-            # Create the no block.
-            no_block = High.block(:par,&ruby_block)
+        def helse(no_block = nil, &ruby_block)
+            # Create the nu block if required
+            no_block = High.block(:par,&ruby_block) unless no_block
             # # Built it by executing ruby_block in context.
             # High.space_push(no_block)
             # High.space_top.instance_eval(&ruby_block)
@@ -1124,6 +1199,7 @@ module HDLRuby::High
     ## 
     # Describes a high-level case statement.
     class Case < Base::Case
+        include HStatement
     end
 
 
@@ -1131,6 +1207,8 @@ module HDLRuby::High
     # Describes a delay: not synthesizable.
     class Delay < Base::Delay
         High = HDLRuby::High
+
+        include HStatement
 
         def !
             High.space_top.wait(self)    
@@ -1140,12 +1218,14 @@ module HDLRuby::High
     ##
     # Describes a high-level wait delay statement.
     class TimeWait < Base::TimeWait
+        include HStatement
     end
 
 
     ## 
     # Describes a timed loop statement: not synthesizable!
     class TimeRepeat < Base::TimeRepeat
+        include HStatement
     end
 
 
@@ -1175,7 +1255,7 @@ module HDLRuby::High
         # Adds the binary operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
          :"&",:"|",:"^",:"<<",:">>",
-         :"==",:"<",:">",:"<=",:">="].each do |operator|
+         :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
             define_method(operator) do |right|
                 return Binary.new(operator,self.to_expr,right.to_expr)
             end
@@ -1205,7 +1285,7 @@ module HDLRuby::High
             unless ( parent.is_a?(Base::Expression) or
                      parent.is_a?(Base::Transmit) or
                      parent.is_a?(Base::If) or
-                     parent.is_a?(Base::Select) ) then
+                     parent.is_a?(Base::Case) ) then
                 raise "Invalid class for a type: #{type.class}."
             end
             @parent = parent
@@ -1459,6 +1539,8 @@ module HDLRuby::High
     class Transmit < Base::Transmit
         High = HDLRuby::High
 
+        include HStatement
+
         # Converts the transmission to a comparison expression.
         #
         # NOTE: required because the <= operator is ambigous and by
@@ -1485,6 +1567,21 @@ module HDLRuby::High
             High.space_top.delete_connection(self)
             # Generate an expression.
             return Binary.new(:<=,self.left,self.right)
+        end
+
+        # Creates a new behavior sensitive to +event+ including the connection
+        # converted to a transmission, and replace the former by the new
+        # behavior.
+        def at(event)
+            # Creates the behavior.
+            left, right = self.left, self.right
+            behavior = Behavior.new(event) do
+                left <= right
+            end
+            # Adds the behavior.
+            High.space_top.add_behavior(behavior)
+            # Remove the connection
+            High.space_top.delete_connection(self)
         end
     end
 
@@ -1615,6 +1712,21 @@ module HDLRuby::High
             @inners[signal.name] = signal
         end
 
+        # Creates and adds a set of inners typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inners(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    self.add_inner(Signal.new(name,type,:inner))
+                else
+                    signal = name.clone
+                    signal.dir = :inner
+                    self.add_inner(signal)
+                end
+            end
+        end
+
         # Iterates over the inner signals.
         #
         # Returns an enumerator if no ruby block is given.
@@ -1634,10 +1746,10 @@ module HDLRuby::High
 
         # Declares high-level bit inner signals named +names+.
         def inner(*names)
-            names.each do |name|
-                self.add_inner(Signal.new(name,bit,:inner))
-            end
+            self.make_inners(bit,*names)
         end
+
+        include Hmux
         
         # Iterates over all the signals of the block and its sub block's ones.
         def each_signal_deep(&ruby_block)
@@ -1681,6 +1793,8 @@ module HDLRuby::High
 
         # Adds a else block to the previous if statement.
         def helse(&ruby_block)
+            # There is a ruby_block: the helse is assumed to be with
+            # the hif in the same block.
             # Completes the if statement.
             statement = @statements.last
             unless statement.is_a?(If) then
@@ -1916,9 +2030,12 @@ module HDLRuby::High
     end
 
     # Gets the enclosing block if any.
-    def self.cur_block
-        if NameSpace[-1].is_a?(Block)
-            return NameSpace[-1]
+    #
+    # NOTE: +level+ allows to get an upper block of the currently enclosing
+    #       block.
+    def self.cur_block(level = 0)
+        if NameSpace[-1-level].is_a?(Block)
+            return NameSpace[-1-level]
         else
             raise "Not within a block."
         end
@@ -2068,6 +2185,31 @@ module HDLRuby::High
             expr = RefConcat.new
             self.each {|elem| expr.add_ref(elem.to_ref) }
             expr
+        end
+
+        # Signal creation through the array take as type.
+
+        # Declares high-level input signals named +names+ of the current type.
+        def input(*names)
+            High.space_top.make_inputs(bit[*self],*names)
+        end
+
+        # Declares high-level untyped output signals named +names+ of the
+        # current type.
+        def output(*names)
+            High.space_top.make_outputs(bit[*self],*names)
+        end
+
+        # Declares high-level untyped inout signals named +names+ of the
+        # current type.
+        def inout(*names)
+            High.space_top.make_inouts(bit[*self],*names)
+        end
+
+        # Declares high-level untyped inner signals named +names+ of the
+        # current type.
+        def inner(*names)
+            High.space_top.make_inners(bit[*self],*names)
         end
     end
 
