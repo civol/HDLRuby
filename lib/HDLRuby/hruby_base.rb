@@ -1249,13 +1249,20 @@ module HDLRuby::Base
     class Concat < Expression
         # Creates a new expression concatenation several +expressions+ together.
         def initialize(*expressions)
-            # Check and set the expressions.
-            expressions.each do |expression|
-                unless expression.is_a?(Expression) then
-                    raise "Invalid class for an expression: #{expression.class}"
-                end
+            # Initialize the array of expressions that are concatenated.
+            @expressions = []
+            # Check and add the expressions.
+            expressions.each { |expression| self.add_expression(expression) }
+        end
+
+        # Adds an +expression+ to concat.
+        def add_expression(expression)
+            # Check expression.
+            unless expression.is_a?(Expression) then
+                raise "Invalid class for an expression: #{expression.class}"
             end
-            @expressions = expressions
+            # Add it.
+            @expressions << expression
         end
 
         # Iterates over the concatenated expressions.

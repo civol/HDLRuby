@@ -546,7 +546,7 @@ module HDLRuby::High
         end
 
         # The widths of the basic types.
-        WITHDS = { :bit => 1, :unsigned => 1, :signed => 1,
+        WIDTHS = { :bit => 1, :unsigned => 1, :signed => 1,
                    :fixnum => 32, :float => 64, :bignum => High::Infinity }
 
         # The signs of the basic types.
@@ -761,14 +761,14 @@ module HDLRuby::High
         #
         # NOTE: must be redefined for specific types.
         def width
-            first = @rng.first
-            last  = @rng.last
+            first = @range.first
+            last  = @range.last
             return @base.width * (first-last).abs
         end
 
         # Gets the direction of the range.
         def dir
-            return (@rng.last - @rng.first)
+            return (@range.last - @range.first)
         end
 
         # Tells if the type signed, false for unsigned.
@@ -804,7 +804,7 @@ module HDLRuby::High
             unless self.dir == type.dir then
                 raise "Incompatible types for merging: #{self}, #{type}."
             end
-            return TypeVector.new(@name,@rng,@base.merge(type.base))
+            return TypeVector.new(@name,@range,@base.merge(type.base))
         end  
     end
 
