@@ -1160,6 +1160,20 @@ module HDLRuby::High
         def open(&ruby_block)
             return self.systemT.open(&ruby_block)
         end
+
+        # Missing methods might be access to signals, look for them.
+        def method_missing(m, *args, &ruby_block)
+            # No argument, might be a signal
+            if args.empty? then
+                signal = self.get_signal(m)
+                if signal then
+                    # A signal is found, return it.
+                    return signal
+                end
+            end
+            # Nothing found.
+            raise NoMethodError.new("undefined local variable or method `#{name}'.")
+        end
     end
 
 
