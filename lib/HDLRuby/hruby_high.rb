@@ -321,12 +321,24 @@ module HDLRuby::High
             #     binding.receiver.send(add_instance,instance)
             # end
             obj = self # For using the right self within the proc
-            High.space_reg(name) do |i_name,*args|
-                # Instantiate.
-                instance = obj.instantiate(i_name,*args)
-                # Add the instance.
-                High.space_top.send(add_instance,instance)
+            High.space_reg(name) do |i_names,*args|
+                i_names = [*i_names]
+                instance = nil # The current instance
+                i_names.each do |i_name|
+                    # Instantiate.
+                    instance = obj.instantiate(i_name,*args)
+                    # Add the instance.
+                    High.space_top.send(add_instance,instance)
+                end
+                # Return the last instance.
+                instance
             end
+            # High.space_reg(name) do |i_name,*args|
+            #     # Instantiate.
+            #     instance = obj.instantiate(i_name,*args)
+            #     # Add the instance.
+            #     High.space_top.send(add_instance,instance)
+            # end
         end
 
         # Tells if the system type is generic or not.
