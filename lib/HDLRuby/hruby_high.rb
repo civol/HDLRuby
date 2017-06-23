@@ -414,8 +414,13 @@ module HDLRuby::High
             
 
 
-        # Missing methods are looked up in the upper level of the namespace.
+        # Missing methods may be immediate values, if not, they are looked up
+        # in the upper level of the namespace.
         def method_missing(m, *args, &ruby_block)
+            # Is the missing method an immediate value?
+            value = m.to_value
+            return value if value and args.empty?
+            # No look in the upper level of the name space
             High.space_call(m,*args,&ruby_block)
         end
 
@@ -1841,6 +1846,10 @@ module HDLRuby::High
 
         # Missing methods are looked up in the upper level of the namespace.
         def method_missing(m, *args, &ruby_block)
+            # Is the missing method an immediate value?
+            value = m.to_value
+            return value if value and args.empty?
+            # No look up in the upper level of the namespace.
             High.space_call(m,*args,&ruby_block)
         end
 
@@ -2322,6 +2331,11 @@ module HDLRuby::High
             return Delay.new(self,:ns)
         end
 
+        # Converts to a delay in microseconds.
+        def us
+            return Delay.new(self,:us)
+        end
+
         # Converts to a delay in milliseconds.
         def ms
             return Delay.new(self,:ms)
@@ -2448,6 +2462,89 @@ module HDLRuby::High
         #     return signal.to_ref
         # end
         # alias :+@ :to_ref
+
+        # Converts to a value.
+        #
+        # Returns nil if no value can be obtained from it.
+        def to_value
+            str = self.to_s
+            puts "str=#{str}"
+            # Get and check the type
+            type = str[0]
+            puts "type=#{type}"
+            str = str[1..-1]
+            return nil unless ["b","u","s"].include?(type)
+            # Get the width if any.
+            if str[0].match(/[0-9]/) then
+                width = str.scan(/[0-9]*/)[0]
+            else
+                width = nil
+            end
+            puts "width=#{width}"
+            str = str[width.size..-1] if width
+            # Get the base and the value
+            base = str[0]
+            puts "base=#{base}\n"
+            unless base then
+                # No base found, default is bit
+                base = "b"
+                # And the value is actually what was thought to be the width
+                value = width
+                width = nil
+            else
+                # Get the value.
+                value = str[1..-1]
+            end
+            # Compute the bit width and the value
+            case base
+            when "b" then
+                # base 2, compute the width
+                width = width ? width.to_i : value.size
+                # Check the value
+                return nil unless value.match(/^[0-1]+$/)
+                # Compute it
+                value = value.to_i(2)
+            when "o" then
+                # base 8, compute the width
+                width = width ? width.to_i : value.size * 3
+                # Check the value
+                return nil unless value.match(/^[0-7]+$/)
+                # Compute it
+                value = value.to_i(8)
+            when "d" then
+                # base 10, compute the width 
+                width = width ? width.to_i : value.to_i.to_s(2).size + 1
+                # Check the value
+                return nil unless value.match(/^[0-9]+$/)
+                # Compute it
+                value = value.to_i
+            when "h" then
+                # base 16, compute the width
+                width = width ? width.to_i : value.size * 4
+                # Check the value
+                return nil unless value.match(/^[0-9a-fA-F]+$/)
+                # Compute it
+                value = value.to_i(16)
+            else
+                # Unknown base
+                return nil
+            end
+            # Compute the type.
+            case type
+            when "b" then
+                type = bit[width]
+            when "u" then
+                type = unsigned[width]
+            when "s" then
+                type = signed[width]
+            else
+                # Unknown type
+                return nil
+            end
+            puts "type=#{type}, value=#{value}"
+            # Create and return the value.
+            return Value.new(type,value)
+        end
     end
 
 
