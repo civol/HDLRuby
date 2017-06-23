@@ -915,13 +915,13 @@ module HDLRuby::Base
     ## 
     # Describes a block.
     class Block < Statement
-        # The type of block.
-        attr_reader :type
+        # The execution mode of the block.
+        attr_reader :mode
 
-        # Creates a new +type+ sort of block.
-        def initialize(type)
+        # Creates a new +mode+ sort of block.
+        def initialize(mode)
             # Check and set the type.
-            @type = type.to_sym
+            @mode = mode.to_sym
             # Initializes the list of statements.
             @statements = []
         end

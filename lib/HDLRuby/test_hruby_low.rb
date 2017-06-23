@@ -422,8 +422,8 @@ end
 print "\nCreating a block... "
 begin
     $block = Block.new(:sequential)
-    if $block.type != :sequential then
-        puts "Error: invalid block type, got #{$block.type} but expecting :sequential."
+    if $block.mode != :sequential then
+        puts "Error: invalid block mode, got #{$block.type} but expecting :sequential."
         $success = false
     else
         puts "Ok."

@@ -251,8 +251,8 @@ begin
         puts "Error: invalid event reference, got #{systemI1Events[0].ref.name} but expecting i0."
     end
     systemI1Block = systemI1Behavior.block
-    if systemI1Block.type != :par then
-        puts "Error: invalid block type, got #{systemI1Block.type} but expecting par."
+    if systemI1Block.mode != :par then
+        puts "Error: invalid block mode, got #{systemI1Block.type} but expecting par."
         success = false
     end
     systemI1Statements = systemI1Block.each_statement.to_a
@@ -291,7 +291,7 @@ begin
     if !systemI1Seq.is_a?(Block) then
         puts "Error: invalid second statement, got #{systemI1Seq.class} but expecting Block."
         success = false
-    elsif systemI1Seq.type != :seq then
+    elsif systemI1Seq.mode != :seq then
         puts "Error: invalid type of block, got #{systemI1Seq.type} but expecting seq."
         success = false
     end
@@ -378,8 +378,8 @@ begin
         puts "Error: invalid event reference, got #{systemI1AtEvents[0].ref.name} but expecting clk."
     end
     systemI1AtBlock = systemI1At.block
-    if systemI1AtBlock.type != :par then
-        puts "Error: invalid block type, got #{systemI1AtBlock.type} but expecting par."
+    if systemI1AtBlock.mode != :par then
+        puts "Error: invalid block mode, got #{systemI1AtBlock.type} but expecting par."
         success = false
     end
     systemI1AtStatements = systemI1AtBlock.each_statement.to_a
