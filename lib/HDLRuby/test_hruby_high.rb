@@ -83,6 +83,16 @@ begin
            helse {
                value.int[15..8] <= i2
            }
+           hcase(i2)
+           hwhen(5) {
+               value.int[15..14] <= 0
+           }
+           hwhen(i3) {
+               value.int[15..14] <= 1
+           }
+           helse {
+               value.int[15..14] <= 2
+           }
        end
 
        timed do
@@ -256,8 +266,8 @@ begin
         success = false
     end
     systemI1Statements = systemI1Block.each_statement.to_a
-    if systemI1Statements.size != 3 then
-        puts "Error: invalid number of statements, got #{systemI1Statements.size} but expecting 2."
+    if systemI1Statements.size != 4 then
+        puts "Error: invalid number of statements, got #{systemI1Statements.size} but expecting 4."
         success = false
     elsif !systemI1Statements[0].is_a?(Transmit) then
         puts "Error: invalid first statement, got #{systemI1Statements[0].class} but expecting Transmit."
@@ -285,6 +295,21 @@ begin
         success = false
     elsif !systemI1Statements[2].no.is_a?(Block) then
         puts "Error: invalid third statement no, got #{systemI1Statements[2].no.class} but expecting Block."
+        success = false
+    elsif !systemI1Statements[3].is_a?(Case) then
+        puts "Error: invalid fourth statement, got #{systemI1Statements[3].class} but expecting Case."
+        success = false
+    elsif systemI1Statements[3].value.name != :i2 then
+        puts "Error: invalid fourth statement value, got #{systemI1Statements[3].value.name} but expecting i2."
+        success = false
+    elsif systemI1Statements[3].each_when.to_a.size != 2 then
+        puts "Error: invalid number of when for fourth statement, got #{systemI1Statements[3].each_when.to_a.size} but expecting 2."
+        success = false
+    elsif systemI1Statements[3].each_when.first[0].content != 5 then
+        puts "Error: invalid match of first when for fourth statement, got #{systemI1Statements[3].each_when.first[0].content} but expecting 5."
+        success = false
+    elsif !systemI1Statements[3].default then
+        puts "Error: no default for fourth statement."
         success = false
     end
     systemI1Seq = systemI1Statements[1]

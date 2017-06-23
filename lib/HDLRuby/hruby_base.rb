@@ -795,6 +795,9 @@ module HDLRuby::Base
         # The tested value
         attr_reader :value
 
+        # The default block.
+        attr_reader :default
+
         # Creates a new case statement whose excution flow is decided from
         # +value+.
         def initialize(value)
@@ -818,8 +821,22 @@ module HDLRuby::Base
             unless statement.is_a?(Statement)
                 raise "Invalid class for a statement: #{statement.class}"
             end
-            @whens << [match,block]
-            [match,block]
+            @whens << [match,statement]
+            [match,statement]
+        end
+
+        # Sets the default block.
+        #
+        # No can only be set once.
+        def default=(default)
+            if @default != nil then
+                raise "Default already set in if statement."
+            end
+            # Check and set the yes statement.
+            unless default.is_a?(Statement)
+                raise "Invalid class for a statement: #{default.class}"
+            end
+            @default = default
         end
 
         # Iterates over the match cases.
@@ -841,6 +858,8 @@ module HDLRuby::Base
             self.each_when do |value,block|
                 block.each_block_deep(&ruby_block)
             end
+            # And apply it on the default if any.
+            @default.each_block_deep(&ruby_block) if @default
         end
     end
 
