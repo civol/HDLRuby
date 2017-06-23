@@ -1834,6 +1834,7 @@ module HDLRuby::High
 
         # Creates a new parallel block built from +ruby_block+.
         def par(&ruby_block)
+            return :par unless ruby_block
             self.add_block(:par,&ruby_block)
         end
 
