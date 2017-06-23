@@ -822,6 +822,57 @@ module HDLRuby::High
 
 
     ##
+    # Describes a tuple type.
+    class TypeTuple < Type
+        # Creates a new tuple type named +name+ whose sub types are given
+        # by +content+.
+        def initialize(name,*content)
+            # Initialize the type.
+            super(name)
+
+            # Check and set the content.
+            content.each do |sub|
+                unless sub.is_a?(Type) then
+                    raise "Invalid class for a type: #{sub.class}"
+                end
+            end
+            @types = content
+        end
+
+        # Gets a sub type by +index+.
+        def get_type(index)
+            return @types[index.to_i]
+        end
+
+        # Iterates over the sub name/type pair.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each(&ruby_block)
+        end
+
+        # Iterates over the sub types.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_type(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each_value(&ruby_block)
+        end
+
+        # Tells if a type is generic or not.
+        def generic?
+            # The type is generic if one of the sub types is generic.
+            return self.each_type.any? { |type| type.generic? }
+        end
+    end
+
+
+    ##
     # Describes a hierarchical type.
     class TypeHierarchy < Type
         # Creates a new hierarchical type named +name+ whose hierachy is given
@@ -2240,6 +2291,9 @@ module HDLRuby::High
     # The signed bit type.
     define_type :signed
 
+    # The ungisned bit type.
+    define_type :unsigned
+
     # The numeric type (for all the Ruby Numeric types).
     define_type :numeric
 
@@ -2337,29 +2391,41 @@ module HDLRuby::High
             expr
         end
 
+        # Converts to a type.
+        def to_type
+            if self.size == 1 and
+               ( self[0].is_a?(Range) or self[0].respond_to?(:to_i) ) then
+                # Vector type case
+                return bit[*self]
+            else
+                # Tuple type case.
+                return TypeTuple.new(:"",*self)
+            end
+        end
+
         # Signal creation through the array take as type.
 
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
-            High.space_top.make_inputs(bit[*self],*names)
+            High.space_top.make_inputs(self.to_type,*names)
         end
 
         # Declares high-level untyped output signals named +names+ of the
         # current type.
         def output(*names)
-            High.space_top.make_outputs(bit[*self],*names)
+            High.space_top.make_outputs(self.to_type,*names)
         end
 
         # Declares high-level untyped inout signals named +names+ of the
         # current type.
         def inout(*names)
-            High.space_top.make_inouts(bit[*self],*names)
+            High.space_top.make_inouts(self.to_type,*names)
         end
 
         # Declares high-level untyped inner signals named +names+ of the
         # current type.
         def inner(*names)
-            High.space_top.make_inners(bit[*self],*names)
+            High.space_top.make_inners(self.to_type,*names)
         end
     end
 
