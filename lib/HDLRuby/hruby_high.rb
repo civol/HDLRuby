@@ -1217,7 +1217,8 @@ module HDLRuby::High
         # +ruby_block+.
         def initialize(condition, &ruby_block)
             # Create the yes block.
-            yes_block = High.block(:par,&ruby_block)
+            # yes_block = High.block(:par,&ruby_block)
+            yes_block = High.block(&ruby_block)
             # Creates the if statement.
             super(condition.to_expr,yes_block)
         end
@@ -1228,7 +1229,8 @@ module HDLRuby::High
         # Can only be used once.
         def helse(&ruby_block)
             # Create the nu block if required
-            no_block = High.block(:par,&ruby_block)
+            # no_block = High.block(:par,&ruby_block)
+            no_block = High.block(&ruby_block)
             # Sets the no block.
             self.no = no_block
         end
@@ -1824,7 +1826,7 @@ module HDLRuby::High
 
         # Creates and adds a new block typed +type+ built by
         # executing +ruby_block+.
-        def add_block(type,&ruby_block)
+        def add_block(type = nil,&ruby_block)
             # Creates and adds the block.
             block = High.block(type,&ruby_block)
             self.add_statement(block)
@@ -1912,7 +1914,8 @@ module HDLRuby::High
         # loop content is built using +ruby_block+.
         def repeat(delay,&ruby_block)
             # Build the content block.
-            content = High.block(:par,&ruby_block)
+            # content = High.block(:par,&ruby_block)
+            content = High.block(&ruby_block)
             # Create and add the statement.
             self.add_statement(TimeRepeat.new(content,delay))
         end
@@ -1925,7 +1928,17 @@ module HDLRuby::High
     #
     # NOTE: not a method to include since it can only be used with
     # a behavior or a block. Hence set as module method.
-    def self.block(type,&ruby_block)
+    def self.block(type = nil,&ruby_block)
+        unless type then
+            # No type of block given, get a default one.
+            if space_top.is_a?(Block) then
+                # There is an upper block, use its type.
+                type = space_top.type
+            else
+                # There is no upper block, use :par as default.
+                type = :par
+            end
+        end
         if space_top.is_a?(TimeBlock) then
             return TimeBlock.new(type,space_top.block_extensions,&ruby_block)
             # return make_changer(TimeBlock).new(type,&ruby_block)
@@ -1940,7 +1953,17 @@ module HDLRuby::High
     #
     # NOTE: not a method to include since it can only be used with
     # a behavior or a block. Hence set as module method.
-    def self.time_block(type,&ruby_block)
+    def self.time_block(type = nil,&ruby_block)
+        unless type then
+            # No type of block given, get a default one.
+            if space_top.is_a?(Block) then
+                # There is an upper block, use its type.
+                type = block.type
+            else
+                # There is no upper block, use :par as default.
+                type = :par
+            end
+        end
         return TimeBlock.new(type,space_top.block_extensions,&ruby_block)
     end
 
@@ -1969,7 +1992,8 @@ module HDLRuby::High
         # +events+, and built by executing +ruby_block+.
         def initialize(*events,&ruby_block)
             # Create a default par block for the behavior.
-            block = High.block(:par,&ruby_block)
+            # block = High.block(:par,&ruby_block)
+            block = High.block(&ruby_block)
             # Initialize the behavior with it.
             super(block)
             # Add the events.
@@ -2003,7 +2027,8 @@ module HDLRuby::High
             # Create a default par block for the behavior.
             # NOTE: this block is forced to TimeBlock, so do not use
             # block(:par).
-            block = High.time_block(:par,&ruby_block)
+            # block = High.time_block(:par,&ruby_block)
+            block = High.time_block(&ruby_block)
             # Initialize the behavior with it.
             super(block)
         end
