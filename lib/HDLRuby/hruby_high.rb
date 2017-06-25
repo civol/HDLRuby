@@ -78,25 +78,79 @@ module HDLRuby::High
     ##
     # Module providing declaration of inner signal (assumes inner signals
     # are present.
-    module HdeclInner
-        # Creates and adds a set of inners typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_inners(type, *names)
-            names.each do |name|
-                if name.respond_to?(:to_sym) then
-                    self.add_inner(Signal.new(name,type,:inner))
-                else
-                    signal = name.clone
-                    signal.dir = :inner
-                    self.add_inner(signal)
+    module Hinner
+
+        # Only adds the methods if not present.
+        def self.included(klass)
+            klass.class_eval do
+                unless instance_methods.include?(:add_inner) then
+                    # Adds inner signal +signal+.
+                    def add_inner(signal)
+                        # Checks and add the signal.
+                        unless signal.is_a?(Signal)
+                            raise "Invalid class for a signal instance: #{signal.class}"
+                        end
+                        if @inners.has_key?(signal.name) then
+                            raise "Signal #{signal.name} already present."
+                        end
+                        @inners[signal.name] = signal
+                    end
+
+                    # Iterates over the inner signals.
+                    #
+                    # Returns an enumerator if no ruby block is given.
+                    def each_inner(&ruby_block)
+                        # No ruby block? Return an enumerator.
+                        return to_enum(:each_inner) unless ruby_block
+                        # A block? Apply it on each inner signal instance.
+                        @inners.each_value(&ruby_block)
+                    end
+                    alias :each_signal :each_inner
+
+                    ## Gets an inner signal by +name+.
+                    def get_inner(name)
+                        return @inners[name]
+                    end
+                    alias :get_signal :get_inner
+
+                    # Iterates over all the signals of the block and its sub block's ones.
+                    def each_signal_deep(&ruby_block)
+                        # No ruby block? Return an enumerator.
+                        return to_enum(:each_signal_deep) unless ruby_block
+                        # A block?
+                        # First, apply on the signals of the block.
+                        self.each_signal(&ruby_block)
+                        # Then apply on each sub block. 
+                        self.each_block_deep do |block|
+                            block.each_signal_deep(&ruby_block)
+                        end
+                    end
+                end
+
+                unless instance_methods.include?(:make_inners) then
+                    # Creates and adds a set of inners typed +type+ from a list of +names+.
+                    #
+                    # NOTE: a name can also be a signal, is which case it is duplicated. 
+                    def make_inners(type, *names)
+                        names.each do |name|
+                            if name.respond_to?(:to_sym) then
+                                self.add_inner(Signal.new(name,type,:inner))
+                            else
+                                signal = name.clone
+                                signal.dir = :inner
+                                self.add_inner(signal)
+                            end
+                        end
+                    end
+                end
+
+                unless instance_methods.include?(:inner) then
+                    # Declares high-level bit inner signals named +names+.
+                    def inner(*names)
+                        self.make_inners(bit,*names)
+                    end
                 end
             end
-        end
-
-        # Declares high-level bit inner signals named +names+.
-        def inner(*names)
-            self.make_inners(bit,*names)
         end
     end
 
@@ -109,7 +163,7 @@ module HDLRuby::High
         High = HDLRuby::High
 
         include HMix
-        include HdeclInner
+        include Hinner
 
         ##
         # Creates a new high-level system type named +name+ and inheriting
@@ -1272,6 +1326,10 @@ module HDLRuby::High
     end
 
 
+    # Class describing namespace in system.
+
+
+
     # Classes describing hardware statements, connections and expressions
 
 
@@ -1879,17 +1937,17 @@ module HDLRuby::High
             High.space_call(m,*args,&ruby_block)
         end
 
-        # Adds inner signal +signal+.
-        def add_inner(signal)
-            # Checks and add the signal.
-            unless signal.is_a?(Signal)
-                raise "Invalid class for a signal instance: #{signal.class}"
-            end
-            if @inners.has_key?(signal.name) then
-                raise "Signal #{signal.name} already present."
-            end
-            @inners[signal.name] = signal
-        end
+        # # Adds inner signal +signal+.
+        # def add_inner(signal)
+        #     # Checks and add the signal.
+        #     unless signal.is_a?(Signal)
+        #         raise "Invalid class for a signal instance: #{signal.class}"
+        #     end
+        #     if @inners.has_key?(signal.name) then
+        #         raise "Signal #{signal.name} already present."
+        #     end
+        #     @inners[signal.name] = signal
+        # end
 
         # # Creates and adds a set of inners typed +type+ from a list of +names+.
         # #
@@ -1906,42 +1964,40 @@ module HDLRuby::High
         #     end
         # end
 
-        # Iterates over the inner signals.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_inner(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_inner) unless ruby_block
-            # A block? Apply it on each inner signal instance.
-            @inners.each_value(&ruby_block)
-        end
-        alias :each_signal :each_inner
+        # # Iterates over the inner signals.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_inner(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_inner) unless ruby_block
+        #     # A block? Apply it on each inner signal instance.
+        #     @inners.each_value(&ruby_block)
+        # end
+        # alias :each_signal :each_inner
 
-        ## Gets an inner signal by +name+.
-        def get_inner(name)
-            return @inners[name]
-        end
-        alias :get_signal :get_inner
+        # ## Gets an inner signal by +name+.
+        # def get_inner(name)
+        #     return @inners[name]
+        # end
+        # alias :get_signal :get_inner
 
         # # Declares high-level bit inner signals named +names+.
         # def inner(*names)
         #     self.make_inners(bit,*names)
         # end
-
-        include Hmux
         
-        # Iterates over all the signals of the block and its sub block's ones.
-        def each_signal_deep(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_signal_deep) unless ruby_block
-            # A block?
-            # First, apply on the signals of the block.
-            self.each_signal(&ruby_block)
-            # Then apply on each sub block. 
-            self.each_block_deep do |block|
-                block.each_signal_deep(&ruby_block)
-            end
-        end
+        # # Iterates over all the signals of the block and its sub block's ones.
+        # def each_signal_deep(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_signal_deep) unless ruby_block
+        #     # A block?
+        #     # First, apply on the signals of the block.
+        #     self.each_signal(&ruby_block)
+        #     # Then apply on each sub block. 
+        #     self.each_block_deep do |block|
+        #         block.each_signal_deep(&ruby_block)
+        #     end
+        # end
 
         # Creates and adds a new block executed in +mode+ built by
         # executing +ruby_block+.
@@ -1962,6 +2018,9 @@ module HDLRuby::High
             return :seq unless ruby_block
             self.add_block(:seq,&ruby_block)
         end
+
+        # Need to be able to declare select operators
+        include Hmux
 
         # Creates a new if statement with a +condition+ that when met lead
         # to the execution of the block in +mode+ generated by the +ruby_block+.
@@ -2019,7 +2078,7 @@ module HDLRuby::High
         High = HDLRuby::High
 
         include HBlock
-        include HdeclInner
+        include Hinner
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
