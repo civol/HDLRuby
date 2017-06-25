@@ -42,18 +42,18 @@ module HDLRuby::High
             end
         end
 
-        # Mixins hardware types +htypes+ by extension.
-        def extend(htypes)
-            # Initialize the list of mixins hardware types if required.
-            @extends ||= []
-            # Check and add the hardware types.
-            htypes.each do |htype|
-                unless htype.respond_to?(:hmix?) then
-                    raise "Invalid class for mixin: #{htype.class}"
-                end
-                @includes << htype
-            end
-        end
+        # # Mixins hardware types +htypes+ by extension.
+        # def extend(htypes)
+        #     # Initialize the list of mixins hardware types if required.
+        #     @extends ||= []
+        #     # Check and add the hardware types.
+        #     htypes.each do |htype|
+        #         unless htype.respond_to?(:hmix?) then
+        #             raise "Invalid class for mixin: #{htype.class}"
+        #         end
+        #         @includes << htype
+        #     end
+        # end
     end
 
 
@@ -75,6 +75,32 @@ module HDLRuby::High
     end
 
 
+    ##
+    # Module providing declaration of inner signal (assumes inner signals
+    # are present.
+    module HdeclInner
+        # Creates and adds a set of inners typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inners(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    self.add_inner(Signal.new(name,type,:inner))
+                else
+                    signal = name.clone
+                    signal.dir = :inner
+                    self.add_inner(signal)
+                end
+            end
+        end
+
+        # Declares high-level bit inner signals named +names+.
+        def inner(*names)
+            self.make_inners(bit,*names)
+        end
+    end
+
+
     # Classes describing hardware types.
 
     ## 
@@ -83,6 +109,7 @@ module HDLRuby::High
         High = HDLRuby::High
 
         include HMix
+        include HdeclInner
 
         ##
         # Creates a new high-level system type named +name+ and inheriting
@@ -148,20 +175,20 @@ module HDLRuby::High
             end
         end
 
-        # Creates and adds a set of inners typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_inners(type, *names)
-            names.each do |name|
-                if name.respond_to?(:to_sym) then
-                    self.add_inner(Signal.new(name,type,:inner))
-                else
-                    signal = name.clone
-                    signal.dir = :inner
-                    self.add_inner(signal)
-                end
-            end
-        end
+        # # Creates and adds a set of inners typed +type+ from a list of +names+.
+        # #
+        # # NOTE: a name can also be a signal, is which case it is duplicated. 
+        # def make_inners(type, *names)
+        #     names.each do |name|
+        #         if name.respond_to?(:to_sym) then
+        #             self.add_inner(Signal.new(name,type,:inner))
+        #         else
+        #             signal = name.clone
+        #             signal.dir = :inner
+        #             self.add_inner(signal)
+        #         end
+        #     end
+        # end
 
         # # Adds unbounded signal +signal+.
         # def add_unbound(signal)
@@ -443,10 +470,10 @@ module HDLRuby::High
             self.make_inouts(bit,*names)
         end
 
-        # Declares high-level bit inner signals named +names+.
-        def inner(*names)
-            self.make_inners(bit,*names)
-        end
+        # # Declares high-level bit inner signals named +names+.
+        # def inner(*names)
+        #     self.make_inners(bit,*names)
+        # end
 
         # Declares a high-level behavior activated on a list of +events+, and
         # built by executing +ruby_block+.
@@ -1811,10 +1838,10 @@ module HDLRuby::High
             return Event.new(:edge,self.to_ref)
         end
 
-        # Creates a change event from the signal.
-        def change
-            return Event.new(:change,self.to_ref)
-        end
+        # # Creates a change event from the signal.
+        # def change
+        #     return Event.new(:change,self.to_ref)
+        # end
 
         # Converts to a reference.
         def to_ref
@@ -1826,7 +1853,6 @@ module HDLRuby::High
             return self.to_ref
         end
     end
-
 
     
     ##
@@ -1865,20 +1891,20 @@ module HDLRuby::High
             @inners[signal.name] = signal
         end
 
-        # Creates and adds a set of inners typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_inners(type, *names)
-            names.each do |name|
-                if name.respond_to?(:to_sym) then
-                    self.add_inner(Signal.new(name,type,:inner))
-                else
-                    signal = name.clone
-                    signal.dir = :inner
-                    self.add_inner(signal)
-                end
-            end
-        end
+        # # Creates and adds a set of inners typed +type+ from a list of +names+.
+        # #
+        # # NOTE: a name can also be a signal, is which case it is duplicated. 
+        # def make_inners(type, *names)
+        #     names.each do |name|
+        #         if name.respond_to?(:to_sym) then
+        #             self.add_inner(Signal.new(name,type,:inner))
+        #         else
+        #             signal = name.clone
+        #             signal.dir = :inner
+        #             self.add_inner(signal)
+        #         end
+        #     end
+        # end
 
         # Iterates over the inner signals.
         #
@@ -1897,10 +1923,10 @@ module HDLRuby::High
         end
         alias :get_signal :get_inner
 
-        # Declares high-level bit inner signals named +names+.
-        def inner(*names)
-            self.make_inners(bit,*names)
-        end
+        # # Declares high-level bit inner signals named +names+.
+        # def inner(*names)
+        #     self.make_inners(bit,*names)
+        # end
 
         include Hmux
         
@@ -1993,6 +2019,7 @@ module HDLRuby::High
         High = HDLRuby::High
 
         include HBlock
+        include HdeclInner
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
@@ -2468,10 +2495,10 @@ module HDLRuby::High
         # Returns nil if no value can be obtained from it.
         def to_value
             str = self.to_s
-            puts "str=#{str}"
+            # puts "str=#{str}"
             # Get and check the type
             type = str[0]
-            puts "type=#{type}"
+            # puts "type=#{type}"
             str = str[1..-1]
             return nil unless ["b","u","s"].include?(type)
             # Get the width if any.
@@ -2480,11 +2507,11 @@ module HDLRuby::High
             else
                 width = nil
             end
-            puts "width=#{width}"
+            # puts "width=#{width}"
             str = str[width.size..-1] if width
             # Get the base and the value
             base = str[0]
-            puts "base=#{base}\n"
+            # puts "base=#{base}\n"
             unless base then
                 # No base found, default is bit
                 base = "b"
@@ -2541,7 +2568,7 @@ module HDLRuby::High
                 # Unknown type
                 return nil
             end
-            puts "type=#{type}, value=#{value}"
+            # puts "type=#{type}, value=#{value}"
             # Create and return the value.
             return Value.new(type,value)
         end
