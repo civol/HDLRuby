@@ -2098,6 +2098,12 @@ module HDLRuby::High
             self.add_block(:seq,&ruby_block)
         end
 
+        # Creates a new block with the current mode built from +ruby_block+.
+        def block(&ruby_block)
+            return self.mode unless ruby_block
+            self.add_block(self.mode,&ruby_block)
+        end
+
         # Need to be able to declare select operators
         include Hmux
 
@@ -2159,11 +2165,11 @@ module HDLRuby::High
         include HBlock
         include Hinner
 
-        # Creates a new +type+ sort of block and build it by executing
+        # Creates a new +mode+ sort of block and build it by executing
         # +ruby_block+.
-        def initialize(type, extensions = [], &ruby_block)
+        def initialize(mode, extensions = [], &ruby_block)
             # Initialize the block.
-            super(type)
+            super(mode)
             extensions.each { |extension| build(&extension) }
             build(&ruby_block)
         end
