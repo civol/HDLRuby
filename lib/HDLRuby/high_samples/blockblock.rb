@@ -14,3 +14,6 @@ system :blockblock do
         end
     end
 end
+
+# Instantiate it for checking.
+Universe.blockblock :blockblockI

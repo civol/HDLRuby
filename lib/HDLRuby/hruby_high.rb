@@ -19,42 +19,42 @@ module HDLRuby::High
     end
 
 
-    ##
-    # Module providing mixin properties to hardware types.
-    module HMix
-        # Tells this is a hardware type supporting mixins.
-        #
-        # NOTE: only there for being checked through respond_to?
-        def hmix?
-            return true
-        end
+    # ##
+    # # Module providing mixin properties to hardware types.
+    # module HMix
+    #     # Tells this is a hardware type supporting mixins.
+    #     #
+    #     # NOTE: only there for being checked through respond_to?
+    #     def hmix?
+    #         return true
+    #     end
 
-        # Mixins hardware types +htypes+.
-        def include(*htypes)
-            # Initialize the list of mixins hardware types if required.
-            @includes ||= []
-            # Check and add the hardware types.
-            htypes.each do |htype|
-                unless htype.respond_to?(:hmix?) then
-                    raise "Invalid class for mixin: #{htype.class}"
-                end
-                @includes << htype
-            end
-        end
+    #     # Mixins hardware types +htypes+.
+    #     def include(*htypes)
+    #         # Initialize the list of mixins hardware types if required.
+    #         @includes ||= []
+    #         # Check and add the hardware types.
+    #         htypes.each do |htype|
+    #             unless htype.respond_to?(:hmix?) then
+    #                 raise "Invalid class for mixin: #{htype.class}"
+    #             end
+    #             @includes << htype
+    #         end
+    #     end
 
-        # # Mixins hardware types +htypes+ by extension.
-        # def extend(htypes)
-        #     # Initialize the list of mixins hardware types if required.
-        #     @extends ||= []
-        #     # Check and add the hardware types.
-        #     htypes.each do |htype|
-        #         unless htype.respond_to?(:hmix?) then
-        #             raise "Invalid class for mixin: #{htype.class}"
-        #         end
-        #         @includes << htype
-        #     end
-        # end
-    end
+    #     # # Mixins hardware types +htypes+ by extension.
+    #     # def extend(htypes)
+    #     #     # Initialize the list of mixins hardware types if required.
+    #     #     @extends ||= []
+    #     #     # Check and add the hardware types.
+    #     #     htypes.each do |htype|
+    #     #         unless htype.respond_to?(:hmix?) then
+    #     #             raise "Invalid class for mixin: #{htype.class}"
+    #     #         end
+    #     #         @includes << htype
+    #     #     end
+    #     # end
+    # end
 
 
     ##
@@ -162,7 +162,7 @@ module HDLRuby::High
     class SystemT < Base::SystemT
         High = HDLRuby::High
 
-        include HMix
+        # include HMix
         include Hinner
 
         ##
@@ -173,13 +173,22 @@ module HDLRuby::High
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
             super(name)
-            self.include(*mixins)
-            unless name.empty? then
-                # Named system instance, generate the instantiation command.
-                make_instantiater(name,SystemI,:add_systemI,&ruby_block)
+            # Check and set the mixins.
+            mixins.each do |mixin|
+                unless mixin.is_a?(SystemT) then
+                    raise "Invalid class for inheriting: #{mixin.class}."
+                end
             end
-            # # Initialise the set of unbounded signals.
+            @to_includes = mixins
+            # Prepare the instantiation methods
+            make_instantiater(name,SystemI,:add_systemI,&ruby_block)
+            # # Initialize the set of unbounded signals.
             # @unbounds = {}
+
+            # Initialize the set of exported inner signals and instances
+            @exports = {}
+            # Initialize the list of included system instances.
+            @includeIs = []
         end
 
         # Creates and adds a set of inputs typed +type+ from a list of +names+.
@@ -306,6 +315,45 @@ module HDLRuby::High
             end
         end
 
+        # Adds a +name+ to export.
+        #
+        # NOTE: if the name do not corresponds to any inner signal nor
+        # instance, raise an exception.
+        def add_export(name)
+            # Check the name.
+            name = name.to_sym
+            # Look for construct to make private.
+            # Maybe it is an inner signals.
+            inner = self.get_inner(name)
+            if inner then
+                # Yes set it as export.
+                @exports[name] = inner
+                return
+            end
+            # No, maybe it is an instance.
+            instance = self.get_systemI(name)
+            if instance then
+                # Yes, set it as export.
+                @exports[name] = instance
+                return
+            end
+            # No, error.
+            raise NameError.new("Invalid name for export: #{name}")
+        end
+
+        # Gets an exported element (signal or system instance) by +name+.
+        def get_export(name)
+            # Maybe it is an interface signal.
+            signal = self.get_input(name)
+            return signal if signal
+            signal = self.get_output(name)
+            return signal if signal
+            signal = self.get_inout(name)
+            return signal if signal
+            # No, may be it is an inner signal or an instance explicitely
+            # exported
+            return @exports[name.to_sym]
+        end
 
 
         # Opens for extension.
@@ -374,6 +422,9 @@ module HDLRuby::High
             # Create the eigen type.
             eigen = self.class.new("")
             High.space_push(eigen)
+            # Include the mixin systems given when declaring the system.
+            @to_includes.each { |system| eigen.include(system) }
+            # Execute the instantiation block
             High.space_top.instance_exec(*args,&@instance_proc) if @instance_proc
             # High.space_top.postprocess
             High.space_pop
@@ -402,7 +453,11 @@ module HDLRuby::High
             #     binding.receiver.send(add_instance,instance)
             # end
             obj = self # For using the right self within the proc
-            High.space_reg(name) do |i_names,*args|
+            High.space_reg(name) do |*args|
+                # If no name it is actually an access to the system type.
+                return obj if args.empty?
+                # Get the names from the arguments.
+                i_names = args.shift
                 i_names = [*i_names]
                 instance = nil # The current instance
                 i_names.each do |i_name|
@@ -501,6 +556,14 @@ module HDLRuby::High
             # Is the missing method an immediate value?
             value = m.to_value
             return value if value and args.empty?
+            # No, maybe it is an exported construct from an included system
+            # provided there are no arguments.
+            if args.empty? then
+                @includeIs.each do |systemI|
+                    construct = systemI.get_export(m)
+                    return construct if construct
+                end
+            end
             # No look in the upper level of the name space
             High.space_call(m,*args,&ruby_block)
         end
@@ -563,6 +626,17 @@ module HDLRuby::High
             self.behavior do
                 seq(&ruby_block)
             end
+        end
+
+        # Sets the constructs corresponding to +names+ as exports.
+        def export(*names)
+            names.each {|name| self.add_export(name) }
+        end
+
+        # Include another +system+ type with possible +args+ instanciation
+        # arguments.
+        def include(system,*args)
+            @includeIs << system.instantiate(:"",*args)
         end
 
         include Hmux
@@ -1299,6 +1373,11 @@ module HDLRuby::High
                 # Make the connection.
                 left <= right
             end
+        end
+
+        # Gets an exported element (signal or system instance) by +name+.
+        def get_export(name)
+            return @systemT.get_export(name)
         end
 
 
@@ -2270,6 +2349,11 @@ module HDLRuby::High
         undef_method :add_input
         undef_method :add_output
         undef_method :add_inout
+    end
+
+    # Unfound methods are redirected to Universe
+    def method_missing(m, *args, &ruby_block)
+        Universe.send(m,*args,&ruby_block)
     end
 
     # The namespace stack: never empty, the top is a nameless system without
