@@ -169,8 +169,20 @@ module HDLRuby::High
         # Creates a new high-level system type named +name+ and inheriting
         # from +mixins+.
         #
+        # # If name is hash, it is considered the system is unnamed and the
+        # # table is used to rename its signals or instances.
+        #
         # The proc +ruby_block+ is executed when instantiating the system.
         def initialize(name, *mixins, &ruby_block)
+            # if name.respond_to?(:to_h) then
+            #     # No name, but a renaming table.
+            #     @to_renames = name.map { |k,v| [k.to_sym, v.to_sym] }.to_h
+            #     # And set the name to nothing.
+            #     name = :""
+            # else
+            #     @to_renames = {}
+            # end
+
             # Initialize the system type structure.
             super(name)
             # Check and set the mixins.
@@ -187,9 +199,36 @@ module HDLRuby::High
 
             # Initialize the set of exported inner signals and instances
             @exports = {}
-            # Initialize the list of included system instances.
-            @includeIs = []
+            # Initialize the set of included system instances.
+            @includeIs = {}
         end
+
+        # # Adds system instance +systemI+.
+        # def add_systemI(systemI)
+        #     # Rename systemI if required.
+        #     new_name = @to_renames[systemI.name]
+        #     systemI.name = new_name if new_name
+        #     # Adds the system
+        #     super(systemI)
+        # end
+
+        # # Creates a new system type indentical to the current but wiht signals
+        # # or instances renamed according to +table+.
+        # def rename(table = {})
+        #     return SystemT.new(table, *@to_includes, &@instance_proc)
+        # end
+
+
+
+        # # Rename +name+ if required.
+        # #
+        # # NOTE: For internal use ONLY
+        # def rn!(name)
+        #     new_name = @to_renames[name.to_sym]
+        #     return new_name ? new_name : name
+        # end
+        # private :rn!
+
 
         # Creates and adds a set of inputs typed +type+ from a list of +names+.
         #
@@ -197,6 +236,7 @@ module HDLRuby::High
         def make_inputs(type, *names)
             names.each do |name|
                 if name.respond_to?(:to_sym) then
+                    # self.add_input(Signal.new(rn!(name),type,:input))
                     self.add_input(Signal.new(name,type,:input))
                 else
                     signal = name.clone
@@ -214,6 +254,7 @@ module HDLRuby::High
             names.each do |name|
                 # puts "name=#{name}"
                 if name.respond_to?(:to_sym) then
+                    # self.add_output(Signal.new(rn!(name),type,:output))
                     self.add_output(Signal.new(name,type,:output))
                 else
                     signal = name.clone
@@ -229,6 +270,7 @@ module HDLRuby::High
         def make_inouts(type, *names)
             names.each do |name|
                 if name.respond_to?(:to_sym) then
+                    # self.add_inout(Signal.new(rn!(name),type,:inout))
                     self.add_inout(Signal.new(name,type,:inout))
                 else
                     signal = name.clone
@@ -239,19 +281,20 @@ module HDLRuby::High
         end
 
         # # Creates and adds a set of inners typed +type+ from a list of +names+.
-        # #
-        # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_inners(type, *names)
-        #     names.each do |name|
-        #         if name.respond_to?(:to_sym) then
-        #             self.add_inner(Signal.new(name,type,:inner))
-        #         else
-        #             signal = name.clone
-        #             signal.dir = :inner
-        #             self.add_inner(signal)
-        #         end
-        #     end
-        # end
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inners(type, *names)
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    # self.add_inner(Signal.new(rn!(name),type,:inner))
+                    self.add_inner(Signal.new(name,type,:inner))
+                else
+                    signal = name.clone
+                    signal.dir = :inner
+                    self.add_inner(signal)
+                end
+            end
+        end
 
         # # Adds unbounded signal +signal+.
         # def add_unbound(signal)
@@ -420,7 +463,8 @@ module HDLRuby::High
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            eigen = self.class.new("")
+            # eigen = self.class.new(@to_renames)
+            eigen = self.class.new(:"")
             High.space_push(eigen)
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| eigen.include(system) }
@@ -559,7 +603,7 @@ module HDLRuby::High
             # No, maybe it is an exported construct from an included system
             # provided there are no arguments.
             if args.empty? then
-                @includeIs.each do |systemI|
+                @includeIs.each_value do |systemI|
                     construct = systemI.get_export(m)
                     return construct if construct
                 end
@@ -636,7 +680,16 @@ module HDLRuby::High
         # Include another +system+ type with possible +args+ instanciation
         # arguments.
         def include(system,*args)
-            @includeIs << system.instantiate(:"",*args)
+            if @includeIs.key?(system.name) then
+                raise "Cannot include twice the same system."
+            end
+            @includeIs[system.name] = system.instantiate(:"",*args)
+        end
+
+        # Casts as an included +system+.
+        def as(system)
+            system = system.name if system.respond_to?(:name)
+            return @includeIs[system]
         end
 
         include Hmux
