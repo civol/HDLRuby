@@ -612,6 +612,14 @@ module HDLRuby::Base
             @systemT = systemT
         end
 
+        # Rename with +name+
+        #
+        # NOTE: use with care since it can jeopardise the lookup structures.
+        def name=(name)
+            @name = name.to_sym
+        end
+        protected :name=
+
         # Delegate inner accesses to the system type.
         extend Forwardable
         
