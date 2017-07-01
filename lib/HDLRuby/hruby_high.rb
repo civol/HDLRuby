@@ -38,6 +38,16 @@ module HDLRuby::High
             define_singleton_method(name,&ruby_block) 
         end
 
+        # Concats another +namespace+ to current one.
+        def concat(namespace)
+            # Ensure namespace is really a namespace
+            namespace = namespace.to_namespace
+            # Adds its singleton methods to current namespace
+            namespace.singleton_methods.each do |method|
+                self.add(method,&namespace.singleton_method(method))
+            end
+        end
+
         # Ensure it is a namespace
         def to_namespace
             return self
@@ -539,8 +549,8 @@ module HDLRuby::High
             High.top_user.instance_exec(*args,&@instance_proc) if @instance_proc
             # High.top_user.postprocess
             High.space_pop
-            # Pop each included namespace
-            @includeIs.each { |include | High.space_pop }
+            # # Pop each included namespace
+            # @includeIs.each { |include | High.space_pop }
             
             # Fill the public namespace
             space = eigen.public_namespace
@@ -769,9 +779,10 @@ module HDLRuby::High
             end
             # Create the instance to include
             instance = system.instantiate(:"",*args)
-            # Insert its public namespace before the current's one
-            High.space_insert(High.space_index(self.private_namespace),
-                              instance.public_namespace)
+            # Concat its public namespace to the current one.
+            # High.space_insert(High.space_index(self.private_namespace),
+            #                   instance.public_namespace)
+            self.private_namespace.concat(instance.public_namespace)
             # Adds it the list of includeds
             @includeIs[system.name] = instance
         end
@@ -2548,9 +2559,15 @@ module HDLRuby::High
     Namespaces = [Universe.private_namespace]
     private_constant :Namespaces
 
-    # Pushes namespace +obj+.
-    def self.space_push(obj)
-        Namespaces.push(obj.to_namespace)
+    # Pushes +namespace+.
+    def self.space_push(namespace)
+        # Emsure namespace is really a namespace.
+        namespace = namespace.to_namespace
+        # Concat the current top to namespace so that it has access to the
+        # existing hardware constructs.
+        namespace.concat(Namespaces[-1])
+        # Adds the namespace to the top.
+        Namespaces.push(namespace)
     end
 
     # Inserts +namespace+ at +index+.
@@ -2654,13 +2671,18 @@ module HDLRuby::High
         # print "space_call with name=#{name}\n"
         # Ensures name is a symbol.
         name = name.to_sym
-        # Look from the top of the stack.
-        Namespaces.reverse_each do |space|
-            if space.respond_to?(name) then
-                # print "Found is space user with class=#{space.user.class}\n"
-                # The method is found, call it.
-                return space.send(name,*args)
-            end
+        # # Look from the top of the stack.
+        # Namespaces.reverse_each do |space|
+        #     if space.respond_to?(name) then
+        #         # print "Found is space user with class=#{space.user.class}\n"
+        #         # The method is found, call it.
+        #         return space.send(name,*args)
+        #     end
+        # end
+        # Look in the top namespace
+        if Namespaces[-1].respond_to?(name) then
+            # Found.
+            return Namespaces[-1].send(name,*args)
         end
         # Not found.
         raise NoMethodError.new("undefined local variable or method `#{name}'.")
