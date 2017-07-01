@@ -12,6 +12,8 @@ system :dff do
     db <= ~d
 
     behavior(clk.posedge) { q <= d & ~rst }
+
+    export :db
 end
 
 # A D-FF with inverted ouput inheriting from dff
