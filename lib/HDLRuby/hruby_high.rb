@@ -543,6 +543,10 @@ module HDLRuby::High
             eigen = self.class.new(:"")
             # High.space_push(eigen)
             High.space_push(eigen.private_namespace)
+            # Fills its namespace with the content of the current system type
+            # (this latter may already contains access points if it has been
+            #  opended for extension previously).
+            eigen.private_namespace.concat(@private_namespace)
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
