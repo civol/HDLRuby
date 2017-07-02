@@ -119,7 +119,24 @@ system :dff do
 end
 ```
 
-But several syntactic sugars exist that allow shorter code, for instance
+When declared, a HDLRuby::High system instance (including all its hierarchy)
+can be converted to a low-level description (HDLRuby::Low) using the `to_low`
+method.  For example the following code converts the `dff0` system instance to
+a low-level description and assign the result to variable `low_dff`:
+
+```ruby
+dff :dff0
+low_dff = dff0.to_low
+```
+
+The low-level description can then be used for simulation or for generation
+synthesizable Verilog or VHDL code.
+
+The code describing a D-FF given above is not much different for any HDL code.
+However, HDLRuby::High provides several features for high productivity when
+describing hardware. We will now describes a few of them.
+
+First, several syntactic sugars exist that allow shorter code, for instance
 the following code also describes a D-FF:
 
 ```ruby
@@ -1716,8 +1733,36 @@ end
 
 
 
+#### Opening a system
+<a name="system_open"></a>
+
+It is possible to pursue the definition of a system after it has been declared
+using the `open` methods as follows:
+
+```ruby
+<system>.open do
+   <additional system description>
+end
+```
+
+For example `dff`, a system describing a D-FF, can be modified to have an
+inverted ouput as follows:
+
+```ruby
+dff.open do
+   output :qb
+
+   qb <= ~q
+end
+```
+
+Opening a system can be used, for instance,to modify an existing system, to
+describe a system in serval files, or to resolve circular dependancies among
+several systems.
+
+
 #### Opening an instance
-<a name="singleton"></a>
+<a name="instance_open"></a>
 
 When there is a minor modification to apply to an instance of a system, it is
 sometimes preferable to modify this sole instance rather than declaring a all
@@ -1726,14 +1771,8 @@ open an instance for modification as follows:
 
 ```ruby
 <instance name>.open do
-   <code of the modification>
+   <additional description for the instance>
 end
-```
-
-Or alternatively:
-
-```ruby
-<instance name>.open { <code of the modification> }
 ```
 
 For example, an instance of the previous `dff` system can be extended with
@@ -1967,19 +2006,145 @@ a signal or an instance.
 <a name="extend"></a>
 
 Like any Ruby classes, the constructs of HDLRuby::High can be dynamically
-extended through sub-classing, monkey-patch and so on. However, this is not
-recommended since the internal structure of HDLRuby::High might change in
-the future. Therefore, a set of methods is provided for extending HDLRuby::High
-in a safer fashion. These methods are described in the following subsections.
+extended. If it is not recommended to change their internal structure,
+it is possible to add methods to them for extension.
 
 #### Extending HDLRuby::High constructs globally
 
+By gobal extension of HDLRuby::High constructs we actually mean the classical
+extension of Ruby classes by monkey patching the corresponding class. For
+example, it is possible to add a methods giving the number of signals in the
+interface of a system instance as follows:
 
+```ruby
+class SystemI
+   def interface_size
+      return each_input.size + each_output.size + each_inout.size
+   end
+end
+```
+
+From there the methods `interface_size` can be used on any system instance
+as follows: `<system instance>.interface_size`.
+
+The following table gives the class corresponding to each construct of
+HDLRuby::High.
+
+| construct       | class      |
+| :---            | :---       |
+| data type       | Type       |
+| system          | SystemT    |
+| system instance | SystemI    |
+| signal          | Signal     |
+| connection      | Connection |
+| behavior        | Behavior   |
+| event           | Event      |
+| block           | Block      |
+| transmit        | Transmit   |
+| hif             | Hif        |
+| hcase           | Hcase      |
 
 
 #### Extending HDLRuby::High constructs locally
 
+By local extension of a HDLRuby::High construct, we mean that while the
+construct will be changed, all the other constructs (even when of the same
+kind) will remain unchanged. This is achieved like in Ruby by accessing the
+eigenclass using the `singleton_class` method, and extending it using the
+`class_eval` method.  For example, with the following code, only system
+`dff` will respond to method `interface_size`:
 
+```ruby
+dff.singleton_class.class_eval do
+   def interface_size
+      return each_input.size + each_output.size + each_inout.size
+   end
+end
+```
+
+It is also possible to extend locally a system instance using the same methods.
+For example, with the following code, only instance `dff0` will respond to
+method `interface_size`:
+
+```ruby
+dff :dff0
+
+dff0.singleton_class.class_eval do
+   def interface_size
+      return each_input.size + each_output.size + each_inout.size
+   end
+end
+```
+
+Finally, it is possible to extend locally all the instances of a system
+using the `singleton_method` in place of `singleton_class` method.
+For example, with the following code, all the instance of system `dff`
+will respond to method `interface_szie`:
+
+```ruby
+dff.singleton_instance.class_eval do
+   def interface_size
+      return each_input.size + each_output.size + each_inout.size
+   end
+end
+```
+
+#### Modifying the generation behavior
+
+The main purpose of allowing global and local extensions of HDLRuby::High
+construct is to give the user the possibility implements its own generation
+methods. For example, one may want to implement some algorithm for a given
+system, which will then included into the systems that requires this
+generation step. Assuming this system is called `my_base`, he could
+write the following code:
+
+```ruby
+system(:my_base) {}
+
+my_base.singleton_instance.class_eval do
+   def my_generation
+      <some code>
+   end
+end
+```
+
+Then he could declare his systems as follows so that the inherit from
+`my_generation` method:
+
+```ruby
+system :some_system, my_base do
+   <some system description>
+end
+```
+
+However, when generation the low-level description of his system he
+will need to write some code similar to the following:
+
+```ruby
+some_system :instance0
+instance0.my_generation
+low = instance0.to_low
+```
+
+This can be avoid by redefining the `to_low` method as follows:
+
+```ruby
+system(:my_base) {}
+
+my_base.singleton_instance.class_eval do
+   def my_generation
+      <some code>
+   end
+
+   alias :_to_low :to_low
+   def to_low
+      my_generation
+      _to_low
+   end
+end
+```
+
+This way, calling directly `to_low` will automatically use `my_generation`.
 
 
 ## Development
