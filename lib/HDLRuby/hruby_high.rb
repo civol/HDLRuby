@@ -2284,14 +2284,13 @@ module HDLRuby::High
 
         # Creates a new +mode+ sort of block and build it by executing
         # +ruby_block+.
-        def initialize(mode, extensions = [], &ruby_block)
-            # puts "New block, exensions=#{extensions}"
+        # def initialize(mode, extensions = [], &ruby_block)
+        def initialize(mode, &ruby_block)
             # Initialize the block.
             super(mode)
-            # extensions.each { |extension| build(&extension) }
-            extensions.each do |extension|
-                self.singleton_class.class_eval(&extension)
-            end
+            # extensions.each do |extension|
+            #     self.singleton_class.class_eval(&extension)
+            # end
             # puts "methods = #{self.methods.sort}"
             build(&ruby_block)
 
@@ -2313,13 +2312,13 @@ module HDLRuby::High
 
         # Creates a new +type+ sort of block and build it by executing
         # +ruby_block+.
-        def initialize(type, extensions = [], &ruby_block)
+        # def initialize(type, extensions = [], &ruby_block)
+        def initialize(type, &ruby_block)
             # Initialize the block.
             super(type)
-            # extensions.each { |extension| build(&extension) }
-            extensions.each do |extension|
-                self.singleton_class.class_eval(&extension)
-            end
+            # extensions.each do |extension|
+            #     self.singleton_class.class_eval(&extension)
+            # end
             build(&ruby_block)
         end
 
@@ -2358,11 +2357,11 @@ module HDLRuby::High
             end
         end
         if top_user.is_a?(TimeBlock) then
-            return TimeBlock.new(mode,from_users(:block_extensions),&ruby_block)
-            # return make_changer(TimeBlock).new(type,&ruby_block)
+            # return TimeBlock.new(mode,from_users(:block_extensions),&ruby_block)
+            return TimeBlock.new(mode,&ruby_block)
         else
-            return Block.new(mode,from_users(:block_extensions),&ruby_block)
-            # return make_changer(Block).new(type,&ruby_block)
+            # return Block.new(mode,from_users(:block_extensions),&ruby_block)
+            return Block.new(mode,&ruby_block)
         end
     end
 
@@ -2382,7 +2381,8 @@ module HDLRuby::High
                 mode = :par
             end
         end
-        return TimeBlock.new(mode,top_user.block_extensions,&ruby_block)
+        # return TimeBlock.new(mode,top_user.block_extensions,&ruby_block)
+        return TimeBlock.new(mode,&ruby_block)
     end
 
     ##
@@ -2897,113 +2897,40 @@ module HDLRuby::High
 
 
 
-    # # Exetend SystemT and Block to allow local modifications of HDLRuby::High
-    # # classes.
-
-    # CHANGEABLE = [ :SystemT, :HMix,
-    #          :Type, :TypeExtend, :TypeVector,
-    #          :TypeHierarchy, :TypeStruct, :TypeUnion, 
-    #          :TypeSystemT, :TypeSystemI,
-    #          :SystemI,
-    #          :If, :Case, :Delay, :TimeWait, :TimeRepeat,
-    #          :HExpression, :HArrow, :Unary, :Binary, :Select, :Concat, :Value,
-    #          :HRef, :RefConcat, :RefIndex, :RefRange, :RefName, :RefThis,
-    #          :Event, :Transmit, :Connection, :Signal,
-    #          :HBlock, :Block, :TimeBlock,
-    #          :Behavior, :TimeBehavior ]
-
     # ##
     # # Module providing methods for changing the base objects of HDLRuby::High
     # # while hiding the (highly variable in the current state) actual class
     # # and module hierarchy.
     # module Changer
-    #     # Changes the behavior of the local expressions by executing
-    #     # +ruby_block+.
-    #     def expression_eval(&ruby_block)
-    #         HExpression.module_eval(&ruby_block)
-    #     end
+    #     High = HDLRuby::High
 
-    #     # Changes the behavior of the local signals by executing +ruby_block+.
-    #     def signal_eval(&ruby_block)
-    #         Signal.class_eval(&ruby_block)
-    #     end
+    #     # Methods for changing locally blocks.
 
-    #     # Changes the behavior of the local system types by executing
-    #     # +ruby_block+.
-    #     def systemT_eval(&ruby_block)
-    #         SystemT.class_eval(&ruby_block)
-    #     end
-
-    #     # Changes the behavior of the local system instances by executing
-    #     # +ruby_block+.
-    #     def systemI_eval(&ruby_block)
-    #         SystemI.class_eval(&ruby_block)
+    #     # Get the block extensions.
+    #     def block_extensions
+    #         @block_extensions ||= []
+    #         return @block_extensions
     #     end
 
     #     # Changes the behavior of the local blocks by executing
     #     # +ruby_block+.
-    #     def block_eval(&ruby_block)
-    #         HBlock.module_eval(&ruby_block)
+    #     def block_open(&ruby_block)
+    #         @block_extensions ||= []
+    #         @block_extensions << ruby_block
     #     end
     # end
 
-    # ##
-    # # Creates a copy class where the basic classes of HDLRuby::High can be
-    # # modified without impacting the other objects.
-    # def make_changer(klass)
-    #     # Creates the new class.
-    #     klass = Class.new(klass)
-    #     # Fill it with sub classes.
-    #     CHANGEABLE.each do |cst|
-    #         obj = HDLRuby::High.const_get(cst)
-    #         if obj.is_a?(Class) then
-    #             # obj is a class, subclass it for side effect-less changes.
-    #             klass.const_set(cst,Class.new(obj))
-    #         elsif obj.is_a?(Module) then
-    #             # obj is a module, create a new module and include obj in
-    #             # it for side effect-less changes.
-    #             klass.const_set(cst,Module.new)
-    #             klass.const_get(cst).include(obj)
-    #         end
-    #     end
-    #     klass.include(Changer)
-    #     return klass
+
+    # class SystemT
+    #     include Changer
     # end
 
-    ##
-    # Module providing methods for changing the base objects of HDLRuby::High
-    # while hiding the (highly variable in the current state) actual class
-    # and module hierarchy.
-    module Changer
-        High = HDLRuby::High
+    # class Block
+    #     include Changer
+    # end
 
-        # Methods for changing locally blocks.
-
-        # Get the block extensions.
-        def block_extensions
-            @block_extensions ||= []
-            return @block_extensions
-        end
-
-        # Changes the behavior of the local blocks by executing
-        # +ruby_block+.
-        def block_open(&ruby_block)
-            @block_extensions ||= []
-            @block_extensions << ruby_block
-        end
-    end
-
-
-    class SystemT
-        include Changer
-    end
-
-    class Block
-        include Changer
-    end
-
-    class TimeBlock
-        include Changer
-    end
+    # class TimeBlock
+    #     include Changer
+    # end
 
 end
