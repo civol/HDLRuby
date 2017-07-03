@@ -19,10 +19,30 @@ module HDLRuby::High
     end
 
 
+
+    ##
+    # Module providing extension of class.
+    module SingletonExtend
+        # Adds the singleton contents of +obj+ to current eigen class.
+        #
+        # NOTE: conflicting existing singleton content will be overridden if
+        def eigen_extend(obj)
+            # puts "eigen_extend for #{self} class=#{self.class}"
+            obj.singleton_methods.each do |name|
+                next if name == :yaml_tag # Do not know why we need to skip
+                # puts "name=#{name}"
+                self.define_singleton_method(name, &obj.singleton_method(name))
+            end
+        end
+    end
+
+
     ##
     # Describes a namespace.
     # Used for managing the access points to internals of hardware constructs.
     class Namespace
+
+        include SingletonExtend
 
         # The construct using the namespace.
         attr_reader :user
@@ -40,12 +60,15 @@ module HDLRuby::High
 
         # Concats another +namespace+ to current one.
         def concat(namespace)
-            # Ensure namespace is really a namespace
-            namespace = namespace.to_namespace
-            # Adds its singleton methods to current namespace
-            namespace.singleton_methods.each do |method|
-                self.add(method,&namespace.singleton_method(method))
-            end
+            # # Ensure namespace is really a namespace
+            # namespace = namespace.to_namespace
+            # # Adds its singleton methods to current namespace
+            # namespace.singleton_methods.each do |method|
+            #     self.add(method,&namespace.singleton_method(method))
+            # end
+            
+            # Ensure namespace is really a namespace and concat it.
+            self.eigen_extend(namespace.to_namespace)
         end
 
         # Ensure it is a namespace
@@ -91,6 +114,7 @@ module HDLRuby::High
     #     #     end
     #     # end
     # end
+
 
 
     ##
@@ -219,6 +243,8 @@ module HDLRuby::High
         # include HMix
         include Hinner
 
+        include SingletonExtend
+
         # The private namespace
         attr_reader :private_namespace
 
@@ -234,17 +260,12 @@ module HDLRuby::High
         #
         # The proc +ruby_block+ is executed when instantiating the system.
         def initialize(name, *mixins, &ruby_block)
-            # if name.respond_to?(:to_h) then
-            #     # No name, but a renaming table.
-            #     @to_renames = name.map { |k,v| [k.to_sym, v.to_sym] }.to_h
-            #     # And set the name to nothing.
-            #     name = :""
-            # else
-            #     @to_renames = {}
-            # end
-
             # Initialize the system type structure.
             super(name)
+
+            # Initialize the set of extensions to transmit to the instances'
+            # eigen class
+            @singleton_instanceO = Object.new
 
             # Creates the private and the public namespaces.
             @private_namespace = Namespace.new(self)
@@ -267,33 +288,6 @@ module HDLRuby::High
             # Initialize the set of included system instances.
             @includeIs = {}
         end
-
-        # # Adds system instance +systemI+.
-        # def add_systemI(systemI)
-        #     # Rename systemI if required.
-        #     new_name = @to_renames[systemI.name]
-        #     systemI.name = new_name if new_name
-        #     # Adds the system
-        #     super(systemI)
-        # end
-
-        # # Creates a new system type indentical to the current but wiht signals
-        # # or instances renamed according to +table+.
-        # def rename(table = {})
-        #     return SystemT.new(table, *@to_includes, &@instance_proc)
-        # end
-
-
-
-        # # Rename +name+ if required.
-        # #
-        # # NOTE: For internal use ONLY
-        # def rn!(name)
-        #     new_name = @to_renames[name.to_sym]
-        #     return new_name ? new_name : name
-        # end
-        # private :rn!
-
 
         # Creates and adds a set of inputs typed +type+ from a list of +names+.
         #
@@ -345,7 +339,7 @@ module HDLRuby::High
             end
         end
 
-        # # Creates and adds a set of inners typed +type+ from a list of +names+.
+        # Creates and adds a set of inners typed +type+ from a list of +names+.
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_inners(type, *names)
@@ -360,53 +354,6 @@ module HDLRuby::High
                 end
             end
         end
-
-        # # Adds unbounded signal +signal+.
-        # def add_unbound(signal)
-        #     # Checks and add the signal.
-        #     unless signal.is_a?(Base::Signal)
-        #         raise "Invalid class for a signal instance: #{signal.class}"
-        #     end
-        #     if @unbounds.has_key?(signal.name) then
-        #         raise "Signal #{signal.name} already present."
-        #     end
-        #     @unbounds[signal.name] = signal
-        # end
-
-        # # Iterates over unbounded signals, or, if provided, the unbounded
-        # # signals refered by +ref+.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each_unbound(ref = nil, &ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_signal) unless ruby_block
-        #     if ref then
-        #         # A reference and a block? Apply it on each signal instance
-        #         # indicated by the reference.
-        #         if ref.respond_to?(:name) then
-        #             # Name reference: if it correspond to an unbounded signal
-        #             # it is necesserily its name (no path for unbounded signals)
-        #             unbound = self.get_unbound(ref.name)
-        #             return ruby_block.call(unbound) if unbound
-        #             return nil
-        #         elsif res.respond_to?(:each_ref) then
-        #             ref.each_ref do |subref|
-        #                 self.each_unbound(subref,&ruby_block)
-        #             end
-        #         else
-        #             self.each_unbound(ref,&rubyblock)
-        #         end
-        #     else
-        #         # No reference but a block? Apply it on each signal instance.
-        #         @unbounds.each_value(&ruby_block)
-        #     end
-        # end
-
-        # ## Gets an unbound input signal by +name+.
-        # def get_unbound(name)
-        #     # print "Get unbound with name=#{name}\n"
-        #     return @unbounds[name.to_sym]
-        # end
 
         # Iterates over all the signals of the system type and its system
         # instances.
@@ -473,6 +420,10 @@ module HDLRuby::High
         #     return @exports[name.to_sym]
         # end
 
+        # Gets class containing the extension for the instances.
+        def singleton_instance
+            @singleton_instanceO.singleton_class
+        end
 
         # Opens for extension.
         #
@@ -485,50 +436,6 @@ module HDLRuby::High
             High.space_pop
         end
 
-        # # Post processes the system type.
-        # #
-        # # NOTE: for now, binds the unbounded signals.
-        # def postprocess
-        #     # Look for each unbounded outputs: they are the left value
-        #     # signals.
-        #     uouts = []
-        #     each_connection do |connection|
-        #         self.each_unbound(connection.left) do |unbound|
-        #             uouts << unbound
-        #         end
-        #     end
-        #     self.each_behavior do |behavior|
-        #         behavior.block.each_statement do |statement|
-        #             if statement.is_a?(Transmit) then
-        #                 self.each_unbound(statement.left) do |unbound|
-        #                     uouts << unbound
-        #                 end
-        #             end
-        #         end
-        #     end
-        #     # Bind them.
-        #     uouts.each { |output| self.bind(output,:output) }
-
-        #     # Bind the remaining unbounded signals as input.
-        #     self.each_unbound do |signal|
-        #         self.bind(signal,:input)
-        #     end
-        # end
-
-        # # Binds an unbounded +signal+ with direction +dir+.
-        # def bind(signal,dir)
-        #     @unbounds.delete(signal.name)
-        #     signal.dir = dir
-        #     if dir == :input then
-        #         self.add_input(signal)
-        #     elsif dir == :output then
-        #         self.add_output(signal)
-        #     else
-        #         raise "Internal error: a signal can only be bounded to an input or an output."
-        #     end
-        # end
-
-
         # The proc used for instantiating the system type.
         attr_reader :instance_proc
         
@@ -539,8 +446,9 @@ module HDLRuby::High
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            # eigen = self.class.new(@to_renames)
             eigen = self.class.new(:"")
+            # Extends eigen with self.
+            eigen.extend(self)
             # High.space_push(eigen)
             High.space_push(eigen.private_namespace)
             # Fills its namespace with the content of the current system type
@@ -553,8 +461,6 @@ module HDLRuby::High
             High.top_user.instance_exec(*args,&@instance_proc) if @instance_proc
             # High.top_user.postprocess
             High.space_pop
-            # # Pop each included namespace
-            # @includeIs.each { |include | High.space_pop }
             
             # Fill the public namespace
             space = eigen.public_namespace
@@ -570,7 +476,11 @@ module HDLRuby::High
             end
 
             # Create the instance.
-            return @instance_class.new(i_name,eigen)
+            instance = @instance_class.new(i_name,eigen)
+            # Extend it.
+            instance.eigen_extend(@singleton_instanceO)
+            # Return the resulting instance
+            return instance
         end
 
         # Generates the instantiation capabilities including an instantiation
@@ -775,12 +685,35 @@ module HDLRuby::High
             names.each {|name| self.add_export(name) }
         end
 
+        # Extend the class according to another +system+.
+        def extend(system)
+            # Adds the singleton methods
+            # system.singleton_methods.each do |name|
+            #     unless self.respond_to?(name) then
+            #         self.define_singleton_method(name,
+            #                                      system.singleton_method(name))
+            #     end
+            # end
+            self.eigen_extend(system)
+            # Adds the singleton methods for the instances.
+            # iClass = system.singleton_instance
+            # iClass.singleton_methods.each do |name|
+            #     unless @singleton_instance.respond_to?(name) then
+            #         @singleton_instance.define_singleton_method(name,
+            #                     iClass.singleton_method(name))
+            #     end
+            # end
+            @singleton_instanceO.eigen_extend(system.singleton_instance)
+        end
+
         # Include another +system+ type with possible +args+ instanciation
         # arguments.
         def include(system,*args)
             if @includeIs.key?(system.name) then
                 raise "Cannot include twice the same system."
             end
+            # Extends with system.
+            self.extend(system)
             # Create the instance to include
             instance = system.instantiate(:"",*args)
             # Concat its public namespace to the current one.
@@ -1505,6 +1438,8 @@ module HDLRuby::High
     # Describes a high-level system instance.
     class SystemI < Base::SystemI
         High = HDLRuby::High
+
+        include SingletonExtend
 
         # Creates a new system instance of system type +systemT+ named +name+.
         def initialize(name, systemT)

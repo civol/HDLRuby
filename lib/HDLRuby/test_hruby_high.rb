@@ -500,19 +500,27 @@ begin
 #     $success = false
 end
 
-print "\nExtending systemI3 and do a bit of meta programming... "
+print "\nExtending systemT3 and do a bit of meta programming... "
 begin
     $systemI3.open do
         z <= x & y
-        block_open do
-            def hello(name)
-                $hello = "Hello #{name}."
-            end
-        end
-        par do
-            hello("everybody")
+    end
+    #     block_open do
+    #         def hello(name)
+    #             $hello = "Hello #{name}."
+    #         end
+    #     end
+    #     par do
+    #         hello("everybody")
+    #     end
+    # end
+    $systemT3.singleton_instance.class_eval do
+        def hello(name)
+            $hello = "Hello #{name}."
         end
     end
+    $systemI32 = $systemT3.instantiate("systemI32")
+    $systemI32.hello("everybody")
     success = true
     unless $hello == "Hello everybody." then
         puts "Change of the block classes had no effect."
