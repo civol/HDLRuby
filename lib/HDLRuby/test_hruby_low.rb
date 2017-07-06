@@ -33,30 +33,31 @@ begin
         puts "Error: invalid name, got #{$systemT0.name} but expecting systemT0."
         $success = false
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
-print "\nCreating a 8-bit data type... "
+print "\nCreating a bit and a 8-bit data types... "
 begin
-    $bit8 = Type.new(:bit8,:bit,8)
+    $bit = Type.new(:bit)
+    $bit8 = TypeVector.new(:bit8,$bit,8)
     if $bit8.name != :bit8 then
         puts "Error: invalid name: got #{$bit8.name} but expecting bit8."
         $success = false
-    elsif $bit8.base != :bit then
-        puts "Error: invalid type: got #{$bit8.type} but expecting bit."
+    elsif $bit8.base != $bit then
+        puts "Error: invalid type: got #{$bit8.base} but expecting bit."
         $success = false
-    elsif $bit8.size != 8 then
-        puts "Error: invalid size: got #{$bit8.size} but expecting 8."
+    elsif $bit8.range != (7..0) then
+        puts "Error: invalid range: got #{$bit8.range} but expecting 7..0."
         $success = false
     else
         puts "Ok."
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 puts "\nCreating signals..."
@@ -68,7 +69,7 @@ $sNames.each_with_index do |name,i|
     print "  Signal #{name}... "
     begin
         # SignalT directly used.
-        $signals[i] = Signal.new(name,:bit8)
+        $signals[i] = Signal.new(name,$bit8)
         if $signals[i].name != name.to_sym then
             puts "Error: invalid signal name, got #{$signalIs[i].name} " +
                  " but expecting #{name}"
@@ -80,9 +81,9 @@ $sNames.each_with_index do |name,i|
         else
             puts "Ok."
         end
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 
@@ -108,24 +109,24 @@ $signals.each do |signal|
             $systemT0.add_input(signal)
         end
         puts "Ok."
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 
 print "\nCompleting $systemT1 for further use... "
 begin
-    $systemT1.add_input(Signal.new("i0",:bit8))
-    $systemT1.add_input(Signal.new("i1",:bit8))
-    $systemT1.add_input(Signal.new("i2",:bit8))
-    $systemT1.add_output(Signal.new("o0",:bit8))
-    $systemT1.add_output(Signal.new("o1",:bit8))
-    $systemT1.add_inout(Signal.new("io",:bit8))
+    $systemT1.add_input(Signal.new("i0",$bit8))
+    $systemT1.add_input(Signal.new("i1",$bit8))
+    $systemT1.add_input(Signal.new("i2",$bit8))
+    $systemT1.add_output(Signal.new("o0",$bit8))
+    $systemT1.add_output(Signal.new("o1",$bit8))
+    $systemT1.add_inout(Signal.new("io",$bit8))
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 puts "\nInstantiating the systems... "
@@ -172,9 +173,9 @@ begin
     else
         $success = false
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 $systemIs = [ $systemI0, $systemI1, $systemI2 ]
 
@@ -185,9 +186,9 @@ begin
     print "Ok.\n  Adding $systemI2... "
     $systemT0.add_systemI($systemI2)
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 puts "\nCreating references for further connection of the signals..."
@@ -217,9 +218,9 @@ $pNames.each_with_index do |name,i|
         else
             puts "Ok."
         end
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 
@@ -252,9 +253,9 @@ $cNames.each do |sName,dName|
         else
             $success = false
         end
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end    
 end
 
@@ -326,9 +327,9 @@ eNames.each do |eName|
         else
             $success = false
         end
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 
@@ -340,9 +341,9 @@ begin
     connection = Connection.new(ref,$expressions[0])
     $connections << connection
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
@@ -360,9 +361,9 @@ begin
         $systemT0.add_connection(connection)
         puts "Ok."
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
@@ -389,9 +390,9 @@ $stNames.each do |pName,expression|
         else
             $success = false
         end
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 
@@ -413,9 +414,9 @@ begin
     else
         $success = false
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
@@ -428,9 +429,9 @@ begin
     else
         puts "Ok."
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 puts "\nAdding statements to $block... "
@@ -439,9 +440,9 @@ $statements.each.with_index do |statement,i|
         print "  For statement #{i}... "
         $block.add_statement(statement)
         puts "Ok."
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 puts "Checking the added statements... "
@@ -455,9 +456,9 @@ $statements.each.with_index do |statement,i|
         else
             puts "Ok."
         end
-    rescue Exception => e
-        puts "Error: unexpected exception raised #{e.inspect}\n"
-        $success = false
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
     end
 end
 
@@ -472,9 +473,9 @@ begin
     else
         puts "Ok."
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 print "\nAdding an even to $behavior... "
@@ -487,9 +488,9 @@ begin
     else
         puts "Ok."
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
@@ -503,9 +504,9 @@ begin
     else
         puts "Ok."
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 #################################################################
@@ -689,6 +690,8 @@ begin
         end
     end
 
+    # puts $systemT0.each_signal.to_a.size
+
     puts "  Reference path... "
     $systemT0.each_connection.with_index do |connection,i|
         unless connection.right.is_a?(HDLRuby::Base::Ref) then
@@ -729,9 +732,9 @@ begin
             $success = false
         end
     end
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 
 
@@ -741,9 +744,9 @@ print "\n\nConverting $systemT0 to a YAML string... "
 begin
     $yaml_str = $systemT0.to_yaml
     puts "Ok."
-rescue Exception => e
-    puts "Error: unexpected exception raised #{e.inspect}\n"
-    $success = false
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
 end
 puts "YAML result:", $yaml_str
 
@@ -769,7 +772,9 @@ begin
 #     $success = false
 end
 
-
+# Checking low samples
+$adder_str = File.read("./low_samples/adder.yaml")
+$adder = HDLRuby.from_yaml($adder_str)
     
 
 if $success then

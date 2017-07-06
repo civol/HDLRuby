@@ -176,6 +176,11 @@ module HDLRuby::Base
             # A block?
             # First iterate over the current system type's signals.
             self.each_signal(&ruby_block)
+            # Then apply on the behaviors (since in HDLRuby:High, blocks can
+            # include signals).
+            self.each_behavior do |behavior|
+                behavior.block.each_signal_deep(&ruby_block)
+            end
             # Then recurse on the system instances.
             self.each_systemI do |systemI|
                 systemI.each_signal_deep(&ruby_block)
@@ -422,6 +427,142 @@ module HDLRuby::Base
         def initialize(name)
             # Check and set the name.
             @name = name.to_sym
+        end
+    end
+
+
+    ##
+    # Describes a vector type.
+    class TypeVector < Type
+        # The base type of the vector
+        attr_reader :base
+
+        # The range of the vector.
+        attr_reader :range
+
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
+        def initialize(name,base,range)
+            # Initialize the type.
+            super(name)
+
+            # Check and set the base
+            unless base.is_a?(Type)
+                raise "Invalid class for VectorType base: #{base.class}."
+            end
+            @base = base
+
+            # Check and set the range.
+            if range.respond_to?(:to_i) then
+                # Integer case: convert to 0..(range-1).
+                range = (range-1)..0
+            elsif
+                # Other cases: assume there is a first and a last to create
+                # the range.
+                range = range.first..range.last
+            end
+            @range = range
+        end
+    end
+
+
+    ##
+    # Describes a tuple type.
+    class TypeTuple < Type
+        # Creates a new tuple type named +name+ whose sub types are given
+        # by +content+.
+        def initialize(name,*content)
+            # Initialize the type.
+            super(name)
+
+            # Check and set the content.
+            content.each do |sub|
+                unless sub.is_a?(Type) then
+                    raise "Invalid class for a type: #{sub.class}"
+                end
+            end
+            @types = content
+        end
+
+        # Gets a sub type by +index+.
+        def get_type(index)
+            return @types[index.to_i]
+        end
+
+        # Iterates over the sub name/type pair.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each(&ruby_block)
+        end
+
+        # Iterates over the sub types.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_type(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each_value(&ruby_block)
+        end
+    end
+
+
+    ##
+    # Describes a structure type.
+    class TypeStruct < Type
+        # Creates a new structure type named +name+ whose hierachy is given
+        # by +content+.
+        def initialize(name,content)
+            # Initialize the type.
+            super(name)
+
+            # Check and set the content.
+            content = Hash[content]
+            @types = content.map do |k,v|
+                unless v.is_a?(Type) then
+                    raise "Invalid class for a type: #{v.class}"
+                end
+                [ k.to_sym, v ]
+            end.to_h
+        end
+
+        # Gets a sub type by +name+.
+        def get_type(name)
+            return @types[name.to_sym]
+        end
+
+        # Iterates over the sub name/type pair.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each(&ruby_block)
+        end
+
+        # Iterates over the sub types.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_type(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each_value(&ruby_block)
+        end
+
+        # Iterates over the sub type names.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_name(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_name) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @types.each_key(&ruby_block)
         end
     end
 
@@ -949,8 +1090,52 @@ module HDLRuby::Base
         def initialize(mode)
             # Check and set the type.
             @mode = mode.to_sym
+            # Initializes the list of inner statements.
+            @inners = {}
             # Initializes the list of statements.
             @statements = []
+        end
+
+        # Adds inner signal +signal+.
+        def add_inner(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(Signal)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            if @inners.has_key?(signal.name) then
+                raise "Signal #{signal.name} already present."
+            end
+            @inners[signal.name] = signal
+        end
+
+        # Iterates over the inner signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inner(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_inner) unless ruby_block
+            # A block? Apply it on each inner signal instance.
+            @inners.each_value(&ruby_block)
+        end
+        alias :each_signal :each_inner
+
+        ## Gets an inner signal by +name+.
+        def get_inner(name)
+            return @inners[name.to_sym]
+        end
+        alias :get_signal :get_inner
+
+        # Iterates over all the signals of the block and its sub block's ones.
+        def each_signal_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_deep) unless ruby_block
+            # A block?
+            # First, apply on the signals of the block.
+            self.each_signal(&ruby_block)
+            # Then apply on each sub block. 
+            self.each_block_deep do |block|
+                block.each_signal_deep(&ruby_block)
+            end
         end
 
         # Adds a +statement+.

@@ -33,40 +33,116 @@ module HDLRuby::Low
         end
     end
 
-
     ##
-    # Describes a data type.
-    class Type < Base::Type
-        # The base type
-        attr_reader :base
-
-        # The size in bits
-        attr_reader :size
+    # Module bringing low-level properties to types
+    module Ltype
 
         # Library of the existing types.
         Types = { }
         private_constant :Types
 
-        # Get an existing signal type by +name+.
-        def self.get(name)
-            return name if name.is_a?(Type)
-            return Types[name.to_sym]
+        # # Get an existing signal type by +name+.
+        # def self.get(name)
+        #     return name if name.is_a?(Type)
+        #     return Types[name.to_sym]
+        # end
+
+        # Ensures initialize registers the type name
+        # and adds the get methods to the class
+        def self.included(base) # built-in Ruby hook for modules
+            base.class_eval do    
+                original_method = instance_method(:initialize)
+                define_method(:initialize) do |*args, &block|
+                    original_method.bind(self).call(*args, &block)
+                    # Update the library of existing types.
+                    # Note: no check is made so an exisiting type with a same
+                    # name is overwritten.
+                    Types[@name] = self
+                end
+
+                # Get an existing signal type by +name+.
+                def self.get(name)
+                    # return name if name.is_a?(Type)
+                    return name if name.respond_to?(:ltype?)
+                    return Types[name.to_sym]
+                end
+            end
         end
 
-        # Creates a new type named +name+ based of +base+ and of +size+ bits.
-        def initialize(name,base,size)
-            # Initialize the structure of the data type.
-            super(name)
-            # Check and set the base.
-            @base = base.to_sym
-            # Check and set the size.
-            @size = size.to_i
-
-            # Update the library of existing types.
-            # Note: no check is made so an exisiting type with a same
-            # name is overwritten.
-            Types[@name] = self
+        # Tells ltype has been included.
+        def ltype?
+            return true
         end
+    end
+
+
+    # ##
+    # # Describes a data type.
+    # class Type < Base::Type
+    #     # The base type
+    #     attr_reader :base
+
+    #     # The size in bits
+    #     attr_reader :size
+
+    #     # Library of the existing types.
+    #     Types = { }
+    #     private_constant :Types
+
+    #     # Get an existing signal type by +name+.
+    #     def self.get(name)
+    #         return name if name.is_a?(Type)
+    #         return Types[name.to_sym]
+    #     end
+
+    #     # Creates a new type named +name+ based of +base+ and of +size+ bits.
+    #     def initialize(name,base,size)
+    #         # Initialize the structure of the data type.
+    #         super(name)
+    #         # Check and set the base.
+    #         @base = base.to_sym
+    #         # Check and set the size.
+    #         @size = size.to_i
+
+    #         # Update the library of existing types.
+    #         # Note: no check is made so an exisiting type with a same
+    #         # name is overwritten.
+    #         Types[@name] = self
+    #     end
+    # end
+
+    ##
+    # Describes a data type.
+    class Type < Base::Type
+        include Ltype
+    end
+
+    ##
+    # Describes a vector data type.
+    class TypeVector < Base::TypeVector
+
+        # Creates a new type vector named +name+ from a +base+ type and with
+        # +range+
+        def initialize(name,base,range)
+            # Ensure base si a HDLRuby::Low type.
+            base = Type.get(base)
+            # Create the type.
+            super(name,base,range)
+        end
+        
+        include Ltype
+    end
+
+    ##
+    # Describes a tuple data type.
+    class TypeTuple < Base::TypeTuple
+        include Ltype
+    end
+
+    ##
+    # Describes a structure data type.
+    class TypeStruct< Base::TypeStruct
+        include Ltype
     end
 
 

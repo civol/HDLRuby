@@ -1,6 +1,8 @@
 require "HDLRuby/hruby_base"
 require "HDLRuby/hruby_low"
 
+require 'set'
+
 ##
 # High-level libraries for describing digital hardware.        
 #######################################################
@@ -161,49 +163,49 @@ module HDLRuby::High
         # Only adds the methods if not present.
         def self.included(klass)
             klass.class_eval do
-                unless instance_methods.include?(:add_inner) then
-                    # Adds inner signal +signal+.
-                    def add_inner(signal)
-                        # Checks and add the signal.
-                        unless signal.is_a?(Signal)
-                            raise "Invalid class for a signal instance: #{signal.class}"
-                        end
-                        if @inners.has_key?(signal.name) then
-                            raise "Signal #{signal.name} already present."
-                        end
-                        @inners[signal.name] = signal
-                    end
+                # unless instance_methods.include?(:add_inner) then
+                #     # Adds inner signal +signal+.
+                #     def add_inner(signal)
+                #         # Checks and add the signal.
+                #         unless signal.is_a?(Signal)
+                #             raise "Invalid class for a signal instance: #{signal.class}"
+                #         end
+                #         if @inners.has_key?(signal.name) then
+                #             raise "Signal #{signal.name} already present."
+                #         end
+                #         @inners[signal.name] = signal
+                #     end
 
-                    # Iterates over the inner signals.
-                    #
-                    # Returns an enumerator if no ruby block is given.
-                    def each_inner(&ruby_block)
-                        # No ruby block? Return an enumerator.
-                        return to_enum(:each_inner) unless ruby_block
-                        # A block? Apply it on each inner signal instance.
-                        @inners.each_value(&ruby_block)
-                    end
-                    alias :each_signal :each_inner
+                #     # Iterates over the inner signals.
+                #     #
+                #     # Returns an enumerator if no ruby block is given.
+                #     def each_inner(&ruby_block)
+                #         # No ruby block? Return an enumerator.
+                #         return to_enum(:each_inner) unless ruby_block
+                #         # A block? Apply it on each inner signal instance.
+                #         @inners.each_value(&ruby_block)
+                #     end
+                #     alias :each_signal :each_inner
 
-                    ## Gets an inner signal by +name+.
-                    def get_inner(name)
-                        return @inners[name]
-                    end
-                    alias :get_signal :get_inner
+                #     ## Gets an inner signal by +name+.
+                #     def get_inner(name)
+                #         return @inners[name]
+                #     end
+                #     alias :get_signal :get_inner
 
-                    # Iterates over all the signals of the block and its sub block's ones.
-                    def each_signal_deep(&ruby_block)
-                        # No ruby block? Return an enumerator.
-                        return to_enum(:each_signal_deep) unless ruby_block
-                        # A block?
-                        # First, apply on the signals of the block.
-                        self.each_signal(&ruby_block)
-                        # Then apply on each sub block. 
-                        self.each_block_deep do |block|
-                            block.each_signal_deep(&ruby_block)
-                        end
-                    end
-                end
+                #     # Iterates over all the signals of the block and its sub block's ones.
+                #     def each_signal_deep(&ruby_block)
+                #         # No ruby block? Return an enumerator.
+                #         return to_enum(:each_signal_deep) unless ruby_block
+                #         # A block?
+                #         # First, apply on the signals of the block.
+                #         self.each_signal(&ruby_block)
+                #         # Then apply on each sub block. 
+                #         self.each_block_deep do |block|
+                #             block.each_signal_deep(&ruby_block)
+                #         end
+                #     end
+                # end
 
                 unless instance_methods.include?(:make_inners) then
                     # Creates and adds a set of inners typed +type+ from a list of +names+.
@@ -355,20 +357,20 @@ module HDLRuby::High
             end
         end
 
-        # Iterates over all the signals of the system type and its system
-        # instances.
-        def each_signal_deep(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_signal_deep) unless ruby_block
-            # A block?
-            # First, apply on the signals and and system instances.
-            super(&ruby_block)
-            # Apply on the behaviors (since in HDLRuby:High, blocks can
-            # include signals).
-            self.each_beahior do |behavior|
-                behavior.block.each_signal_deep(&ruby_block)
-            end
-        end
+        # # Iterates over all the signals of the system type and its system
+        # # instances.
+        # def each_signal_deep(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_signal_deep) unless ruby_block
+        #     # A block?
+        #     # First, apply on the signals and and system instances.
+        #     super(&ruby_block)
+        #     # Apply on the behaviors (since in HDLRuby:High, blocks can
+        #     # include signals).
+        #     self.each_behavior do |behavior|
+        #         behavior.block.each_signal_deep(&ruby_block)
+        #     end
+        # end
 
         # Adds a +name+ to export.
         #
@@ -731,6 +733,42 @@ module HDLRuby::High
         end
 
         include Hmux
+
+
+        # Converts the system to HDLRuby::Low
+        def to_low(name = self.name)
+            name = name.to_s
+            if name.empty? then
+                raise "Cannot convert a system without a name to HDLRuby::Low."
+            end
+            # Create the resulting low system type.
+            systemTlow = new HDLRuby::Low::SystemT.new(High.names_create(name))
+            # Pushes on the name stack for converting the internals of
+            # the system.
+            High.names_push
+            # Adds its input signals.
+            self.each_input { |input|  systemTlow.add_input(input.to_low) }
+            # Adds its output signals.
+            self.each_input { |output| systemTlow.add_output(output.to_low) }
+            # Adds its input signals.
+            self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
+            # Adds the inner signals.
+            self.each_inout { |inner|  systemTlow.add_inner(inner.to_low) }
+            # Adds the instances.
+            self.each_instance { |instance|
+                systemTlow.add_instance(instance.to_low) 
+            }
+            # Adds the connections.
+            self.each_connection { |connection|
+                systenTlow.add_connection(connection.to_low)
+            }
+            # Adds the behaviors.
+            self.each_behavior { |behavior|
+                systemTlow.add_behavior(behavior.to_low)
+            }
+            # Restores the name stack.
+            High.names.pop
+        end
     end
 
     # Methods for declaring system types.
@@ -746,21 +784,27 @@ module HDLRuby::High
     
 
     ##
-    # Describes a high-level data type.
+    # Module bringing high-level properties to Type classes.
     #
     # NOTE: by default a type is not specified.
-    class Type < Base::Type
+    module Htype
         High = HDLRuby::High
 
-        # Type creation.
+        # Ensures initialize registers the type name
+        def self.included(base) # built-in Ruby hook for modules
+            base.class_eval do    
+                original_method = instance_method(:initialize)
+                define_method(:initialize) do |*args, &block|
+                    original_method.bind(self).call(*args, &block)
+                    # Registers the name (if not empty).
+                    self.register(name) unless name.empty?
+                end
+            end
+        end
 
-        # Creates a new type named +name+.
-        def initialize(name)
-            # Initialize the type structure.
-            super(name)
-
-            # Registers the name (if not empty).
-            self.register(name) unless name.empty?
+        # Tells htype has been included.
+        def htype?
+            return true
         end
 
         # Sets the +name+.
@@ -900,12 +944,12 @@ module HDLRuby::High
         end
 
 
-        # Instantiate the type with arguments +args+ if required.
-        #
-        # NOTE: actually, only TypeSystemT actually require instantiation.
-        def instantiate
-            self
-        end
+        # # Instantiate the type with arguments +args+ if required.
+        # #
+        # # NOTE: actually, only TypeSystemT actually require instantiation.
+        # def instantiate
+        #     self
+        # end
 
         # Type creation in HDLRuby::High.
 
@@ -919,103 +963,131 @@ module HDLRuby::High
 
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
-            High.top_user.make_inputs(self.instantiate,*names)
+            # High.top_user.make_inputs(self.instantiate,*names)
+            High.top_user.make_inputs(self,*names)
         end
 
         # Declares high-level untyped output signals named +names+ of the
         # current type.
         def output(*names)
-            High.top_user.make_outputs(self.instantiate,*names)
+            # High.top_user.make_outputs(self.instantiate,*names)
+            High.top_user.make_outputs(self,*names)
         end
 
         # Declares high-level untyped inout signals named +names+ of the
         # current type.
         def inout(*names)
-            High.top_user.make_inouts(self.instantiate,*names)
+            # High.top_user.make_inouts(self.instantiate,*names)
+            High.top_user.make_inouts(self,*names)
         end
 
         # Declares high-level untyped inner signals named +names+ of the
         # current type.
         def inner(*names)
-            High.top_user.make_inners(self.instantiate,*names)
+            # High.top_user.make_inners(self.instantiate,*names)
+            High.top_user.make_inners(self,*names)
         end
     end
 
 
     ##
-    # Describes a type named +name+ extending a +base+ type.
-    class TypeExtend < Type
-        # The base type.
-        attr_reader :base
+    # Describes a high-level data type.
+    #
+    # NOTE: by default a type is not specified.
+    class Type < Base::Type
+        High = HDLRuby::High
 
-        # Creates a new type named +name+ extending a +base+ type.
-        def initialize(name,base)
-            # Initialize the type.
+        include Htype
+
+        # Type creation.
+
+        # Creates a new type named +name+.
+        def initialize(name)
+            # Initialize the type structure.
             super(name)
-            
-            # Checks and set the base.
-            unless base.is_a?(Type) then
-                raise "Invalid class for a high-level type: #{base.class}."
-            end
-            @base = base
-        end
-
-        # Tells if a type is generic or not.
-        def generic?
-            # The type is generic if the base is generic.
-            return @base.generic?
-        end
-
-        # Checks the compatibility with +type+
-        def compatible?(type)
-            # # If type is void, compatible anyway.
-            # return true if type.name == :void
-            # Compatible if same name and compatible base.
-            return false unless type.respond_to?(:base)
-            return ( @name == type.name and 
-                     @base.compatible?(type.base) )
-        end
-
-        # Merges with +type+
-        def merge(type)
-            # # If type is void, return self anway.
-            # return self if type.name == :void
-            # Compatible if same name and compatible base.
-            unless type.respond_to?(:base) then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            if @name == type.name then
-                return TypeExtend.new(@name,self.base.merge(type.base))
-            else
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
         end
     end
+
+
+    # ##
+    # # Describes a type named +name+ extending a +base+ type.
+    # class TypeExtend < Type
+    #     # The base type.
+    #     attr_reader :base
+
+    #     # Creates a new type named +name+ extending a +base+ type.
+    #     def initialize(name,base)
+    #         # Initialize the type.
+    #         super(name)
+    #         
+    #         # Checks and set the base.
+    #         unless base.is_a?(Type) then
+    #             raise "Invalid class for a high-level type: #{base.class}."
+    #         end
+    #         @base = base
+    #     end
+
+    #     # Tells if a type is generic or not.
+    #     def generic?
+    #         # The type is generic if the base is generic.
+    #         return @base.generic?
+    #     end
+
+    #     # Checks the compatibility with +type+
+    #     def compatible?(type)
+    #         # # If type is void, compatible anyway.
+    #         # return true if type.name == :void
+    #         # Compatible if same name and compatible base.
+    #         return false unless type.respond_to?(:base)
+    #         return ( @name == type.name and 
+    #                  @base.compatible?(type.base) )
+    #     end
+
+    #     # Merges with +type+
+    #     def merge(type)
+    #         # # If type is void, return self anway.
+    #         # return self if type.name == :void
+    #         # Compatible if same name and compatible base.
+    #         unless type.respond_to?(:base) then
+    #             raise "Incompatible types for merging: #{self}, #{type}."
+    #         end
+    #         if @name == type.name then
+    #             return TypeExtend.new(@name,self.base.merge(type.base))
+    #         else
+    #             raise "Incompatible types for merging: #{self}, #{type}."
+    #         end
+    #     end
+    # end
 
 
     ##
     # Describes a vector type.
-    class TypeVector < TypeExtend
-        # The range of the vector.
-        attr_reader :range
+    # class TypeVector < TypeExtend
+    class TypeVector < Base::TypeVector
+        High = HDLRuby::High
 
-        # Creates a new vector type named +name+ from +base+ type and of 
-        # range +rng+.
-        def initialize(name,base,rng)
-            # Initialize the type.
-            super(name,base)
+        include Htype
 
-            # Check and set the vector-specific attributes.
-            if rng.respond_to?(:to_i) then
-                # Integer case: convert to a 0..(rng-1) range.
-                rng = (rng-1)..0
-            elsif
-                # Other cases: assume there is a first and a last to create
-                # the range.
-                rng = rng.first..rng.last
-            end
-            @range = rng
-        end
+        # # The range of the vector.
+        # attr_reader :range
+
+        # # Creates a new vector type named +name+ from +base+ type and with
+        # # +range+.
+        # def initialize(name,base,range)
+        #     # Initialize the type.
+        #     super(name,basa,range)
+
+        #     # # Check and set the vector-specific attributes.
+        #     # if rng.respond_to?(:to_i) then
+        #     #     # Integer case: convert to a 0..(rng-1) range.
+        #     #     rng = (rng-1)..0
+        #     # elsif
+        #     #     # Other cases: assume there is a first and a last to create
+        #     #     # the range.
+        #     #     rng = rng.first..rng.last
+        #     # end
+        #     # @range = rng
+        # end
 
         # Type handling: these methods may have to be overriden when 
         # subclassing.
@@ -1039,11 +1111,11 @@ module HDLRuby::High
             return @base.signed?
         end
 
-        # Tells if a type is generic or not.
-        def generic?
-            # The type is generic if the base is generic.
-            return self.base.generic?
-        end
+        # # Tells if a type is generic or not.
+        # def generic?
+        #     # The type is generic if the base is generic.
+        #     return self.base.generic?
+        # end
 
         # Checks the compatibility with +type+
         def compatible?(type)
@@ -1074,122 +1146,129 @@ module HDLRuby::High
 
     ##
     # Describes a tuple type.
-    class TypeTuple < Type
-        # Creates a new tuple type named +name+ whose sub types are given
-        # by +content+.
-        def initialize(name,*content)
-            # Initialize the type.
-            super(name)
+    # class TypeTuple < Tuple
+    class TypeTuple < Base::TypeTuple
+        High = HDLRuby::High
 
-            # Check and set the content.
-            content.each do |sub|
-                unless sub.is_a?(Type) then
-                    raise "Invalid class for a type: #{sub.class}"
-                end
-            end
-            @types = content
-        end
+        include Htype
 
-        # Gets a sub type by +index+.
-        def get_type(index)
-            return @types[index.to_i]
-        end
+        # # Creates a new tuple type named +name+ whose sub types are given
+        # # by +content+.
+        # def initialize(name,*content)
+        #     # Initialize the type.
+        #     super(name,*content)
 
-        # Iterates over the sub name/type pair.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @types.each(&ruby_block)
-        end
+        #     # # Check and set the content.
+        #     # content.each do |sub|
+        #     #     unless sub.is_a?(Type) then
+        #     #         raise "Invalid class for a type: #{sub.class}"
+        #     #     end
+        #     # end
+        #     # @types = content
+        # end
 
-        # Iterates over the sub types.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_type(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_type) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @types.each_value(&ruby_block)
-        end
+        # # Gets a sub type by +index+.
+        # def get_type(index)
+        #     return @types[index.to_i]
+        # end
 
-        # Tells if a type is generic or not.
-        def generic?
-            # The type is generic if one of the sub types is generic.
-            return self.each_type.any? { |type| type.generic? }
-        end
+        # # Iterates over the sub name/type pair.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each) unless ruby_block
+        #     # A block? Apply it on each input signal instance.
+        #     @types.each(&ruby_block)
+        # end
+
+        # # Iterates over the sub types.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_type(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_type) unless ruby_block
+        #     # A block? Apply it on each input signal instance.
+        #     @types.each_value(&ruby_block)
+        # end
+
+        # # Tells if a type is generic or not.
+        # def generic?
+        #     # The type is generic if one of the sub types is generic.
+        #     return self.each_type.any? { |type| type.generic? }
+        # end
     end
 
 
-    ##
-    # Describes a hierarchical type.
-    class TypeHierarchy < Type
-        # Creates a new hierarchical type named +name+ whose hierachy is given
-        # by +content+.
-        def initialize(name,content)
-            # Initialize the type.
-            super(name)
+    # ##
+    # # Describes a hierarchical type.
+    # class TypeHierarchy < Type
+    #     # Creates a new hierarchical type named +name+ whose hierachy is given
+    #     # by +content+.
+    #     def initialize(name,content)
+    #         # Initialize the type.
+    #         super(name)
 
-            # Check and set the content.
-            content = Hash[content]
-            @types = content.map do |k,v|
-                unless v.is_a?(Type) then
-                    raise "Invalid class for a type: #{v.class}"
-                end
-                [ k.to_sym, v ]
-            end.to_h
-        end
+    #         # Check and set the content.
+    #         content = Hash[content]
+    #         @types = content.map do |k,v|
+    #             unless v.is_a?(Type) then
+    #                 raise "Invalid class for a type: #{v.class}"
+    #             end
+    #             [ k.to_sym, v ]
+    #         end.to_h
+    #     end
 
-        # Gets a sub type by +name+.
-        def get_type(name)
-            return @types[name.to_sym]
-        end
+    #     # Gets a sub type by +name+.
+    #     def get_type(name)
+    #         return @types[name.to_sym]
+    #     end
 
-        # Iterates over the sub name/type pair.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @types.each(&ruby_block)
-        end
+    #     # Iterates over the sub name/type pair.
+    #     #
+    #     # Returns an enumerator if no ruby block is given.
+    #     def each(&ruby_block)
+    #         # No ruby block? Return an enumerator.
+    #         return to_enum(:each) unless ruby_block
+    #         # A block? Apply it on each input signal instance.
+    #         @types.each(&ruby_block)
+    #     end
 
-        # Iterates over the sub types.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_type(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_type) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @types.each_value(&ruby_block)
-        end
+    #     # Iterates over the sub types.
+    #     #
+    #     # Returns an enumerator if no ruby block is given.
+    #     def each_type(&ruby_block)
+    #         # No ruby block? Return an enumerator.
+    #         return to_enum(:each_type) unless ruby_block
+    #         # A block? Apply it on each input signal instance.
+    #         @types.each_value(&ruby_block)
+    #     end
 
-        # Iterates over the sub type names.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_name(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_name) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @types.each_key(&ruby_block)
-        end
+    #     # Iterates over the sub type names.
+    #     #
+    #     # Returns an enumerator if no ruby block is given.
+    #     def each_name(&ruby_block)
+    #         # No ruby block? Return an enumerator.
+    #         return to_enum(:each_name) unless ruby_block
+    #         # A block? Apply it on each input signal instance.
+    #         @types.each_key(&ruby_block)
+    #     end
 
-        # Tells if a type is generic or not.
-        def generic?
-            # The type is generic if one of the sub types is generic.
-            return self.each_type.any? { |type| type.generic? }
-        end
-    end
+    #     # Tells if a type is generic or not.
+    #     def generic?
+    #         # The type is generic if one of the sub types is generic.
+    #         return self.each_type.any? { |type| type.generic? }
+    #     end
+    # end
 
 
     ##
     # Describes a structure type.
-    class TypeStruct < TypeHierarchy
-        # Type handling: these methods may have to be overriden when 
-        # subclassing.
+    # class TypeStruct < TypeHierarchy
+    class TypeStruct < Base::TypeStruct
+        High = HDLRuby::High
+
+        include Htype
 
         # Gets the bitwidth of the type, nil for undefined.
         #
@@ -1267,130 +1346,130 @@ module HDLRuby::High
     #     end
     # end
 
-    ##
-    # Describes a type made of a system type.
-    #
-    # NOTE: must be instantiated before being used.
-    class TypeSystemT < Type
-        # The system type.
-        attr_reader :systemT
+    # ##
+    # # Describes a type made of a system type.
+    # #
+    # # NOTE: must be instantiated before being used.
+    # class TypeSystemT < Type
+    #     # The system type.
+    #     attr_reader :systemT
 
-        # Creates a new type named +name+ made of system type +systemT+
-        # using signal names of +left_names+ as left values and signal names
-        # of +right_names+ as right values.
-        def initialize(name,systemT,left_names,right_names)
-            # Initialize the type.
-            super(name)
-            # Check and set the system type.
-            unless systemT.is_a?(SystemT) then
-                raise "Invalid class for a system type: #{systemT.class}."
-            end
-            @systemT = systemT
+    #     # Creates a new type named +name+ made of system type +systemT+
+    #     # using signal names of +left_names+ as left values and signal names
+    #     # of +right_names+ as right values.
+    #     def initialize(name,systemT,left_names,right_names)
+    #         # Initialize the type.
+    #         super(name)
+    #         # Check and set the system type.
+    #         unless systemT.is_a?(SystemT) then
+    #             raise "Invalid class for a system type: #{systemT.class}."
+    #         end
+    #         @systemT = systemT
 
-            # Check and set the left and right names.
-            @left_names = left_names.map {|name| name.to_sym }
-            @right_names = right_names.map {|name| name.to_sym }
-        end
+    #         # Check and set the left and right names.
+    #         @left_names = left_names.map {|name| name.to_sym }
+    #         @right_names = right_names.map {|name| name.to_sym }
+    #     end
 
-        # Instantiate the type with arguments +args+.
-        # Returns a new type named +name+ based on a system instance.
-        #
-        # NOTE: to be called when creating a signal of this type, it
-        # will instantiate the embedded system.
-        def instantiate(*args)
-            # Instantiate the system type and create the type instance
-            # from it.
-            return TypeSystemI.new(:"",@systemT.instantiate(:"",*args),
-                                  @left_names, @right_names)
-        end
-        alias :call :instantiate
-    end
-
-
-    ##
-    # Describes a type made of a system instance.
-    class TypeSystemI < TypeHierarchy
-        # The system instance.
-        attr_reader :systemI
-
-        # Creates a new type named +name+ made of system type +systemI+
-        # using signal names of +left_names+ as left values and signal names
-        # of +right_names+ as right values.
-        def initialize(name,systemI,left_names,right_names)
-            # Check and set the system instance.
-            unless systemI.is_a?(SystemI) then
-                raise "Invalid class for a system instance: #{systemI.class}."
-            end
-            @systemI = systemI
-
-            # Initialize the type: each external signal becomes an
-            # element of the corresponding hierarchical type.
-            super(name, systemI.each_input.map do |signal|
-                            [signal.name, signal.type]
-                        end + 
-                        systemI.each_output.map do |signal|
-                            [signal.name, signal.type]
-                        end + 
-                        systemI.each_inout.map do |signal|
-                            [signal.name, signal.type]
-                        end)
+    #     # Instantiate the type with arguments +args+.
+    #     # Returns a new type named +name+ based on a system instance.
+    #     #
+    #     # NOTE: to be called when creating a signal of this type, it
+    #     # will instantiate the embedded system.
+    #     def instantiate(*args)
+    #         # Instantiate the system type and create the type instance
+    #         # from it.
+    #         return TypeSystemI.new(:"",@systemT.instantiate(:"",*args),
+    #                               @left_names, @right_names)
+    #     end
+    #     alias :call :instantiate
+    # end
 
 
-            # Check and set the left and right names.
-            @left_names = left_names.map {|name| name.to_sym }
-            @right_names = right_names.map {|name| name.to_sym }
+    # ##
+    # # Describes a type made of a system instance.
+    # class TypeSystemI < TypeHierarchy
+    #     # The system instance.
+    #     attr_reader :systemI
 
-            # Generates the left-value and the right-value side of the type
-            # from the inputs and the outputs of the system.
-            @left = struct(@left_names.map do |name|
-                signal = @systemI.get_signal(name)
-                unless signal then
-                    raise "Unkown signal in system #{@systemI.name}: #{name}."
-                end
-                [name, signal.type]
-            end)
-            @right = struct(@right_names.map do |name|
-                signal = @systemI.get_signal(name)
-                unless signal then
-                    raise "Unkown signal in system #{@systemI.name}: #{name}."
-                end
-                [name, signal.type]
-            end)
-        end
+    #     # Creates a new type named +name+ made of system type +systemI+
+    #     # using signal names of +left_names+ as left values and signal names
+    #     # of +right_names+ as right values.
+    #     def initialize(name,systemI,left_names,right_names)
+    #         # Check and set the system instance.
+    #         unless systemI.is_a?(SystemI) then
+    #             raise "Invalid class for a system instance: #{systemI.class}."
+    #         end
+    #         @systemI = systemI
 
-
-        # Type handling: these methods may have to be overriden when 
-        # subclassing.
-        
-        # Gets the type as left value.
-        def left
-            return @left
-        end
-
-        # Gets the type as right value.
-        def right
-            return @right
-        end
+    #         # Initialize the type: each external signal becomes an
+    #         # element of the corresponding hierarchical type.
+    #         super(name, systemI.each_input.map do |signal|
+    #                         [signal.name, signal.type]
+    #                     end + 
+    #                     systemI.each_output.map do |signal|
+    #                         [signal.name, signal.type]
+    #                     end + 
+    #                     systemI.each_inout.map do |signal|
+    #                         [signal.name, signal.type]
+    #                     end)
 
 
-        # Tells if a type is generic or not.
-        def generic?
-            return (self.left.generic? or self.right.generic?)
-        end
+    #         # Check and set the left and right names.
+    #         @left_names = left_names.map {|name| name.to_sym }
+    #         @right_names = right_names.map {|name| name.to_sym }
 
-        # Checks the compatibility with +type+
-        def compatible?(type)
-            # Not compatible, must use left or right for connections.
-            return false
-        end
+    #         # Generates the left-value and the right-value side of the type
+    #         # from the inputs and the outputs of the system.
+    #         @left = struct(@left_names.map do |name|
+    #             signal = @systemI.get_signal(name)
+    #             unless signal then
+    #                 raise "Unkown signal in system #{@systemI.name}: #{name}."
+    #             end
+    #             [name, signal.type]
+    #         end)
+    #         @right = struct(@right_names.map do |name|
+    #             signal = @systemI.get_signal(name)
+    #             unless signal then
+    #                 raise "Unkown signal in system #{@systemI.name}: #{name}."
+    #             end
+    #             [name, signal.type]
+    #         end)
+    #     end
 
-        # Merges with +type+
-        def merge(type)
-            # Cannot merge, must use left or right for connections.
-            raise "Incompatible types for merging: #{self}, #{type}."
-        end
 
-    end
+    #     # Type handling: these methods may have to be overriden when 
+    #     # subclassing.
+    #     
+    #     # Gets the type as left value.
+    #     def left
+    #         return @left
+    #     end
+
+    #     # Gets the type as right value.
+    #     def right
+    #         return @right
+    #     end
+
+
+    #     # Tells if a type is generic or not.
+    #     def generic?
+    #         return (self.left.generic? or self.right.generic?)
+    #     end
+
+    #     # Checks the compatibility with +type+
+    #     def compatible?(type)
+    #         # Not compatible, must use left or right for connections.
+    #         return false
+    #     end
+
+    #     # Merges with +type+
+    #     def merge(type)
+    #         # Cannot merge, must use left or right for connections.
+    #         raise "Incompatible types for merging: #{self}, #{type}."
+    #     end
+
+    # end
 
 
 
@@ -1411,7 +1490,8 @@ module HDLRuby::High
         # Builds the type.
         type = HDLRuby::High.top_user.instance_eval(&ruby_block)
         # Ensures type is really a type.
-        unless type.is_a?(Type) then
+        # unless type.is_a?(Type) then
+        unless type.respond_to?(:htype?) then
             raise "Invalid class for a type: #{type.class}."
         end
         # Name it.
@@ -1420,14 +1500,14 @@ module HDLRuby::High
     end
 
 
-    # Extends the system type class for converting it to a data type.
-    class SystemT
-        # Converts the system type to a data type using +left+ signals
-        # as left values and +right+ signals as right values.
-        def to_type(left,right)
-            return TypeSystemT.new(:"",self,left,right)
-        end
-    end
+    # # Extends the system type class for converting it to a data type.
+    # class SystemT
+    #     # Converts the system type to a data type using +left+ signals
+    #     # as left values and +right+ signals as right values.
+    #     def to_type(left,right)
+    #         return TypeSystemT.new(:"",self,left,right)
+    #     end
+    # end
 
 
 
@@ -1509,6 +1589,16 @@ module HDLRuby::High
         # Gets the public namespace.
         def public_namespace
             self.systemT.public_namespace
+        end
+
+
+        # Converts the instance to HDLRuby::Low
+        def to_low(name = self.name)
+            # Converts the system of the instance to HDLRuby::Low
+            systemTlow = self.systemT.to_low(High.names_create(name + "_T"))
+            # Creates the resulting HDLRuby::Low instance
+            return HDLRuby::Low::SystemI.new(High.names_create(name),
+                                             systemTlow)
         end
     end
 
@@ -1672,7 +1762,8 @@ module HDLRuby::High
         # Sets the data +type+.
         def type=(type)
             # Check and set the type.
-            unless type.is_a?(Type) then
+            # unless type.is_a?(Type) then
+            unless type.respond_to?(:htype?) then
                 raise "Invalid class for a type: #{type.class}."
             end
             @type = type
@@ -2110,8 +2201,8 @@ module HDLRuby::High
 
         # Build the block by executing +ruby_block+.
         def build(&ruby_block)
-            # High-level blocks can include inner signals.
-            @inners ||= {}
+            # # High-level blocks can include inner signals.
+            # @inners ||= {}
             # And therefore require a namespace.
             @private_namespace ||= Namespace.new(self)
             # Build the block.
@@ -2932,5 +3023,48 @@ module HDLRuby::High
     # class TimeBlock
     #     include Changer
     # end
+
+
+    
+    # Methods for managing the conversion to HDLRuby::Low
+
+
+    # The stack of names for creating new names without conflicts.
+    NameStack = [ Set.new ]
+
+    # Pushes on the name stack.
+    def self.names_push
+        NameStack.push(Set.new)
+    end
+
+    # Pops from the name stack.
+    def self.names_pop
+        NameStack.pop
+    end
+
+    # Adds a +name+ to the top of the stack.
+    def self.names_add(name)
+        NameStack[-1].add(name.to_s)
+    end
+
+    # Checks if a +name+ is present in the stack.
+    def self.names_has?(name)
+        !NameStack.find do |names|
+            names.include?(name)
+        end
+    end
+
+    # Creates and adds the new name from +base+ that do not collides with the
+    # exisiting names.
+    def self.names_create(base)
+        base = base.to_s.clone
+        # Create a non-conflicting name
+        while(High.names_has?(base)) do
+            base << "_"
+        end
+        # Add and return it
+        High.names_add(base)
+        return base
+    end
 
 end

@@ -1,8 +1,14 @@
----
+--- 
 Type:
-  name: bit8
-  base: bit
-  size: 8
+    name: bit
+---
+TypeVector:
+    name: bit8
+    base: bit
+    range: !ruby/range
+        begin: 7
+        end: 0
+        excl: false 
 ---
 SystemT:
   name: adder

@@ -12,7 +12,9 @@ module HDLRuby
     # The classes meant to support to_basic.
     TO_BASICS = [
                  # Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior,
-                 Low::SystemT, Low::Type, Low::Behavior, Low::TimeBehavior, 
+                 Low::SystemT,
+                 Low::Type, Low::TypeVector, Low::TypeTuple, Low::TypeStruct,
+                 Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
                  # Low::SignalI, Low::SystemI, Low::Connection, 
                  Low::Signal, Low::SystemI, Low::Connection, 
@@ -29,7 +31,9 @@ module HDLRuby
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
     # The classes describing types (must be described only once)
     # TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
-    TO_BASICS_TYPES = [Low::SystemT, Low::Type]
+    TO_BASICS_TYPES = [Low::SystemT,
+                       Low::Type,
+                       Low::TypeVector, Low::TypeTuple, Low::TypeStruct]
 
     # Tells if a +basic+ structure is a representation of an HDLRuby object.
     def self.is_basic_HDLRuby?(basic)
@@ -54,8 +58,9 @@ module HDLRuby
         elsif value.is_a?(String) then
             # String objects are cloned for avoid side effects.
             return value.clone
-        elsif value.is_a?(Numeric) or value.is_a?(NilClass) then
-            # Nil and Numeric objects are kept as they are.
+        elsif value.is_a?(Numeric) or value.is_a?(NilClass) or
+              value.is_a?(Range) then
+            # Nil, Numeric and Range objects are kept as they are.
             return value
         elsif value.is_a?(Array) then
             # Arrays are kept as they are, but their content is converted
@@ -92,8 +97,9 @@ module HDLRuby
     def self.basic_to_value(basic)
         # print "For basic=#{basic} (#{basic.class})\n"
         # Detect which kind of basic struture it is.
-        if basic.is_a?(NilClass) or basic.is_a?(Numeric) then
-            # String or Numeric objects are kept as they are.
+        if basic.is_a?(NilClass) or basic.is_a?(Numeric) or
+           basic.is_a?(Range) then
+            # Nil, Numeric or Range objects are kept as they are.
             return basic
         elsif basic.is_a?(String) then
             # String objects are cloned for avoiding side effects.
@@ -159,7 +165,7 @@ module HDLRuby
     # Module adding serialization capability to HDLRuby classes
     ###########################################################
     module Serializer
-    
+
         # Converts the object to a basic structure which can be dumped into an
         # easy-to-write YAML string.
         #
@@ -170,6 +176,7 @@ module HDLRuby
         #   +types+:: contains the type objects which will have to be converted
         #   separately.
         def to_basic(top = true, types = {})
+            # if !top and TO_BASICS_TYPES.include?(self.class) then
             if !top and TO_BASICS_TYPES.include?(self.class) then
                 # Type object, but not the top, add it to the types list
                 # without converting it.
@@ -217,12 +224,19 @@ module HDLRuby
                 # The result is a sequence including each type and the
                 # current object.
                 result = [ result ]
-                types.each do |name,type|
-                    # print "Dumping type with name=#{name}\n"
-                    type_basic = type.to_basic(true)
-                    type_basic = type_basic.last if type_basic.is_a?(Array)
-                    result.unshift(type_basic)
+                to_treat = types
+                while !to_treat.empty?
+                    others = {}
+                    to_treat.each do |name,type|
+                        # print "Dumping type with name=#{name}\n"
+                        # type_basic = type.to_basic(true)
+                        type_basic = type.to_basic(true,others)
+                        type_basic = type_basic.last if type_basic.is_a?(Array)
+                        result.unshift(type_basic)
+                    end
+                    to_treat = others
                 end
+                    
             end
 
             # Return the resulting hash.
@@ -231,7 +245,12 @@ module HDLRuby
 
         # Converts the object to YAML string.
         def to_yaml
-            return YAML.dump_stream(*to_basic)
+            # Convert the object to basic representations
+            basics = to_basic
+            # Remove duplicate descripions
+            basics.uniq! { |elem| elem.first[1]["name"] }
+            # Convert the basic representations to YAML
+            return YAML.dump_stream(*basics)
         end
     end
 

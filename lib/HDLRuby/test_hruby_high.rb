@@ -45,14 +45,14 @@ begin
 #     $success = false
 end
 
-print "Converting systemT0 to a type... "
-begin
-    $sigT0 = type(:sigT0) { $systemT0.to_type([],[]) }
-    puts "Ok."
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-end
+# print "Converting systemT0 to a type... "
+# begin
+#     $sigT0 = type(:sigT0) { $systemT0.to_type([],[]) }
+#     puts "Ok."
+# # rescue Exception => e
+# #     puts "Error: unexpected exception raised #{e.inspect}\n"
+# #     $success = false
+# end
 
 
 print "\nCreating a system type with content (also using the created char type)... "
@@ -67,7 +67,8 @@ begin
        bit[7..0].output :o1
        {header: bit[4], data: bit[28]}.inner :frame
        {int: signed[32], uint: bit[32]}.inout :value
-       sigT0.inner :my_sig
+       # sigT0.inner :my_sig
+       [bit[4],unsigned[8],signed[16]].inner :my_sig
 
        o0 <= i0 + i1       # Standard connection
        x <= mux(o0, y, z)  # Connection of generic parameters with a mux
@@ -204,8 +205,8 @@ begin
     elsif systemI1Inners[1].name != :my_sig then
         puts "Error: invalid inner signal, got #{systemI1Inners[1].name} but expecting my_sig."
         success = false
-    elsif !systemI1Inners[1].type.is_a?(TypeSystemI) then
-        puts "Error: invalid inner type, got #{systemI1Inners[1].type.class} but expecting TypeSystem."
+    elsif !systemI1Inners[1].type.is_a?(TypeTuple) then
+        puts "Error: invalid inner type, got #{systemI1Inners[1].type.class} but expecting TypeTuple."
         success = false
     end
 
@@ -451,54 +452,62 @@ begin
 #     $success = false
 end
 
-print "Converting it to a type... "
-begin
-    $sigT2 = type(:sigT2) { $systemT2.to_type([:i0,:i1],[:o0,:o1]) }
-    unless $sigT2.is_a?(TypeSystemT) then
-        raise "Invalid type class: got #{$sigT2.class} but expecting TypeSystemT."
-    end
-    puts "Ok."
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-end
+# print "Converting it to a type... "
+# begin
+#     $sigT2 = type(:sigT2) { $systemT2.to_type([:i0,:i1],[:o0,:o1]) }
+#     unless $sigT2.is_a?(TypeSystemT) then
+#         raise "Invalid type class: got #{$sigT2.class} but expecting TypeSystemT."
+#     end
+#     puts "Ok."
+# # rescue Exception => e
+# #     puts "Error: unexpected exception raised #{e.inspect}\n"
+# #     $success = false
+# end
+# 
+# print "Using it in a new system and instantiate the result... "
+# begin
+#     $systemT3 = system :systemT3 do
+#         sigT2.(uchar).input :x,:y
+#         sigT2.(uchar).output :z
+#     end
+#     $systemI3 = $systemT3.instantiate("systemI3")
+#     systemI3inputs = $systemI3.each_input.to_a
+#     success = true
+#     [:i0,:i1,:o0,:o1].each do |name|
+#         unless systemI3inputs[0].respond_to?(name) then
+#             puts "Error: systemI3's input does not include #{name} sub signal."
+#             success = false
+#         end
+#     end
+#     [:i0,:i1].each do |name|
+#         unless systemI3inputs[0].type.left.get_type(name) then
+#             puts "Error: systemI3's input type's left side does not include #{name} sub type."
+#             success = false
+#         end
+#     end
+#     [:o0,:o1].each do |name|
+#         unless systemI3inputs[0].type.right.get_type(name) then
+#             puts "Error: systemI3's input type's right side does not include #{name} sub type."
+#             success = false
+#         end
+#     end
+#     if (success) then
+#         puts "Ok."
+#     else
+#         $success = false
+#     end
+# # rescue Exception => e
+# #     puts "Error: unexpected exception raised #{e.inspect}\n"
+# #     $success = false
+# end
 
-print "Using it in a new system and instantiate the result... "
-begin
-    $systemT3 = system :systemT3 do
-        sigT2.(uchar).input :x,:y
-        sigT2.(uchar).output :z
-    end
-    $systemI3 = $systemT3.instantiate("systemI3")
-    systemI3inputs = $systemI3.each_input.to_a
-    success = true
-    [:i0,:i1,:o0,:o1].each do |name|
-        unless systemI3inputs[0].respond_to?(name) then
-            puts "Error: systemI3's input does not include #{name} sub signal."
-            success = false
-        end
-    end
-    [:i0,:i1].each do |name|
-        unless systemI3inputs[0].type.left.get_type(name) then
-            puts "Error: systemI3's input type's left side does not include #{name} sub type."
-            success = false
-        end
-    end
-    [:o0,:o1].each do |name|
-        unless systemI3inputs[0].type.right.get_type(name) then
-            puts "Error: systemI3's input type's right side does not include #{name} sub type."
-            success = false
-        end
-    end
-    if (success) then
-        puts "Ok."
-    else
-        $success = false
-    end
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
+print "Creating another basic system and instantiate it... "
+$systemT3 = system :systemT3 do
+    uchar.input :x,:y
+    uchar.output :z
 end
+$systemI3 = $systemT3.instantiate("systemI3")
+
 
 print "\nExtending systemT3 and do a bit of meta programming... "
 begin
