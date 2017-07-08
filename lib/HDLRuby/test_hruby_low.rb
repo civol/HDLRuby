@@ -773,8 +773,38 @@ begin
 end
 
 # Checking low samples
+print "Testing the low sample adder.yaml... "
 $adder_str = File.read("./low_samples/adder.yaml")
-$adder = HDLRuby.from_yaml($adder_str)
+$adder = HDLRuby.from_yaml($adder_str)[-1]
+unless $adder.is_a?(SystemT) then
+    puts "Error: invalid class for a system: #{$adder.class}"
+    $success = false
+end
+$adder_inputs = $adder.each_input.to_a
+unless $adder_inputs.size == 2 then
+    puts "Error: invalid number of inputs, expecting 2 but got: #{$adder_inputs.size}"
+    $success = false
+end
+unless $adder_inputs[0].name == :x then
+    puts "Error: invalid name for first input, expecting x but got: #{$adder_inputs[0].name}"
+    $success = false
+end
+unless $adder_inputs[0].type.is_a?(TypeVector) then
+    puts "Error: invalid type for first input, expecting TypeVector but got: #{$adder_inputs[0].type.class}"
+    $success = false
+end
+unless $adder_inputs[1].name == :y then
+    puts "Error: invalid name for second input, expecting y but got: #{$adder_inputs[1].name}"
+    $success = false
+end
+unless $adder_inputs[1].type.is_a?(TypeVector) then
+    puts "Error: invalid type for first input, expecting TypeVector but got: #{$adder_inputs[1].type.class}"
+    $success = false
+end
+
+puts "Ok." if $success
+
+
     
 
 if $success then

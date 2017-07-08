@@ -177,7 +177,8 @@ module HDLRuby
         #   separately.
         def to_basic(top = true, types = {})
             # if !top and TO_BASICS_TYPES.include?(self.class) then
-            if !top and TO_BASICS_TYPES.include?(self.class) then
+            if !top and TO_BASICS_TYPES.include?(self.class) and
+               !self.name.empty? then
                 # Type object, but not the top, add it to the types list
                 # without converting it.
                 # print "Adding type with name=#{self.name}\n"

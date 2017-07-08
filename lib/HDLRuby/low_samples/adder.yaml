@@ -2,27 +2,40 @@
 Type:
     name: bit
 ---
-TypeVector:
-    name: bit8
-    base: bit
-    range: !ruby/range
-        begin: 7
-        end: 0
-        excl: false 
----
 SystemT:
   name: adder
   inputs:
   - Signal:
       name: x
-      type: bit8
+      type:
+        TypeVector:
+          name: ""
+          base: bit
+          range: !ruby/range
+            begin: 7
+            end: 0
+            excl: false 
   - Signal:
       name: y
-      type: bit8
+      type:
+        TypeVector:
+          name: ""
+          base: bit
+          range: !ruby/range
+            begin: 7
+            end: 0
+            excl: false 
   outputs:
   - Signal:
       name: s
-      type: bit8
+      type:
+        TypeVector:
+          name: ""
+          base: bit
+          range: !ruby/range
+            begin: 7
+            end: 0
+            excl: false 
   connections:
   - Connection:
       left:
