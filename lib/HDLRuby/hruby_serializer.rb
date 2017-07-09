@@ -58,30 +58,39 @@ module HDLRuby
         elsif value.is_a?(String) then
             # String objects are cloned for avoid side effects.
             return value.clone
-        elsif value.is_a?(Numeric) or value.is_a?(NilClass) or
-              value.is_a?(Range) then
-            # Nil, Numeric and Range objects are kept as they are.
+        elsif value.is_a?(Numeric) or value.is_a?(NilClass) then
+            # Nil and Numeric objects are kept as they are.
             return value
+        elsif  value.is_a?(Range)
+            # Convert to an array made of the converted first and last.
+            return [value_to_basic(value.first),value_to_basic(value.last)]
         elsif value.is_a?(Array) then
             # Arrays are kept as they are, but their content is converted
             # to basic.
             return value.map { |elem| value_to_basic(elem,types) }
+        elsif value.is_a?(Base::HashName) then
+            # Hash name, convert it to an array.
+            return value.map { |v| value_to_basic(v,types) }
         elsif value.is_a?(Hash) then
             # Maybe the hash is empty.
             if value.empty? then
                 return { }
             end
-            # Maybe it is a hash of named objects.
-            if TO_BASICS.include?(value.first[1].class) then
-                # Yes, convert it to an array since it is a hash with names.
-                return value.map { |k,v| value_to_basic(v,types) }
-            else
-                # No, basic hash. They are kept as they are, but their content
-                # is converted to basic.
-                return value.map do |k,v|
-                    [value_to_basic(k,types), value_to_basic(v,types)]
-                end.to_h
-            end
+            # # Maybe it is a hash of named objects.
+            # if TO_BASICS.include?(value.first[1].class) then
+            #     # Yes, convert it to an array since it is a hash with names.
+            #     return value.map { |k,v| value_to_basic(v,types) }
+            # else
+            #     # No, basic hash. They are kept as they are, but their content
+            #     # is converted to basic.
+            #     return value.map do |k,v|
+            #         [value_to_basic(k,types), value_to_basic(v,types)]
+            #     end.to_h
+            # end
+            # Convert its content to basic.
+            return value.map do |k,v|
+                [value_to_basic(k,types), value_to_basic(v,types)]
+            end.to_h
         else
             # For the other cases, only HDLRuby classes supporting to_basic
             # are supported.
@@ -97,10 +106,12 @@ module HDLRuby
     def self.basic_to_value(basic)
         # print "For basic=#{basic} (#{basic.class})\n"
         # Detect which kind of basic struture it is.
-        if basic.is_a?(NilClass) or basic.is_a?(Numeric) or
-           basic.is_a?(Range) then
-            # Nil, Numeric or Range objects are kept as they are.
+        if basic.is_a?(NilClass) or basic.is_a?(Numeric) then
+            # Nil or Numeric objects are kept as they are.
             return basic
+        elsif basic.is_a?(Range) then
+            # First and last of range are converted.
+            return basic_to_value(basic.first)..basic_to_value(basic.last)
         elsif basic.is_a?(String) then
             # String objects are cloned for avoiding side effects.
             return basic.clone
@@ -111,9 +122,9 @@ module HDLRuby
         elsif basic.is_a?(Hash) then
             # Is the hash representing a class?
             # print "basic.size = #{basic.size}\n"
-            if basic.size == 1 then
-                # print "name = #{HDLRuby.const_reduce(basic.keys[0])}\n"
-            end
+            # if basic.size == 1 then
+            #     print "name = #{HDLRuby.const_reduce(basic.keys[0])}\n"
+            # end
             if is_basic_HDLRuby?(basic) then
                 # Yes, rebuild the object.
                 # First get the class.
@@ -121,7 +132,13 @@ module HDLRuby
                 # print "klass=#{klass}\n"
                 # The the content.
                 content = basic.values[0]
-                # Single instance variables are set with the constructure,
+                # Handle the case of the ranges
+                content.each do |k,v|
+                    if k.to_sym == :range and v.is_a?(Array) then
+                        content[k] = basic_to_value(v[0])..basic_to_value(v[1])
+                    end
+                end
+                # Single instance variables are set with the structure,
                 # separate them from the multiple instances.
                 multiples,singles = content.partition do |k,v|
                     (v.is_a?(Hash) or v.is_a?(Array)) and !is_basic_HDLRuby?(v)

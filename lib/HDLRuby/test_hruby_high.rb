@@ -3,6 +3,7 @@
 ########################################################################
 
 require "HDLRuby.rb"
+require "HDLRuby/hruby_serializer.rb"
 
 include HDLRuby::High
 
@@ -563,6 +564,18 @@ begin
     else
         $success = false
     end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
+
+begin
+    # Try to convert to low
+    print "\nConverts systemI1 to low... "
+    $systemI1low = $systemI1.to_low
+    puts "Ok."
+    puts "The resulting low level system is: "
+    puts $systemI1low.to_yaml
 # rescue Exception => e
 #     puts "Error: unexpected exception raised #{e.inspect}\n"
 #     $success = false

@@ -6,6 +6,24 @@
 ########################################################################
 module HDLRuby::Base
 
+    ##
+    # Describes a hash for named HDLRuby objects
+    class HashName < Hash
+        # Adds a named +object+.
+        def add(object)
+            self[object.name] = object
+        end
+
+        # Tells if +object+ is included in the hash.
+        def include?(object)
+            return self.has_key?(object.name)
+        end
+
+        # Iterate over the objects included in the hash.
+        alias :each :each_value
+    end
+
+
     ## 
     # Describes system type.
     class SystemT
@@ -18,12 +36,17 @@ module HDLRuby::Base
             # Set the name as a symbol.
             @name = name.to_sym
             # Initialize the signal instance lists.
-            @inputs = {}
-            @outputs = {}
-            @inouts = {}
-            @inners = {}
+            # @inputs = {}
+            # @outputs = {}
+            # @inouts = {}
+            # @inners = {}
+            @inputs  = HashName.new
+            @outputs = HashName.new
+            @inouts  = HashName.new
+            @inners  = HashName.new
             # Initialize the system instances list.
-            @systemIs = {}
+            # @systemIs = {}
+            @systemIs = HashName.new
             # Initialize the connections list.
             @connections = []
             # Initialize the behaviors lists.
@@ -38,10 +61,12 @@ module HDLRuby::Base
             unless systemI.is_a?(SystemI)
                 raise "Invalid class for a system instance: #{systemI.class}"
             end
-            if @systemIs.has_key?(systemI.name) then
+            # if @systemIs.has_key?(systemI.name) then
+            if @systemIs.include?(systemI) then
                 raise "SystemI #{systemI.name} already present."
             end
-            @systemIs[systemI.name] = systemI
+            # @systemIs[systemI.name] = systemI
+            @systemIs.add(systemI)
         end
 
         # Iterates over the system instances.
@@ -51,7 +76,8 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_systemI) unless ruby_block
             # A block? Apply it on each system instance.
-            @systemIs.each_value(&ruby_block)
+            # @systemIs.each_value(&ruby_block)
+            @systemIs.each(&ruby_block)
         end
 
         # Gets a system instance by +name+.
@@ -73,10 +99,12 @@ module HDLRuby::Base
             unless signal.is_a?(Signal)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            if @inputs.has_key?(signal.name) then
+            # if @inputs.has_key?(signal.name) then
+            if @inputs.include?(signal) then
                 raise "Signal #{signal.name} already present."
             end
-            @inputs[signal.name] = signal
+            # @inputs[signal.name] = signal
+            @inputs.add(signal)
         end
 
         # Adds output  signal +signal+.
@@ -85,10 +113,12 @@ module HDLRuby::Base
             unless signal.is_a?(Signal)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            if @outputs.has_key?(signal.name) then
+            # if @outputs.has_key?(signal.name) then
+            if @outputs.include?(signal) then
                 raise "Signal #{signal.name} already present."
             end
-            @outputs[signal.name] = signal
+            # @outputs[signal.name] = signal
+            @outputs.add(signal)
         end
 
         # Adds inout signal +signal+.
@@ -97,10 +127,12 @@ module HDLRuby::Base
             unless signal.is_a?(Signal)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            if @inouts.has_key?(signal.name) then
+            # if @inouts.has_key?(signal.name) then
+            if @inouts.include?(signal) then
                 raise "Signal #{signal.name} already present."
             end
-            @inouts[signal.name] = signal
+            # @inouts[signal.name] = signal
+            @inouts.add(signal)
         end
 
         # Adds inner signal +signal+.
@@ -109,10 +141,12 @@ module HDLRuby::Base
             unless signal.is_a?(Signal)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            if @inners.has_key?(signal.name) then
+            # if @inners.has_key?(signal.name) then
+            if @inners.include?(signal) then
                 raise "Signal #{signal.name} already present."
             end
-            @inners[signal.name] = signal
+            # @inners[signal.name] = signal
+            @inners.add(signal)
         end
 
         # Iterates over the input signals.
@@ -122,7 +156,8 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_input) unless ruby_block
             # A block? Apply it on each input signal instance.
-            @inputs.each_value(&ruby_block)
+            # @inputs.each_value(&ruby_block)
+            @inputs.each(&ruby_block)
         end
 
         # Iterates over the output signals.
@@ -132,7 +167,8 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_output) unless ruby_block
             # A block? Apply it on each output signal instance.
-            @outputs.each_value(&ruby_block)
+            # @outputs.each_value(&ruby_block)
+            @outputs.each(&ruby_block)
         end
 
         # Iterates over the inout signals.
@@ -142,7 +178,8 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_inout) unless ruby_block
             # A block? Apply it on each inout signal instance.
-            @inouts.each_value(&ruby_block)
+            # @inouts.each_value(&ruby_block)
+            @inouts.each(&ruby_block)
         end
 
         # Iterates over the inner signals.
@@ -152,7 +189,8 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_inner) unless ruby_block
             # A block? Apply it on each inner signal instance.
-            @inners.each_value(&ruby_block)
+            # @inners.each_value(&ruby_block)
+            @inners.each(&ruby_block)
         end
 
         # Iterates over all the signals (input, output, inout, inner).
@@ -162,10 +200,14 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal) unless ruby_block
             # A block? Apply it on each signal instance.
-            @inputs.each_value(&ruby_block)
-            @outputs.each_value(&ruby_block)
-            @inouts.each_value(&ruby_block)
-            @inners.each_value(&ruby_block)
+            # @inputs.each_value(&ruby_block)
+            # @outputs.each_value(&ruby_block)
+            # @inouts.each_value(&ruby_block)
+            # @inners.each_value(&ruby_block)
+            @inputs.each(&ruby_block)
+            @outputs.each(&ruby_block)
+            @inouts.each(&ruby_block)
+            @inners.each(&ruby_block)
         end
 
         # Iterates over all the signals of the system type and its system
@@ -1091,7 +1133,8 @@ module HDLRuby::Base
             # Check and set the type.
             @mode = mode.to_sym
             # Initializes the list of inner statements.
-            @inners = {}
+            # @inners = {}
+            @inners = HashName.new
             # Initializes the list of statements.
             @statements = []
         end
@@ -1102,10 +1145,12 @@ module HDLRuby::Base
             unless signal.is_a?(Signal)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            if @inners.has_key?(signal.name) then
+            # if @inners.has_key?(signal.name) then
+            if @inners.include?(signal) then
                 raise "Signal #{signal.name} already present."
             end
-            @inners[signal.name] = signal
+            # @inners[signal.name] = signal
+            @inners.add(signal)
         end
 
         # Iterates over the inner signals.
@@ -1115,7 +1160,8 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_inner) unless ruby_block
             # A block? Apply it on each inner signal instance.
-            @inners.each_value(&ruby_block)
+            # @inners.each_value(&ruby_block)
+            @inners.each(&ruby_block)
         end
         alias :each_signal :each_inner
 
@@ -1284,6 +1330,14 @@ module HDLRuby::Base
             # Sets the content witout check: it depends on the abstraction
             # level.
             @content = content 
+        end
+
+        # Compare values.
+        #
+        # NOTE: mainly used for being supported by ranges.
+        def <=>(value)
+            value = value.content if value.respond_to?(:content)
+            return self.content <=> value
         end
     end
 

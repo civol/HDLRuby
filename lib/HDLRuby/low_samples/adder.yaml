@@ -11,20 +11,18 @@ SystemT:
         TypeVector:
           name: ""
           base: bit
-          range: !ruby/range
-            begin: 7
-            end: 0
-            excl: false 
+          range:
+          - 7
+          - 0
   - Signal:
       name: y
       type:
         TypeVector:
           name: ""
           base: bit
-          range: !ruby/range
-            begin: 7
-            end: 0
-            excl: false 
+          range:
+          - 7
+          - 0
   outputs:
   - Signal:
       name: s
@@ -32,10 +30,9 @@ SystemT:
         TypeVector:
           name: ""
           base: bit
-          range: !ruby/range
-            begin: 7
-            end: 0
-            excl: false 
+          range:
+          - 7
+          - 0
   connections:
   - Connection:
       left:

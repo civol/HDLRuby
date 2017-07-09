@@ -17,7 +17,6 @@ module HDLRuby::Low
 
         # Get an existing system type by +name+.
         def self.get(name)
-
             return name if name.is_a?(SystemT)
             return SystemTs[name.to_sym]
         end
@@ -178,7 +177,7 @@ module HDLRuby::Low
     # NOTE: 
     # * this is the only kind of block that can include time statements. 
     # * this kind of block is not synthesizable!
-    class TimeBlock < Base::Block
+    class TimeBlock < Base::TimeBlock
     end
 
 

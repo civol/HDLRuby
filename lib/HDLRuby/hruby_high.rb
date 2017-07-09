@@ -735,39 +735,41 @@ module HDLRuby::High
         include Hmux
 
 
-        # Converts the system to HDLRuby::Low
+        # Converts the system to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
             name = name.to_s
             if name.empty? then
                 raise "Cannot convert a system without a name to HDLRuby::Low."
             end
             # Create the resulting low system type.
-            systemTlow = new HDLRuby::Low::SystemT.new(High.names_create(name))
+            systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name))
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
             # Adds its input signals.
             self.each_input { |input|  systemTlow.add_input(input.to_low) }
             # Adds its output signals.
-            self.each_input { |output| systemTlow.add_output(output.to_low) }
-            # Adds its input signals.
+            self.each_output { |output| systemTlow.add_output(output.to_low) }
+            # Adds its inout signals.
             self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
             # Adds the inner signals.
-            self.each_inout { |inner|  systemTlow.add_inner(inner.to_low) }
+            self.each_inner { |inner|  systemTlow.add_inner(inner.to_low) }
             # Adds the instances.
-            self.each_instance { |instance|
-                systemTlow.add_instance(instance.to_low) 
+            self.each_systemI { |systemI|
+                systemTlow.add_systemI(systemI.to_low) 
             }
             # Adds the connections.
             self.each_connection { |connection|
-                systenTlow.add_connection(connection.to_low)
+                systemTlow.add_connection(connection.to_low)
             }
             # Adds the behaviors.
             self.each_behavior { |behavior|
                 systemTlow.add_behavior(behavior.to_low)
             }
             # Restores the name stack.
-            High.names.pop
+            High.names_pop
+            # Return theresulting system.
+            return systemTlow
         end
     end
 
@@ -1006,6 +1008,13 @@ module HDLRuby::High
             # Initialize the type structure.
             super(name)
         end
+
+        # Converts the type to HDLRuby::Low and set its +name+.
+        #
+        # NOTE: should be overridden by other type classes.
+        def to_low(name = self.name)
+            return HDLRuby::Low::Type.new(name)
+        end
     end
 
 
@@ -1140,7 +1149,14 @@ module HDLRuby::High
                 raise "Incompatible types for merging: #{self}, #{type}."
             end
             return TypeVector.new(@name,@range,@base.merge(type.base))
-        end  
+        end
+
+        # Converts the type to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            # Generate and return the new type.
+            return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
+                                                self.range.to_low)
+        end
     end
 
 
@@ -1197,6 +1213,12 @@ module HDLRuby::High
         #     # The type is generic if one of the sub types is generic.
         #     return self.each_type.any? { |type| type.generic? }
         # end
+
+        # Converts the type to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            return HDLRuby::Low::TypeTuple.new(name,
+                               *@types.map { |type| type.to_low } )
+        end
     end
 
 
@@ -1310,6 +1332,12 @@ module HDLRuby::High
             end
             return TypeStruct.new(@name,content)
         end  
+
+        # Converts the type to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            return HDLRuby::Low::TypeStruct.new(name,
+                                @types.map { |name,type| [name,type.to_low] } )
+        end
     end
 
 
@@ -1592,10 +1620,10 @@ module HDLRuby::High
         end
 
 
-        # Converts the instance to HDLRuby::Low
+        # Converts the instance to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
             # Converts the system of the instance to HDLRuby::Low
-            systemTlow = self.systemT.to_low(High.names_create(name + "_T"))
+            systemTlow = self.systemT.to_low(High.names_create(name.to_s+ "_T"))
             # Creates the resulting HDLRuby::Low instance
             return HDLRuby::Low::SystemI.new(High.names_create(name),
                                              systemTlow)
@@ -1652,6 +1680,15 @@ module HDLRuby::High
             # Sets the no block.
             self.no = no_block
         end
+
+        # Converts the if to HDLRuby::Low.
+        def to_low
+            # no may be nil, so treat it appart
+            noL = self.no ? self.no.to_low : nil
+            # Now generate the low-level if.
+            return HDLRuby::Low::If.new(self.condition.to_low,
+                                        self.yes.to_low,noL)
+        end
     end
 
 
@@ -1692,6 +1729,21 @@ module HDLRuby::High
             # Sets the default block.
             self.default = default_block
         end
+
+        # Converts the case to HDLRuby::Low.
+        def to_low
+            # Create the low level case.
+            caseL = HDLRuby::Low::Case.new(@value.to_low)
+            # Add each case.
+            self.each_when do |match,statement|
+                caseL.add_when(match.to_low, statement.to_low)
+            end
+            # Add the default if any.
+            if self.default then
+                caseL.default = self.default.to_low
+            end
+            return caseL
+        end
     end
 
 
@@ -1705,12 +1757,22 @@ module HDLRuby::High
         def !
             High.top_user.wait(self)    
         end
+
+        # Converts the delay to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Delay.new(self.value, self.unit)
+        end
     end
 
     ##
     # Describes a high-level wait delay statement.
     class TimeWait < Base::TimeWait
         include HStatement
+
+        # Converts the wait statement to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::TimeWait.new(self.delay.to_low)
+        end
     end
 
 
@@ -1718,6 +1780,12 @@ module HDLRuby::High
     # Describes a timed loop statement: not synthesizable!
     class TimeRepeat < Base::TimeRepeat
         include HStatement
+
+        # Converts the repeat statement to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::TimeRepeat.new(self.statement.to_low,
+                                                self.delay.to_low)
+        end
     end
 
 
@@ -1877,6 +1945,11 @@ module HDLRuby::High
     # Describes a high-level unary expression
     class Unary < Base::Unary
         include HExpression
+
+        # Converts the unary expression to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Unary.new(self.operator,self.child.to_low)
+        end
     end
 
 
@@ -1884,6 +1957,12 @@ module HDLRuby::High
     # Describes a high-level binary expression
     class Binary < Base::Binary
         include HExpression
+
+        # Converts the binary expression to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Binary.new(self.operator,
+                                           self.left.to_low, self.right.to_low)
+        end
     end
 
 
@@ -1899,6 +1978,14 @@ module HDLRuby::High
     # NOTE: choice is using the value of +select+ as an index.
     class Select < Base::Select
         include HExpression
+
+        # Converts the selection expression to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Select.new(self.select.to_low,
+            *self.each_choice.map do |choice|
+                choice.to_low
+            end)
+        end
     end
 
 
@@ -1906,6 +1993,13 @@ module HDLRuby::High
     # Describes z high-level concat expression.
     class Concat < Base::Concat
         include HExpression
+
+        # Converts the concatenation expression to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Concat.new(*self.each_expression.map do |exp|
+                exp.to_low
+            end)
+        end
     end
 
 
@@ -1913,6 +2007,14 @@ module HDLRuby::High
     # Describes a high-level value.
     class Value < Base::Value
         include HExpression
+
+        # Converts the value to HDLRuby::Low.
+        def to_low
+            # Clone the content if possible
+            content = self.content.frozen? ? self.content : self.content.clone
+            # Create and return the resulting low-level value
+            return HDLRuby::Low::Value.new(self.type.to_low,content)
+        end
     end
 
 
@@ -1966,24 +2068,46 @@ module HDLRuby::High
     # Describes a high-level concat reference.
     class RefConcat < Base::RefConcat
         include HRef
+
+        # Converts the concat reference to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::RefConcat.new(self.each_ref.map do |ref|
+                ref.to_low
+            end)
+        end
     end
 
     ##
     # Describes a high-level index reference.
     class RefIndex < Base::RefIndex
         include HRef
+
+        # Converts the index reference to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::RefIndex.new(self.ref.to_low,self.index.to_low)
+        end
     end
 
     ##
     # Describes a high-level range reference.
     class RefRange < Base::RefRange
         include HRef
+
+        # Converts the range reference to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::RefRange.new(self.ref.to_low,self.range.to_low)
+        end
     end
 
     ##
     # Describes a high-level name reference.
     class RefName < Base::RefName
         include HRef
+
+        # Converts the name reference to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::RefName.new(self.ref.to_low,self.name)
+        end
     end
 
     ##
@@ -2009,7 +2133,13 @@ module HDLRuby::High
         def block
             return High.cur_block
         end
+
+        # Converts the this reference to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::RefThis.new
+        end
     end
+
 
     # Gives access to the *this* reference.
     def this
@@ -2023,6 +2153,11 @@ module HDLRuby::High
         # Converts to an event.
         def to_event
             return self
+        end
+
+        # Converts the event to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Event.new(self.type.to_low,self.ref.to_low)
         end
     end
 
@@ -2043,6 +2178,12 @@ module HDLRuby::High
             High.top_user.delete_statement(self)
             # Generate an expression.
             return Binary.new(:<=,self.left,self.right)
+        end
+
+        # Converts the transmit to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Transmit.new(self.left.to_low,
+                                              self.right.to_low)
         end
     end
 
@@ -2075,6 +2216,12 @@ module HDLRuby::High
             High.top_user.add_behavior(behavior)
             # Remove the connection
             High.top_user.delete_connection(self)
+        end
+
+        # Converts the connection to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Connection.new(self.left.to_low,
+                                                self.right.to_low)
         end
     end
 
@@ -2187,6 +2334,11 @@ module HDLRuby::High
         # Converts to an expression.
         def to_expr
             return self.to_ref
+        end
+
+        # Converts the system to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            return HDLRuby::Low::Signal.new(name,self.type.to_low)
         end
     end
 
@@ -2388,6 +2540,20 @@ module HDLRuby::High
             # Creates the private namespace.
             @private_namespace = Namespace.new(self)
         end
+
+        # Converts the block to HDLRuby::Low.
+        def to_low
+            # Create the resulting block
+            blockL = HDLRuby::Low::Block.new(self.mode)
+            # Add the inner signals
+            self.each_inner { |inner| blockL.add_inner(inner.to_low) }
+            # Add the statements
+            self.each_statement do |statement|
+                blockL.add_statement(statement.to_low)
+            end
+            # Return the resulting block
+            return blockL
+        end
     end
 
 
@@ -2426,6 +2592,20 @@ module HDLRuby::High
             content = High.block(mode,&ruby_block)
             # Create and add the statement.
             self.add_statement(TimeRepeat.new(content,delay))
+        end
+
+        # Converts the time block to HDLRuby::Low.
+        def to_low
+            # Create the resulting block
+            blockL = HDLRuby::Low::TimeBlock.new(self.mode)
+            # Add the inner signals
+            self.each_inner { |inner| blockL.add_inner(inner.to_low) }
+            # Add the statements
+            self.each_statement do |statement|
+                blockL.add_statement(statement.to_low)
+            end
+            # Return the resulting block
+            return blockL
         end
     end
 
@@ -2513,6 +2693,12 @@ module HDLRuby::High
             # Add the events.
             events.each { |event| self.add_event(event) }
         end
+
+        # Converts the behavior to HDLRuby::Low.
+        def to_low
+            # Create the resulting block
+            blockL = HDLRuby::Low::Behavior.new(self.block.to_low)
+        end
     end
 
     ##
@@ -2545,6 +2731,12 @@ module HDLRuby::High
             block = High.time_block(mode,&ruby_block)
             # Initialize the behavior with it.
             super(block)
+        end
+
+        # Converts the time behavior to HDLRuby::Low.
+        def to_low
+            # Create the resulting block
+            blockL = HDLRuby::Low::TimeBehavior.new(self.block.to_low)
         end
     end
 
@@ -2986,6 +3178,18 @@ module HDLRuby::High
         end
     end
 
+    # Extends the range class to support to_low
+    class ::Range
+        # Convert the first and last to HDLRuby::Low
+        def to_low
+            first = self.first
+            first = first.respond_to?(:to_low) ? first.to_low : first
+            last = self.last
+            last = last.respond_to?(:to_low) ? last.to_low : last
+            return (first..last)
+        end
+    end
+
 
 
     # ##
@@ -3049,9 +3253,9 @@ module HDLRuby::High
 
     # Checks if a +name+ is present in the stack.
     def self.names_has?(name)
-        !NameStack.find do |names|
+        NameStack.find do |names|
             names.include?(name)
-        end
+        end 
     end
 
     # Creates and adds the new name from +base+ that do not collides with the
@@ -3062,8 +3266,10 @@ module HDLRuby::High
         while(High.names_has?(base)) do
             base << "_"
         end
+        base = base.to_sym
         # Add and return it
         High.names_add(base)
+        # puts "created name: #{base}"
         return base
     end
 
