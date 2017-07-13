@@ -17,7 +17,7 @@ module HDLRuby
                  Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
                  # Low::SignalI, Low::SystemI, Low::Connection, 
-                 Low::Signal, Low::SystemI, Low::Connection, 
+                 Low::SignalI, Low::SystemI, Low::Connection, 
                  # Low::Declare, 
                  Low::Transmit, Low::If, Low::Case,
                  Low::TimeWait, Low::TimeRepeat,

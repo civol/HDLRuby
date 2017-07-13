@@ -14,7 +14,7 @@ system :shift16 do
         hif(rst) { reg <= 0 }
         helse seq do
             reg[0] <= din
-            reg <= reg[14..0]
+            reg[15..1] <= reg[14..0]
         end 
     end
 end

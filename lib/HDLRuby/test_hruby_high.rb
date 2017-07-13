@@ -5,7 +5,7 @@
 require "HDLRuby.rb"
 require "HDLRuby/hruby_serializer.rb"
 
-include HDLRuby::High
+configure_high
 
 
 $success = true
@@ -129,7 +129,7 @@ end
 
 print "Instantiate it... "
 begin
-    $systemI1 = $systemT1.instantiate("systemI1",Signal.new(:"",$uchar,:inner),Signal.new(:"",$uchar,:inner),Signal.new(:"",$uchar,:inner))
+    $systemI1 = $systemT1.instantiate("systemI1",SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner))
     systemI1Is = $systemI1.each_systemI.to_a
     success = true
     if systemI1Is.size != 1 then

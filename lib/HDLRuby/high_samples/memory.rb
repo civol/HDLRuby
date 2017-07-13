@@ -1,5 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
+
+configure_high
 
 # Describes an 8-bit data 16-bit address memory.
 system :mem8_16 do

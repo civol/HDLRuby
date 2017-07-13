@@ -1,5 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
+
+configure_high
 
 # Describes a simple D-FF
 system :dff0 do

@@ -96,12 +96,12 @@ module HDLRuby::Base
         def add_input(signal)
             # print "add_input with signal: #{signal.name}\n"
             # Checks and add the signal.
-            unless signal.is_a?(Signal)
+            unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
             # if @inputs.has_key?(signal.name) then
             if @inputs.include?(signal) then
-                raise "Signal #{signal.name} already present."
+                raise "SignalI #{signal.name} already present."
             end
             # @inputs[signal.name] = signal
             @inputs.add(signal)
@@ -110,12 +110,12 @@ module HDLRuby::Base
         # Adds output  signal +signal+.
         def add_output(signal)
             # Checks and add the signal.
-            unless signal.is_a?(Signal)
+            unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
             # if @outputs.has_key?(signal.name) then
             if @outputs.include?(signal) then
-                raise "Signal #{signal.name} already present."
+                raise "SignalI #{signal.name} already present."
             end
             # @outputs[signal.name] = signal
             @outputs.add(signal)
@@ -124,12 +124,12 @@ module HDLRuby::Base
         # Adds inout signal +signal+.
         def add_inout(signal)
             # Checks and add the signal.
-            unless signal.is_a?(Signal)
+            unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
             # if @inouts.has_key?(signal.name) then
             if @inouts.include?(signal) then
-                raise "Signal #{signal.name} already present."
+                raise "SignalI #{signal.name} already present."
             end
             # @inouts[signal.name] = signal
             @inouts.add(signal)
@@ -138,12 +138,12 @@ module HDLRuby::Base
         # Adds inner signal +signal+.
         def add_inner(signal)
             # Checks and add the signal.
-            unless signal.is_a?(Signal)
+            unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
             # if @inners.has_key?(signal.name) then
             if @inners.include?(signal) then
-                raise "Signal #{signal.name} already present."
+                raise "SignalI #{signal.name} already present."
             end
             # @inners[signal.name] = signal
             @inners.add(signal)
@@ -753,7 +753,7 @@ module HDLRuby::Base
 
     ##
     # Describes a signal.
-    class Signal
+    class SignalI
         
         # The name of the signal
         attr_reader :name
@@ -881,7 +881,7 @@ module HDLRuby::Base
     #     # Creates a new statement declaring +signal+.
     #     def initialize(signal)
     #         # Check and set the declared signal instance.
-    #         unless signal.is_a?(Signal)
+    #         unless signal.is_a?(SignalI)
     #             raise "Invalid class for declaring a signal: #{signal.class}"
     #         end
     #         @signal = signal
@@ -1142,12 +1142,12 @@ module HDLRuby::Base
         # Adds inner signal +signal+.
         def add_inner(signal)
             # Checks and add the signal.
-            unless signal.is_a?(Signal)
+            unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
             # if @inners.has_key?(signal.name) then
             if @inners.include?(signal) then
-                raise "Signal #{signal.name} already present."
+                raise "SignalI #{signal.name} already present."
             end
             # @inners[signal.name] = signal
             @inners.add(signal)

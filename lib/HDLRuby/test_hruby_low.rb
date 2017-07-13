@@ -66,10 +66,10 @@ $sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
            ]
 $signals = []
 $sNames.each_with_index do |name,i|
-    print "  Signal #{name}... "
+    print "  SignalI #{name}... "
     begin
         # SignalT directly used.
-        $signals[i] = Signal.new(name,$bit8)
+        $signals[i] = SignalI.new(name,$bit8)
         if $signals[i].name != name.to_sym then
             puts "Error: invalid signal name, got #{$signalIs[i].name} " +
                  " but expecting #{name}"
@@ -117,12 +117,12 @@ end
 
 print "\nCompleting $systemT1 for further use... "
 begin
-    $systemT1.add_input(Signal.new("i0",$bit8))
-    $systemT1.add_input(Signal.new("i1",$bit8))
-    $systemT1.add_input(Signal.new("i2",$bit8))
-    $systemT1.add_output(Signal.new("o0",$bit8))
-    $systemT1.add_output(Signal.new("o1",$bit8))
-    $systemT1.add_inout(Signal.new("io",$bit8))
+    $systemT1.add_input(SignalI.new("i0",$bit8))
+    $systemT1.add_input(SignalI.new("i1",$bit8))
+    $systemT1.add_input(SignalI.new("i2",$bit8))
+    $systemT1.add_output(SignalI.new("o0",$bit8))
+    $systemT1.add_output(SignalI.new("o1",$bit8))
+    $systemT1.add_inout(SignalI.new("io",$bit8))
     puts "Ok."
 # rescue Exception => e
 #     puts "Error: unexpected exception raised #{e.inspect}\n"
@@ -622,7 +622,7 @@ begin
 
     puts "  All signals... "
     $systemT0.each_signal.with_index do |any,i|
-        print "    Signal #{i}... "
+        print "    SignalI #{i}... "
         signal = $signals[i]
         if any == signal then
             puts "Ok."
@@ -633,7 +633,7 @@ begin
     end
     puts "  All signal instances by name... "
     $signals.each do |signal|
-        print "    Signal #{signal.name}... "
+        print "    SignalI #{signal.name}... "
         signal = $systemT0.get_signal(signal.name)
         if signal == signal then
             puts "Ok."

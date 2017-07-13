@@ -1,5 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
+
+configure_high
 
 # Describes a system including several vector types.
 system :vectors do

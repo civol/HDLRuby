@@ -1,6 +1,6 @@
 # HDLRuby
 
-Hardware Ruby is a library for describing and simulating digital electronic
+HDLRuby is a library for describing and simulating digital electronic
 systems.
 
 __Warning__: 
@@ -36,15 +36,15 @@ You can use HDLRuby in a ruby program by loading `HDLRuby.rb` in your ruby file:
 require 'HDLRuby'
 ```
 
-Then, including `HDLRuby::High` will setup Ruby for supporting the high-level
-description of hardware components.
+Then, Ruby has to be set up for supporting high-level description of hardware
+components. This is done as adding the following line of code:
 
 ```ruby
-include HDLRuby::High
+configure_high
 ```
 
-Alternatively, you can also setup Ruby for supporting the building of a
-low-level representation of hardware as follows:
+Alternatively, you can include `HDLRuby::Low` for gaining access to the
+classes used for low-level description of hardware components.
 
 ```ruby
 include HDLRuby::Low
@@ -109,10 +109,8 @@ type of the single bit signals):
 ```ruby
 system :dff do
    bit.input :clk, :rst, :d
-   bit.output :q, :qb
+   bit.output :q
 
-   qb <= ~q
-   
    behavior(clk.posedge) do
       q <= d & ~rst
    end
@@ -125,7 +123,7 @@ method.  For example the following code converts the `dff0` system instance to
 a low-level description and assign the result to variable `low_dff`:
 
 ```ruby
-dff :dff0
+dff_base :dff_base0
 low_dff = dff0.to_low
 ```
 
@@ -142,9 +140,8 @@ the following code also describes a D-FF:
 ```ruby
 system :dff do
    input :clk, :rst, :d
-   output :q, :qb
+   output :q
 
-   qb <= ~q
    (q <= d & ~rst).at(clk.posedge)
 end
 ```
@@ -156,9 +153,8 @@ For instance the following code describes a 8-bit register:
 system :reg8 do
    input :clk, :rst
    [7..0].input :d
-   [7..0].output :q, :qb
+   [7..0].output :q
 
-   qb <= ~q
    (q <= d & [~rst]*8).at(clk.posedge)
 end
 ```
@@ -169,9 +165,8 @@ But it is also possible to describe a register of arbitrary size as follows:
 system :regn do |n|
    input :clk, :rst
    [n-1..0].input :d
-   [n-1..0].output :q,:qb
+   [n-1..0].output :q
 
-   qb <= ~q
    (q <= d & [~rst]*n).at(clk.posedge)
 end
 ```
@@ -183,9 +178,8 @@ Or, even further, it is possible to describe a register of arbitrary type
 system :reg do |typ|
    input :clk, :rst
    typ.input :d
-   typ.output :q,:qb
+   typ.output :q
 
-   qb <= ~q
    (q <= d & [~rst]*typ.width).at(clk.posedge)
 end
 ```
@@ -198,9 +192,8 @@ example. If that is the case, he can wrap up everything as follows:
 def reg_body(typ)
    input :clk, :rst
    typ.input :d
-   typ.output :q,:qb
+   typ.output :q
 
-   qb <= ~q
    (q <= d & [~rst]*typ.width).at(clk.posedge)
 end
 
@@ -232,9 +225,8 @@ def make_reg(name,&blk)
    system name do |*arg|
       input :clk, :rst
       blk.(*arg).input :d
-      blk.(*arg).output :q,:qb
+      blk.(*arg).output :q
 
-      qb <= ~q
       (q <= d & [~rst]*blk.(*arg).width).at(clk.posedge)
    end
 end
@@ -244,6 +236,69 @@ make_reg(:dff) { bit }
 make_reg(:reg8){ bit[7..0] }
 make_reg(:regn){ |n| bit[n-1..0] }
 make_reg(:reg) { |typ| typ }
+```
+
+Wait... I have just realized: a D-FF without an inverted output does not look
+very serious. So let us extend the existing `dff` to provide an inverted
+output. This can be done basically in three ways. First, inheritance can be
+used: a new system is built inheriting from `dff` as it is done in the following
+code.
+
+```ruby
+system :dff_full, dff do
+   output :qb
+   qb <= ~q
+end
+```
+
+The second possibility is to modify `dff` afterward (in Ruby this is called
+mokey patch). In HDLRuby::High, this achieved using the `open` method as it is
+done the following code:
+
+```ruby
+dff.open do
+   output :qb
+   qb <= ~q
+end
+```
+
+The third possibility is to modify directly sole instances of `dff` which
+require an inverted output, using again the `open` method, as in the following
+code (`dff0` is assumed to be instance of `dff`):
+
+```ruby
+dff0.open do
+   output :qb
+   qb <= ~q
+end
+```
+
+In this later case, only `dff0` will have an inverted output, the other
+instances of `dff` will not change.
+
+Now assuming we opted for the first solution, we have now `dff_full` a highly
+advanced D-FF with such unique features as an inverted output. So we would like
+to use it in other designs, for example a shift register of `n` bits. Such a
+system will include a generic number of `dff_full` instance, and can be
+described as follows making use of the standard Ruby library for connecting
+them together with compact code:
+
+```ruby
+system :shifter do |n|
+   input :i0
+   output :o0, :o0b
+
+   # Instantiating n D-FF
+   [n].(dff_full).make :dffIs
+
+   # Interconnect them as a shift register
+   dffIs[0..-2].zip(dffIs[1..-1]) { |ff0,ff1| ff1.d <= ff0.q }
+
+   # Connects the input and output of the circuit
+   dffIs[0].d <= in
+   o0 <= dffIs[-1].q
+   o0b <= dffIs[-1].qb
+end
 ```
 
 

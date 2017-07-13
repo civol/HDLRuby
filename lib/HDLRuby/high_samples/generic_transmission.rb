@@ -1,5 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
+
+configure_high
 
 # Some very complex system which sends 8 bit values.
 system :systemA do |data|

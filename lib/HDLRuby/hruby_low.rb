@@ -189,7 +189,7 @@ module HDLRuby::Low
 
     ##
     # Describes a signal.
-    class Signal < Base::Signal
+    class SignalI < Base::SignalI
         # Creates a new signal named +name+ typed as +type+.
         def initialize(name,type)
             # Ensures type is from Low::Type
@@ -379,13 +379,13 @@ module HDLRuby::Low
     end
 
 
-    # Ensures constants defined is this module are prioritary.
-    # @!visibility private
-    def self.included(base) # :nodoc:
-        if base.const_defined?(:Signal) then
-            base.send(:remove_const,:Signal)
-            base.const_set(:Signal,HDLRuby::Low::Signal)
-        end
-    end
+    # # Ensures constants defined is this module are prioritary.
+    # # @!visibility private
+    # def self.included(base) # :nodoc:
+    #     if base.const_defined?(:SignalI) then
+    #         base.send(:remove_const,:SignalI)
+    #         base.const_set(:SignalI,HDLRuby::Low::Signal)
+    #     end
+    # end
 
 end

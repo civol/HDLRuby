@@ -1,6 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
 
+configure_high
 
 # A simple D-FF
 system :dff do
@@ -32,5 +32,6 @@ system :importer, exporter do
     dff0.q <= q
 end
 
-# Instantiate it for checking.
-Universe.importer :importerI
+# # Instantiate it for checking.
+# Universe.importer :importerI
+importer :importerI

@@ -1,5 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
+
+configure_high
 
 # System with blocks in blocks.
 system :blockblock do

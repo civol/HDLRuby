@@ -5,7 +5,7 @@ Type:
 SystemT:
   name: adder
   inputs:
-  - Signal:
+  - SignalI:
       name: x
       type:
         TypeVector:
@@ -14,7 +14,7 @@ SystemT:
           range:
           - 7
           - 0
-  - Signal:
+  - SignalI:
       name: y
       type:
         TypeVector:
@@ -24,7 +24,7 @@ SystemT:
           - 7
           - 0
   outputs:
-  - Signal:
+  - SignalI:
       name: s
       type:
         TypeVector:
