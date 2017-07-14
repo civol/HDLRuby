@@ -127,7 +127,7 @@ make_reg(:regn_make){ |n| bit[n-1..0] }
 make_reg(:reg_make) { |typ| typ }
 
 # Instantiate these systems for checking them.
-Universe.dff_make  :dff_makeI
-Universe.reg8_make :reg8_makeI
-Universe.regn_make :regn_makeI, 8
-Universe.reg_make  :reg_makeI, bit[7..0]
+dff_make  :dff_makeI
+reg8_make :reg8_makeI
+regn_make :regn_makeI, 8
+reg_make  :reg_makeI, bit[7..0]

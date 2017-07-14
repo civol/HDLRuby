@@ -20,4 +20,4 @@ system :shift16 do
 end
 
 # Instantiate it for checking.
-Universe.shift16 :shift16I
+shift16 :shift16I

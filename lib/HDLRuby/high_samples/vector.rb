@@ -10,4 +10,4 @@ end
 
 
 # Instantiate it for checking.
-Universe.vectors :vectorsI
+vectors :vectorsI

@@ -85,4 +85,4 @@ end
 
 
 # Instantiate it for checking.
-Universe.serialAB :serialABI
+serialAB :serialABI

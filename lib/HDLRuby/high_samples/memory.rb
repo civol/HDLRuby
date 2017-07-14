@@ -54,4 +54,4 @@ system :mem16_16_long do
 end
 
 # Instantiate it for checking.
-Universe.mem16_16_long :mem16_16_longI
+mem16_16_long :mem16_16_longI

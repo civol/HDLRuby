@@ -45,4 +45,4 @@ end
 
 
 # Instantiate it for checking.
-Universe.values :valuesI
+values :valuesI

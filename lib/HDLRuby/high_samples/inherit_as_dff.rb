@@ -25,4 +25,4 @@ system :dff_full,dff do
 end
 
 # Instantiate it for checking.
-Universe.dff_full :dff_fullI
+dff_full :dff_fullI

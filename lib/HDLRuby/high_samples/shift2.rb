@@ -30,4 +30,4 @@ system :shifter do |n|
 end
 
 # Instantiate it for checking.
-Universe.shifter :shifterI, 16
+shifter :shifterI, 16

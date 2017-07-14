@@ -17,4 +17,4 @@ system :blockblock do
 end
 
 # Instantiate it for checking.
-Universe.blockblock :blockblockI
+blockblock :blockblockI
