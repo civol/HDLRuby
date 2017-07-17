@@ -46,3 +46,9 @@ end
 
 # Instantiate it for checking.
 values :valuesI
+
+# Generate the low level representation.
+low = valuesI.to_low
+
+# Displays it
+puts low.to_yaml

@@ -86,3 +86,9 @@ end
 
 # Instantiate it for checking.
 serialAB :serialABI
+
+# Generate the low level representation.
+low = serialABI.to_low
+
+# Displays it
+puts low.to_yaml

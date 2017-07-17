@@ -26,3 +26,9 @@ end
 
 # Instantiate it for checking.
 dff_full :dff_fullI
+
+# Generate the low level representation.
+low = dff_fullI.to_low
+
+# Displays it
+puts low.to_yaml

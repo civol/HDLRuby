@@ -65,23 +65,24 @@ typ,adder = HDLRuby::from_yaml(File.read("#{$:[0]}/HDLRuby/low_samples/adder.yam
 
 __Notes__:
 
-- The low level representation of hardware can only be built through standard
+- A `HDLRuby::Low` description of hardware can only be built through standard
   Ruby class constructors, and does not include any validity check of the
   resulting hardware.
-- `HDLRuby::High` and `HDLRuby::Low` cannot be included at the same time.
+- HDLRuby cannot be configured for both `HDLRuby::High` and `HDLRuby::Low` at
+  the same time.
 
 
 
 ## HDLRuby::High programming guide
 
-HDLRuby::High has been designed to provide hardware description with the high
-flexibility of the Ruby language while ensuring the description is always
-synthesizable. In this context, and contrary to Verilog and VHDL, the described
-hardware is RTL-only by construction, all the abstraction being in the way
-of describing this RTL.
+HDLRuby::High has been designed to bring the high flexibility of the Ruby
+language to HDL while ensuring the hardware descriptions are always
+synthesizable. In this context, all the abstraction provided by HDLRuby::High
+is in the way of describing hardware, but not in its execution model, this
+latter being designed to be RTL by construct.
 
-HDLRuby::High being some ruby code, it is also possible to use any feature of
-the Ruby language with the hardware descriptions.
+The second specificity of HDLRuby::High is that it supports natively all the
+features of the Ruby language.
 
 __Notes__:
 
@@ -93,18 +94,13 @@ __Notes__:
 
 ### Introduction
 
-This introduction gives a glimpse of what could be done with this language.
+This introduction gives a glimpse of what can be done with this language.
 However, we do recommend to consult the section about the [high-level
 programming features](#highfeat) to have a more complete view of the advanced
 possibilities of this language.
 
-HDLRuby::High is a Ruby module which provides methods for easy description of
-a digital system. This description can then be converted to a low level model
-that can be simulate or synthesized to actual hardware.
-
-HDLRuby::High can be used like other HDL languages (like Verilog or VHDL),
-for instance the following code describes a simple D-FF (bit is the
-type of the single bit signals):
+At first glance, HDLRuby::High is similar to any other HDL languages (like
+Verilog or VHDL), for instance the following code describes a simple D-FF:
 
 ```ruby
 system :dff do
@@ -117,25 +113,35 @@ system :dff do
 end
 ```
 
-When declared, a HDLRuby::High system instance (including all its hierarchy)
-can be converted to a low-level description (HDLRuby::Low) using the `to_low`
-method.  For example the following code converts the `dff0` system instance to
-a low-level description and assign the result to variable `low_dff`:
+As in can be seen in the code above, `system` is the key word used for
+describing a digital circuit, and can be seen as a equivalent of the Verilog's
+`module`. In such a system, signals are declared using a `<type>.<direction>`
+construct where `type` is the data type of the signal (e.g., `bit` as in the
+code above) and direction indicates if the signal is an input, an output, an
+inout or an inner signal; and executable blocks (similar to `always` block of
+Verilog) are decribed using the `behavior` keyword.
+
+Once described, a HDLRuby::High system can be converted to a low-level
+description (HDLRuby::Low) using the `to_low` method.  For example the
+following code converts `dff` system to a low-level description and assign the
+result to variable `low_dff`:
 
 ```ruby
-dff_base :dff_base0
-low_dff = dff0.to_low
+low_dff = dff.to_low
 ```
 
-The low-level description can then be used for simulation or for generation
+This low-level description can then be used for simulation or for generating
 synthesizable Verilog or VHDL code.
 
-The code describing a D-FF given above is not much different for any HDL code.
-However, HDLRuby::High provides several features for high productivity when
-describing hardware. We will now describes a few of them.
+---
+
+The code describing a `dff` given above is not much different from its
+equivalent in other HDL.  However, HDLRuby::High provides several features for
+achieving a higher productivity when describing hardware. We will now describes
+a few of them.
 
 First, several syntactic sugars exist that allow shorter code, for instance
-the following code also describes a D-FF:
+the following code is strictly equivalent to the previous description of `dff`:
 
 ```ruby
 system :dff do
@@ -146,8 +152,9 @@ system :dff do
 end
 ```
 
-Furthermore, using Ruby duck-typing features, anything can be parameterized.
-For instance the following code describes a 8-bit register:
+Furthermore, anything can be parameterized in HDLRuby::High. ICIICI
+For instance the following code describes a 8-bit register without any
+parameterization:
 
 ```ruby
 system :reg8 do
@@ -159,7 +166,8 @@ system :reg8 do
 end
 ```
 
-But it is also possible to describe a register of arbitrary size as follows:
+But it is also possible to describe a register of arbitrary size as follows,
+where `n` is the parameter giving the number of bits of the register:
 
 ```ruby
 system :regn do |n|
@@ -216,8 +224,8 @@ end
 ```
 
 It also possible to go further and write a method for generating examples of
-register declarations as follows (such an example, excessive on
-purpose, will be explained little by little in this document):
+register descriptions as follows (such an example, excessive on purpose, will
+be explained little by little in this document):
 
 ```ruby
 # Function generating a register declaration.

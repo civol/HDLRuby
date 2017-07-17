@@ -17,7 +17,7 @@ system :mem8_16 do
 end
 
 # Instantiate it for checking.
-Universe.mem8_16 :mem8_16I
+mem8_16 :mem8_16I
 
 
 # Describes a 16-bit memory made of 8-bit memories.
@@ -31,7 +31,7 @@ system :mem16_16 do
 end
 
 # Instantiate it for checking.
-Universe.mem16_16 :mem16_16I
+mem16_16 :mem16_16I
 
 
 # Describes a 16-bit memory made of 8-bit memories the long way.
@@ -55,3 +55,9 @@ end
 
 # Instantiate it for checking.
 mem16_16_long :mem16_16_longI
+
+# Generate the low level representation.
+low = mem16_16_longI.to_low
+
+# Displays it
+puts low.to_yaml

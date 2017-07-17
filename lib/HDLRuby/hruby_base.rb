@@ -1536,7 +1536,7 @@ module HDLRuby::Base
         # Returns an enumerator if no ruby block is given.
         def each_expression(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_input) unless ruby_block
+            return to_enum(:each_expression) unless ruby_block
             # A block? Apply it on each children.
             @expressions.each(&ruby_block)
         end

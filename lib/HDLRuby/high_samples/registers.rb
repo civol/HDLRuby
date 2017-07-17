@@ -131,3 +131,9 @@ dff_make  :dff_makeI
 reg8_make :reg8_makeI
 regn_make :regn_makeI, 8
 reg_make  :reg_makeI, bit[7..0]
+
+# Generate the low level representation.
+low = reg_makeI.to_low
+
+# Displays it
+puts low.to_yaml

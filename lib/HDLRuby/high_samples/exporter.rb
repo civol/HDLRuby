@@ -33,5 +33,10 @@ system :importer, exporter do
 end
 
 # # Instantiate it for checking.
-# Universe.importer :importerI
 importer :importerI
+
+# Generate the low level representation.
+low = importerI.to_low
+
+# Displays it
+puts low.to_yaml

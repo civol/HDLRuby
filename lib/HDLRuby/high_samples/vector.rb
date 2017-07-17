@@ -11,3 +11,9 @@ end
 
 # Instantiate it for checking.
 vectors :vectorsI
+
+# Generate the low level representation.
+low = vectorsI.to_low
+
+# Displays it
+puts low.to_yaml

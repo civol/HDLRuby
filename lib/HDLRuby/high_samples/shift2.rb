@@ -1,5 +1,6 @@
 require 'HDLRuby'
-include HDLRuby::High
+
+configure_high
 
 
 system :dff do
@@ -31,3 +32,9 @@ end
 
 # Instantiate it for checking.
 shifter :shifterI, 16
+
+# Generate the low level representation.
+low = shifterI.to_low
+
+# Displays it
+puts low.to_yaml

@@ -787,18 +787,10 @@ module HDLRuby::High
 
         include Hmux
 
-
-        # Converts the system to HDLRuby::Low and set its +name+.
-        def to_low(name = self.name)
-            name = name.to_s
-            if name.empty? then
-                raise "Cannot convert a system without a name to HDLRuby::Low."
-            end
-            # Create the resulting low system type.
-            systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name))
-            # Pushes on the name stack for converting the internals of
-            # the system.
-            High.names_push
+        # Fills a low level system with self's contents.
+        #
+        # NOTE: name conflicts are treated in the current NameStack state.
+        def fill_low(systemTlow)
             # Adds its input signals.
             self.each_input { |input|  systemTlow.add_input(input.to_low) }
             # Adds its output signals.
@@ -826,6 +818,23 @@ module HDLRuby::High
             self.each_behavior { |behavior|
                 systemTlow.add_behavior(behavior.to_low)
             }
+        end
+
+        # Converts the system to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            name = name.to_s
+            if name.empty? then
+                raise "Cannot convert a system without a name to HDLRuby::Low."
+            end
+            # Create the resulting low system type.
+            systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name))
+            # Pushes on the name stack for converting the internals of
+            # the system.
+            High.names_push
+            # Adds the content of its included systems.
+            @includeIs.each_value { |space| space.user.fill_low(systemTlow) }
+            # Adds the content of the actual system.
+            self.fill_low(systemTlow)
             # Restores the name stack.
             High.names_pop
             # Return theresulting system.
@@ -2220,7 +2229,7 @@ module HDLRuby::High
 
         # Converts the event to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Event.new(self.type.to_low,self.ref.to_low)
+            return HDLRuby::Low::Event.new(self.type,self.ref.to_low)
         end
     end
 
@@ -2757,10 +2766,16 @@ module HDLRuby::High
             events.each { |event| self.add_event(event) }
         end
 
-        # Converts the behavior to HDLRuby::Low.
+        # Converts the time behavior to HDLRuby::Low.
         def to_low
-            # Create the resulting block
-            blockL = HDLRuby::Low::Behavior.new(self.block.to_low)
+            # Create the low level block.
+            blockL = self.block.to_low
+            # Create the low level events.
+            eventLs = self.each_event.map { |event| event.to_low }
+            # Create and return the resulting low level behavior.
+            behaviorL = HDLRuby::Low::Behavior.new(blockL)
+            eventLs.each(&behaviorL.method(:add_event))
+            return behaviorL
         end
     end
 
@@ -2798,8 +2813,14 @@ module HDLRuby::High
 
         # Converts the time behavior to HDLRuby::Low.
         def to_low
-            # Create the resulting block
-            blockL = HDLRuby::Low::TimeBehavior.new(self.block.to_low)
+            # Create the low level block.
+            blockL = self.block.to_low
+            # Create the low level events.
+            eventLs = self.each_event.map { |event| event.to_low }
+            # Create and return the resulting low level behavior.
+            behaviorL = HDLRuby::Low::TimeBehavior.new(blockL)
+            eventLs.each(&behaviorL.method(:add_event))
+            return behaviorL
         end
     end
 

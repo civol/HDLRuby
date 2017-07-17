@@ -18,3 +18,9 @@ end
 
 # Instantiate it for checking.
 blockblock :blockblockI
+
+# Generate the low level representation.
+low = blockblockI.to_low
+
+# Displays it
+puts low.to_yaml
