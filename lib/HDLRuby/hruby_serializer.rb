@@ -223,7 +223,9 @@ module HDLRuby
             result = { class_name => content }
             # Fills the contents with the instance variables value.
             self.instance_variables.each do |var_sym|
+                next if var_sym == :@parent
                 # print "for instance variable #{var_sym}...\n"
+                # Skip the parent.
                 # Get the value of the variable.
                 var_val = self.instance_variable_get(var_sym)
                 # Remove the @ from the symbol.

@@ -58,7 +58,7 @@ end
 
 print "\nCreating a system type with content (also using the created char type)... "
 begin
-   $systemT1 = system :systemT1 do |x,y,z|
+   $systemT1 = system :systemT1 do # |x,y,z|
        bit.input :clk
        systemT0 :my_system
        input :i0, :i1
@@ -72,7 +72,7 @@ begin
        [bit[4],unsigned[8],signed[16]].inner :my_sig
 
        o0 <= i0 + i1       # Standard connection
-       x <= mux(o0, y, z)  # Connection of generic parameters with a mux
+       # x <= mux(o0, y, z)  # Connection of generic parameters with a mux
 
        behavior(i0.posedge) do
            (o1 <= i0 * i1).hif(i0 != 0)
@@ -129,7 +129,8 @@ end
 
 print "Instantiate it... "
 begin
-    $systemI1 = $systemT1.instantiate("systemI1",SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner))
+    # $systemI1 = $systemT1.instantiate("systemI1",SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner))
+    $systemI1 = $systemT1.instantiate("systemI1")
     systemI1Is = $systemI1.each_systemI.to_a
     success = true
     if systemI1Is.size != 1 then
@@ -230,20 +231,20 @@ begin
     end
 
     systemI1Connections = $systemI1.each_connection.to_a
-    if systemI1Connections.size != 2 then
-        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 2."
+    if systemI1Connections.size != 1 then
+        puts "Error: invalid number of connections, got #{systemI1Connections.size} but expecting 1."
         success = false
-    elsif systemI1Connections[0].left.name != :o0 then
-        puts "Error: invalid left for connection, got #{systemI1Connections[0].left.name} but expecting o0."
+    elsif systemI1Connections[0].left.object.name != :o0 then
+        puts "Error: invalid left for connection, got #{systemI1Connections[0].left.object.name} but expecting o0."
         success = false
     elsif systemI1Connections[0].right.operator != :+ then
         puts "Error: invalid right operator for connection, got #{systemI1Connections[0].right.operator} but expecting +."
         success = false
-    elsif systemI1Connections[0].right.left.name != :i0 then
-        puts "Error: invalid right left for connection, got #{systemI1Connections[0].right.left.name} but expecting i0."
+    elsif systemI1Connections[0].right.left.object.name != :i0 then
+        puts "Error: invalid right left for connection, got #{systemI1Connections[0].right.left.object.name} but expecting i0."
         success = false
-    elsif systemI1Connections[0].right.right.name != :i1 then
-        puts "Error: invalid right right for connection, got #{systemI1Connections[0].right.right.name} but expecting i1."
+    elsif systemI1Connections[0].right.right.object.name != :i1 then
+        puts "Error: invalid right right for connection, got #{systemI1Connections[0].right.right.object.name} but expecting i1."
         success = false
     end
 
@@ -259,8 +260,8 @@ begin
         success = false
     elsif systemI1Events[0].type != :posedge then
         puts "Error: invalid type of event, got #{systemI1Events[0].type} but expecting posedge."
-    elsif systemI1Events[0].ref.name != :i0 then
-        puts "Error: invalid event reference, got #{systemI1Events[0].ref.name} but expecting i0."
+    elsif systemI1Events[0].ref.object.name != :i0 then
+        puts "Error: invalid event reference, got #{systemI1Events[0].ref.object.name} but expecting i0."
     end
     systemI1Block = systemI1Behavior.block
     if systemI1Block.mode != :par then
@@ -274,17 +275,17 @@ begin
     elsif !systemI1Statements[0].is_a?(Transmit) then
         puts "Error: invalid first statement, got #{systemI1Statements[0].class} but expecting Transmit."
         success = false
-    elsif systemI1Statements[0].left.name != :o1 then
-        puts "Error: invalid first statement left, got #{systemI1Statements[0].left.name} but expecting o1."
+    elsif systemI1Statements[0].left.object.name != :o1 then
+        puts "Error: invalid first statement left, got #{systemI1Statements[0].left.object.name} but expecting o1."
         success = false
     elsif systemI1Statements[0].right.operator != :* then
         puts "Error: invalid first statement right operator, got #{systemI1Statements[0].right.operator} but expecting *."
         success = false
-    elsif systemI1Statements[0].right.left.name != :i0 then
-        puts "Error: invalid first statement right left, got #{systemI1Statements[0].right.left.name} but expecting i0."
+    elsif systemI1Statements[0].right.left.object.name != :i0 then
+        puts "Error: invalid first statement right left, got #{systemI1Statements[0].right.left.object.name} but expecting i0."
         success = false
-    elsif systemI1Statements[0].right.right.name != :i1 then
-        puts "Error: invalid first statement right right, got #{systemI1Statements[0].right.left.name} but expecting i1."
+    elsif systemI1Statements[0].right.right.object.name != :i1 then
+        puts "Error: invalid first statement right right, got #{systemI1Statements[0].right.left.object.name} but expecting i1."
         success = false
     elsif !systemI1Statements[2].is_a?(If) then
         puts "Error: invalid third statement, got #{systemI1Statements[2].class} but expecting If."
@@ -301,8 +302,8 @@ begin
     elsif !systemI1Statements[3].is_a?(Case) then
         puts "Error: invalid fourth statement, got #{systemI1Statements[3].class} but expecting Case."
         success = false
-    elsif systemI1Statements[3].value.name != :i2 then
-        puts "Error: invalid fourth statement value, got #{systemI1Statements[3].value.name} but expecting i2."
+    elsif systemI1Statements[3].value.object.name != :i2 then
+        puts "Error: invalid fourth statement value, got #{systemI1Statements[3].value.object.name} but expecting i2."
         success = false
     elsif systemI1Statements[3].each_when.to_a.size != 2 then
         puts "Error: invalid number of when for fourth statement, got #{systemI1Statements[3].each_when.to_a.size} but expecting 2."
@@ -335,7 +336,10 @@ begin
     elsif !systemI1SeqStatements[0].left.is_a?(RefRange) then
         puts "Error: invalid first statement left reference, got #{systemI1SeqStatements[0].left.class} but expecting RefRange."
         success = false
-    elsif systemI1SeqStatements[0].left.range != (7..0) then
+    elsif systemI1SeqStatements[0].left.range.first.content != 7 then
+        puts "Error: invalid first statement left reference range, got #{systemI1SeqStatements[0].left.range} but expecting 7..0."
+        success = false
+    elsif systemI1SeqStatements[0].left.range.last.content != 0 then
         puts "Error: invalid first statement left reference range, got #{systemI1SeqStatements[0].left.range} but expecting 7..0."
         success = false
     elsif !systemI1SeqStatements[0].left.ref.is_a?(RefName) then
@@ -344,8 +348,8 @@ begin
     elsif systemI1SeqStatements[0].left.ref.name != :int then
         puts "Error: invalid first statement left left reference name, got #{systemI1SeqStatements[0].left.ref.name} but expecting int."
         success = false
-    elsif systemI1SeqStatements[0].left.ref.ref.name != :value then
-        puts "Error: invalid first statement left left left reference name, got #{systemI1SeqStatements[0].left.ref.ref.name} but expecting value."
+    elsif systemI1SeqStatements[0].left.ref.ref.object.name != :value then
+        puts "Error: invalid first statement left left left reference name, got #{systemI1SeqStatements[0].left.ref.ref.object.name} but expecting value."
         success = false
     end
 
@@ -401,8 +405,8 @@ begin
         success = false
     elsif systemI1AtEvents[0].type != :posedge then
         puts "Error: invalid type of event, got #{systemI1AtEvents[0].type} but expecting posedge."
-    elsif systemI1AtEvents[0].ref.name != :clk then
-        puts "Error: invalid event reference, got #{systemI1AtEvents[0].ref.name} but expecting clk."
+    elsif systemI1AtEvents[0].ref.object.name != :clk then
+        puts "Error: invalid event reference, got #{systemI1AtEvents[0].ref.object.name} but expecting clk."
     end
     systemI1AtBlock = systemI1At.block
     if systemI1AtBlock.mode != :par then
@@ -416,17 +420,17 @@ begin
     elsif !systemI1AtStatements[0].is_a?(Transmit) then
         puts "Error: invalid first statement, got #{systemI1AtStatements[0].class} but expecting Transmit."
         success = false
-    elsif systemI1AtStatements[0].left.name != :o1 then
-        puts "Error: invalid first statement left, got #{systemI1AtStatements[0].left.name} but expecting o1."
+    elsif systemI1AtStatements[0].left.object.name != :o1 then
+        puts "Error: invalid first statement left, got #{systemI1AtStatements[0].left.object.name} but expecting o1."
         success = false
     elsif systemI1AtStatements[0].right.operator != :+ then
         puts "Error: invalid first statement right operator, got #{systemI1AtStatements[0].right.operator} but expecting +."
         success = false
-    elsif systemI1AtStatements[0].right.left.name != :i2 then
-        puts "Error: invalid first statement right left, got #{systemI1AtStatements[0].right.left.name} but expecting i2."
+    elsif systemI1AtStatements[0].right.left.object.name != :i2 then
+        puts "Error: invalid first statement right left, got #{systemI1AtStatements[0].right.left.object.name} but expecting i2."
         success = false
-    elsif systemI1AtStatements[0].right.right.name != :i3 then
-        puts "Error: invalid first statement right right, got #{systemI1AtStatements[0].right.left.name} but expecting i3."
+    elsif systemI1AtStatements[0].right.right.object.name != :i3 then
+        puts "Error: invalid first statement right right, got #{systemI1AtStatements[0].right.left.object.name} but expecting i3."
         success = false
     end
 

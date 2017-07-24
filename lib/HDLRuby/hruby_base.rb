@@ -23,6 +23,26 @@ module HDLRuby::Base
         alias :each :each_value
     end
 
+    ##
+    # Gives parent definition and access properties to an hardware object.
+    module Hparent
+        # The parent.
+        attr_reader :parent
+
+        # Set the +parent+.
+        #
+        # Note: if +parent+ is nil, the current parent is removed.
+        def parent=(parent)
+            if @parent and parent and !@parent.equal?(parent) then
+                # The parent is already defined,it is not to be removed,
+                # and the new parent is different, error.
+                raise "Parent already defined."
+            else
+                @parent = parent
+            end
+        end
+    end
+
 
     ## 
     # Describes system type.
@@ -66,6 +86,10 @@ module HDLRuby::Base
                 raise "SystemI #{systemI.name} already present."
             end
             # @systemIs[systemI.name] = systemI
+            # Set the parent of the instance
+            systemI.parent = self
+            # puts "systemI = #{systemI}, parent=#{self}"
+            # Add the instance
             @systemIs.add(systemI)
         end
 
@@ -87,7 +111,13 @@ module HDLRuby::Base
 
         # Deletes system instance systemI.
         def delete_systemI(systemI)
-            @systemIs.delete(systemI.name)
+            if @systemIs.key?(systemI.name) then
+                # The instance is present, do remove it.
+                @systemIs.delete(systemI.name)
+                # And remove its parent.
+                systemI.parent = nil
+            end
+            systemI
         end
 
         # Handling the signals.
@@ -104,6 +134,9 @@ module HDLRuby::Base
                 raise "SignalI #{signal.name} already present."
             end
             # @inputs[signal.name] = signal
+            # Set the parent of the signal.
+            signal.parent = self
+            # And add the signal.
             @inputs.add(signal)
         end
 
@@ -118,6 +151,9 @@ module HDLRuby::Base
                 raise "SignalI #{signal.name} already present."
             end
             # @outputs[signal.name] = signal
+            # Set the parent of the signal.
+            signal.parent = self
+            # And add the signal.
             @outputs.add(signal)
         end
 
@@ -132,6 +168,9 @@ module HDLRuby::Base
                 raise "SignalI #{signal.name} already present."
             end
             # @inouts[signal.name] = signal
+            # Set the parent of the signal.
+            signal.parent = self
+            # And add the signal.
             @inouts.add(signal)
         end
 
@@ -146,6 +185,9 @@ module HDLRuby::Base
                 raise "SignalI #{signal.name} already present."
             end
             # @inners[signal.name] = signal
+            # Set the parent of the signal.
+            signal.parent = self
+            # And add the signal.
             @inners.add(signal)
         end
 
@@ -286,22 +328,46 @@ module HDLRuby::Base
 
         # Deletes input +signal+.
         def delete_input(signal)
-            @inputs.delete(signal.name)
+            if @inputs.key?(signal) then
+                # The signal is present, delete it.
+                @inputs.delete(signal.name)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Deletes output +signal+.
         def delete_output(signal)
-            @outputs.delete(signal.name)
+            if @outputs.key?(signal) then
+                # The signal is present, delete it.
+                @outputs.delete(signal.name)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Deletes inout +signal+.
         def delete_inout(signal)
-            @inouts.delete(signal.name)
+            if @inouts.key?(signal) then
+                # The signal is present, delete it.
+                @inouts.delete(signal.name)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Deletes inner +signal+.
         def delete_inner(signal)
-            @inners.delete(signal.name)
+            if @inners.key?(signal) then
+                # The signal is present, delete it. 
+                @inners.delete(signal.name)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Handling the connections.
@@ -311,6 +377,9 @@ module HDLRuby::Base
             unless connection.is_a?(Connection)
                 raise "Invalid class for a connection: #{connection.class}"
             end
+            # Set the parent of the connection.
+            connection.parent = self
+            # And add it.
             @connections << connection
             connection
         end
@@ -327,7 +396,13 @@ module HDLRuby::Base
 
         # Deletes +connection+.
         def delete_connection(connection)
-            @connections.delete(connection)
+            if @connections.include?(connection) then
+                # The connection is present, delete it.
+                @connections.delete(connection)
+                # And remove its parent.
+                connection.parent = nil
+            end
+            connection
         end
 
         # Iterates over all the connections of the system type and its system
@@ -351,6 +426,9 @@ module HDLRuby::Base
             unless behavior.is_a?(Behavior)
                 raise "Invalid class for a behavior: #{behavior.class}"
             end
+            # Set its parent
+            behavior.parent = self
+            # And add it
             @behaviors << behavior
             behavior
         end
@@ -381,7 +459,12 @@ module HDLRuby::Base
 
         # Deletes +behavior+.
         def delete_behavior(behavior)
-            @behaviors.delete(behavior)
+            if @behaviors.include?(behavior) then
+                # The behavior is present, delete it.
+                @behaviors.delete(behavior)
+                # And remove its parent.
+                behavior.parent = nil
+            end
         end
 
         # Iterates over all the blocks of the system type and its system
@@ -614,6 +697,8 @@ module HDLRuby::Base
     # Describes a behavior.
     class Behavior
 
+        include Hparent
+
         # # Creates a new behavior.
         # def initialize
         #     # Initialize the sensitivity list.
@@ -637,6 +722,9 @@ module HDLRuby::Base
             if block.is_a?(TimeBlock)
                 raise "Timed blocks are not supported in common behaviors."
             end
+            # Set the block's parent.
+            block.parent = self
+            # And set the block
             @block = block
         end
 
@@ -647,6 +735,9 @@ module HDLRuby::Base
             unless event.is_a?(Event)
                 raise "Invalid class for a event: #{event.class}"
             end
+            # Set the event's parent.
+            event.parent = self
+            # And add the event.
             @events << event
             event
         end
@@ -661,31 +752,6 @@ module HDLRuby::Base
             @events.each(&ruby_block)
         end
 
-        # # Handle the blocks.
-
-        # # Adds a +block+.
-        # #
-        # # NOTE: TimeBlock is not supported unless for TimeBehavior objects.
-        # def add_block(block)
-        #     unless block.is_a?(Block)
-        #         raise "Invalid class for a block: #{block.class}"
-        #     end
-        #     if block.is_a?(TimeBlock)
-        #         raise "Timed blocks are not supported in common behaviors."
-        #     end
-        #     @blocks << block
-        #     block
-        # end
-
-        # # Iterates over the blocks.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each_block(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_block) unless ruby_block
-        #     # A block? Apply it on each block.
-        #     @blocks.each(&ruby_block)
-        # end
     end
 
 
@@ -713,25 +779,15 @@ module HDLRuby::Base
         def add_event(event)
             raise "Time behaviors do not have any sensitivity list."
         end
-
-        # # Handle the blocks.
-
-        # # Adds a +block+.
-        # # 
-        # # NOTE: TimeBlock is supported.
-        # def add_block(block)
-        #     unless block.is_a?(Block)
-        #         raise "Invalid class for a block: #{block.class}"
-        #     end
-        #     @blocks << block
-        #     block
-        # end
     end
 
 
     ## 
     # Describes an event.
     class Event
+
+        include Hparent
+
         # The type of event.
         attr_reader :type
 
@@ -754,6 +810,8 @@ module HDLRuby::Base
     ##
     # Describes a signal.
     class SignalI
+
+        include Hparent
         
         # The name of the signal
         attr_reader :name
@@ -778,6 +836,9 @@ module HDLRuby::Base
     ## 
     # Describes a system instance.
     class SystemI
+
+        include Hparent
+
         # The name of the instance if any.
         attr_reader :name
 
@@ -801,7 +862,7 @@ module HDLRuby::Base
         def name=(name)
             @name = name.to_sym
         end
-        protected :name=
+        # protected :name=
 
         # Delegate inner accesses to the system type.
         extend Forwardable
@@ -869,6 +930,7 @@ module HDLRuby::Base
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Statement
+        include Hparent
     end
 
 
@@ -907,11 +969,15 @@ module HDLRuby::Base
                 raise "Invalid class for a reference (left value): #{left.class}"
             end
             @left = left
+            # and set its parent.
+            left.parent = self
             # Check and set the right expression.
             unless right.is_a?(Expression)
                 raise "Invalid class for an expression (right value): #{right.class}"
             end
             @right = right
+            # and set its parent.
+            right.parent = self
         end
 
         # Iterates over the expression children if any.
@@ -942,16 +1008,22 @@ module HDLRuby::Base
                 raise "Invalid class for a condition: #{condition.class}"
             end
             @condition = condition
+            # And set its parent.
+            condition.parent = self
             # Check and set the yes statement.
             unless yes.is_a?(Statement)
                 raise "Invalid class for a statement: #{yes.class}"
             end
             @yes = yes
+            # And set its parent.
+            yes.parent = self
             # Check and set the yes statement.
             if no and !no.is_a?(Statement)
                 raise "Invalid class for a statement: #{no.class}"
             end
             @no = no
+            # And set its parent.
+            no.parent = self if no
         end
 
         # Sets the no block.
@@ -966,6 +1038,8 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{no.class}"
             end
             @no = no
+            # And set its parent.
+            no.parent = self
         end
 
         # Iterates over all the blocks contained in the current block.
@@ -997,6 +1071,8 @@ module HDLRuby::Base
                 raise "Invalid class for a value: #{value.class}"
             end
             @value = value
+            # And set its parent.
+            value.parent = self
             # Initialize the match cases.
             @whens = []
         end
@@ -1013,6 +1089,8 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{statement.class}"
             end
             @whens << [match,statement]
+            # And set their parents.
+            match.parent = statement.parent = self
             [match,statement]
         end
 
@@ -1028,6 +1106,9 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{default.class}"
             end
             @default = default
+            # And set its parent.
+            default.parent = self
+            @default
         end
 
         # Iterates over the match cases.
@@ -1058,6 +1139,9 @@ module HDLRuby::Base
     ##
     # Describes a delay: not synthesizable.
     class Delay
+
+        include Hparent
+
         # The time unit.
         attr_reader :unit
 
@@ -1090,6 +1174,8 @@ module HDLRuby::Base
                 raise "Invalid class for a delay: #{delay.class}."
             end
             @delay = delay
+            # And set its parent.
+            delay.parent = self
         end
 
     end
@@ -1112,12 +1198,16 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{statement.class}."
             end
             @statement = statement
+            # And set its parent.
+            statement.parent = self
 
             # Check and set the delay.
             unless delay.is_a?(Delay)
                 raise "Invalid class for a delay: #{delay.class}."
             end
             @delay = delay
+            # And set its parent.
+            delay.parent = self
         end
     end
 
@@ -1150,6 +1240,9 @@ module HDLRuby::Base
                 raise "SignalI #{signal.name} already present."
             end
             # @inners[signal.name] = signal
+            # Set its parent.
+            signal.parent = self
+            # And add it
             @inners.add(signal)
         end
 
@@ -1195,6 +1288,8 @@ module HDLRuby::Base
                 raise "Timed statements are not supported in common blocks."
             end
             @statements << statement
+            # And set its parent.
+            statement.parent = self
             statement
         end
 
@@ -1210,7 +1305,13 @@ module HDLRuby::Base
 
         # Deletes +statement+.
         def delete_statement(statement)
-            @statements.delete(statement)
+            if @statements.include?(statement) then
+                # Statement is present, delete it.
+                @statements.delete(statement)
+                # And remove its parent.
+                statement.parent = nil
+            end
+            statement
         end
 
         # Iterates over all the blocks contained in the current block.
@@ -1252,6 +1353,8 @@ module HDLRuby::Base
                 raise "Invalid class for a statement: #{statement.class}"
             end
             @statements << statement
+            # And set its parent.
+            statement.parent = self
             statement
         end
     end
@@ -1260,11 +1363,14 @@ module HDLRuby::Base
     ##
     # Decribes a piece of software code.
     class Code
+
+        include Hparent
+
         ## The type of code.
-        attr_reader :code
+        attr_reader :type
 
         # Creates a new piece of +type+ code from +content+.
-        def initialize(type,content)
+        def initialize(type,&content)
             # Check and set type.
             @type = type.to_sym
             # Set the content.
@@ -1291,6 +1397,9 @@ module HDLRuby::Base
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Expression
+
+        include Hparent
+
         # Iterates over the expression children if any.
         def each_child(&ruby_block)
             # By default: no child.
@@ -1302,6 +1411,7 @@ module HDLRuby::Base
         def each_ref_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
+            # puts "each_ref_deep for Expression which is:#{self}"
             # A block?
             # If the expression is a reference, applies ruby_block on it.
             ruby_block.call(self) if self.is_a?(Ref)
@@ -1375,6 +1485,8 @@ module HDLRuby::Base
             end
             # @children = [ child ]
             @child = child
+            # And set its parent.
+            child.parent = self
         end
 
         # Iterates over the expression children if any.
@@ -1391,6 +1503,7 @@ module HDLRuby::Base
         def each_ref_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
+            # puts "each_ref_deep for Unary"
             # A block?
             # Recurse on the child.
             @child.each_ref_deep(&ruby_block)
@@ -1419,9 +1532,10 @@ module HDLRuby::Base
             unless right.is_a?(Expression)
                 raise "Invalid class for an expression: #{right.class}"
             end
-            # @children = [ left, right ]
             @left = left
             @right = right
+            # And set their parents.
+            left.parent = right.parent = self
         end
 
         # Iterates over the expression children if any.
@@ -1439,10 +1553,11 @@ module HDLRuby::Base
         def each_ref_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
+            # puts "each_ref_deep for Binary"
             # A block?
             # Recurse on the children.
-            left.each_ref_deep(&ruby_block)
-            right.each_ref_deep(&ruby_block)
+            @left.each_ref_deep(&ruby_block)
+            @right.each_ref_deep(&ruby_block)
         end
     end
 
@@ -1465,6 +1580,8 @@ module HDLRuby::Base
                 raise "Invalid class for an expression: #{select.class}"
             end
             @select = select
+            # And set its parent.
+            select.parent = self
             # Check and set the choices.
             @choices = []
             choices.each do |choice|
@@ -1472,6 +1589,8 @@ module HDLRuby::Base
                     raise "Invalid class for an expression: #{choice.class}"
                 end
                 @choices << choice
+                # And set its parent.
+                choice.parent = self
             end
         end
 
@@ -1500,6 +1619,7 @@ module HDLRuby::Base
         def each_ref_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
+            # puts "each_ref_deep for Select"
             # A block?
             # Recurse on the children.
             self.select.each_ref_deep(&ruby_block)
@@ -1529,6 +1649,9 @@ module HDLRuby::Base
             end
             # Add it.
             @expressions << expression
+            # And set its parent.
+            expression.parent = self
+            expression
         end
 
         # Iterates over the concatenated expressions.
@@ -1586,6 +1709,8 @@ module HDLRuby::Base
                 end
             end
             @refs = refs
+            # And set their parents.
+            refs.each { |ref| ref.parent = self }
         end
 
         # Iterates over the concatenated references.
@@ -1617,11 +1742,15 @@ module HDLRuby::Base
                 raise "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
+            # And set its parent.
+            ref.parent = self
             # Check and set the index.
             unless index.is_a?(Expression) then
                 raise "Invalid class for an index reference: #{index.class}."
             end
             @index = index
+            # And set its parent.
+            index.parent = self
         end
 
         # Iterates over the names of the path indicated by the reference.
@@ -1658,6 +1787,8 @@ module HDLRuby::Base
                 raise "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
+            # And set its parent.
+            ref.parent = self
             # Check and set the range.
             first = range.first
             unless first.is_a?(Expression) then
@@ -1668,6 +1799,8 @@ module HDLRuby::Base
                 raise "Invalid class for a range last: #{last.class}."
             end
             @range = first..last
+            # And set their parents.
+            first.parent = last.parent = self
         end
 
         # Iterates over the names of the path indicated by the reference.
@@ -1704,6 +1837,8 @@ module HDLRuby::Base
                 raise "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
+            # And set its parent.
+            ref.parent = self
             # Check and set the symbol.
             @name = name.to_sym
         end

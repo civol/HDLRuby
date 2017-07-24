@@ -265,13 +265,15 @@ eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7"]
 
 # Generate an expression from a signal or constant name
 def eName2Exp(name)
+    # puts "eName2Exp with name=#{name}"
     ref = $refs.find do |ref|
         if ref.ref.respond_to?(:name) then
-            ref.ref.name == name
+            ref.ref.name == name.to_sym
         else
-            ref.name
+            ref.name == name.to_sym
         end
     end
+    # puts "ref=#{ref}"
     unless ref
         return Value.new(:bit8,name.to_i)
     end
@@ -283,8 +285,11 @@ eNames.each do |eName|
     print "  Expression #{eName}... "
     begin
         left = eName2Exp(eName[0..1])
+        # puts "left=#{left}"
         operator = eName[2].to_sym
+        # puts "operator=#{operator}"
         right = eName2Exp(eName[3..-1])
+        # puts "right=#{right}"
         expression = Binary.new(operator,left,right)
         $expressions << expression
         success = true
@@ -301,6 +306,7 @@ eNames.each do |eName|
             success = false
         end
         all_refs = expression.each_ref_deep.to_a
+        # puts "all_refs=#{all_refs}"
         unless all_refs[0] == expression.left then
             puts "Error: invalid first result for each_ref_deep, got #{all_refs[0]} but expecting #{expression.left}."
             success = false
@@ -327,6 +333,8 @@ eNames.each do |eName|
         else
             $success = false
         end
+        # Remove the parents for reusing the references (just for test purpose)
+        all_refs.each {|ref| ref.parent = nil }
     # rescue Exception => e
     #     puts "Error: unexpected exception raised #{e.inspect}\n"
     #     $success = false

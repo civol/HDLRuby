@@ -3,9 +3,9 @@ require 'HDLRuby'
 configure_high
 
 # Some very complex system which sends 8 bit values.
-system :systemA do |data|
+system :systemA do
     input :clk, :rst
-    [7..0].output data # Set data as 8-bit output while keeping its properties
+    [7..0].output :data
 
     behavior(clk.posedge) do
         ( data <= mux(rst == 0, 0, data + 1) ).hif(data.can_write)
@@ -14,9 +14,9 @@ end
 
 
 # Another extremly complex system which recieves 8 bit values.
-system :systemB do |data|
+system :systemB do
     input :clk
-    [7..0].input data # Set data as 8-bit input while keeping its properties
+    [7..0].input :data
     output :result
 
     behavior(clk.posedge) do
@@ -37,7 +37,7 @@ system :directAB do
 end
 
 # Instantiate it for checking.
-Universe.directAB :directABI
+directAB :directABI
 
 
 # A system connecting A to B through a serial interface.

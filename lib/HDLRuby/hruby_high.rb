@@ -53,6 +53,8 @@ module HDLRuby::High
         def initialize(user)
             # Sets the user.
             @user = user
+            # Initialize the concat namespaces.
+            @concats = []
         end
 
         # Adds an access point by +name+ provided the name is not empty.
@@ -72,12 +74,29 @@ module HDLRuby::High
             # end
             
             # Ensure namespace is really a namespace and concat it.
-            self.eigen_extend(namespace.to_namespace)
+            namespace = namespace.to_namespace
+            self.eigen_extend(namespace)
+            # Adds the concat the the list.
+            @concats << namespace
         end
 
         # Ensure it is a namespace
         def to_namespace
             return self
+        end
+
+        # Tell if an +object+ is the user of the namespace.
+        def user?(object)
+            return @user.equal?(object)
+        end
+
+        # Tell if an +object+ is the user of the namespace or of one of its
+        # concats.
+        def user_deep?(object)
+            # Maybe object is the user of this namespace.
+            return true if user?(object)
+            # No, try in the concat namespaces.
+            @concats.any? { |concat| concat.user_deep?(object) }
         end
     end
 
@@ -236,9 +255,11 @@ module HDLRuby::High
                             if name.respond_to?(:to_sym) then
                                 self.add_inner(SignalI.new(name,type,:inner))
                             else
-                                signal = name.clone
-                                signal.dir = :inner
-                                self.add_inner(signal)
+                                # Deactivated because conflict with parent.
+                                # signal = name.clone
+                                # signal.dir = :inner
+                                # self.add_inner(signal)
+                                raise "Invalid class for a name: #{name.class}"
                             end
                         end
                     end
@@ -324,6 +345,8 @@ module HDLRuby::High
             end
             # Add the group.
             @groupIs[name.to_sym] = instances
+            # Sets the parent of the instances.
+            instances.each { |instance| instance.parent = self }
         end
 
         # Access a group of system instances by +name+.
@@ -352,9 +375,11 @@ module HDLRuby::High
                     # self.add_input(SignalI.new(rn!(name),type,:input))
                     self.add_input(SignalI.new(name,type,:input))
                 else
-                    signal = name.clone
-                    signal.dir = :input
-                    self.add_input(signal)
+                    # Deactivated because conflict with parent.
+                    # signal = name.clone
+                    # signal.dir = :input
+                    # self.add_input(signal)
+                    raise "Invalid class for a name: #{name.class}"
                 end
             end
         end
@@ -370,9 +395,11 @@ module HDLRuby::High
                     # self.add_output(SignalI.new(rn!(name),type,:output))
                     self.add_output(SignalI.new(name,type,:output))
                 else
-                    signal = name.clone
-                    signal.dir = :output
-                    self.add_output(signal)
+                    # Deactivated because conflict with parent.
+                    # signal = name.clone
+                    # signal.dir = :output
+                    # self.add_output(signal)
+                    raise "Invalid class for a name: #{name.class}"
                 end
             end
         end
@@ -386,9 +413,11 @@ module HDLRuby::High
                     # self.add_inout(SignalI.new(rn!(name),type,:inout))
                     self.add_inout(SignalI.new(name,type,:inout))
                 else
-                    signal = name.clone
-                    signal.dir = :inout
-                    self.add_inout(signal)
+                    # Deactivated because conflict with parent.
+                    # signal = name.clone
+                    # signal.dir = :inout
+                    # self.add_inout(signal)
+                    raise "Invalid class for a name: #{name.class}"
                 end
             end
         end
@@ -402,9 +431,11 @@ module HDLRuby::High
                     # self.add_inner(SignalI.new(rn!(name),type,:inner))
                     self.add_inner(SignalI.new(name,type,:inner))
                 else
-                    signal = name.clone
-                    signal.dir = :inner
-                    self.add_inner(signal)
+                    # Deactivated because conflict with parent.
+                    # signal = name.clone
+                    # signal.dir = :inner
+                    # self.add_inner(signal)
+                    raise "Invalid class for a name: #{name.class}"
                 end
             end
         end
@@ -496,6 +527,16 @@ module HDLRuby::High
         # The instantiation target class.
         attr_reader :instance_class
 
+        # The instance owning the system if it is an eigen system
+        attr_reader :owner
+
+        # Sets the +owner+.
+        #
+        # Note: will make the system eigen
+        def owner=(owner)
+            @owner = owner
+        end
+
         # Instantiate the system type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
@@ -531,6 +572,8 @@ module HDLRuby::High
 
             # Create the instance.
             instance = @instance_class.new(i_name,eigen)
+            # Link it to its eigen system
+            eigen.owner = instance
             # Extend it.
             instance.eigen_extend(@singleton_instanceO)
             # Return the resulting instance
@@ -592,13 +635,13 @@ module HDLRuby::High
             end
         end
 
-        # Set up the parent structure of the whole system.
-        def make_parents_deep
-            # Connections.
-            self.each_connection_deep.each(:make_parents_deep)
-            # Statements.
-            self.each_statement_deep.each(:make_parents_deep)
-        end
+        # # Set up the parent structure of the whole system.
+        # def make_parents_deep
+        #     # Connections.
+        #     self.each_connection_deep.each(:make_parents_deep)
+        #     # Statements.
+        #     self.each_statement_deep.each(:make_parents_deep)
+        # end
 
         # # Resolves the unknown signal types and conflicts.
         # def resolve_types
@@ -772,8 +815,6 @@ module HDLRuby::High
             # Create the instance to include
             instance = system.instantiate(:"",*args)
             # Concat its public namespace to the current one.
-            # High.space_insert(High.space_index(self.private_namespace),
-            #                   instance.public_namespace)
             self.private_namespace.concat(instance.public_namespace)
             # Adds it the list of includeds
             @includeIs[system.name] = instance
@@ -807,7 +848,12 @@ module HDLRuby::High
             # Grouped ones.
             self.each_groupI do |name,systemIs|
                 systemIs.each.with_index { |systemI,i|
-                    systemTlow.add_systemI(systemI.to_low(name.to_s + "[#{i}]"))
+                    # Sets the name of the system instance
+                    # (required for conversion of further accesses).
+                    # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
+                    systemI.name = name.to_s + "[#{i}]"
+                    # And convert it to low
+                    systemTlow.add_systemI(systemI.to_low())
                 }
             end
             # Adds the connections.
@@ -828,6 +874,10 @@ module HDLRuby::High
             end
             # Create the resulting low system type.
             systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name))
+            # # Push the low conversion stack.
+            # High.low_push(self)
+            # Push the private namespace for the low generation.
+            High.space_push(@private_namespace)
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
@@ -837,6 +887,10 @@ module HDLRuby::High
             self.fill_low(systemTlow)
             # Restores the name stack.
             High.names_pop
+            # # Restores the low conversion stack.
+            # High.low_pop
+            # Restores the namespace stack.
+            High.space_pop
             # Return theresulting system.
             return systemTlow
         end
@@ -1694,6 +1748,7 @@ module HDLRuby::High
 
         # Converts the instance to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
+            # puts "to_low with #{self} (#{self.name}) #{self.systemT}"
             # Converts the system of the instance to HDLRuby::Low
             systemTlow = self.systemT.to_low(High.names_create(name.to_s+ "::T"))
             # Creates the resulting HDLRuby::Low instance
@@ -1909,84 +1964,84 @@ module HDLRuby::High
             @type = type
         end
 
-        # The parent construct.
-        attr_reader :parent
+        # # The parent construct.
+        # attr_reader :parent
 
-        # Sets the +parent+ construct.
-        def parent=(parent)
-            # Check and set the type.
-            unless ( parent.is_a?(Base::Expression) or
-                     parent.is_a?(Base::Transmit) or
-                     parent.is_a?(Base::If) or
-                     parent.is_a?(Base::Case) ) then
-                raise "Invalid class for a type: #{type.class}."
-            end
-            @parent = parent
-        end
+        # # Sets the +parent+ construct.
+        # def parent=(parent)
+        #     # Check and set the type.
+        #     unless ( parent.is_a?(Base::Expression) or
+        #              parent.is_a?(Base::Transmit) or
+        #              parent.is_a?(Base::If) or
+        #              parent.is_a?(Base::Case) ) then
+        #         raise "Invalid class for a type: #{type.class}."
+        #     end
+        #     @parent = parent
+        # end
 
-        # Iterates over the expression parents if any (actually at most once).
-        def each_parent(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_parent) unless ruby_block
-            # A block? Apply it on the parent.
-            ruby_block.call(@parent)
-        end
+        # # Iterates over the expression parents if any (actually at most once).
+        # def each_parent(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_parent) unless ruby_block
+        #     # A block? Apply it on the parent.
+        #     ruby_block.call(@parent)
+        # end
 
-        # Methods for conversion for HDLRuby::Low: type processing, flattening
-        # and so on
+        # # Methods for conversion for HDLRuby::Low: type processing, flattening
+        # # and so on
 
-        # Make the current expression a parent and recurse.
-        def make_parents_deep
-            # Set the parents of the children and recurse on them.
-            self.each_child do |child|
-                if child.respond_to?(:parent=) then
-                    child.parent = self
-                else
-                    child.add_parent(self)
-                end
-                child.make_parents_deep
-            end
-        end
+        # # Make the current expression a parent and recurse.
+        # def make_parents_deep
+        #     # Set the parents of the children and recurse on them.
+        #     self.each_child do |child|
+        #         if child.respond_to?(:parent=) then
+        #             child.parent = self
+        #         else
+        #             child.add_parent(self)
+        #         end
+        #         child.make_parents_deep
+        #     end
+        # end
 
-        # Resolves the unknown signal types and conflicts in the context
-        # of system type +systemT+.
-        # Returns true if the resolution succeeded.
-        #
-        # NOTE: sets the type of the expression.
-        def resolve_types(systemT)
-            # Only typed expression can be used for resolving types.
-            unless @type then
-                raise "Cannot resolve type: nil type."
-            end
-            # Resolve the children.
-            self.each_child do |child|
-                if child.type == nil then
-                    # The child's type is unknown, should not happen.
-                    raise "Cannot resolve type: child's type is nil."
-                end
-                # Check if the type is compatible with the child's.
-                if @type.compatible?(child.type) then
-                    # Yes, compute and set the new type for both.
-                    @type = child.type = type.merge(child.type)
-                else
-                    # Incombatible types, cannot resolve type.
-                    raise "Cannot resolve type: #{@type} and child's #{child.type} are incompatible."
-                end
-            end
-            # Resolve the parents.
-            self.each_parent do |parent|
-                if parent.type == nil then
-                    # Simple sets the parent's type to current one.
-                    parent.type = @type
-                elsif @type.compatible?(parent.type) then
-                    # Yes, compute and set the new type for both.
-                    @type = parent.type = type.merge(parent.type)
-                else
-                    # Incombatible types, cannot resolve type.
-                    raise "Cannot resolve type: #{@type} and #{parent.type} are incompatible."
-                end
-            end
-        end
+        # # Resolves the unknown signal types and conflicts in the context
+        # # of system type +systemT+.
+        # # Returns true if the resolution succeeded.
+        # #
+        # # NOTE: sets the type of the expression.
+        # def resolve_types(systemT)
+        #     # Only typed expression can be used for resolving types.
+        #     unless @type then
+        #         raise "Cannot resolve type: nil type."
+        #     end
+        #     # Resolve the children.
+        #     self.each_child do |child|
+        #         if child.type == nil then
+        #             # The child's type is unknown, should not happen.
+        #             raise "Cannot resolve type: child's type is nil."
+        #         end
+        #         # Check if the type is compatible with the child's.
+        #         if @type.compatible?(child.type) then
+        #             # Yes, compute and set the new type for both.
+        #             @type = child.type = type.merge(child.type)
+        #         else
+        #             # Incombatible types, cannot resolve type.
+        #             raise "Cannot resolve type: #{@type} and child's #{child.type} are incompatible."
+        #         end
+        #     end
+        #     # Resolve the parents.
+        #     self.each_parent do |parent|
+        #         if parent.type == nil then
+        #             # Simple sets the parent's type to current one.
+        #             parent.type = @type
+        #         elsif @type.compatible?(parent.type) then
+        #             # Yes, compute and set the new type for both.
+        #             @type = parent.type = type.merge(parent.type)
+        #         else
+        #             # Incombatible types, cannot resolve type.
+        #             raise "Cannot resolve type: #{@type} and #{parent.type} are incompatible."
+        #         end
+        #     end
+        # end
     end
 
 
@@ -2135,6 +2190,41 @@ module HDLRuby::High
         end
     end
 
+    ##
+    # Describes a high-level object reference: no low-level equivalent!
+    class RefObject < Base::Ref
+        include HRef
+
+        # The refered object.
+        attr_reader :object
+
+        # Creates a new reference to +object+.
+        def initialize(object)
+            @object = object
+        end
+
+        # Converts the reference to a low-level name reference.
+        def to_low
+            # Build the path of the reference.
+            path = []
+            cur = @object
+            # while(!High.low_has?(cur)) do
+            # while(!High.top_user.equal?(cur)) do
+            while(!High.top_user.user_deep?(cur)) do
+                cur = cur.owner if cur.respond_to?(:owner)
+                # puts "cur=#{cur}, name=#{cur.name}"
+                path << cur.name
+                cur = cur.parent
+                # puts " parent=#{cur} found? #{High.top_user.equal?(cur)}"
+            end
+            # puts "path=#{path}"
+            # Build the references from the path.
+            ref = this.to_low
+            path.each { |name| ref = HDLRuby::Low::RefName.new(ref,name) }
+            return ref
+        end
+    end
+
 
     ##
     # Describes a high-level concat reference.
@@ -2187,9 +2277,10 @@ module HDLRuby::High
     class RefThis < Base::RefThis
         High = HDLRuby::High
         include HRef
-        
-        # The only useful instance of RefThis.
-        This = RefThis.new
+       
+        # Deactivated since incompatible with the parent features.
+        # # The only useful instance of RefThis.
+        # This = RefThis.new
 
         # Gets the enclosing system type.
         def system
@@ -2215,7 +2306,7 @@ module HDLRuby::High
 
     # Gives access to the *this* reference.
     def this
-        RefThis::This
+        RefThis.new
     end
 
 
@@ -2281,6 +2372,10 @@ module HDLRuby::High
         def at(event)
             # Creates the behavior.
             left, right = self.left, self.right
+            # Detached left and right from their connection since they will
+            # be put in a new behavior instead.
+            left.parent = right.parent = nil
+            # Create the new behavior replacing the connection.
             behavior = Behavior.new(event) do
                 left <= right
             end
@@ -2362,10 +2457,10 @@ module HDLRuby::High
             @can_write = condition.to_expr
         end
 
-        # Tells if the signal is bounded or not.
-        def bounded?
-            return (@dir and @dir != :no)
-        end
+        # # Tells if the signal is bounded or not.
+        # def bounded?
+        #     return (@dir and @dir != :no)
+        # end
 
         # Sets the direction to +dir+.
         def dir=(dir)
@@ -2400,7 +2495,8 @@ module HDLRuby::High
 
         # Converts to a reference.
         def to_ref
-            return RefName.new(this,self.name)
+            # return RefName.new(this,self.name)
+            return RefObject.new(self)
         end
 
         # Converts to an expression.
@@ -2837,7 +2933,6 @@ module HDLRuby::High
 
 
 
-
     # Handle the namespaces for accessing the hardware referencing methods.
 
     # The universe, i.e., the top system type.
@@ -2988,6 +3083,7 @@ module HDLRuby::High
         # Not found.
         raise NoMethodError.new("undefined local variable or method `#{name}'.")
     end
+
 
 
 
@@ -3343,6 +3439,28 @@ module HDLRuby::High
     
     # Methods for managing the conversion to HDLRuby::Low
 
+    # # The stack of objects being converted to low.
+    # LowStack = []
+
+    # # Pushes +obj+ on the low stack.
+    # def self.low_push(obj)
+    #     puts "low_push with #{obj}"
+    #     LowStack.push(obj)
+    # end
+
+    # # Pops from the low stack.
+    # def self.low_pop
+    #     puts "low_pop #{LowStack[-1]}"
+    #     LowStack.pop
+    # end
+
+    # # Tells if +obj+ is in the low stack.
+    # def self.low_has?(obj)
+    #     puts "low_has? with #{obj}: #{LowStack.include?(obj)}"
+    #     LowStack.include?(obj)
+    # end
+
+    # Methods for generating uniq names in context
 
     # The stack of names for creating new names without conflicts.
     NameStack = [ Set.new ]
@@ -3377,11 +3495,10 @@ module HDLRuby::High
         while(self.names_has?(base)) do
             base << "_"
         end
-        base = base.to_sym
         # Add and return it
         self.names_add(base)
         # puts "created name: #{base}"
-        return base
+        return base.to_sym
     end
 
 end
