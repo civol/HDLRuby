@@ -612,12 +612,6 @@ behavior <list of events> do
 end
 ```
 
-[//]: # Alternatively, the `{}` delimiters can also be used as follows:
-[//]: # 
-[//]: # ```ruby
-[//]: # behavior(<list of events>) { <list of statements> }
-[//]: # ```
-
 In addition, it is possible to declare inner signals within an execution block.
 While such signal will physically linked to the system, they are only
 accessible within the block they are declared into. This permits a tighter scope
@@ -900,12 +894,6 @@ hif <condition> do
 end
 ```
 
-[//]: # Or alternatively, it can also be declared as follows:
-[//]: # 
-[//]: # ```ruby
-[//]: #  hif(<condition>) { <block contents> }
-[//]: # ```
-
 The condition can be any expression provided they are of a 1-bit type where `0`
 stands false and `1` for true (`Z` and `X` lead to undefined behavior).
 
@@ -926,15 +914,6 @@ end
 ...
 ```
 
-[//]: # Or alternatively, it can also be declared as follows:
-[//]: # 
-[//]: # ```ruby
-[//]: # hcase <expression>
-[//]: # hwhen(<value 0>) { <block contents 0> }
-[//]: # hwhen(<value 1>) { <block contents 1> }
-[//]: # ...
-[//]: # ```
-
 ##### helse
 
 It is possible to add a block that is executed when the condition of an `hif` is
@@ -947,13 +926,6 @@ helse do
    <block contents>
 end
 ```
-
- Or alternatively, helse case also be declared as follows:
- 
-[//]: # ```ruby
-[//]: # <hif or hcase construct>
-[//]: # helse { <block contents> }
-[//]: # ```
 
 ##### About loops
 
