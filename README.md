@@ -133,6 +133,13 @@ low_dff = dff.to_low
 This low-level description can then be used for simulation or for generating
 synthesizable Verilog or VHDL code.
 
+__Note:__
+
+- The majority of the hardware description generation is done when
+  instantiating systems. Actually, the `to_low` method only mangles the names
+  when inheriting so that Verilog or VHDL is easier to generate. It is high
+  probable this method becomes deprecated in the future.
+
 ---
 
 The code describing a `dff` given above is not much different from its
@@ -259,9 +266,8 @@ system :dff_full, dff do
 end
 ```
 
-The second possibility is to modify `dff` afterward (in Ruby this is called
-mokey patch). In HDLRuby::High, this achieved using the `open` method as it is
-done the following code:
+The second possibility is to modify `dff` afterward. In HDLRuby::High, this
+achieved using the `open` method as it is done the following code:
 
 ```ruby
 dff.open do
@@ -270,11 +276,15 @@ dff.open do
 end
 ```
 
-The third possibility is to modify directly sole instances of `dff` which
+The third possibility is to modify directly a single instance of `dff` which
 require an inverted output, using again the `open` method, as in the following
-code (`dff0` is assumed to be instance of `dff`):
+code:
 
 ```ruby
+# Declare dff0 as an instance of dff
+dff :dff0
+
+# Modify it
 dff0.open do
    output :qb
    qb <= ~q
@@ -288,8 +298,8 @@ Now assuming we opted for the first solution, we have now `dff_full` a highly
 advanced D-FF with such unique features as an inverted output. So we would like
 to use it in other designs, for example a shift register of `n` bits. Such a
 system will include a generic number of `dff_full` instance, and can be
-described as follows making use of the standard Ruby library for connecting
-them together with compact code:
+described as follows making use of the `zip` methods of the standard Ruby
+library for connecting them together with compact code:
 
 ```ruby
 system :shifter do |n|
@@ -322,7 +332,7 @@ are actually the arguments of this method (symbols or string are supported).
 
 ### How does HDLRuby::High work
 
-Contrary to descriptions is high-level HDL like SystemVerilog, VHDL or SystemC, 
+Contrary to descriptions in high-level HDL like SystemVerilog, VHDL or SystemC, 
 HDLRuby::High descriptions are not software-like description of hardware, but
 are programs meant to produce hardware descriptions. In other words, while
 the execution of a common HDL code will result of some simulation of
@@ -343,12 +353,12 @@ of HDLRuby::High describing the connection between signal `a` and signal `b`:
    a <= b
 ```
 
-Its execution will actual produce the actual hardware description of this
-connection, as an object of the HDLRuby::Low library (in the case an
-instance of the `HDLRuby::Low::Connection` class). Concretely, HDLRuby::High
-system is made of a Ruby block that is executed when the system is 
-instantiated. It is the execution result of this instantiation which is
-the synthesizable description of the hardware.
+Its execution will produce the actual hardware description of this connection,
+as an object of the HDLRuby::Low library (in the case an instance of the
+`HDLRuby::Low::Connection` class). Concretely, a HDLRuby::High system are
+described by a ruby block, and the instantiation of this system is actually
+performed by executing this block. It is the execution result of this
+instantiation which is the synthesizable description of the hardware.
 
 
 
@@ -380,9 +390,9 @@ general rule, a signal whose value is explicitly set all the time models a wire
 
 #### Declaring an empty system
 
-A system is declared using the keyword `system`, and must be given a ruby 
-symbol for name and a block that describe its content.
-For instance the following code describes an empty system named `void`:
+A system is declared using the keyword `system`. It must be given a ruby symbol
+for name and a block that describe its content.  For instance the following
+code describes an empty system named `void`:
 
 ```ruby
 system(:void) {}
@@ -397,10 +407,11 @@ __Notes__:
 system :void do
 end
 ```
+
 - Names in HDLRuby::High are natively stored as ruby symbols, but strings can
   also be used, e.g., `system("void") {}` is also valid.
 
-#### Declaring a system with a interface
+#### Declaring a system with an interface
 
 The interface of a system can be describes anywhere in its body, but it
 is recommended to do it at its beginning. It is done by declaring input, output
@@ -450,15 +461,15 @@ end
 In a system, structural descriptions consist of subsystems and 
 interconnections among them.
 
-A subsystem is obtained by instantiating an existing system using the
-system name (without any colon as mentioned [previously](#names)).
+A subsystem is obtained by instantiating an existing system as follows, where
+`<system name>` is the name of the system to instantiate (without any colon):
 
 ```ruby
 <system name> instance name
 ```
 
-For example, instantiating the `mem8_16` system declared in the previous
-section can be done as follows:
+For example, system `mem8_16` system declared in the previous section can be
+instantiated as follows:
 
 ```ruby
 mem8_16 :mem8_16I
@@ -496,8 +507,8 @@ A connection between signals is done using the arrow operator `<=` as follows:
 The `<destination>` must be a reference to a signal, and the `<source>` can
 be any expression.
 
-For example the following code, connects the ready signal of the system to `w1`
-and the clock of the system to the first bit of `w2`:
+For example the following code, connects signal `w1` to signal `ready`
+and signal `clk` to the first bit of signal `w2`:
 
 ```ruby
 ready <= w1
@@ -512,15 +523,15 @@ w2[1] <= clk & rst
 ```
 
 The signals of an instance can be connected through the arrow operator too,
-provided they are properly referred to. One way to refer they is to use the dot
+provided they are properly referred to. One way to refer them is to use the dot
 operator `.` on the instance as follows:
 
 ```ruby
 <instance name>.<signal name>
 ```
 
-For example the following code connects the clock of instance `mem8_16I` to
-`clk`:
+For example the following code connects signal `clk` of instance `mem8_16I` to
+signal `clk` of the current system:
 
 ```ruby
 mem8_16I.clk <= clk
@@ -533,9 +544,10 @@ operator `.()` as follows, where each target can be any expression:
 <intance name>.(<signal name0>: <target0>, ...)
 ```
 
-For example, the following code connects the clock and the reset of instance
-`mem8_16I` to `clk` and `rst`. As seen in this example, where the address
-and data bus are not connected yet, this method too allows partial connection.
+For example, the following code connects signals `clk` and `rst` of instance
+`mem8_16I` to signals `clk` and `rst` of the current system. As seen in this
+example, this method allows partial connection since the address and data bus
+are not connected yet.
 
 ```ruby
 mem8_16I.(clk: clk, rst: rst)
@@ -589,22 +601,22 @@ end
 
 #### Behavioral description in a system.
 
-In a system, behavioral descriptions consists of behavioral blocks, called
-`behaviors`.  These behaviors are the equivalent of the Verilog `always`
-blocks.
+In a system, behavioral descriptions are declared using the `behavior` keyword and are the equivalent of the Verilog `always` blocks.
 
-A behavior is made of a list of events (the sensistivity list) upon
-which it is activated, and a list of statements called execution block, or
-simply block. A behavior is declared as follows:
+A behavior is made of a list of events (the sensitivity list) upon which it is
+activated, and a list of statements. A behavior is declared as follows:
+
 ```ruby
 behavior <list of events> do
    <list of statements>
 end
 ```
-Alternatively, the `{}` delimiters can also be used as follows:
-```ruby
-behavior(<list of events>) { <list of statements> }
-```
+
+[//]: # Alternatively, the `{}` delimiters can also be used as follows:
+[//]: # 
+[//]: # ```ruby
+[//]: # behavior(<list of events>) { <list of statements> }
+[//]: # ```
 
 In addition, it is possible to declare inner signals within an execution block.
 While such signal will physically linked to the system, they are only
@@ -621,11 +633,12 @@ edge, `negedge` for falling edge, and `edge` for any edge.
 Events are described in more details in the [events section](#events).
 
 When one of the event of the sensitivity list of a behavior occurs, the
-block is executed, that means that each of its statement is executed in
-sequence. A statement can represent a data transmission to a signal, a control
-flow, or a nested execution block. Statements are described in more details in
-[statements section](#statements), in this section, we will focus on 
-transmission statements and block statements.
+behavior is executed, i.e., each of its statement is executed in sequence. A
+statement can represent a data transmission to a signal, a control flow, a
+nested execution block or the declaration of an inner signal (as stated
+earlier). Statements are described in more details in [statements
+section](#statements), in this section, we will focus on the transmission
+statements and the block statements.
 
 A transmission statement is declared using the arrow operator `<=` as follows:
 
@@ -639,21 +652,23 @@ as a connection. However, its execution model is different: whereas a
 connection is continuously executed, a transmission is only executed during
 the sequential execution of its block.
 
-An execution block is by default in parallel mode, i.e., its execution is
-equivalent to a parallel execution.  For that purpose, the transmissions such a
-block are non-blocking, i.e., the destination values will only change when the
-block is fully executed.  The other possible execution mode is called
-sequential and correspond to a true sequential execution.  For this latter
-mode, the transmissions are blocking, i.e., the destination value of a
-transmission is updated before the next statement is executed. A behavior
+A block statement is a sequence of statements, and allows to add hierarchy
+within a behavior. By default a block statement is in parallel mode, i.e., ita
+s execution is equivalent to a parallel execution.  For that purpose, the
+transmissions such a block are non-blocking, i.e., the destination values will
+only change when the block is fully executed.  The other possible execution
+mode is called sequential and correspond to a true sequential execution.  For
+this latter mode, the transmissions are blocking, i.e., the destination value
+of a transmission is updated before the next statement is executed. A behavior
 based on a sequential block is declared as follows:
+
 ```ruby
 behavior <list of events>,seq do
    <list of statements>
 end
 
-It is also possible to change the execution mode inside a block by
-declaring an inner block. An sequential inner block is declared as follows:
+It is possible to change the execution mode inside a block by declaring a new
+block statement. An sequential inner block is declared as follows:
 
 ```ruby
 seq do
@@ -661,7 +676,7 @@ seq do
 end
 ```
 
-It is also possible to declare a parallel inner block as follows:
+It is also possible to declare a parallel block statement as follows:
 
 ```ruby
 par do
@@ -669,8 +684,8 @@ par do
 end
 ```
 
-Finally it is possible to declare block with the same mode as the enclosing
-one as follows:
+Finally it is possible to declare a block statement with the same mode as the
+enclosing one as follows:
 
 ```ruby
 block do
@@ -678,10 +693,10 @@ block do
 end
 ```
 
-This latter kind of block is used for creating a new scope for declaring
-signals without colliding with existing ones while keeping the current
-execution mode. For example it is possible to declare three different inner
-signals all called `sig` as follows:
+This latter kind of block statemetn is used for creating a new scope for
+declaring signals without colliding with existing ones while keeping the
+current execution mode. For example it is possible to declare three different
+inner signals all called `sig` as follows:
 
 ```ruby
 ...
@@ -702,7 +717,7 @@ end
 
 To summarize this section, here is a behavioral description of a 16-bit shift
 register with asynchronous reset (`hif` and `helse` are keywords used for
-specifying a hardware if control statement).
+specifying hardware _if_ and _else_ control statements).
 
 ```ruby
 system :shift16 do
@@ -717,13 +732,13 @@ system :shift16 do
       hif(rst) { reg <= 0 }
       helse do
          reg[0] <= din
-         reg <= reg[14..0]
+         reg[15..1] <= reg[14..0]
       end
    end
 end
 ```
 
-In the above example, the order of the transmission statements is of no
+In the example above, the order of the transmission statements is of no
 consequence. This is not the case for the following example, that implements
 the same register using a sequential block. In this second example, putting
 statement `reg[0] <= din` in the last place would have lead to an invalid
@@ -761,7 +776,7 @@ __Note__:
     ```
   - Parallel mode can be set the same way using `par`.
 
-Finally, it often happens that behaviors contain only one statement.
+Finally, it often happens that a behavior contains only one statement.
 In such a case, the description can be shortened using the `at` operator
 as follows:
 
@@ -769,7 +784,7 @@ as follows:
 ( statement ).at(<list of events>)
 ```
 
-For example the following code can be shortened to the one after.
+For example the following two code samples are equivalent:
 
 ```ruby
 behavior(clk.posedge) do
@@ -781,21 +796,30 @@ end
 ( a <= b+1 ).at(clk.posedge)
 ```
 
+This operator can also be applied on block statements as follows, but the code
+might not be as readable as one using the `behavior` keyword:
+
+```ruby
+( seq do
+     a <= b+1
+     c <= d+2
+  end ).at(clk.posedge)
+```
+
 
 ### Events
 <a name="events"></a>
 
 Each behavior of a system is associated with a list of events, called
-sensibility list, that specifies when the behavior has to be executed.
-Therefore, an event actually models an instant. More precisely, an event is
-associated to a single-bit signal and represents the instants when the signal
-varies to a given state.
+sensibility list, that specifies when the behavior is to be executed.  An event
+is associated with a signal and represents the instants when the signal varies
+to a given state.
 
-There are three kind of events: a positive edge event represents
-the instants when the signal varies from 0 to 1, a negative edge event
-represents the instants when the signal varies from 1 to 0 and the change
-event represents the instants when the signal changes its value.
-Event are declared directly from the signals, using the `posedge` operator
+There are three kind of events: positive edge events represent the instants
+when their corresponding signals vary from 0 to 1, negative edge events
+represent the instants when their corresponding signals vary from 1 to 0 and
+the change events represent the instants when their corresponding signal vary.
+Events are declared directly from the signals, using the `posedge` operator
 for positive edge, `negedge` operator for negative edge, and `change` operator
 for change. For example the following code declares 3 behaviors activated
 respectively on the positive edge, the negative edge and any change of the
@@ -817,39 +841,42 @@ behavior(clk.change) do
 end
 ```
 
+__Note:__
+ - The `change` keyword can be omitted.
+
 ### Statements
 <a name="statements"></a>
 
 Statements are the basic elements of a behavioral description and are regrouped
 in blocks that specify their execution mode (parallel or sequential).  There
-are three kinds of statements: transmit statements whose execution computes an
-expression and transmit its result to the target signals, control segments that
-change the behavior's execution flow, and block statements whose content is a
-list of statements.
+are four kinds of statements: the transmit statements whose execution computes
+expressions and transmit its result to the target signals, the control segments
+that change the execution flow of the behavior, the block statements (described
+earlier) and the inner signal declarations.
 
 __Note__:
 
- - There is actually a forth type of statement, the time statement, that
-   is however not valid in standard behaviors. It will be discussed in
-   section [Time](#time).
+ - There is actually a fifth type of statement, the time statement. It will be
+   discussed in section [Time](#time).
+
 
 #### Transmit statement
 
 A transmit statement is declared using the arrow operator `<=` within a
-behavior, whose right value is the expression to compute and the left
+behavior. Its right value is the expression to compute and its left
 value is a reference to the target signals (or parts of signals), i.e., the
 signals (or part of signals) that receives the computation result.
 
 For example following code transmits the value `3` to signal `s0` and the sum
-the values of signals `i0` and `i1` to the three four bits of signal `s1`:
+the values of signals `i0` and `i1` to the first four bits of signal `s1`:
 
 ```ruby
 s0 <= 3
 s1[3..0] <= i0 + i1
 ```
 
-The behavior of the transmit depends on the execution mode of the enclosing
-block:
+The behavior of the transmit statement depends on the execution mode of the
+enclosing block:
 
  - If the mode is parallel, the target signals are updated
    when all the statements of the current block are processed.
@@ -873,15 +900,14 @@ hif <condition> do
 end
 ```
 
-Or alternatively, it can also be declared as follows:
+[//]: # Or alternatively, it can also be declared as follows:
+[//]: # 
+[//]: # ```ruby
+[//]: #  hif(<condition>) { <block contents> }
+[//]: # ```
 
-```ruby
-hif(<condition>) { <block contents> }
-```
-
-The condition can be any expression provided they are of the boolean type or of
-a 1-bit type where `0` stands false and `1` for true (`Z` and `X` lead to
-undefined behavior).
+The condition can be any expression provided they are of a 1-bit type where `0`
+stands false and `1` for true (`Z` and `X` lead to undefined behavior).
 
 ##### hcase
 
@@ -900,18 +926,18 @@ end
 ...
 ```
 
-Or alternatively, it can also be declared as follows:
-
-```ruby
-hcase <expression>
-hwhen(<value 0>) { <block contents 0> }
-hwhen(<value 1>) { <block contents 1> }
-...
-```
+[//]: # Or alternatively, it can also be declared as follows:
+[//]: # 
+[//]: # ```ruby
+[//]: # hcase <expression>
+[//]: # hwhen(<value 0>) { <block contents 0> }
+[//]: # hwhen(<value 1>) { <block contents 1> }
+[//]: # ...
+[//]: # ```
 
 ##### helse
 
-It is possible to add a block which executed when the condition of an `hif` is
+It is possible to add a block that is executed when the condition of an `hif` is
 not met, or when no case matches the expression of a `hcase`, using the `helse`
 keyword as follows:
 
@@ -922,40 +948,40 @@ helse do
 end
 ```
 
-Or alternatively, helse case also be declared as follows:
-
-```ruby
-<hif or hcase construct>
-helse { <block contents> }
-```
+ Or alternatively, helse case also be declared as follows:
+ 
+[//]: # ```ruby
+[//]: # <hif or hcase construct>
+[//]: # helse { <block contents> }
+[//]: # ```
 
 ##### About loops
 
-It might look quite poor compared to other HDL to lack any statement for
-describing loops, but it is important to understand that current synthesis
+HDLRuby does not include any hardware construct for describing loops.
+It might look quite poor compared to the other HDL, but it is important to understand that current synthesis
 tools do not really synthesize hardware from such loops but instead preprocess
-them (e.g., unroll them) to synthesizable control-less hardware. In
-HDLRuby::High, such features are natively supported using the Ruby control
-instructions, i.e., the ruby loop constructs (`for`, `while`, and so on), but
-also the advanced ruby enumerators (`each`, `times`, and so on).
+them (e.g., unroll them) to synthesizable loop-less hardware. In HDLRuby::High,
+such features are natively supported using the Ruby control instructions, i.e.,
+the ruby loop constructs (`for`, `while`, and so on), but also more advanced
+ruby constructs like the enumerators (`each`, `times`, and so on).
 
 __Notes__:
 
  - HDLRuby::High being based on Ruby, it is highly recommended to avoid `for`
    or `while` constructs and to use enumerators instead.
- - The Ruby `if` and `case` statement can also be used, but will not produce
-   any equivalent hardware but instead, will be executed when the low level
-   hardware descriptions is generated by HDLRuby::High. For example the
-   following code will display `Hello world!` when the described system is
-   instantiated provided its generic parameter is not nil.
+ - The Ruby `if` and `case` statements can also be used, but will not produce
+   any equivalent hardware. Actually, they are be executed when the
+   corresponding system is instantiated.  For example the following code will
+   display `Hello world!` when the described system is instantiated provided
+   its generic parameter is not nil.
 
-```ruby
-system :say_hello do |param = nil|
-   if param != nil then
-      puts "Hello world!"
+   ```ruby
+   system :say_hello do |param = nil|
+      if param != nil then
+         puts "Hello world!"
+      end
    end
-end
-```
+   ```
 
 
 ### Types
