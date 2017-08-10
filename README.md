@@ -960,26 +960,26 @@ __Notes__:
 <a name="types"></a>
 
 Signals and expressions have a data type which describes the kind of value they
-represent. In HDLRuby::High, the data types basically represent bits vectors
+represent. In HDLRuby::High, the data types basically represent bit vectors
 associated with the way they should be interpreted, i.e., as bit strings,
-unsigned values, signed values, or hierarchical content and the position of the
-fixed pointed if relevant.
+unsigned values, signed values, or hierarchical content, and so on.
 
 #### Type construction
 
-There are three basic types: `bit`, `signed`, `unsigned`, that represent
+There are three basic types, `bit`, `signed`, `unsigned`, that represent
 respectively 1-bit bit string, 1-bit unsigned value and 1-bit signed value.
 
 The other types are built from them using one of the two type operators.
 
-__The vector operator__ `[]` allow to make types representing vector
-  of other types. A vector of identical types is declared as follows:
+__The vector operator__ `[]` allows to make types representing vectors of
+single or multiple other types. A vector of values of identical types is
+declared as follows:
 
 ```ruby
 <type>[<range>]
 ```
 
-The `range` of a vector type indicates the position of the starting and ending
+The `<range>` of a vector type indicates the position of the starting and ending
 bits relatively to the radix point. If the position of starting bit is on the
 left side of the range, the vector is big endian, otherwise it is little
 endian.  Negative positions are also possible and indicate positions bellow the
@@ -998,28 +998,28 @@ bit[7..0]
 bit[8]
 ```
 
-It is also possible to declare a vector of different types as follows:
+A vector of multiple types is declared as follows:
 
 ```ruby
 [<type 0>, <type 1>, ... ]
 ```
 
 For example the following code declares a vector of a 8-bit, a 16-bit signed and
-an 16-bit unsigned types:
+a 16-bit unsigned values:
 
 ```ruby
 [ bit[8], signed[16], unsigned[16] ]
 ```
 
-__The structure opertor__ `{}` allows the declaration of a hierarchical with
-named sub type. This operator is used as follows:
+__The structure opertor__ `{}` allows the declaration of a hierarchy made of 
+named sub types. This operator is used as follows:
 
 ```ruby
 { <name 0>: <type 0>, <name 1>: <type 1>, ... }
 ```
 
-For instance, the following code declares a hierarchical type with a sub type
-named `header` of 8 bits and another sub type named `data` of 24 bits:
+For instance, the following code declares a hierarchical type with an 8-bit sub
+type named `header` and a 24-bit sub type named `data`:
 
 ```ruby
 { header: bit[7..0], data: bit[23..0] }
@@ -1045,13 +1045,13 @@ The compatibility rules between two types are as follows:
 
 3. Two types of different endianness are not compatible together.
 
-3. Vectors of are compatible if type have the same width and if their sub
+3. Vectors are compatible if they have the same width and if their sub
    types are compatible.
 
-4. Hierarchical types are compatible if the have the same number of sub types
+4. Hierarchical types are compatible if the have the same sub types names
    and if each sub type of same name are compatible.
 
-The type of an expression can be converted to one of anther type using a
+The type of an expression can be converted to one of another type using a
 casting operator. Please refer to section [Casting operators](#cast) for
 more details about such an operator.
 
@@ -1100,10 +1100,10 @@ and operations among other expressions using [expression operators](#operators).
 
 The immediate values of HDLRuby::High can represent the values of vectors of
 `bit`, `unsigned` and `signed`. They are described with a header that indicates
-the vector type and the base, followed by the value as a succession of figures.
-The bit width of the value is obtained by default from the number of figures,
-but it is also possible to give it in the header between the vector type
-and the base specifiers.
+the vector type and the base used for representing the value, followed by a
+numeral representing the value.  The bit width of a value is obtained by
+default from the width of the numeral, but it is also possible to enforce it in
+the header.
 
 The vector type specifiers are the followings:
  
@@ -1112,7 +1112,7 @@ The vector type specifiers are the followings:
  - `u`: `unsigned` type,
 
  - `s`: `signed` type, the last figure is signed extended if required for the
-        binary, octal and hexadecimal bases.
+        binary, octal and hexadecimal bases, but not for the decimal base.
 
 The base specifiers are the followings:
 
@@ -1124,7 +1124,7 @@ The base specifiers are the followings:
 
  - `h`: hexadecimal.
 
-For example, all the following immediate values represent an 8-bit 100 (either
+For example, all the following immediate values represent an 8-bit `100` (either
 in unsigned or signed representation):
 
 ```ruby
@@ -1142,9 +1142,9 @@ __Notes__:
  - Other values are built combining immediate values with operators. For
    example, -100 can be represented with a decimal immediate as `-d100`.
 
- - Ruby immediate can also be used, their bit width is automatically adjusted
-   to match the data type of the expression they are used in. Please notice
-   this adjusting may change the value of the immediate, for example the
+ - Ruby immediate values can also be used, their bit width is automatically
+   adjusted to match the data type of the expression they are used in. Please
+   notice this adjusting may change the value of the immediate, for example the
    following code will actually  set `sig` to 4 instead of 100:
 
    ```ruby
@@ -1156,13 +1156,12 @@ __Notes__:
 ### References
 <a name="references"></a>
 
-Reference are expressions used to designate a signal, or a part of it from
-the current system.
+References are expressions used to designate signals, or a part of signals.
 
-The most simple reference is simply the name of a signal, and designate
-the signal of the current system corresponding to this name. For instance,
-in the following code, inner signal `sig0` is declared, and therefore, from
-this declaration, the name *sig0* becomes a reference to designate this signal.
+The most simple reference is simply the name of a signal, and it designates the
+signal of the current system corresponding to this name. For instance, in the
+following code, inner signal `sig0` is declared, and therefore the name *sig0*
+becomes a reference to designate this signal.
 
 ```ruby
 # Declaration of signal sig0.
@@ -1214,7 +1213,7 @@ table { width: 60%; }
 | :---:         | :---                          |
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
-| :---:         | :---                          |
+| :---          | :---                          |
 | :+            | addition                      |
 | :-            | subtraction                   |
 | :\*           | multiplication                |
@@ -1228,7 +1227,7 @@ table { width: 60%; }
 | :---:         | :---                          |
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
-| :---:         | :---                          |
+| :---          | :---                          |
 | :==           | equality                      |
 | :!=           | difference                    |
 | :>            | greater than                  |
@@ -1240,7 +1239,7 @@ table { width: 60%; }
 | :---:         | :---                          |
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
-| :---:         | :---                          |
+| :---          | :---                          |
 | :&            | bitwise / logical and         |
 | :|            | bitwise / logical or          |
 | :~            | bitwise / logical not         |
@@ -1254,7 +1253,7 @@ table { width: 60%; }
 | :---:         | :---                          |
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
-| :---:         | :---                          |
+| :---          | :---                          |
 | :to\_bit      | cast to bit vector            |
 | :to\_unsigned | cast to unsigned vector       |
 | :to\_signed   | cast to signed vector         |
@@ -1270,7 +1269,7 @@ table { width: 60%; }
 | :---:         | :---                          |
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
-| :---:         | :---                          |
+| :---          | :---                          |
 | :[]           | sub vector selection          |
 | :@[]          | concatenation operator        |
 | :.            | field selection               |
@@ -1280,8 +1279,8 @@ __Notes__:
  
  - The operator precedence is the one of Ruby.
 
- - Ruby does not allow to override the `&&`, `||` and `?:` operators so that
-   they are not present in HDLRuby::High. Instead of the `?:` operator,
+ - Ruby does not allow to override the `&&`, the `||` and the `?:` operators so
+   that they are not present in HDLRuby::High. Instead of the `?:` operator,
    HDLRuby::High provides the more general multiplex operator `mux`. However,
    HDLRuby::High does not provides any replacement for the `&&` and the `||`
    operators, please refer to section [Logic operators](#logic) for a
@@ -1293,7 +1292,7 @@ __Notes__:
 The arithmetic operators can only be used on `bit`, `unsigned` or `signed`
 vector types. These operators are `+`, `-`, `*`, `%` and the unary arithmetic
 operators are `-` and `+`. They have the same meaning as their Ruby
-equivalents. The computation actually performed depends on the data types of
+equivalents. The operation actually performed depends on the data types of
 the operands according to the following table:
 
 <style>
@@ -1328,17 +1327,17 @@ In the table above:
 
  - Unsigned arithmetic stands from binary arithmetic without any sign. In this
    case, the smallest operand is zero-extended to the width of the largest one.
- - Signed arithmetic stands for two's complement arithmetic. In this case,
-   the `signed` operands are signed extended, and the `unsigned` or bit operands
-   are zero extended to the width of the result.
+ - Signed arithmetic stands for two's complement arithmetic. In this case, the
+   `signed` operands are signed extended, and the `unsigned` or the `bit`
+   operands are zero extended to the width of the largest value.
 
 #### Comparison operators
 <a name="comparison"></a>
 
 Comparison operators are the operators whose result is either true or false.
-In HDLRuby::High, true and false are represented by respective `bit` values 1
-and 0. This operators are `==`, `!=`, `<`, `>`, `<=`, `>=` . They have the same
-meaning as their Ruby equivalents.
+In HDLRuby::High, true and false are represented by respectively `bit` value 1
+and `bit` value 0. This operators are `==`, `!=`, `<`, `>`, `<=`, `>=` . They
+have the same meaning as their Ruby equivalents.
 
 __Note__:
  
@@ -1348,26 +1347,45 @@ __Note__:
 #### Logic and shift operators
 <a name="logic"></a>
 
-In HDLRuby::High, there is no boolean logic operators, but only bitwise ones.
-For performing boolean computation it is necessary to single bit values.  The
+In HDLRuby::High, there is no boolean operators, but only bitwise ones.  For
+performing boolean computation it is necessary to use single bit values.  The
 bitwise logic binary operators are `&`, `|`, and `^`, and the unary one is `~`.
 They have the same meaning as their Ruby equivalents.
 
-__Note__: there is two reasons why there is no boolean logic operators
+__Note__: there is two reasons why there is no boolean operators
 
- 1. Ruby language do not support redefinition of the boolean operators
+ 1. Ruby language does not support redefinition of the boolean operators
 
- 2. In Ruby, every which is not `false` nor `nil` is considered true. This is
-    perfectly relevant for software, but not for hardware where the basic data
-    type is the bit vector. Hence, it seemed preferable to support boolean
-    computation for one-bit values only, which can be done through bitwise
-    operations.
+ 2. In Ruby, each value which is not `false` nor `nil` is considered to be
+    true. This is perfectly relevant for software, but not for hardware where
+    the basic data types are bit vectors. Hence, it seemed preferable to
+    support boolean computation for one-bit values only, which can be done
+    through bitwise operations.
 
 The shift operators are `<<` and `>>` and have the same meaning as their Ruby
-equivalent. The do not change the bit width, and preserve the sign for `signed`
-values. It possible to perform other kind of shifts using the selection and
+equivalent. They do not change the bit width, and preserve the sign for `signed`
+values.
+
+The rotation operators are `rl` and `rr`, respectively for left and right
+rotate. Like the shift they do not change the bit width and preserve the
+sign for `signed` values. However, since such operator do not exist in Ruby,
+they are actually used like methods as follows:
+
+```ruby
+<expression>.rl(<other expression>)
+<expression>.rr(<other expression>)
+```
+
+For example, for rotating left signal `sig` 3 times, the following code can be
+used:
+
+```ruby
+sig.rl(3)
+```
+
+It possible to perform other kind of shifts or rotations using the selection and
 concatenation operators (please refer to section [Concatenation and selection
-operators](#concat)
+operators](#concat). 
 
 
 #### Casting operators
@@ -1375,12 +1393,13 @@ operators](#concat)
 
 There are two kind of casting operators.  The first kind of cast changes the
 type of the expression without changing its raw content, and are called the
-reinterpretation casts.  They include, `to_bit`, `to_unsigned` and `to_signed`
-and convert any type to a vector of respectively bit, unsigned and signed
-elements, `to_big` and `to_little` that convert the endianness to respectively
-big or little endian by reversing the bit order if required, and `reverse` that
-reverse the bit order unconditionally. For example the following code convert
-an expression of hierarchical type to an 8-bit signed vector:
+reinterpretation casts. The second kind of cast changes both the type and the
+value and are called conversion casts.
+
+The reinterpretation casts include `to_bit`, `to_unsigned` and `to_signed` that
+convert any type to a vector of respectively bit, unsigned and signed elements.
+For example the following code convert an expression of hierarchical type to an
+8-bit signed vector:
 
 ```ruby
 [ up: signed[3..0], down: unsigned[3..0] ].inner sig
@@ -1391,7 +1410,13 @@ The second kind of cast change both the type and the value and are used to
 adjust the width of the types. They can only be applied to vector of `bit`,
 `signed` or `unsinged` and can only increase the bit width (bit width can be
 truncated using the selection operator, please refer to the [next
-section](#concat)). These operators are `ljust`, `rjust`, `zext` and `sext`.
+section](#concat)). These operators include first the bit width conversion
+casts: `ljust`, `rjust`, `zext` and `sext`; and include second, `to_big` and
+`to_little` that convert the endianness to respectively big or little endian by
+reversing the bit order if required, and `reverse` that reverse the bit order
+unconditionally.
+
+More precisely, the bit width conversion casts operate as follows:
 
  - `ljust` and `rjust` increases the size from respectively the left or the
    right. They take as argument the width of the new type and the value (0 or
@@ -1407,10 +1432,9 @@ section](#concat)). These operators are `ljust`, `rjust`, `zext` and `sext`.
 
  - `zext` increases the size by adding several 0 bit on the most significant
    bit side. Therefore the side of the extension depends on the endianness of
-   the expression.
-   This cast take as
-   argument the width of the resulting type. For example, the following code
-   increases the size of sig0 to 12 bits by adding 0 on the left:
+   the expression.  This cast takes as argument the width of the resulting
+   type. For example, the following code increases the size of sig0 to 12 bits
+   by adding 0 on the left:
 
    ```ruby
    signed[7..0].inner sig0
@@ -1436,8 +1460,8 @@ section](#concat)). These operators are `ljust`, `rjust`, `zext` and `sext`.
 
 Concatenation and selection are done using the `[]` operator as follows:
 
- - `[]` taking as argument several expression concatenate them. For example,
-   the following code concatenates sig0 to sig1:
+ - `[]` when taking as arguments several expressions concatenates them. For
+   example, the following code concatenates sig0 to sig1:
 
    ```ruby
    [3..0].inner sig0
@@ -1448,11 +1472,11 @@ Concatenation and selection are done using the `[]` operator as follows:
    sig2 <= [sig0, sig1]
    ```
 
- - `[]` applied to an expression of `bit`, `unsigned` or `signed vector types
-   and taking as argument a range selects the bits corresponding to this range.
-   If only one bit is to select, the offset of this bit can be used instead.
-   For example, the following code selects bits from 3 to 1 of `sig0` and bit
-   4 of `sig1`:
+ - `[]` when applied to an expression of `bit`, `unsigned` or `signed` vector
+   types and taking as argument a range selects the bits corresponding to this
+   range.  If only one bit is to select, the offset of this bit can be used
+   instead.  For example, the following code selects bits from 3 to 1 of `sig0`
+   and bit 4 of `sig1`:
 
    ```ruby
    [7..0].inner sig0
@@ -1473,12 +1497,10 @@ Concatenation and selection are done using the `[]` operator as follows:
 #### Time values
 <a name="time_val"></a>
 
-In HDLRuby::High, time values can be created from an immediate value using the
-time operators. These operators converts the value of to
-the equivalent amount of time indicated by the operator. These operators
-are `s` for seconds, `ms` for millisecond, `us` for microsecond, `ns` for
-nano second, `ps` for picosecond and `fs` for fentosecond. For example
-the followings are all indicating one second time:
+In HDLRuby::High, time values can be created using the time operators, i.e.,
+respectively, `s` for seconds, `ms` for millisecond, `us` for microsecond, `ns`
+for nano second, `ps` for pico second and `fs` for femto second. For example the
+followings are all indicating one second of time:
 
 ```ruby
 1.s
@@ -1493,23 +1515,20 @@ the followings are all indicating one second time:
 #### Time behaviors and statements
 <a name="time_beh"></a>
 
-In order to simulate an hardware description it is necessary to model the time.
-Similarly to the other HDL, HDLRuby::High simulate time using specific
+Similarly to the other HDL, HDLRuby::High simulates time using specific
 statements that advance time. However, since such statements are not
 synthesizable, they are only allowed in specific non-synthesizable behavior.
-These behavior are declared using the `timed` keyword, and contrary to
-the default behavior do not have any sensibility list, as it can be seen
-in the next code:
+These behavior are declared using the `timed` keyword as follows, and contrary
+to the default behavior do not have any sensibility list.
 
 ```ruby
-# A time behavior
 timed do
    <statements>
 end
 ```
 
 A time behavior can include any statement supported by a standard behavior,
-and the additional time statements. There are two such statements.
+and the additional time statements. There are two such statements:
 
  - The `wait` statement: it waits the amount of time given in argument before
    the following statements are executed. For example the following code
@@ -1519,14 +1538,14 @@ and the additional time statements. There are two such statements.
       wait(10.ns)
    ```
 
-   This statement can also be abbreviated using the `!` operators as follows:
+   This statement can also be abbreviated using the `!` operator as follows:
    
    ```ruby
       !10.ns
    ```
 
- - The `repeat` statement: it repeats the execution of its block until the time
-   given in arguments times out. For example the following code will execute
+ - The `repeat` statement: it repeats the execution of its block until the delay
+   given in argument expires. For example the following code will execute
    repeatedly the inversion of the `clk` signal every 10 nanoseconds for 10
    seconds (i.e., it simulates a clock signal for 10 seconds):
 
@@ -1539,16 +1558,14 @@ and the additional time statements. There are two such statements.
 
 #### Parallel and sequential execution
 
-Since time behaviors can include any statement supported by standard statement,
-they can include both parallel and sequential blocks. The execution semantics
-is the followings:
+Time behaviors can include both parallel and sequential blocks. The execution
+semantic is the followings:
 
- - A block of a time behavior is executed sequentially like the one of a
-   standard behavior.
+ - A sequential block in a time behavior is executed sequentially similarly
+   to a standard behavior.
 
- - A parallel blocks of a time behavior is not executed in full parallel
-   contrary to the ones of a standard, but instead is executed in semi-parallel
-   fashion as follows:
+ - A parallel block in a time behavior is executed in semi-parallel fashion as
+   follows:
 
    1. Statements are grouped in sequence until a time statement is met.
 
@@ -1556,7 +1573,7 @@ is the followings:
 
    3. The time statement is executed.
 
-   4. The subsequent statement are processed identically from 1.
+   4. The subsequent statements are processed the same way.
 
 
 
@@ -1565,21 +1582,21 @@ is the followings:
 
 #### Using Ruby in HDLRuby::High
 
-- Since HDLRuby is pure Ruby code, the construct of Ruby can be freely used
-  without any compatibility issue. Moreover, the Ruby code will not interfere
-  with the synthesizability of the design.
+Since HDLRuby is pure Ruby code, the constructs of Ruby can be freely used
+without any compatibility issue. Moreover, the Ruby code will not interfere
+with the synthesizability of the design.
 
-- Ruby is object-oriented, and therefore an HDLRuby::High description can
-  make use of object-oriented features. For instance, it possible to
-  define classes, and subclasses used for generating systems or any
-  othe construct of HDLRuby::High.
+In particular, Ruby is object-oriented, and therefore an HDLRuby::High
+description can make use of object-oriented features. For instance, it possible
+to define classes, and subclasses used for generating systems or any othe
+construct of HDLRuby::High.
 
 #### Generic programming
 
 ##### Declaring
 
-Systems can be declared with generic parameters. For that purpose, they
-must be listed as block parameters as follows:
+Systems can be declared with generic parameters. For that purpose, the
+parameters must be given as follows:
 
 ```ruby
 system :<system name> do |<list of generic parameters>|
@@ -1594,30 +1611,32 @@ parameters named respectively `a` and `b`:
 system(:nothing) { |a,b| }
 ```
 
-The generic parameters can be anything: values, data types, signals, systems 
-and so on. For example, the following system uses generic argument `t` as a
-type for an input signal, generic argument `w` as a bit range for an output 
-signal and generic argument `s` as an outer signal it connects to `osig`.
+The generic parameters can be anything: values, data types, systems and so on.
+For example, the following system uses generic argument `t` as a type for an
+input signal, generic argument `w` as a bit range for an output signal and
+generic argument `s` as a system used for creating instance `sI` whose input
+and output signals `i` and `o` are connected respectively to signals `isig` and
+`osig`.
 
 ```ruby
 system :something do |t,w,s|
    t.input isig
    [w].output osig
 
-   osig <= s
+   s :sI.(i: isig, o: osig)
 end
 ```
 
 It is also possible to use a variable number of generic parameters using the
-variadic operator `\*` like the following example. In this examples, `args`
+variadic operator `*` like in the following example. In this examples, `args`
 is an array containing an indefinite number of parameters.
 
 ```ruby
 system(:variadic) { |*args| }
 ```
 
-Finally, it is possible to pass another block as generic parameter using
-the block operator `&` like the following example.
+Finally, it is possible to pass a ruby block as generic parameter using
+the block operator `&` like in the following example.
 
 ```ruby
 system(:with_block) { |&blk| }
