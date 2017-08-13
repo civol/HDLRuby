@@ -9,20 +9,6 @@ include HDLRuby::Low
 
 $success = true
 
-# print "Creating the type for one bit... "
-# begin
-#     $bit = Type.new(:bit)
-#     if $bit.base == :bit then
-#         puts "Ok."
-#     else
-#         puts "Error: invalid base, got #{$bit.base} but expecting :bit."
-#         $success = false
-#     end
-# rescue Exception => e
-#     puts "Error: unexpected exception raised #{e.inspect}\n"
-#     $success = false
-# end
-
 print "\nCreating system types... "
 begin
     $systemT0 = SystemT.new(:systemT0)
@@ -430,9 +416,9 @@ end
 
 print "\nCreating a block... "
 begin
-    $block = Block.new(:sequential)
-    if $block.mode != :sequential then
-        puts "Error: invalid block mode, got #{$block.type} but expecting :sequential."
+    $block = Block.new(:seq)
+    if $block.mode != :seq then
+        puts "Error: invalid block mode, got #{$block.type} but expecting :seq."
         $success = false
     else
         puts "Ok."
@@ -443,7 +429,7 @@ begin
 end
 
 puts "\nAdding statements to $block... "
-$statements.each.with_index do |statement,i|
+$statements[0...$statements.size/2].each.with_index do |statement,i|
     begin
         print "  For statement #{i}... "
         $block.add_statement(statement)
@@ -454,10 +440,56 @@ $statements.each.with_index do |statement,i|
     end
 end
 puts "Checking the added statements... "
-$statements.each.with_index do |statement,i|
+$statements[0...$statements.size/2].each.with_index do |statement,i|
     begin
         print "  For statement #{i}... "
         bStatement = $block.each_statement.to_a[i]
+        if bStatement != statement then
+            puts "Error: invalid statement, got #{bStatement} but expecting #{statement}."
+            $success = false
+        else
+            puts "Ok."
+        end
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
+    end
+end
+
+print "\nCreating $blockIn, another block... "
+begin
+    $blockIn = Block.new(:par)
+    if $blockIn.mode != :par then
+        puts "Error: invalid block mode, got #{$blockIn.type} but expecting :par."
+        $success = false
+    else
+        puts "Ok."
+    end
+# rescue Exception => e
+#     puts "Error: unexpected exception raised #{e.inspect}\n"
+#     $success = false
+end
+
+puts "\nAdding statements to $blockIn... "
+$statements[$statements.size/2..-1].each.with_index do |statement,i|
+    begin
+        print "  For statement #{i+$statements.size/2}... "
+        $blockIn.add_statement(statement)
+        puts "Ok."
+    # rescue Exception => e
+    #     puts "Error: unexpected exception raised #{e.inspect}\n"
+    #     $success = false
+    end
+end
+
+puts "\nAdding $blockIn to $block as a statement..."
+$block.add_statement($blockIn)
+
+puts "Checking the added statements deeply... "
+$statements.each.with_index do |statement,i|
+    begin
+        print "  For statement #{i}... "
+        bStatement = $block.each_statement_deep.to_a[i]
         if bStatement != statement then
             puts "Error: invalid statement, got #{bStatement} but expecting #{statement}."
             $success = false

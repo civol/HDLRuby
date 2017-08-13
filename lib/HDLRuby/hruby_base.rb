@@ -1332,9 +1332,12 @@ module HDLRuby::Base
             # No ruby block? Return an enumerator.
             return to_enum(:each_statement_deep) unless ruby_block
             # A block?
-            # Apply it on each block deeply.
-            self.each_block_deep do |block|
-                block.each_statement(&ruby_block)
+            # Apply it on each statement deeply.
+            self.each_statement do |statement|
+                if statement.respond_to?(:each_statement_deep) then
+                    statement.each_statement_deep(&ruby_block)
+                end
+                ruby_block.call(statement)
             end
         end
     end
