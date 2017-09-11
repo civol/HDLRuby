@@ -1,0 +1,57 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: rom8_16T
+  inputs:
+  - SignalI:
+      name: addr
+      type:
+        TypeVector:
+          base: bit
+          range:
+          - 15
+          - 0
+  inouts:
+  - SignalI:
+      name: data
+      type:
+        TypeVector:
+          base: bit
+          range:
+          - 7
+          - 0
+  inners:
+  - SignalI:
+      name: content
+      type:
+        TypeVector:
+          base:
+            TypeVector:
+              base: bit
+              range:
+              - 7
+              - 0
+          range:
+          - 65535
+          - 0
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: data
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: content
+          index:
+            RefName:
+              ref:
+                RefThis: {}
+              name: data
