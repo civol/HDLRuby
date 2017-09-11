@@ -9,6 +9,7 @@ SystemT:
       name: addr
       type:
         TypeVector:
+          name: ""
           base: bit
           range:
           - 15
@@ -18,6 +19,7 @@ SystemT:
       name: data
       type:
         TypeVector:
+          name: ""
           base: bit
           range:
           - 7
@@ -27,8 +29,10 @@ SystemT:
       name: content
       type:
         TypeVector:
+          name: ""
           base:
             TypeVector:
+              name: ""
               base: bit
               range:
               - 7
