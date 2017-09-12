@@ -184,7 +184,7 @@ module HDLRuby::High
         #
         # NOTE: +choices+ can either be a list of arguments or an array.
         # If +choices+ has only two entries
-        # (and it is not a has), +value+ will be converted to a boolean.
+        # (and it is not a hash), +value+ will be converted to a boolean.
         def mux(select,*choices)
             # Process the choices.
             choices = choices.flatten(1) if choices.size == 1
@@ -2379,6 +2379,27 @@ module HDLRuby::High
             # Create the new behavior replacing the connection.
             behavior = Behavior.new(event) do
                 left <= right
+            end
+            # Adds the behavior.
+            High.top_user.add_behavior(behavior)
+            # Remove the connection
+            High.top_user.delete_connection(self)
+        end
+
+        # Creates a new behavior with an if statement from +condition+
+        # enclosing the connection converted to a transmission, and replace the
+        # former by the new behavior.
+        #
+        # NOTE: the else part is defined through the helse method.
+        def hif(condition)
+            # Creates the behavior.
+            left, right = self.left, self.right
+            # Detached left and right from their connection since they will
+            # be put in a new behavior instead.
+            left.parent = right.parent = nil
+            # Create the new behavior replacing the connection.
+            behavior = Behavior.new() do
+                (left <= right).hif(condition)
             end
             # Adds the behavior.
             High.top_user.add_behavior(behavior)
