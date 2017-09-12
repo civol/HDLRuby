@@ -1,3 +1,5 @@
+require "HDLRuby/hruby_bstr"
+
 ##
 # Library for describing the basic structures of the hardware component.
 #
@@ -1440,8 +1442,11 @@ module HDLRuby::Base
             else
                 raise "Invalid class for a type: #{type.class}."
             end
-            # Sets the content witout check: it depends on the abstraction
-            # level.
+            # Checks and set the content: Ruby Numeric and HDLRuby BitString 
+            # are supported. Strings or equivalent are converted to BitString.
+            unless content.is_a?(Numeric) or content.is_a?(HDLRuby::BitString)
+                content = HDLRuby::BitString.new(content.to_s)
+            end
             @content = content 
         end
 

@@ -58,4 +58,4 @@ SystemT:
             RefName:
               ref:
                 RefThis: {}
-              name: data
+              name: addr

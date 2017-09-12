@@ -40,6 +40,9 @@ system :values do
         sig <= b16h0F2E
         !1.us
         sig <= bh0F2E
+
+        !1.us
+        sig <= b1ZZX
     end
 end
 

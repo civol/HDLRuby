@@ -1,4 +1,5 @@
 require "HDLRuby/hruby_base"
+require "HDLRuby/hruby_bstr"
 
 ##
 # Low-level libraries for describing digital hardware.        
@@ -289,10 +290,11 @@ module HDLRuby::Low
         def initialize(type,content)
             # Ensures type is from Low::Type
             type = Type.get(type)
-            # Ensures the content is valid for low-level hardware.
-            unless content.is_a?(Numeric) then
-                raise "Invalid type for a value content: #{content.class}."
-            end
+            # # Ensures the content is valid for low-level hardware.
+            # unless content.is_a?(Numeric) or 
+            #        content.is_a?(HDLRuby::BitString) then
+            #     raise "Invalid type for a value content: #{content.class}."
+            # end # NOW CHECKED BY BASE
             # Initialize the value structure.
             super(type,content)
         end

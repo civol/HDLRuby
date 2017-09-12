@@ -1,5 +1,8 @@
 require 'yaml'
 
+require "HDLRuby/hruby_bstr"
+
+
 module HDLRuby
 
     # Reduce a constant +name+ to +num+ number of namespace levels.
@@ -25,7 +28,9 @@ module HDLRuby
                  # Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,
                  Low::Value, Low::Unary, Low::Binary, Low::Select, Low::Concat,
                  Low::RefConcat, Low::RefIndex, Low::RefRange,
-                 Low::RefName, Low::RefThis
+                 Low::RefName, Low::RefThis,
+
+                 BitString
                 ] 
     # The names of the classes of HFLRuby supporting to_basic
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
@@ -144,6 +149,8 @@ module HDLRuby
                     (v.is_a?(Hash) or v.is_a?(Array)) and !is_basic_HDLRuby?(v)
                 end
                 # Create the object.
+                puts "singles = #{singles}"
+                puts "multiples = #{multiples}"
                 object = klass.new(*singles.map{|k,v| basic_to_value(v) })
                 # Adds the multiple instances.
                 multiples.each do |k,v|
@@ -193,7 +200,6 @@ module HDLRuby
         #   +types+:: contains the type objects which will have to be converted
         #   separately.
         def to_basic(top = true, types = {})
-            # if !top and TO_BASICS_TYPES.include?(self.class) then
             if !top and TO_BASICS_TYPES.include?(self.class) and
                !self.name.empty? then
                 # Type object, but not the top, add it to the types list
@@ -203,7 +209,7 @@ module HDLRuby
                 # And return the name.
                 return self.name.to_s
             end
-            # print "to_basic for class=#{self.class}\n"
+            print "to_basic for class=#{self.class}\n"
             # Create the hash which will contains the content of the object.
             content = { }
             # Create the resulting hash with a single entry whose key

@@ -1,5 +1,6 @@
 require "HDLRuby/hruby_base"
 require "HDLRuby/hruby_low"
+require "HDLRuby/hruby_bstr"
 
 require 'set'
 
@@ -3319,50 +3320,89 @@ module HDLRuby::High
                 width = nil
             end
             # puts "width=#{width}"
+            old_str = str # Save the string it this state since its first chars
+                          # can be erroneously considered as giving the width
             str = str[width.size..-1] if width
             # Get the base and the value
             base = str[0]
             # puts "base=#{base}\n"
-            unless base then
+            unless ["b", "o", "d", "h"].include?(base) then
                 # No base found, default is bit
                 base = "b"
-                # And the value is actually what was thought to be the width
-                value = width
+                # And the width was actually a part of the value.
+                value = old_str
                 width = nil
             else
                 # Get the value.
                 value = str[1..-1]
             end
+            # puts "value=#{value}"
             # Compute the bit width and the value
             case base
             when "b" then
                 # base 2, compute the width
                 width = width ? width.to_i : value.size
+                # # Check the value
+                # if value.match(/^[0-1]+$/) then
+                #     # Numeric value, compute the corresponding integer
+                #     value = value.to_i(2)
+                # elsif !value.match(/^[0-1zxZX]+$/) then
+                #     # Invalid value.
+                #     return nil
+                # end
                 # Check the value
-                return nil unless value.match(/^[0-1]+$/)
-                # Compute it
-                value = value.to_i(2)
+                return nil unless value.match(/^[0-1zxZX]+$/)
             when "o" then
                 # base 8, compute the width
                 width = width ? width.to_i : value.size * 3
                 # Check the value
-                return nil unless value.match(/^[0-7]+$/)
-                # Compute it
-                value = value.to_i(8)
+                # if value.match(/^[0-7]+$/) then
+                #     # Numeric value, compute the corresponding integer
+                #     value = value.to_i(8)
+                # elsif value.match(/^[0-7xXzZ]+$/) then
+                if value.match(/^[0-7xXzZ]+$/) then
+                    # 4-state value, conpute the correspondig bit string.
+                    value = value.each_char.map do |c|
+                        c = c.upcase
+                        if c == "X" or c.upcase == "Z" then
+                            c * 3
+                        else
+                            c.to_i(8).to_s(2).rjust(3,"0")
+                        end
+                    end.join
+                else
+                    # Invalid value
+                    return nil
+                end
             when "d" then
                 # base 10, compute the width 
                 width = width ? width.to_i : value.to_i.to_s(2).size + 1
                 # Check the value
                 return nil unless value.match(/^[0-9]+$/)
-                # Compute it
-                value = value.to_i
+                # Compute it (base 10 values cannot be 4-state!)
+                value = value.to_i.to_s(2)
             when "h" then
                 # base 16, compute the width
                 width = width ? width.to_i : value.size * 4
                 # Check the value
-                return nil unless value.match(/^[0-9a-fA-F]+$/)
-                # Compute it
-                value = value.to_i(16)
+                # if value.match(/^[0-9a-fA-F]+$/) then
+                #     # Numeric value, compute the corresponding integer
+                #     value = value.to_i(16)
+                # elsif value.match(/^[0-9a-fA-FxXzZ]+$/) then
+                if value.match(/^[0-9a-fA-FxXzZ]+$/) then
+                    # 4-state value, conpute the correspondig bit string.
+                    value = value.each_char.map do |c|
+                        c = c.upcase
+                        if c == "X" or c.upcase == "Z" then
+                            c * 4
+                        else
+                            c.to_i(16).to_s(2).rjust(4,"0")
+                        end
+                    end.join
+                else
+                    # Invalid value
+                    return nil
+                end
             else
                 # Unknown base
                 return nil
@@ -3381,6 +3421,7 @@ module HDLRuby::High
             end
             # puts "type=#{type}, value=#{value}"
             # Create and return the value.
+            # return Value.new(type,HDLRuby::BitString.new(value))
             return Value.new(type,value)
         end
     end
