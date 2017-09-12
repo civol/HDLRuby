@@ -209,7 +209,7 @@ module HDLRuby
                 # And return the name.
                 return self.name.to_s
             end
-            print "to_basic for class=#{self.class}\n"
+            # print "to_basic for class=#{self.class}\n"
             # Create the hash which will contains the content of the object.
             content = { }
             # Create the resulting hash with a single entry whose key
@@ -239,10 +239,12 @@ module HDLRuby
                 # Sets the content.
                 # content[var_sym] = HDLRuby.value_to_basic(var_val,types)
                 value = HDLRuby.value_to_basic(var_val,types)
-                # Empty values are skipped
-                unless value.respond_to?(:empty?) and value.empty? then
-                    content[var_sym] = value
-                end
+                # EMPTY VALUES ARE NOT SKIPPED
+                # # Empty values are skipped
+                # unless value.respond_to?(:empty?) and value.empty? then
+                #     content[var_sym] = value
+                # end
+                content[var_sym] = value
             end
 
             if top and !types.empty? then
