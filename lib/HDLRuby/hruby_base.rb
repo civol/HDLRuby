@@ -1636,6 +1636,11 @@ module HDLRuby::Base
             @choices.each(&ruby_block)
         end
 
+        # Gets a choice by +index+.
+        def get_choice(index)
+            return @choices[index]
+        end
+
         # Iterates over all the references encountered in the expression.
         #
         # NOTE: do not iterate *inside* the references.
