@@ -190,7 +190,7 @@ module HDLRuby::High
             choices = choices.flatten(1) if choices.size == 1
             choices.map! { |choice| choice.to_expr }
             # Generate the select expression.
-            return Select.new(select.to_expr,*choices)
+            return Select.new("?",select.to_expr,*choices)
         end
     end
 
@@ -2109,7 +2109,7 @@ module HDLRuby::High
 
         # Converts the selection expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Select.new(self.select.to_low,
+            return HDLRuby::Low::Select.new("?",self.select.to_low,
             *self.each_choice.map do |choice|
                 choice.to_low
             end)

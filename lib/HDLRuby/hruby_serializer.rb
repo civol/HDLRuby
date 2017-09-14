@@ -149,8 +149,8 @@ module HDLRuby
                     (v.is_a?(Hash) or v.is_a?(Array)) and !is_basic_HDLRuby?(v)
                 end
                 # Create the object.
-                puts "singles = #{singles}"
-                puts "multiples = #{multiples}"
+                # puts "singles = #{singles}"
+                # puts "multiples = #{multiples}"
                 object = klass.new(*singles.map{|k,v| basic_to_value(v) })
                 # Adds the multiple instances.
                 multiples.each do |k,v|

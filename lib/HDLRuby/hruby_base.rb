@@ -1580,10 +1580,12 @@ module HDLRuby::Base
 
         # Creates a new operator selecting from the value of +select+ one
         # of the +choices+.
-        def initialize(select,*choices)
+        def initialize(operator,select,*choices)
             # Initialize as a general operation.
-            super(:"?")
+            # super(:"?")
+            super(operator)
             # Check and set the selection.
+            # puts "select = #{select}"
             unless select.is_a?(Expression)
                 raise "Invalid class for an expression: #{select.class}"
             end
@@ -1593,12 +1595,13 @@ module HDLRuby::Base
             # Check and set the choices.
             @choices = []
             choices.each do |choice|
-                unless choice.is_a?(Expression)
-                    raise "Invalid class for an expression: #{choice.class}"
-                end
-                @choices << choice
-                # And set its parent.
-                choice.parent = self
+                # unless choice.is_a?(Expression)
+                #     raise "Invalid class for an expression: #{choice.class}"
+                # end
+                # @choices << choice
+                # # And set its parent.
+                # choice.parent = self
+                self.add_choice(choice)
             end
         end
 
@@ -1609,6 +1612,18 @@ module HDLRuby::Base
             # A block? Apply it on the children.
             ruby_block.call(@select)
             @choices.each(&ruby_block)
+        end
+
+        # Adds a +choice+.
+        def add_choice(choice)
+            unless choice.is_a?(Expression)
+                raise "Invalid class for an expression: #{choice.class}"
+            end
+            # Set the parent of the choice.
+            choice.parent = self
+            # And add it.
+            @choices << choice
+            choice
         end
 
         # Iterates over the choices.
