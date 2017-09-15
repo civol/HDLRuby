@@ -2399,7 +2399,9 @@ module HDLRuby::High
             left.parent = right.parent = nil
             # Create the new behavior replacing the connection.
             behavior = Behavior.new() do
-                (left <= right).hif(condition)
+                hif(condition) do
+                    left <= right
+                end
             end
             # Adds the behavior.
             High.top_user.add_behavior(behavior)
