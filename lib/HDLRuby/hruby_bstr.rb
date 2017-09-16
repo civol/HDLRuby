@@ -32,7 +32,7 @@ module HDLRuby
         end
 
         # Converts to a string.
-        def to_str
+        def to_s
             return @str.clone
         end
 
