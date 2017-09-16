@@ -106,6 +106,11 @@ module HDLRuby::Base
             @systemIs.each(&ruby_block)
         end
 
+        # Tells if there is any system instance.
+        def has_systemI?
+            return !@systemIs.empty?
+        end
+
         # Gets a system instance by +name+.
         def get_systemI(name)
             return @systemIs[name]
@@ -273,6 +278,32 @@ module HDLRuby::Base
             end
         end
 
+        # Tells if there is any input.
+        def has_input?
+            return !@inputs.empty?
+        end
+
+        # Tells if there is any output.
+        def has_output?
+            return !@outputs.empty?
+        end
+
+        # Tells if there is any output.
+        def has_inout?
+            return !@inouts.empty?
+        end
+
+        # Tells if there is any inner.
+        def has_inner?
+            return !@inners.empty?
+        end
+
+        # Tells if there is any signal.
+        def has_signal?
+            return ( self.has_input? or self.has_output? or self.has_inout? or
+                     self.has_inner? )
+        end
+
         ## Gets an input signal by +name+.
         def get_input(name)
             return @inputs[name.to_sym]
@@ -396,6 +427,11 @@ module HDLRuby::Base
             @connections.each(&ruby_block)
         end
 
+        # Tells if there is any connection.
+        def has_connection?
+            return !@connections.empty?
+        end
+
         # Deletes +connection+.
         def delete_connection(connection)
             if @connections.include?(connection) then
@@ -457,6 +493,11 @@ module HDLRuby::Base
             self.each_systemI do |systemI|
                 systemI.each_behavior_deep(&ruby_block)
             end
+        end
+
+        # Tells if there is any inner.
+        def has_behavior?
+            return !@behaviors.empty?
         end
 
         # Deletes +behavior+.
@@ -752,6 +793,11 @@ module HDLRuby::Base
             return to_enum(:each_event) unless ruby_block
             # A block? Apply it on each event.
             @events.each(&ruby_block)
+        end
+
+        # Tells if there is any event.
+        def has_event?
+            return !@events.empty?
         end
 
     end
