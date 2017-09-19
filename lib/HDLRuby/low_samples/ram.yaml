@@ -3,7 +3,7 @@ Type:
   name: bit
 ---
 SystemT:
-  name: ram8_16T
+  name: ram8_16T_
   inputs:
   - SignalI:
       name: rwb
@@ -94,21 +94,36 @@ SystemT:
           mode: par
           inners: []
           statements:
-          - Transmit:
-              left:
-                RefIndex:
-                  ref:
+          - If:
+              condition:
+                Unary:
+                  operator: "~"
+                  child:
                     RefName:
                       ref:
                         RefThis: {}
-                      name: content
-                  index:
-                    RefName:
-                      ref:
-                        RefThis: {}
-                      name: addr
-              right:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: data
+                      name: rwb
+              'yes':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefIndex:
+                          ref:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: content
+                          index:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: addr
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: data
+              'no': 
