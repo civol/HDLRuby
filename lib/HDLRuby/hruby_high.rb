@@ -3335,6 +3335,7 @@ module HDLRuby::High
             type = str[0]
             # puts "type=#{type}"
             str = str[1..-1]
+            return nil if str.empty?
             return nil unless ["b","u","s"].include?(type)
             # Get the width if any.
             if str[0].match(/[0-9]/) then
