@@ -1712,7 +1712,7 @@ module HDLRuby::Base
             # Initialize the array of expressions that are concatenated.
             @expressions = []
             # Check and add the expressions.
-            expressions.each { |expression| self.add_expression(expression) }
+            expressions.flatten.each { |expression| self.add_expression(expression) }
         end
 
         # Adds an +expression+ to concat.

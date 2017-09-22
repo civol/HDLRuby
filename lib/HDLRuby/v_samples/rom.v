@@ -5,8 +5,6 @@ module rom(en,rwb,addr,data);
     input[7:0]       addr;
     output reg [7:0] data;
 
-    reg [7:0] content[0:255];
-
     always @ (*)
     begin
         case(addr)
