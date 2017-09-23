@@ -1708,11 +1708,11 @@ module HDLRuby::Base
     # Describes a concatenation expression.
     class Concat < Expression
         # Creates a new expression concatenation several +expressions+ together.
-        def initialize(*expressions)
+        def initialize(expressions = [])
             # Initialize the array of expressions that are concatenated.
             @expressions = []
             # Check and add the expressions.
-            expressions.flatten.each { |expression| self.add_expression(expression) }
+            expressions.each { |expression| self.add_expression(expression) }
         end
 
         # Adds an +expression+ to concat.
@@ -1775,7 +1775,7 @@ module HDLRuby::Base
 
         # Creates a new reference concatenating the references of +refs+
         # together.
-        def initialize(*refs)
+        def initialize(refs = [])
             # Check and set the refs.
             refs.each do |ref|
                 unless ref.is_a?(Expression) then

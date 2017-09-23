@@ -2124,9 +2124,12 @@ module HDLRuby::High
 
         # Converts the concatenation expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Concat.new(self.each_expression.map do |exp|
-                exp.to_low
-            end)
+            return HDLRuby::Low::Concat.new(
+                # self.each_expression.lazy.map do |exp|
+                self.each_expression.lazy.map do |exp|
+                    exp.to_low
+                end
+            )
         end
     end
 
@@ -2234,9 +2237,11 @@ module HDLRuby::High
 
         # Converts the concat reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefConcat.new(self.each_ref.map do |ref|
-                ref.to_low
-            end)
+            return HDLRuby::Low::RefConcat.new(
+                self.each_ref.lazy.map do |ref|
+                    ref.to_low
+                end
+            )
         end
     end
 
