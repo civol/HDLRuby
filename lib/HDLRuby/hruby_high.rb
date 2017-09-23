@@ -58,20 +58,20 @@ module HDLRuby::High
             @concats = []
         end
 
-        # Adds an access point by +name+ provided the name is not empty.
-        def add(name,&ruby_block)
+        # Adds method +name+ provided the name is not empty.
+        def add_method(name,&ruby_block)
             unless name.empty? then
                 define_singleton_method(name,&ruby_block) 
             end
         end
 
         # Concats another +namespace+ to current one.
-        def concat(namespace)
+        def concat_namespace(namespace)
             # # Ensure namespace is really a namespace
             # namespace = namespace.to_namespace
             # # Adds its singleton methods to current namespace
             # namespace.singleton_methods.each do |method|
-            #     self.add(method,&namespace.singleton_method(method))
+            #     self.add!(method,&namespace.singleton_method(method))
             # end
             
             # Ensure namespace is really a namespace and concat it.
@@ -550,7 +550,7 @@ module HDLRuby::High
             # Fills its namespace with the content of the current system type
             # (this latter may already contains access points if it has been
             #  opended for extension previously).
-            eigen.private_namespace.concat(@private_namespace)
+            eigen.private_namespace.concat_namespace(@private_namespace)
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
@@ -816,7 +816,7 @@ module HDLRuby::High
             # Create the instance to include
             instance = system.instantiate(:"",*args)
             # Concat its public namespace to the current one.
-            self.private_namespace.concat(instance.public_namespace)
+            self.private_namespace.concat_namespace(instance.public_namespace)
             # Adds it the list of includeds
             @includeIs[system.name] = instance
         end
@@ -2990,7 +2990,7 @@ module HDLRuby::High
         namespace = namespace.to_namespace
         # Concat the current top to namespace so that it has access to the
         # existing hardware constructs.
-        namespace.concat(Namespaces[-1])
+        namespace.concat_namespace(Namespaces[-1])
         # Adds the namespace to the top.
         Namespaces.push(namespace)
     end
@@ -3087,7 +3087,7 @@ module HDLRuby::High
         # else
         #     Namespaces[-1].send(:define_singleton_method,name.to_sym,&ruby_block)
         # end
-        Namespaces[-1].add(name,&ruby_block)
+        Namespaces[-1].add_method(name,&ruby_block)
     end
 
     # Looks up and calls method +name+ from the namespace stack with arguments
