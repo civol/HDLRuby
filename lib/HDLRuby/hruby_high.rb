@@ -47,6 +47,10 @@ module HDLRuby::High
 
         include SingletonExtend
 
+        # The reserved names
+        RESERVED = [ :user, :initialize, :add_method, :concat_namespace,
+                     :to_namespace, :user?, :user_deep? ]
+
         # The construct using the namespace.
         attr_reader :user
 
@@ -61,6 +65,9 @@ module HDLRuby::High
         # Adds method +name+ provided the name is not empty.
         def add_method(name,&ruby_block)
             unless name.empty? then
+                if RESERVED.include?(name.to_sym) then
+                    raise "Resevered name #{name} cannot be overridden."
+                end
                 define_singleton_method(name,&ruby_block) 
             end
         end
