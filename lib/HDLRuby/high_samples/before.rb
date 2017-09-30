@@ -7,22 +7,22 @@ require 'HDLRuby/std/counters'
 include HDLRuby::High::Std
 
 
-# A simple test of the after construct
-system :with_after do
+# A simple test of the before construct
+system :with_before do
     input :clk,:rst
     output :timeout
 
     behavior(clk.posedge,rst.posedge) do
-        timeout <= 0
-        after(100,rst) { timeout <= 1 }
+        timeout <= 1
+        before(100,rst) { timeout <= 0 }
     end
 end
 
 # Instantiate it for checking.
-with_after :with_afterI
+with_before :with_beforeI
 
 # Generate the low level representation.
-low = with_afterI.to_low
+low = with_beforeI.to_low
 
 # Displays it
 puts low.to_yaml
