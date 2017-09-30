@@ -596,6 +596,11 @@ module HDLRuby::Base
             # Check and set the name.
             @name = name.to_sym
         end
+
+        # Gets the bit width of the type.
+        def width
+            raise "Type with undefined width."
+        end
     end
 
 
@@ -630,6 +635,11 @@ module HDLRuby::Base
                 range = range.first..range.last
             end
             @range = range
+        end
+
+        # Gets the bitwidth
+        def width
+            return (range.first-range.last).abs
         end
     end
 
@@ -675,6 +685,11 @@ module HDLRuby::Base
             return to_enum(:each_type) unless ruby_block
             # A block? Apply it on each input signal instance.
             @types.each_value(&ruby_block)
+        end
+
+        # Gets the bitwidth
+        def width
+            return @types.reduce(0) { |sum,type| sum + type.width }
         end
     end
 
@@ -731,6 +746,11 @@ module HDLRuby::Base
             return to_enum(:each_name) unless ruby_block
             # A block? Apply it on each input signal instance.
             @types.each_key(&ruby_block)
+        end
+
+        # Gets the bitwidth
+        def width
+            return @types.each_value.reduce(0) { |sum,type| sum + type.width }
         end
     end
 
@@ -877,6 +897,11 @@ module HDLRuby::Base
             else
                 raise "Invalid class for a type: #{type.class}."
             end
+        end
+
+        # Gets the bit width.
+        def width
+            return @type.width
         end
     end
 
@@ -1072,15 +1097,19 @@ module HDLRuby::Base
             @no = no
             # And set its parent.
             no.parent = self if no
+
+            # Initialize the list of alternative if statements (elsif)
+            @noifs = []
         end
 
         # Sets the no block.
         #
-        # No can only be set once.
+        # No shoud only be set once, but this is not checked here for
+        # sake of flexibility.
         def no=(no)
-            if @no != nil then
-                raise "No already set in if statement."
-            end
+            # if @no != nil then
+            #     raise "No already set in if statement."
+            # end # Actually better not lock no here.
             # Check and set the yes statement.
             unless no.is_a?(Statement)
                 raise "Invalid class for a statement: #{no.class}"
@@ -1090,14 +1119,49 @@ module HDLRuby::Base
             no.parent = self
         end
 
+        # Adds an alternative if statement (elsif) testing +next_cond+
+        # and executing +next_yes+ when the condition is met.
+        def add_noif(next_cond, next_yes)
+            # Check the condition.
+            unless next_cond.is_a?(Expression)
+                raise "Invalid class for a condition: #{next_cond.class}"
+            end
+            # And set its parent.
+            next_cond.parent = self
+            # Check yes statement.
+            unless next_yes.is_a?(Statement)
+                raise "Invalid class for a statement: #{next_yes.class}"
+            end
+            # And set its parent.
+            yes.parent = self
+            # Add the statement.
+            @noifs << [next_cond,next_yes]
+        end
+
+        # Iterates over the alternate if statements (elsif).
+        def each_noif(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_noif) unless ruby_block
+            # A block?
+            # Appy it on the alternate if statements.
+            @noifs.each do |next_cond,next_yes|
+                yield(next_cond,next_yes)
+            end
+        end
+            
+
         # Iterates over all the blocks contained in the current block.
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
             # A block?
-            # Apply it on the yes and the no blocks.
-            self.yes.each_block_deep(&ruby_block)
-            self.no.each_block_deep(&ruby_block)
+            # Apply it on the yes, the alternate ifs and the no blocks.
+            @yes.each_block_deep(&ruby_block)
+            @noifs.each do |next_cond,next_yes|
+                next_cond.each_block_deep(&ruby_block)
+                next_yes.each_block_deep(&ruby_block)
+            end
+            @no.each_block_deep(&ruby_block)
         end
     end
 
@@ -1502,6 +1566,11 @@ module HDLRuby::Base
         def <=>(value)
             value = value.content if value.respond_to?(:content)
             return self.content <=> value
+        end
+
+        # Gets the bit width of the value.
+        def width
+            return @type.width
         end
     end
 

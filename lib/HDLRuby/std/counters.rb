@@ -1,4 +1,4 @@
-module HDLRuby::High::Counter
+module HDLRuby::High::Std
 
 ##
 # Standard HDLRuby::High library: counters
@@ -11,15 +11,24 @@ module HDLRuby::High::Counter
     #  When not within a block, a behavior will be created which is
     #  activated on the rising edge of +clk+.
     def with_counter(init, rst = $rst, clk = $clk, &code)
-        # Creates the counter
-        counter = High.make_variable(:counter)
         # Are we in a block?
-        if High.top_user.is_a?(High::SystemT) then
+        if HDLRuby::High.top_user.is_a?(HDLRuby::High::SystemT) then
             # No, create a behavior.
             behavior(clk.posedge) do
                 with_counter(init,rst,clk,&code)
             end
         else
+            # Creates the counter
+            # counter = HDLRuby::High::SignalI.new(HDLRuby::High.uniq_name,
+            #                           TypeVector.new(:"",bit,init.width),
+            #                           :inner)
+            # Create the name of the counter.
+            name = HDLRuby::High.uniq_name
+            # Declare the counter.
+            [init.width].inner(name)
+            # Get the signal of the counter.
+            counter = HDLRuby::High.cur_block.get_inner(name)
+            # Apply the code on the counter.
             code.call(counter)
         end
     end
@@ -30,15 +39,14 @@ module HDLRuby::High::Counter
     #  As long as this counter does not reach 0, +code+ is executed.
     #  When not within a block, a behavior will be created which is
     #  activated on the rising edge of +clk+.
-    def before(init, rest = $rst, clk = $clk, &code)
+    def before(init, rst = $rst, clk = $clk, &code)
         with_counter(init,rst,clk) do |counter|
             seq do
-                inner counter
-                ifh(rst == 1) do
-                    get_inner(counter) <= init
+                hif(rst.to_expr == 1) do
+                    counter.to_expr <= init.to_expr
                 end
-                elsifh(get_inner(counter) != 0) do
-                    get_inner(counter) <= get_inner(counter) - 1
+                helsif(counter.to_expr != 0) do
+                    counter.to_expr <= counter.to_expr - 1
                     code.call
                 end
             end
@@ -53,15 +61,14 @@ module HDLRuby::High::Counter
     def after(init, rst = $rst, clk = $clk, &code)
         with_counter(init,rst,clk) do |counter|
             seq do
-                inner counter
-                ifh(rst == 1) do
-                    get_inner(counter) <= init
+                hif(rst.to_expr == 1) do
+                    counter.to_expr <= init.to_expr
                 end
-                elsifh(get_inner(counter) == 0) do
+                helsif(counter.to_expr == 0) do
                     code.call
                 end
-                elseh do
-                    get_inner(counter) <= get_inner(counter) - 1
+                helse do
+                    counter.to_expr <= counter.to_expr - 1
                 end
             end
         end
