@@ -43,10 +43,10 @@ module HDLRuby::High::Std
         with_counter(init,rst,clk) do |counter|
             seq do
                 hif(rst.to_expr == 1) do
-                    counter.to_expr <= init.to_expr
+                    counter.to_ref <= init.to_expr
                 end
                 helsif(counter.to_expr != 0) do
-                    counter.to_expr <= counter.to_expr - 1
+                    counter.to_ref <= counter.to_expr - 1
                     code.call
                 end
             end
@@ -62,13 +62,13 @@ module HDLRuby::High::Std
         with_counter(init,rst,clk) do |counter|
             seq do
                 hif(rst.to_expr == 1) do
-                    counter.to_expr <= init.to_expr
+                    counter.to_ref <= init.to_expr
                 end
                 helsif(counter.to_expr == 0) do
                     code.call
                 end
                 helse do
-                    counter.to_expr <= counter.to_expr - 1
+                    counter.to_ref <= counter.to_expr - 1
                 end
             end
         end
