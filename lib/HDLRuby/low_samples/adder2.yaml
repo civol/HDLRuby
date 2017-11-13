@@ -1,0 +1,74 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: adderI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: y
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  outputs:
+  - SignalI:
+      name: s
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 16
+          - 0
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefRange:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          range:
+          - Value:
+              type:
+                TypeNumeric:
+                  name: ''
+                  numeric: 16
+              content: 16
+          - Value:
+              type:
+                TypeNumeric:
+                  name: ''
+                  numeric: 0
+              content: 0
+      right:
+        Binary:
+          operator: "+"
+          left:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          right:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+  behaviors: []

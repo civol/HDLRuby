@@ -16,7 +16,8 @@ module HDLRuby
     TO_BASICS = [
                  # Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior,
                  Low::SystemT,
-                 Low::Type, Low::TypeVector, Low::TypeTuple, Low::TypeStruct,
+                 Low::Type, Low::TypeNumeric, 
+                 Low::TypeVector, Low::TypeTuple, Low::TypeStruct,
                  Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
                  # Low::SignalI, Low::SystemI, Low::Connection, 
@@ -111,8 +112,9 @@ module HDLRuby
     def self.basic_to_value(basic)
         # print "For basic=#{basic} (#{basic.class})\n"
         # Detect which kind of basic struture it is.
-        if basic.is_a?(NilClass) or basic.is_a?(Numeric) then
-            # Nil or Numeric objects are kept as they are.
+        if basic.is_a?(NilClass) or basic.is_a?(Numeric) or 
+                basic.is_a?(Low::Value) then
+            # Nil, Numeric or Value objects are kept as they are.
             return basic
         elsif basic.is_a?(Range) then
             # First and last of range are converted.
