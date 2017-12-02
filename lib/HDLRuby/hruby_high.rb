@@ -1,5 +1,7 @@
 require "HDLRuby/hruby_base"
 require "HDLRuby/hruby_low"
+require "HDLRuby/hruby_types"
+require "HDLRuby/hruby_values"
 require "HDLRuby/hruby_bstr"
 
 require 'set'
@@ -12,13 +14,9 @@ module HDLRuby::High
     Base = HDLRuby::Base
     Low  = HDLRuby::Low
 
-    # Some useful constants
-
-    Infinity = +1.0/0.0
-    
     # Gets the infinity.
     def infinity
-        return HDLRuby::High::Infinity
+        return HDLRuby::Infinity
     end
 
 
@@ -921,6 +919,9 @@ module HDLRuby::High
     module Htype
         High = HDLRuby::High
 
+        # Type processing
+        include HDLRuby::Tprocess
+
         # Ensures initialize registers the type name
         def self.included(base) # built-in Ruby hook for modules
             base.class_eval do    
@@ -983,96 +984,97 @@ module HDLRuby::High
             self
         end
 
-        # The widths of the basic types.
-        WIDTHS = { :bit => 1, :unsigned => 1, :signed => 1,
-                   :fixnum => 32, :float => 64, :bignum => High::Infinity }
+        # Moved to base
+        # # The widths of the basic types.
+        # WIDTHS = { :bit => 1, :unsigned => 1, :signed => 1,
+        #            :fixnum => 32, :float => 64, :bignum => High::Infinity }
 
-        # The signs of the basic types.
-        SIGNS = { :signed => true, :fixnum => true, :float => true,
-                  :bignum => true }
-        SIGNS.default = false
+        # # The signs of the basic types.
+        # SIGNS = { :signed => true, :fixnum => true, :float => true,
+        #           :bignum => true }
+        # SIGNS.default = false
 
-        # Gets the bitwidth of the type, nil for undefined.
-        #
-        # NOTE: must be redefined for specific types.
-        def width
-            return WIDTHS[self.name]
-        end
-
-        # Tells if the type signed, false for unsigned.
-        def signed?
-            return SIGNS[self.name]
-        end
-
-        # # Tells if the type is specified or not.
-        # def void?
-        #     return self.name == :void
+        # # Gets the bitwidth of the type, nil for undefined.
+        # #
+        # # NOTE: must be redefined for specific types.
+        # def width
+        #     return WIDTHS[self.name]
         # end
 
-        # # Tells if a type is generic or not.
-        # def generic?
-        #     return self.void?
+        # # Tells if the type signed, false for unsigned.
+        # def signed?
+        #     return SIGNS[self.name]
         # end
 
-        # Checks the compatibility with +type+
-        def compatible?(type)
-            # # If type is void, compatible anyway.
-            # return true if type.name == :void
-            # Default: base types cases.
-            case self.name
-            # when :void then
-            #     # void is compatible with anything.
-            #     return true
-            when :bit then
-                # bit is compatible with bit signed and unsigned.
-                return [:bit,:signed,:unsigned].include?(type.name)
-            when :signed then
-                # Signed is compatible with bit and signed.
-                return [:bit,:signed].include?(type.name)
-            when :unsigned then
-                # Unsigned is compatible with bit and unsigned.
-                return [:bit,:unsigned].include?(type.name)
-            else
-                # Unknown type for compatibility: not compatible by default.
-                return false
-            end
-        end
+        # # # Tells if the type is specified or not.
+        # # def void?
+        # #     return self.name == :void
+        # # end
 
-        # Merges with +type+
-        def merge(type)
-            # # If type is void, return self.
-            # return self if type.name == :void
-            # Default: base types cases.
-            case self.name
-            # when :void then
-            #     # void: return type
-            #     return type
-            when :bit then
-                # bit is compatible with bit signed and unsigned.
-                if [:bit,:signed,:unsigned].include?(type.name) then
-                    return type
-                else
-                    raise "Incompatible types for merging: #{self}, #{type}."
-                end
-            when :signed then
-                # Signed is compatible with bit and signed.
-                if [:bit,:signed].include?(type.name) then
-                    return self
-                else
-                    raise "Incompatible types for merging: #{self}, #{type}."
-                end
-            when :unsigned then
-                # Unsigned is compatible with bit and unsigned.
-                if [:bit,:unsigned].include?(type.name)
-                    return self
-                else
-                    raise "Incompatible types for merging: #{self}, #{type}."
-                end
-            else
-                # Unknown type for compatibility: not compatible by default.
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-        end
+        # # # Tells if a type is generic or not.
+        # # def generic?
+        # #     return self.void?
+        # # end
+
+        # # Checks the compatibility with +type+
+        # def compatible?(type)
+        #     # # If type is void, compatible anyway.
+        #     # return true if type.name == :void
+        #     # Default: base types cases.
+        #     case self.name
+        #     # when :void then
+        #     #     # void is compatible with anything.
+        #     #     return true
+        #     when :bit then
+        #         # bit is compatible with bit signed and unsigned.
+        #         return [:bit,:signed,:unsigned].include?(type.name)
+        #     when :signed then
+        #         # Signed is compatible with bit and signed.
+        #         return [:bit,:signed].include?(type.name)
+        #     when :unsigned then
+        #         # Unsigned is compatible with bit and unsigned.
+        #         return [:bit,:unsigned].include?(type.name)
+        #     else
+        #         # Unknown type for compatibility: not compatible by default.
+        #         return false
+        #     end
+        # end
+
+        # # Merges with +type+
+        # def merge(type)
+        #     # # If type is void, return self.
+        #     # return self if type.name == :void
+        #     # Default: base types cases.
+        #     case self.name
+        #     # when :void then
+        #     #     # void: return type
+        #     #     return type
+        #     when :bit then
+        #         # bit is compatible with bit signed and unsigned.
+        #         if [:bit,:signed,:unsigned].include?(type.name) then
+        #             return type
+        #         else
+        #             raise "Incompatible types for merging: #{self}, #{type}."
+        #         end
+        #     when :signed then
+        #         # Signed is compatible with bit and signed.
+        #         if [:bit,:signed].include?(type.name) then
+        #             return self
+        #         else
+        #             raise "Incompatible types for merging: #{self}, #{type}."
+        #         end
+        #     when :unsigned then
+        #         # Unsigned is compatible with bit and unsigned.
+        #         if [:bit,:unsigned].include?(type.name)
+        #             return self
+        #         else
+        #             raise "Incompatible types for merging: #{self}, #{type}."
+        #         end
+        #     else
+        #         # Unknown type for compatibility: not compatible by default.
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        # end
 
 
         # # Instantiate the type with arguments +args+ if required.
@@ -1146,56 +1148,114 @@ module HDLRuby::High
         end
     end
 
+    
+    # Creates the basic types.
+    
+    # Defines a basic type +name+.
+    def self.define_type(name)
+        name = name.to_sym
+        type = Type.new(name)
+        self.send(:define_method,name) { type }
+        return type
+    end
+
+    # # The void type.
+    # define_type :void
+
+    # The bit type.
+    Bit = define_type(:bit)
+    class << Bit
+        # Tells if the type fixed point.
+        def fixed?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
+        end
+    end
+
+    # The signed bit type.
+    Signed = define_type(:signed)
+    class << Signed 
+        # Tells if the type is signed.
+        def signed?
+            return true
+        end
+        # Tells if the type is fixed point.
+        def fixed?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
+        end
+    end
+
+    # The unsigned bit type.
+    Unsigned = define_type(:unsigned)
+    class << Unsigned
+        # Tells if the type is unsigned.
+        def unsigned?
+            return true
+        end
+        # Tells if the type is fixed point.
+        def fixed?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
+        end
+    end
+
+    # # The numeric type (for all the Ruby Numeric types).
+    # define_type :numeric
+
+    # The float bit type
+    Float = define_type(:float)
+    class << Float
+        # Tells if the type is signed.
+        def signed?
+            return true
+        end
+        # Tells if the type is floating point.
+        def float?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
+        end
+    end
+
+
 
     # ##
-    # # Describes a type named +name+ extending a +base+ type.
-    # class TypeExtend < Type
-    #     # The base type.
-    #     attr_reader :base
+    # # Describes a numeric type.
+    # class TypeNumeric < Base::TypeNumeric
+    #     High = HDLRuby::High
 
-    #     # Creates a new type named +name+ extending a +base+ type.
-    #     def initialize(name,base)
-    #         # Initialize the type.
-    #         super(name)
-    #         
-    #         # Checks and set the base.
-    #         unless base.is_a?(Type) then
-    #             raise "Invalid class for a high-level type: #{base.class}."
-    #         end
-    #         @base = base
-    #     end
+    #     include Htype
 
-    #     # Tells if a type is generic or not.
-    #     def generic?
-    #         # The type is generic if the base is generic.
-    #         return @base.generic?
-    #     end
-
-    #     # Checks the compatibility with +type+
-    #     def compatible?(type)
-    #         # # If type is void, compatible anyway.
-    #         # return true if type.name == :void
-    #         # Compatible if same name and compatible base.
-    #         return false unless type.respond_to?(:base)
-    #         return ( @name == type.name and 
-    #                  @base.compatible?(type.base) )
-    #     end
-
-    #     # Merges with +type+
-    #     def merge(type)
-    #         # # If type is void, return self anway.
-    #         # return self if type.name == :void
-    #         # Compatible if same name and compatible base.
-    #         unless type.respond_to?(:base) then
-    #             raise "Incompatible types for merging: #{self}, #{type}."
-    #         end
-    #         if @name == type.name then
-    #             return TypeExtend.new(@name,self.base.merge(type.base))
-    #         else
-    #             raise "Incompatible types for merging: #{self}, #{type}."
-    #         end
+    #     # Converts the type to HDLRuby::Low and set its +name+.
+    #     def to_low(name = self.name)
+    #         # Generate and return the new type.
+    #         return HDLRuby::Low::TypeNumeric.new(name,self.numeric)
     #     end
     # end
+
+
+
+    # Methods for vector types.
+    module HvectorType
+        # Converts the type to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            # Generate and return the new type.
+            return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
+                                                self.range.to_low)
+        end
+    end
 
 
     ##
@@ -1203,88 +1263,137 @@ module HDLRuby::High
     # class TypeVector < TypeExtend
     class TypeVector < Base::TypeVector
         High = HDLRuby::High
-
         include Htype
+        include HvectorType
 
-        # # The range of the vector.
-        # attr_reader :range
+        # # # The range of the vector.
+        # # attr_reader :range
 
-        # # Creates a new vector type named +name+ from +base+ type and with
-        # # +range+.
-        # def initialize(name,base,range)
-        #     # Initialize the type.
-        #     super(name,basa,range)
+        # # # Creates a new vector type named +name+ from +base+ type and with
+        # # # +range+.
+        # # def initialize(name,base,range)
+        # #     # Initialize the type.
+        # #     super(name,basa,range)
 
-        #     # # Check and set the vector-specific attributes.
-        #     # if rng.respond_to?(:to_i) then
-        #     #     # Integer case: convert to a 0..(rng-1) range.
-        #     #     rng = (rng-1)..0
-        #     # elsif
-        #     #     # Other cases: assume there is a first and a last to create
-        #     #     # the range.
-        #     #     rng = rng.first..rng.last
-        #     # end
-        #     # @range = rng
+        # #     # # Check and set the vector-specific attributes.
+        # #     # if rng.respond_to?(:to_i) then
+        # #     #     # Integer case: convert to a 0..(rng-1) range.
+        # #     #     rng = (rng-1)..0
+        # #     # elsif
+        # #     #     # Other cases: assume there is a first and a last to create
+        # #     #     # the range.
+        # #     #     rng = rng.first..rng.last
+        # #     # end
+        # #     # @range = rng
+        # # end
+
+        # # Type handling: these methods may have to be overriden when 
+        # # subclassing.
+
+        # # Moved to base
+        # # # Gets the bitwidth of the type, nil for undefined.
+        # # #
+        # # # NOTE: must be redefined for specific types.
+        # # def width
+        # #     first = @range.first
+        # #     last  = @range.last
+        # #     return @base.width * (first-last).abs
+        # # end
+
+        # # # Gets the direction of the range.
+        # # def dir
+        # #     return (@range.last - @range.first)
+        # # end
+
+        # # # Tells if the type signed, false for unsigned.
+        # # def signed?
+        # #     return @base.signed?
+        # # end
+
+        # # # # Tells if a type is generic or not.
+        # # # def generic?
+        # # #     # The type is generic if the base is generic.
+        # # #     return self.base.generic?
+        # # # end
+
+        # # # Checks the compatibility with +type+
+        # # def compatible?(type)
+        # #     # # if type is void, compatible anyway.
+        # #     # return true if type.name == :void
+        # #     # Compatible if same width and compatible base.
+        # #     return false unless type.respond_to?(:dir)
+        # #     return false unless type.respond_to?(:base)
+        # #     return ( self.dir == type.dir and
+        # #              self.base.compatible?(type.base) )
+        # # end
+
+        # # # Merges with +type+
+        # # def merge(type)
+        # #     # # if type is void, return self anyway.
+        # #     # return self if type.name == :void
+        # #     # Compatible if same width and compatible base.
+        # #     unless type.respond_to?(:dir) and type.respond_to?(:base) then
+        # #         raise "Incompatible types for merging: #{self}, #{type}."
+        # #     end
+        # #     unless self.dir == type.dir then
+        # #         raise "Incompatible types for merging: #{self}, #{type}."
+        # #     end
+        # #     return TypeVector.new(@name,@range,@base.merge(type.base))
+        # # end
+
+        # # Converts the type to HDLRuby::Low and set its +name+.
+        # def to_low(name = self.name)
+        #     # Generate and return the new type.
+        #     return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
+        #                                         self.range.to_low)
         # end
+    end
+    
 
-        # Type handling: these methods may have to be overriden when 
-        # subclassing.
 
-        # Gets the bitwidth of the type, nil for undefined.
+    ##
+    # Describes a signed integer data type.
+    class TypeSigned < TypeVector
+
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
         #
-        # NOTE: must be redefined for specific types.
-        def width
-            first = @range.first
-            last  = @range.last
-            return @base.width * (first-last).abs
+        # NOTE:
+        # * The default range is 32-bit.
+        def initialize(name,range = 31..0)
+            # Initialize the type.
+            super(name,Signed,range)
         end
+    end
 
-        # Gets the direction of the range.
-        def dir
-            return (@range.last - @range.first)
+    ##
+    # Describes a unsigned integer data type.
+    class TypeUnsigned < TypeVector
+
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
+        #
+        # NOTE:
+        # * The default range is 32-bit.
+        def initialize(name,range = 31..0)
+            # Initialize the type.
+            super(name,Unsigned,range)
         end
+    end
 
-        # Tells if the type signed, false for unsigned.
-        def signed?
-            return @base.signed?
-        end
+    ##
+    # Describes a float data type.
+    class TypeFloat < TypeVector
 
-        # # Tells if a type is generic or not.
-        # def generic?
-        #     # The type is generic if the base is generic.
-        #     return self.base.generic?
-        # end
-
-        # Checks the compatibility with +type+
-        def compatible?(type)
-            # # if type is void, compatible anyway.
-            # return true if type.name == :void
-            # Compatible if same width and compatible base.
-            return false unless type.respond_to?(:dir)
-            return false unless type.respond_to?(:base)
-            return ( self.dir == type.dir and
-                     self.base.compatible?(type.base) )
-        end
-
-        # Merges with +type+
-        def merge(type)
-            # # if type is void, return self anyway.
-            # return self if type.name == :void
-            # Compatible if same width and compatible base.
-            unless type.respond_to?(:dir) and type.respond_to?(:base) then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            unless self.dir == type.dir then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            return TypeVector.new(@name,@range,@base.merge(type.base))
-        end
-
-        # Converts the type to HDLRuby::Low and set its +name+.
-        def to_low(name = self.name)
-            # Generate and return the new type.
-            return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
-                                                self.range.to_low)
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
+        #
+        # NOTE:
+        # * The bits of negative range stands for the exponent
+        # * The default range is for 64-bit IEEE 754 double precision standart
+        def initialize(name,range = 52..-11)
+            # Initialize the type.
+            super(name,Float,range)
         end
     end
 
@@ -1297,120 +1406,12 @@ module HDLRuby::High
 
         include Htype
 
-        # # Creates a new tuple type named +name+ whose sub types are given
-        # # by +content+.
-        # def initialize(name,*content)
-        #     # Initialize the type.
-        #     super(name,*content)
-
-        #     # # Check and set the content.
-        #     # content.each do |sub|
-        #     #     unless sub.is_a?(Type) then
-        #     #         raise "Invalid class for a type: #{sub.class}"
-        #     #     end
-        #     # end
-        #     # @types = content
-        # end
-
-        # # Gets a sub type by +index+.
-        # def get_type(index)
-        #     return @types[index.to_i]
-        # end
-
-        # # Iterates over the sub name/type pair.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each) unless ruby_block
-        #     # A block? Apply it on each input signal instance.
-        #     @types.each(&ruby_block)
-        # end
-
-        # # Iterates over the sub types.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each_type(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_type) unless ruby_block
-        #     # A block? Apply it on each input signal instance.
-        #     @types.each_value(&ruby_block)
-        # end
-
-        # # Tells if a type is generic or not.
-        # def generic?
-        #     # The type is generic if one of the sub types is generic.
-        #     return self.each_type.any? { |type| type.generic? }
-        # end
-
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
             return HDLRuby::Low::TypeTuple.new(name,
                                *@types.map { |type| type.to_low } )
         end
     end
-
-
-    # ##
-    # # Describes a hierarchical type.
-    # class TypeHierarchy < Type
-    #     # Creates a new hierarchical type named +name+ whose hierachy is given
-    #     # by +content+.
-    #     def initialize(name,content)
-    #         # Initialize the type.
-    #         super(name)
-
-    #         # Check and set the content.
-    #         content = Hash[content]
-    #         @types = content.map do |k,v|
-    #             unless v.is_a?(Type) then
-    #                 raise "Invalid class for a type: #{v.class}"
-    #             end
-    #             [ k.to_sym, v ]
-    #         end.to_h
-    #     end
-
-    #     # Gets a sub type by +name+.
-    #     def get_type(name)
-    #         return @types[name.to_sym]
-    #     end
-
-    #     # Iterates over the sub name/type pair.
-    #     #
-    #     # Returns an enumerator if no ruby block is given.
-    #     def each(&ruby_block)
-    #         # No ruby block? Return an enumerator.
-    #         return to_enum(:each) unless ruby_block
-    #         # A block? Apply it on each input signal instance.
-    #         @types.each(&ruby_block)
-    #     end
-
-    #     # Iterates over the sub types.
-    #     #
-    #     # Returns an enumerator if no ruby block is given.
-    #     def each_type(&ruby_block)
-    #         # No ruby block? Return an enumerator.
-    #         return to_enum(:each_type) unless ruby_block
-    #         # A block? Apply it on each input signal instance.
-    #         @types.each_value(&ruby_block)
-    #     end
-
-    #     # Iterates over the sub type names.
-    #     #
-    #     # Returns an enumerator if no ruby block is given.
-    #     def each_name(&ruby_block)
-    #         # No ruby block? Return an enumerator.
-    #         return to_enum(:each_name) unless ruby_block
-    #         # A block? Apply it on each input signal instance.
-    #         @types.each_key(&ruby_block)
-    #     end
-
-    #     # Tells if a type is generic or not.
-    #     def generic?
-    #         # The type is generic if one of the sub types is generic.
-    #         return self.each_type.any? { |type| type.generic? }
-    #     end
-    # end
 
 
     ##
@@ -1421,46 +1422,47 @@ module HDLRuby::High
 
         include Htype
 
-        # Gets the bitwidth of the type, nil for undefined.
-        #
-        # NOTE: must be redefined for specific types.
-        def width
-            return @types.reduce(0) {|sum,type| sum + type.width }
-        end
+        # Moved to Base
+        # # Gets the bitwidth of the type, nil for undefined.
+        # #
+        # # NOTE: must be redefined for specific types.
+        # def width
+        #     return @types.reduce(0) {|sum,type| sum + type.width }
+        # end
 
-        # Checks the compatibility with +type+
-        def compatible?(type)
-            # # If type is void, compatible anyway.
-            # return true if type.name == :void
-            # Not compatible if different types.
-            return false unless type.is_a?(TypeStruct)
-            # Not compatibe unless each entry has the same name in same order.
-            return false unless self.each_name == type.each_name
-            self.each do |name,sub|
-                return false unless sub.compatible?(self.get_type(name))
-            end
-            return true
-        end
+        # # Checks the compatibility with +type+
+        # def compatible?(type)
+        #     # # If type is void, compatible anyway.
+        #     # return true if type.name == :void
+        #     # Not compatible if different types.
+        #     return false unless type.is_a?(TypeStruct)
+        #     # Not compatibe unless each entry has the same name in same order.
+        #     return false unless self.each_name == type.each_name
+        #     self.each do |name,sub|
+        #         return false unless sub.compatible?(self.get_type(name))
+        #     end
+        #     return true
+        # end
 
-        # Merges with +type+
-        def merge(type)
-            # # if type is void, return self anyway.
-            # return self if type.name == :void
-            # Not compatible if different types.
-            unless type.is_a?(TypeStruct) then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            # Not compatibe unless each entry has the same name and same order.
-            unless self.each_name == type.each_name then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            # Creates the new type content
-            content = {}
-            self.each do |name,sub|
-                content[name] = self.get_type(name).merge(sub)
-            end
-            return TypeStruct.new(@name,content)
-        end  
+        # # Merges with +type+
+        # def merge(type)
+        #     # # if type is void, return self anyway.
+        #     # return self if type.name == :void
+        #     # Not compatible if different types.
+        #     unless type.is_a?(TypeStruct) then
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        #     # Not compatibe unless each entry has the same name and same order.
+        #     unless self.each_name == type.each_name then
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        #     # Creates the new type content
+        #     content = {}
+        #     self.each do |name,sub|
+        #         content[name] = self.get_type(name).merge(sub)
+        #     end
+        #     return TypeStruct.new(@name,content)
+        # end  
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
@@ -1468,165 +1470,6 @@ module HDLRuby::High
                                 @types.map { |name,type| [name,type.to_low] } )
         end
     end
-
-
-    # ##
-    # # Describes an union type.
-    # class TypeUnion < TypeHierarchy
-    #     # Creates a new union type named +name+ whose hierachy is given
-    #     # by +content+.
-    #     def initialize(name,content)
-    #         # Initialize the type structure.
-    #         super(name,content)
-    #         # Check the content: a union cannot contain any generic sub-type.
-    #         self.each_type do |type|
-    #             if type.generic? then
-    #                 raise "Union types cannot contain any generic sub-type."
-    #             end
-    #         end
-    #     end
-
-    #     # Type handling: these methods may have to be overriden when 
-    #     # subclassing.
-
-    #     # Gets the bitwidth of the type, nil for undefined.
-    #     #
-    #     # NOTE: must be redefined for specific types.
-    #     def width
-    #         return @types.max{ |type| type.width }.width
-    #     end
-
-    #     # Tells if a type is generic or not.
-    #     def generic?
-    #         # No.
-    #         return false
-    #     end
-    # end
-
-    # ##
-    # # Describes a type made of a system type.
-    # #
-    # # NOTE: must be instantiated before being used.
-    # class TypeSystemT < Type
-    #     # The system type.
-    #     attr_reader :systemT
-
-    #     # Creates a new type named +name+ made of system type +systemT+
-    #     # using signal names of +left_names+ as left values and signal names
-    #     # of +right_names+ as right values.
-    #     def initialize(name,systemT,left_names,right_names)
-    #         # Initialize the type.
-    #         super(name)
-    #         # Check and set the system type.
-    #         unless systemT.is_a?(SystemT) then
-    #             raise "Invalid class for a system type: #{systemT.class}."
-    #         end
-    #         @systemT = systemT
-
-    #         # Check and set the left and right names.
-    #         @left_names = left_names.map {|name| name.to_sym }
-    #         @right_names = right_names.map {|name| name.to_sym }
-    #     end
-
-    #     # Instantiate the type with arguments +args+.
-    #     # Returns a new type named +name+ based on a system instance.
-    #     #
-    #     # NOTE: to be called when creating a signal of this type, it
-    #     # will instantiate the embedded system.
-    #     def instantiate(*args)
-    #         # Instantiate the system type and create the type instance
-    #         # from it.
-    #         return TypeSystemI.new(:"",@systemT.instantiate(:"",*args),
-    #                               @left_names, @right_names)
-    #     end
-    #     alias :call :instantiate
-    # end
-
-
-    # ##
-    # # Describes a type made of a system instance.
-    # class TypeSystemI < TypeHierarchy
-    #     # The system instance.
-    #     attr_reader :systemI
-
-    #     # Creates a new type named +name+ made of system type +systemI+
-    #     # using signal names of +left_names+ as left values and signal names
-    #     # of +right_names+ as right values.
-    #     def initialize(name,systemI,left_names,right_names)
-    #         # Check and set the system instance.
-    #         unless systemI.is_a?(SystemI) then
-    #             raise "Invalid class for a system instance: #{systemI.class}."
-    #         end
-    #         @systemI = systemI
-
-    #         # Initialize the type: each external signal becomes an
-    #         # element of the corresponding hierarchical type.
-    #         super(name, systemI.each_input.map do |signal|
-    #                         [signal.name, signal.type]
-    #                     end + 
-    #                     systemI.each_output.map do |signal|
-    #                         [signal.name, signal.type]
-    #                     end + 
-    #                     systemI.each_inout.map do |signal|
-    #                         [signal.name, signal.type]
-    #                     end)
-
-
-    #         # Check and set the left and right names.
-    #         @left_names = left_names.map {|name| name.to_sym }
-    #         @right_names = right_names.map {|name| name.to_sym }
-
-    #         # Generates the left-value and the right-value side of the type
-    #         # from the inputs and the outputs of the system.
-    #         @left = struct(@left_names.map do |name|
-    #             signal = @systemI.get_signal(name)
-    #             unless signal then
-    #                 raise "Unkown signal in system #{@systemI.name}: #{name}."
-    #             end
-    #             [name, signal.type]
-    #         end)
-    #         @right = struct(@right_names.map do |name|
-    #             signal = @systemI.get_signal(name)
-    #             unless signal then
-    #                 raise "Unkown signal in system #{@systemI.name}: #{name}."
-    #             end
-    #             [name, signal.type]
-    #         end)
-    #     end
-
-
-    #     # Type handling: these methods may have to be overriden when 
-    #     # subclassing.
-    #     
-    #     # Gets the type as left value.
-    #     def left
-    #         return @left
-    #     end
-
-    #     # Gets the type as right value.
-    #     def right
-    #         return @right
-    #     end
-
-
-    #     # Tells if a type is generic or not.
-    #     def generic?
-    #         return (self.left.generic? or self.right.generic?)
-    #     end
-
-    #     # Checks the compatibility with +type+
-    #     def compatible?(type)
-    #         # Not compatible, must use left or right for connections.
-    #         return false
-    #     end
-
-    #     # Merges with +type+
-    #     def merge(type)
-    #         # Cannot merge, must use left or right for connections.
-    #         raise "Incompatible types for merging: #{self}, #{type}."
-    #     end
-
-    # end
 
 
 
@@ -1947,6 +1790,13 @@ module HDLRuby::High
         # The type of the expression if resolved.
         attr_reader :type
 
+        # Converts to a value.
+        #
+        # NOTE: to be redefined.
+        def to_value
+            raise "Expression cannot be converted to a value (#{self.class})."
+        end
+
         # Converts to an expression.
         #
         # NOTE: to be redefined in case of non-expression class.
@@ -2160,6 +2010,13 @@ module HDLRuby::High
     # Describes a high-level value.
     class Value < Base::Value
         include HExpression
+        include HDLRuby::Vprocess
+
+        # Converts to a value.
+        def to_value
+            # Already a value.
+            self
+        end
 
         # Converts the value to HDLRuby::Low.
         def to_low
@@ -2168,6 +2025,11 @@ module HDLRuby::High
             # Create and return the resulting low-level value
             return HDLRuby::Low::Value.new(self.type.to_low,content)
         end
+
+        # # For support in ranges.
+        # def <=>(expr)
+        #     return self.to_s <=> expr.to_s
+        # end
     end
 
 
@@ -3164,32 +3026,6 @@ module HDLRuby::High
 
 
     
-    # Creates the basic types.
-    
-    # Defines a basic type +name+.
-    def self.define_type(name)
-        name = name.to_sym
-        type = Type.new(name)
-        self.send(:define_method,name) { type }
-    end
-
-    # # The void type.
-    # define_type :void
-
-    # The bit type.
-    define_type :bit
-
-    # The signed bit type.
-    define_type :signed
-
-    # The ungisned bit type.
-    define_type :unsigned
-
-    # The numeric type (for all the Ruby Numeric types).
-    define_type :numeric
-
-
-
 
 
     # Extends the standard classes for support of HDLRuby.
@@ -3198,9 +3034,16 @@ module HDLRuby::High
     # Extends the Numeric class for conversion to a high-level expression.
     class ::Numeric
 
-        # Converts to a high-level expression.
-        def to_expr
-            return Value.new(numeric,self)
+        # to_expr is to be defined in the subclasses of ::Numeric
+        # # Converts to a high-level expression.
+        # def to_expr
+        #     # return Value.new(numeric,self)
+        #     return Value.new(TypeNumeric.new(:"",self),self)
+        # end
+
+        # Converts to a high-level value.
+        def to_value
+            to_expr
         end
 
         # Converts to a delay in picoseconds.
@@ -3238,8 +3081,29 @@ module HDLRuby::High
         end
     end
 
-    # Extends the Float class for computing the bit width.
+    # Extends the Fixnum class for computing for conversion to expression.
+    class ::Fixnum
+        # Converts to a high-level expression.
+        def to_expr
+            return Value.new(Integer,self)
+        end
+    end
+
+    # Extends the Bignum class for computing for conversion to expression.
+    class ::Bignum
+        # Converts to a high-level expression.
+        def to_expr
+            return Value.new(Bignum,self)
+        end
+    end
+
+    # Extends the Float class for computing the bit width and conversion
+    # to expression.
     class ::Float
+        # Converts to a high-level expression.
+        def to_expr
+            return Value.new(Real,self)
+        end
 
         # Gets the bit width
         def width
@@ -3593,6 +3457,15 @@ module HDLRuby::High
         # puts "created name: #{base}"
         return base.to_sym
     end
+
+
+
+
+    # Standard vector types.
+    Integer = TypeSigned.new(:integer)
+    Natural = TypeUnsigned.new(:natural)
+    Bignum  = TypeSigned.new(:bignum,HDLRuby::Infinity..0)
+    Real    = TypeFloat.new(:float)
 
 end
 

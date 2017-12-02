@@ -16,8 +16,10 @@ module HDLRuby
     TO_BASICS = [
                  # Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior,
                  Low::SystemT,
-                 Low::Type, Low::TypeNumeric, 
-                 Low::TypeVector, Low::TypeTuple, Low::TypeStruct,
+                 Low::Type, # Low::TypeNumeric, 
+                 Low::TypeVector,
+                 Low::TypeSigned, Low::TypeUnsigned, Low::TypeFloat,
+                 Low::TypeTuple, Low::TypeStruct,
                  Low::Behavior, Low::TimeBehavior, 
                  Low::Event, Low::Block, Low::TimeBlock, Low::Code, 
                  # Low::SignalI, Low::SystemI, Low::Connection, 

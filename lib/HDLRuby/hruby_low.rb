@@ -117,6 +117,12 @@ module HDLRuby::Low
         include Ltype
     end
 
+    # ##
+    # # Describes a numeric type.
+    # class TypeNumeric < Base::TypeNumeric
+    #     include Ltype
+    # end
+
     ##
     # Describes a vector data type.
     class TypeVector < Base::TypeVector
@@ -132,6 +138,34 @@ module HDLRuby::Low
         
         include Ltype
     end
+
+    ##
+    # Describes a signed integer data type.
+    class TypeSigned < Base::TypeSigned
+        include Ltype
+    end
+
+    ##
+    # Describes a unsigned integer data type.
+    class TypeUnsigned < Base::TypeUnsigned
+        include Ltype
+    end
+
+    ##
+    # Describes a float data type.
+    class TypeFloat < Base::TypeFloat
+        include Ltype
+    end
+
+    # Standard vector types.
+    Integer = TypeSigned.new(:integer)
+    Natural = TypeUnsigned.new(:natural)
+    Bignum  = TypeSigned.new(:bignum,HDLRuby::Infinity..0)
+    Real    = TypeFloat.new(:float)
+
+
+
+
 
     ##
     # Describes a tuple data type.

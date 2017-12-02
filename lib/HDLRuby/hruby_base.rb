@@ -1,5 +1,13 @@
 require "HDLRuby/hruby_bstr"
 
+
+module HDLRuby
+    # Some useful constants
+    Infinity = +1.0/0.0
+end
+    
+
+
 ##
 # Library for describing the basic structures of the hardware component.
 #
@@ -597,9 +605,186 @@ module HDLRuby::Base
             @name = name.to_sym
         end
 
-        # Gets the bit width of the type.
+        # # The widths of the basic types.
+        # WIDTHS = { :bit => 1, :unsigned => 1, :signed => 1 }
+
+        # # The signs of the basic types.
+        # SIGNS = { :signed => true, :fixnum => true, :float => true,
+        #           :bignum => true }
+        # SIGNS.default = false
+
+        # # Gets the bitwidth of the type, nil for undefined.
+        # #
+        # # NOTE: must be redefined for specific types.
+        # def width
+        #     res = WIDTHS[self.name]
+        #     unless res then
+        #         raise "Invalid type for a width."
+        #     end
+        #     return res
+        # end
+
+        # # Tells if the type signed, false for unsigned.
+        # def signed?
+        #     return SIGNS[self.name]
+        # end
+
+        # # Tells if the type is unsigned, false for signed.
+        # def unsigned?
+        #     return !signed?
+        # end
+
+        # # Tells if the type is floating point.
+        # def float?
+        #     return self.name == :float
+        # end
+
+        # # Checks the compatibility with +type+
+        # def compatible?(type)
+        #     # # If type is void, compatible anyway.
+        #     # return true if type.name == :void
+        #     # Default: base types cases.
+        #     case self.name
+        #     # when :void then
+        #     #     # void is compatible with anything.
+        #     #     return true
+        #     when :bit then
+        #         # bit is compatible with bit signed and unsigned.
+        #         return [:bit,:signed,:unsigned].include?(type.name)
+        #     when :signed then
+        #         # Signed is compatible with bit and signed.
+        #         return [:bit,:signed].include?(type.name)
+        #     when :unsigned then
+        #         # Unsigned is compatible with bit and unsigned.
+        #         return [:bit,:unsigned].include?(type.name)
+        #     else
+        #         # Unknown type for compatibility: not compatible by default.
+        #         return false
+        #     end
+        # end
+
+        # # Merges with +type+
+        # def merge(type)
+        #     # # If type is void, return self.
+        #     # return self if type.name == :void
+        #     # Default: base types cases.
+        #     case self.name
+        #     # when :void then
+        #     #     # void: return type
+        #     #     return type
+        #     when :bit then
+        #         # bit is compatible with bit signed and unsigned.
+        #         if [:bit,:signed,:unsigned].include?(type.name) then
+        #             return type
+        #         else
+        #             raise "Incompatible types for merging: #{self}, #{type}."
+        #         end
+        #     when :signed then
+        #         # Signed is compatible with bit and signed.
+        #         if [:bit,:signed].include?(type.name) then
+        #             return self
+        #         else
+        #             raise "Incompatible types for merging: #{self}, #{type}."
+        #         end
+        #     when :unsigned then
+        #         # Unsigned is compatible with bit and unsigned.
+        #         if [:bit,:unsigned].include?(type.name)
+        #             return self
+        #         else
+        #             raise "Incompatible types for merging: #{self}, #{type}."
+        #         end
+        #     else
+        #         # Unknown type for compatibility: not compatible by default.
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        # end
+
+
+        # Tells if the type signed.
+        def signed?
+            return false
+        end
+
+        # Tells if the type is unsigned.
+        def unsigned?
+            return false
+        end
+
+        # Tells if the type is fixed point.
+        def fixed?
+            return false
+        end
+
+        # Tells if the type is floating point.
+        def float?
+            return false
+        end
+
+    end
+
+    # The leaf types.
+    
+    ##
+    # The bit types leaf.
+    class << ( Bit = Type.new(:bit) )
+        # Tells if the type fixed point.
+        def fixed?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
         def width
-            raise "Type with undefined width."
+            1
+        end
+    end
+
+    ##
+    # The signed types leaf.
+    class << ( Signed = Type.new(:signed) )
+        # Tells if the type is signed.
+        def signed?
+            return true
+        end
+        # Tells if the type is fixed point.
+        def fixed?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
+        end
+    end
+
+    ##
+    # The unsigned types leaf.
+    class << ( Unsigned = Type.new(:unsigned) )
+        # Tells if the type is unsigned.
+        def unsigned?
+            return true
+        end
+        # Tells if the type is fixed point.
+        def fixed?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
+        end
+    end
+
+    ##
+    # The float types leaf.
+    class << ( Float = Type.new(:float) )
+        # Tells if the type is signed.
+        def signed?
+            return true
+        end
+        # Tells if the type is floating point.
+        def float?
+            return true
+        end
+        # Gets the bitwidth of the type, nil for undefined.
+        def width
+            1
         end
     end
 
@@ -637,11 +822,119 @@ module HDLRuby::Base
             @range = range
         end
 
-        # Gets the bitwidth
+        # Gets the bitwidth of the type, nil for undefined.
+        #
+        # NOTE: must be redefined for specific types.
         def width
-            return (range.first-range.last).abs
+            first = @range.first
+            last  = @range.last
+            return @base.width * (first-last).abs
+        end
+
+        # Gets the direction of the range.
+        def dir
+            return (@range.last - @range.first)
+        end
+
+        # Tells if the type signed.
+        def signed?
+            return @base.signed?
+        end
+
+        # Tells if the type is unsigned.
+        def unsigned?
+            return @base.unsigned?
+        end
+
+        # Tells if the type is fixed point.
+        def fixed?
+            return @base.signed?
+        end
+
+        # Tells if the type is floating point.
+        def float?
+            return @base.float?
+        end
+
+        # # Checks the compatibility with +type+
+        # def compatible?(type)
+        #     # # if type is void, compatible anyway.
+        #     # return true if type.name == :void
+        #     # Compatible if same width and compatible base.
+        #     return false unless type.respond_to?(:dir)
+        #     return false unless type.respond_to?(:base)
+        #     return ( self.dir == type.dir and
+        #              self.base.compatible?(type.base) )
+        # end
+
+        # # Merges with +type+
+        # def merge(type)
+        #     # # if type is void, return self anyway.
+        #     # return self if type.name == :void
+        #     # Compatible if same width and compatible base.
+        #     unless type.respond_to?(:dir) and type.respond_to?(:base) then
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        #     unless self.dir == type.dir then
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        #     return TypeVector.new(@name,@range,@base.merge(type.base))
+        # end
+    end
+
+
+    ##
+    # Describes a signed integer data type.
+    class TypeSigned < TypeVector
+
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
+        #
+        # NOTE:
+        # * The default range is 32-bit.
+        def initialize(name,range = 31..0)
+            # Initialize the type.
+            super(name,Signed,range)
         end
     end
+
+    ##
+    # Describes a unsigned integer data type.
+    class TypeUnsigned < TypeVector
+
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
+        #
+        # NOTE:
+        # * The default range is 32-bit.
+        def initialize(name,range = 31..0)
+            # Initialize the type.
+            super(name,Unsigned,range)
+        end
+    end
+
+    ##
+    # Describes a float data type.
+    class TypeFloat < TypeVector
+
+        # Creates a new vector type named +name+ from +base+ type and with
+        # +range+.
+        #
+        # NOTE:
+        # * The bits of negative range stands for the exponent
+        # * The default range is for 64-bit IEEE 754 double precision standart
+        def initialize(name,range = 52..-11)
+            # Initialize the type.
+            super(name,Float,range)
+        end
+    end
+
+    # Standard vector types.
+    Integer = TypeSigned.new(:integer)
+    Natural = TypeUnsigned.new(:natural)
+    Bignum  = TypeSigned.new(:bignum,HDLRuby::Infinity..0)
+    Real    = TypeFloat.new(:float)
+
 
 
     ##
@@ -748,10 +1041,46 @@ module HDLRuby::Base
             @types.each_key(&ruby_block)
         end
 
-        # Gets the bitwidth
+        # Gets the bitwidth of the type, nil for undefined.
+        #
+        # NOTE: must be redefined for specific types.
         def width
-            return @types.each_value.reduce(0) { |sum,type| sum + type.width }
+            return @types.reduce(0) {|sum,type| sum + type.width }
         end
+
+        # Checks the compatibility with +type+
+        def compatible?(type)
+            # # If type is void, compatible anyway.
+            # return true if type.name == :void
+            # Not compatible if different types.
+            return false unless type.is_a?(TypeStruct)
+            # Not compatibe unless each entry has the same name in same order.
+            return false unless self.each_name == type.each_name
+            self.each do |name,sub|
+                return false unless sub.compatible?(self.get_type(name))
+            end
+            return true
+        end
+
+        # Merges with +type+
+        def merge(type)
+            # # if type is void, return self anyway.
+            # return self if type.name == :void
+            # Not compatible if different types.
+            unless type.is_a?(TypeStruct) then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            # Not compatibe unless each entry has the same name and same order.
+            unless self.each_name == type.each_name then
+                raise "Incompatible types for merging: #{self}, #{type}."
+            end
+            # Creates the new type content
+            content = {}
+            self.each do |name,sub|
+                content[name] = self.get_type(name).merge(sub)
+            end
+            return TypeStruct.new(@name,content)
+        end  
     end
 
 
@@ -1571,6 +1900,16 @@ module HDLRuby::Base
         # Gets the bit width of the value.
         def width
             return @type.width
+        end
+
+        # Tells if the value is even.
+        def even?
+            return @content.even?
+        end
+
+        # Tells if the value is odd.
+        def odd?
+            return @content.odd?
         end
     end
 

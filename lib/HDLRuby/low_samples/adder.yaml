@@ -1,38 +1,41 @@
---- 
+---
 Type:
-    name: bit
+  name: bit
 ---
 SystemT:
-  name: adder
+  name: adderI::T_
   inputs:
   - SignalI:
       name: x
       type:
         TypeVector:
-          name: ""
+          name: ''
           base: bit
           range:
-          - 7
+          - 15
           - 0
   - SignalI:
       name: y
       type:
         TypeVector:
-          name: ""
+          name: ''
           base: bit
           range:
-          - 7
+          - 15
           - 0
   outputs:
   - SignalI:
       name: s
       type:
         TypeVector:
-          name: ""
+          name: ''
           base: bit
           range:
-          - 7
+          - 16
           - 0
+  inouts: []
+  inners: []
+  systemIs: []
   connections:
   - Connection:
       left:
@@ -53,3 +56,4 @@ SystemT:
               ref:
                 RefThis: {}
               name: y
+  behaviors: []

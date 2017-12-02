@@ -43,6 +43,17 @@ system :values do
 
         !1.us
         sig <= b1ZZX
+
+        !1.us
+        sig <= b0110 + b0110
+        !1.us
+        sig <= b0110 - b0110
+        !1.us
+        sig <= b0110 * b0010
+        !1.us
+        sig <= b0110 / b0010
+        !1.us
+        sig <= b0110 % b0010
     end
 end
 

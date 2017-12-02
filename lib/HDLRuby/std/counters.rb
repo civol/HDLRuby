@@ -18,6 +18,8 @@ module HDLRuby::High::Std
                 with_counter(init,rst,clk,&code)
             end
         else
+            # Ensure init is a value.
+            init = init.to_value
             # Creates the counter
             # counter = HDLRuby::High::SignalI.new(HDLRuby::High.uniq_name,
             #                           TypeVector.new(:"",bit,init.width),
