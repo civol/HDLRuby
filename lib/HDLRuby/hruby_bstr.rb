@@ -581,7 +581,7 @@ module HDLRuby
 
 
         # Bitwise eq without processing of the x and z states.
-        def self.biteise_eq0(s0,s1)
+        def self.bitwise_eq0(s0,s1)
             return UNKNOWN
         end
 
@@ -593,7 +593,7 @@ module HDLRuby
 
 
         # Bitwise lt without processing of the x and z states.
-        def self.biteise_lt0(s0,s1)
+        def self.bitwise_lt0(s0,s1)
             return UNKNOWN
         end
 
@@ -684,7 +684,7 @@ module HDLRuby
 
 
         # Bitwise gt without processing of the x and z states.
-        def self.biteise_gt0(s0,s1)
+        def self.bitwise_gt0(s0,s1)
             return UNKNOWN
         end
 
@@ -695,7 +695,7 @@ module HDLRuby
 
 
         # Bitwise le without processing of the x and z states.
-        def self.biteise_le0(s0,s1)
+        def self.bitwise_le0(s0,s1)
             return UNKNOWN
         end
 
@@ -713,7 +713,7 @@ module HDLRuby
 
 
         # Bitwise ge without processing of the x and z states.
-        def self.biteise_ge0(s0,s1)
+        def self.bitwise_ge0(s0,s1)
             return UNKNOWN
         end
 
@@ -731,7 +731,7 @@ module HDLRuby
 
 
         # Bitwise cp without processing of the x and z states.
-        def self.biteise_cp0(s0,s1)
+        def self.bitwise_cp0(s0,s1)
             return UNKNOWN
         end
 
@@ -757,7 +757,7 @@ module HDLRuby
         end
 
         # Bitwise mul without processing of the x and z states.
-        def self.biteise_mul0(s0,s1)
+        def self.bitwise_mul0(s0,s1)
             return BitString.new("x"*(s0.width+s1.width))
         end
 
@@ -792,7 +792,7 @@ module HDLRuby
         end
 
         # Bitwise div without processing of the x and z states.
-        def self.biteise_div0(s0,s1)
+        def self.bitwise_div0(s0,s1)
             return BitString.new("x"*(s0.width))
         end
 
@@ -898,13 +898,13 @@ module HDLRuby
 
 
         # Bitwise mod without processing of the x and z states.
-        def self.biteise_mod0(s0,s1)
+        def self.bitwise_mod0(s0,s1)
             return BitString.new("x"*(s1.width))
         end
 
         # Bitwise mod.
         def self.bitwise_div(s0,s1)
-            ICIICI
+            raise "bitwise_div is not implemented yet."
         end
     
 
