@@ -2276,6 +2276,19 @@ module HDLRuby::High
             return Event.new(self.type,self.ref.to_ref)
         end
 
+        # Inverts the event: create a negedge if posedge, a posedge if negedge.
+        #
+        # NOTE: raise an execption if the event is neigther pos nor neg edge.
+        def invert
+            if self.type == :posedge then
+                return Event.new(:negedge,self.ref.to_ref)
+            elsif self.type == :negedge then
+                return Event.new(:posedge,self.ref.to_ref)
+            else
+                raise "Event cannot be inverted: #{self.type}"
+            end
+        end
+
         # Converts the event to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::Event.new(self.type,self.ref.to_low)
