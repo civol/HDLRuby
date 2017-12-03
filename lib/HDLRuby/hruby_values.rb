@@ -13,6 +13,8 @@ module HDLRuby
           :<<, :>>,
           :==, :<, :>, :<=, :>=, :<=>  ].each do |op|
             define_method(op) do |value|
+                # Ensures value is really a value.
+                value = value.to_value
                 # Generate the resulting type.
                 res_type = self.type.send(op,value.type)
                 # Generate the resulting content.

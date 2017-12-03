@@ -1790,18 +1790,18 @@ module HDLRuby::High
         # The type of the expression if resolved.
         attr_reader :type
 
-        # Converts to a value.
+        # Converts to a new value.
         #
         # NOTE: to be redefined.
         def to_value
-            raise "Expression cannot be converted to a value (#{self.class})."
+            raise "Expression cannot be converted to a value: #{self.class}"
         end
 
-        # Converts to an expression.
+        # Converts to a new expression.
         #
         # NOTE: to be redefined in case of non-expression class.
         def to_expr
-            return self
+            raise "Internal error: to_expr not defined yet for class: #{self.class}"
         end
 
         # Adds the unary operations generation.
@@ -1946,6 +1946,11 @@ module HDLRuby::High
     class Unary < Base::Unary
         include HExpression
 
+        # Converts to a new expression.
+        def to_expr
+            return Unary.new(self.operator,self.child.to_expr)
+        end
+
         # Converts the unary expression to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::Unary.new(self.operator,self.child.to_low)
@@ -1957,6 +1962,11 @@ module HDLRuby::High
     # Describes a high-level binary expression
     class Binary < Base::Binary
         include HExpression
+
+        # Converts to a new expression.
+        def to_expr
+            return Binary.new(self.operator,self.left.to_expr,self.right.to_expr)
+        end
 
         # Converts the binary expression to HDLRuby::Low.
         def to_low
@@ -1979,6 +1989,14 @@ module HDLRuby::High
     class Select < Base::Select
         include HExpression
 
+        # Converts to a new expression.
+        def to_expr
+            return Select.new("?",self.select.to_expr,
+            *self.each_choice.map do |choice|
+                choice.to_expr
+            end)
+        end
+
         # Converts the selection expression to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::Select.new("?",self.select.to_low,
@@ -1994,12 +2012,20 @@ module HDLRuby::High
     class Concat < Base::Concat
         include HExpression
 
+        # Converts to a new expression.
+        def to_expr
+            return Concat.new(
+                self.each_expression.lazy.map do |expr|
+                    expr.to_expr
+                end
+            )
+        end
+
         # Converts the concatenation expression to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::Concat.new(
-                # self.each_expression.lazy.map do |exp|
-                self.each_expression.lazy.map do |exp|
-                    exp.to_low
+                self.each_expression.lazy.map do |expr|
+                    expr.to_low
                 end
             )
         end
@@ -2012,10 +2038,16 @@ module HDLRuby::High
         include HExpression
         include HDLRuby::Vprocess
 
-        # Converts to a value.
+        # Converts to a new value.
         def to_value
-            # Already a value.
-            self
+            # # Already a value.
+            # self
+            return Value.new(self.type,self.content)
+        end
+
+        # Converts to a new expression.
+        def to_expr
+            return self.to_value
         end
 
         # Converts the value to HDLRuby::Low.
@@ -2023,7 +2055,7 @@ module HDLRuby::High
             # Clone the content if possible
             content = self.content.frozen? ? self.content : self.content.clone
             # Create and return the resulting low-level value
-            return HDLRuby::Low::Value.new(self.type.to_low,content)
+            return HDLRuby::Low::Value.new(self.type.to_low,self.content)
         end
 
         # # For support in ranges.
@@ -2042,17 +2074,22 @@ module HDLRuby::High
             klass.class_eval do
                 include HExpression
                 include HArrow
+
+                # Converts to a new expression.
+                def to_expr
+                    self.to_ref
+                end
             end
         end
 
-        # Converts to a reference.
+        # Converts to a new reference.
         #
         # NOTE: to be redefined in case of non-reference class.
         def to_ref
-            return self
+            raise "Internal error: to_ref not defined yet for class: #{self.class}"
         end
 
-        # Converts to an event.
+        # Converts to a new event.
         def to_event
             return Event.new(:change,event)
         end
@@ -2091,6 +2128,11 @@ module HDLRuby::High
             @object = object
         end
 
+        # Converts to a new reference.
+        def to_ref
+            return RefObject.new(@object)
+        end
+
         # Converts the reference to a low-level name reference.
         def to_low
             # Build the path of the reference.
@@ -2119,6 +2161,15 @@ module HDLRuby::High
     class RefConcat < Base::RefConcat
         include HRef
 
+        # Converts to a new reference.
+        def to_ref
+            return RefConcat.new(
+                self.each_ref.lazy.map do |ref|
+                    ref.to_ref
+                end
+            )
+        end
+
         # Converts the concat reference to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::RefConcat.new(
@@ -2134,6 +2185,11 @@ module HDLRuby::High
     class RefIndex < Base::RefIndex
         include HRef
 
+        # Converts to a new reference.
+        def to_ref
+            return RefIndex.new(self.ref.to_ref,self.index.to_expr)
+        end
+
         # Converts the index reference to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::RefIndex.new(self.ref.to_low,self.index.to_low)
@@ -2145,6 +2201,12 @@ module HDLRuby::High
     class RefRange < Base::RefRange
         include HRef
 
+        # Converts to a new reference.
+        def to_ref
+            return RefRange.new(self.ref.to_ref,
+                              self.range.first.to_expr..self.range.last.to_expr)
+        end
+
         # Converts the range reference to HDLRuby::Low.
         def to_low
             return HDLRuby::Low::RefRange.new(self.ref.to_low,self.range.to_low)
@@ -2155,6 +2217,11 @@ module HDLRuby::High
     # Describes a high-level name reference.
     class RefName < Base::RefName
         include HRef
+
+        # Converts to a new reference.
+        def to_ref
+            return RefName.new(self.ref.to_ref,self.name)
+        end
 
         # Converts the name reference to HDLRuby::Low.
         def to_low
@@ -2203,9 +2270,10 @@ module HDLRuby::High
     ##
     # Describes a high-level event.
     class Event < Base::Event
-        # Converts to an event.
+        # Converts to a new event.
         def to_event
-            return self
+            # return self
+            return Event.new(self.type,self.ref.to_ref)
         end
 
         # Converts the event to HDLRuby::Low.
@@ -2406,13 +2474,13 @@ module HDLRuby::High
         #     return Event.new(:change,self.to_ref)
         # end
 
-        # Converts to a reference.
+        # Converts to a new reference.
         def to_ref
             # return RefName.new(this,self.name)
             return RefObject.new(self)
         end
 
-        # Converts to an expression.
+        # Converts to a new expression.
         def to_expr
             return self.to_ref
         end
@@ -2983,7 +3051,7 @@ module HDLRuby::High
         if Namespaces[-1-level].user.is_a?(Block)
             return Namespaces[-1-level].user
         else
-            raise "Not within a block."
+            raise "Not within a block: #{Namespaces[-1-level].user.class}"
         end
     end
 
@@ -3035,38 +3103,38 @@ module HDLRuby::High
     class ::Numeric
 
         # to_expr is to be defined in the subclasses of ::Numeric
-        # # Converts to a high-level expression.
+        # # Converts to a new high-level expression.
         # def to_expr
         #     # return Value.new(numeric,self)
         #     return Value.new(TypeNumeric.new(:"",self),self)
         # end
 
-        # Converts to a high-level value.
+        # Converts to a new high-level value.
         def to_value
             to_expr
         end
 
-        # Converts to a delay in picoseconds.
+        # Converts to a new delay in picoseconds.
         def ps
             return Delay.new(self,:ps)
         end
 
-        # Converts to a delay in nanoseconds.
+        # Converts to a new delay in nanoseconds.
         def ns
             return Delay.new(self,:ns)
         end
 
-        # Converts to a delay in microseconds.
+        # Converts to a new delay in microseconds.
         def us
             return Delay.new(self,:us)
         end
 
-        # Converts to a delay in milliseconds.
+        # Converts to a new delay in milliseconds.
         def ms
             return Delay.new(self,:ms)
         end
 
-        # Converts to a delay in seconds.
+        # Converts to a new delay in seconds.
         def s
             return Delay.new(self,:s)
         end
@@ -3083,7 +3151,7 @@ module HDLRuby::High
 
     # Extends the Fixnum class for computing for conversion to expression.
     class ::Fixnum
-        # Converts to a high-level expression.
+        # Converts to a new high-level expression.
         def to_expr
             return Value.new(Integer,self)
         end
@@ -3091,7 +3159,7 @@ module HDLRuby::High
 
     # Extends the Bignum class for computing for conversion to expression.
     class ::Bignum
-        # Converts to a high-level expression.
+        # Converts to a new high-level expression.
         def to_expr
             return Value.new(Bignum,self)
         end
@@ -3100,7 +3168,7 @@ module HDLRuby::High
     # Extends the Float class for computing the bit width and conversion
     # to expression.
     class ::Float
-        # Converts to a high-level expression.
+        # Converts to a new high-level expression.
         def to_expr
             return Value.new(Real,self)
         end
@@ -3155,21 +3223,21 @@ module HDLRuby::High
     class ::Array
         include HArrow
 
-        # Converts to a high-level expression.
+        # Converts to a new high-level expression.
         def to_expr
             expr = Concat.new
             self.each {|elem| expr.add_expression(elem.to_expr) }
             expr
         end
 
-        # Converts to a high-level reference.
+        # Converts to a new high-level reference.
         def to_ref
             expr = RefConcat.new
             self.each {|elem| expr.add_ref(elem.to_ref) }
             expr
         end
 
-        # Converts to a type.
+        # Converts to a new type.
         def to_type
             if self.size == 1 and
                ( self[0].is_a?(Range) or self[0].respond_to?(:to_i) ) then
@@ -3244,12 +3312,12 @@ module HDLRuby::High
     class ::Symbol
         High = HDLRuby::High
 
-        # # Converts to a high-level expression.
+        # # Converts to a new high-level expression.
         # def to_expr
         #     self.to_ref
         # end
 
-        # # Converts to a high-level reference refering to an unbounded signal.
+        # # Converts to a new high-level reference refering to an unbounded signal.
         # def to_ref
         #     # Create the unbounded signal and add it to the upper system type.
         #     signal = SignalI.new(self,void,:no)
@@ -3259,7 +3327,7 @@ module HDLRuby::High
         # end
         # alias :+@ :to_ref
 
-        # Converts to a value.
+        # Converts to a new value.
         #
         # Returns nil if no value can be obtained from it.
         def to_value
