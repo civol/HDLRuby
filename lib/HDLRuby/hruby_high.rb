@@ -521,7 +521,10 @@ module HDLRuby::High
         # NOTE: actually executes +ruby_block+ in the context.
         def open(&ruby_block)
             # High.space_push(self)
-            High.space_push(@private_namespace)
+            # High.space_push(@private_namespace)
+            # No push since should not merge the current environment into
+            # the system's.
+            High.space_insert(-1,@private_namespace)
             High.top_user.instance_eval(&ruby_block)
             # High.top_user.postprocess
             High.space_pop
