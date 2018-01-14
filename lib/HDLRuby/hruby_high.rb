@@ -3129,7 +3129,8 @@ module HDLRuby::High
         unless systemT.each_behavior.any? then
             raise "Not within a behavior."
         end
-        return systemT.each.reverse_each.first
+        # return systemT.each.reverse_each.first
+        return systemT.last_behavior
     end
 
     # Gets the enclosing block if any.
