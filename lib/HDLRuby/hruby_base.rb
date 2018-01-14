@@ -489,6 +489,21 @@ module HDLRuby::Base
             @behaviors.each(&ruby_block)
         end
 
+        # Reverse iterates over the behaviors.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def reverse_each_behavior(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_behavior) unless ruby_block
+            # A block? Apply it on each behavior.
+            @behaviors.reverse_each(&ruby_block)
+        end
+
+        # Returns the last behavior.
+        def last_behavior
+            return @behaviors[-1]
+        end
+
         # Iterates over all the behaviors of the system type and its system
         # instances.
         def each_behavior_deep(&ruby_block)
@@ -1149,6 +1164,27 @@ module HDLRuby::Base
             return !@events.empty?
         end
 
+        # Short cuts to the enclosed block.
+        
+        # Iterates over the statements.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_statement(&ruby_block)
+            @block.each_statement(&ruby_block)
+        end
+
+        # Reverse iterates over the statements.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def reverse_each_statement(&ruby_block)
+            @block.reverse_each_statement(&ruby_block)
+        end
+
+        # Returns the last statement.
+        def last_statement
+            @block.last_statement
+        end
+
     end
 
 
@@ -1742,6 +1778,21 @@ module HDLRuby::Base
             return to_enum(:each_statement) unless ruby_block
             # A block? Apply it on each statement.
             @statements.each(&ruby_block)
+        end
+
+        # Reverse iterates over the statements.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def reverse_each_statement(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement) unless ruby_block
+            # A block? Apply it on each statement.
+            @statements.reverse_each(&ruby_block)
+        end
+
+        # Returns the last statement.
+        def last_statement
+            return @statements[-1]
         end
 
         # Deletes +statement+.
