@@ -3097,10 +3097,14 @@ module HDLRuby::High
         #         return space.send(name,*args)
         #     end
         # end
-        # Look in the top namespace
+        # Look in the top namespace.
         if Namespaces[-1].respond_to?(name) then
             # Found.
             return Namespaces[-1].send(name,*args,&ruby_block)
+        # Look in the global methods.
+        elsif HDLRuby::High.respond_to?(name) then
+            # Found.
+            return HDLRuby::High.send(name,*args,&ruby_block)
         end
         # Not found.
         raise NoMethodError.new("undefined local variable or method `#{name}'.")
