@@ -1122,6 +1122,25 @@ module HDLRuby::Base
             # Initialize the sensitivity list.
             @events = []
             # Check and set the block.
+            return unless block # No block case
+            # There is a block
+            self.block = block
+            # unless block.is_a?(Block)
+            #     raise "Invalid class for a block: #{block.class}."
+            # end
+            # # Time blocks are only supported in Time Behaviors.
+            # if block.is_a?(TimeBlock)
+            #     raise "Timed blocks are not supported in common behaviors."
+            # end
+            # # Set the block's parent.
+            # block.parent = self
+            # # And set the block
+            # @block = block
+        end
+
+        # Sets the block if not already set.
+        def block=(block)
+            # Check the block.
             unless block.is_a?(Block)
                 raise "Invalid class for a block: #{block.class}."
             end
@@ -1162,6 +1181,14 @@ module HDLRuby::Base
         # Tells if there is any event.
         def has_event?
             return !@events.empty?
+        end
+
+        # Tells if there is a positive or negative edge event.
+        def on_edge?
+            @events.each do |event|
+                return true if event.on_edge?
+            end
+            return false
         end
 
         # Short cuts to the enclosed block.
@@ -1236,6 +1263,13 @@ module HDLRuby::Base
                 raise "Invalid class for a reference: #{ref.class}"
             end
             @ref = ref
+        end
+
+        # Tells if there is a positive or negative edge event.
+        #
+        # NOTE: checks if the event type is :posedge or :negedge
+        def on_edge?
+            return (@type == :posedge or @type == :negedge)
         end
     end
 

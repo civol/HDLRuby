@@ -257,9 +257,10 @@ module HDLRuby::High
                     #
                     # NOTE: a name can also be a signal, is which case it is duplicated. 
                     def make_inners(type, *names)
+                        res = nil
                         names.each do |name|
                             if name.respond_to?(:to_sym) then
-                                self.add_inner(SignalI.new(name,type,:inner))
+                                res = self.add_inner(SignalI.new(name,type,:inner))
                             else
                                 # Deactivated because conflict with parent.
                                 # signal = name.clone
@@ -268,6 +269,7 @@ module HDLRuby::High
                                 raise "Invalid class for a name: #{name.class}"
                             end
                         end
+                        return res
                     end
                 end
 
@@ -376,10 +378,11 @@ module HDLRuby::High
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_inputs(type, *names)
+            res = nil
             names.each do |name|
                 if name.respond_to?(:to_sym) then
                     # self.add_input(SignalI.new(rn!(name),type,:input))
-                    self.add_input(SignalI.new(name,type,:input))
+                    res = self.add_input(SignalI.new(name,type,:input))
                 else
                     # Deactivated because conflict with parent.
                     # signal = name.clone
@@ -388,6 +391,7 @@ module HDLRuby::High
                     raise "Invalid class for a name: #{name.class}"
                 end
             end
+            return res
         end
 
         # Creates and adds a set of outputs typed +type+ from a list of +names+.
@@ -395,11 +399,12 @@ module HDLRuby::High
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_outputs(type, *names)
             # puts "type=#{type.inspect}"
+            res = nil
             names.each do |name|
                 # puts "name=#{name}"
                 if name.respond_to?(:to_sym) then
                     # self.add_output(SignalI.new(rn!(name),type,:output))
-                    self.add_output(SignalI.new(name,type,:output))
+                    res = self.add_output(SignalI.new(name,type,:output))
                 else
                     # Deactivated because conflict with parent.
                     # signal = name.clone
@@ -408,16 +413,18 @@ module HDLRuby::High
                     raise "Invalid class for a name: #{name.class}"
                 end
             end
+            return res
         end
 
         # Creates and adds a set of inouts typed +type+ from a list of +names+.
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_inouts(type, *names)
+            res = nil
             names.each do |name|
                 if name.respond_to?(:to_sym) then
                     # self.add_inout(SignalI.new(rn!(name),type,:inout))
-                    self.add_inout(SignalI.new(name,type,:inout))
+                    res = self.add_inout(SignalI.new(name,type,:inout))
                 else
                     # Deactivated because conflict with parent.
                     # signal = name.clone
@@ -426,16 +433,18 @@ module HDLRuby::High
                     raise "Invalid class for a name: #{name.class}"
                 end
             end
+            return res
         end
 
         # Creates and adds a set of inners typed +type+ from a list of +names+.
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_inners(type, *names)
+            res = nil
             names.each do |name|
                 if name.respond_to?(:to_sym) then
                     # self.add_inner(SignalI.new(rn!(name),type,:inner))
-                    self.add_inner(SignalI.new(name,type,:inner))
+                    res = self.add_inner(SignalI.new(name,type,:inner))
                 else
                     # Deactivated because conflict with parent.
                     # signal = name.clone
@@ -444,6 +453,7 @@ module HDLRuby::High
                     raise "Invalid class for a name: #{name.class}"
                 end
             end
+            return res
         end
 
         # # Iterates over all the signals of the system type and its system
@@ -2950,11 +2960,18 @@ module HDLRuby::High
                 # A mode is given, use it.
                 mode = events.pop.to_sym
             end
-            block = High.block(mode,&ruby_block)
+            # block = High.block(mode,&ruby_block)
             # Initialize the behavior with it.
-            super(block)
+            # super(block)
+            super(nil)
+            # Sets the current behavior
+            @@cur_behavior = self
             # Add the events.
             events.each { |event| self.add_event(event) }
+            # Create and add the block.
+            self.block = High.block(mode,&ruby_block)
+            # Unset the current behavior
+            @@cur_behavior = nil
         end
 
         # Converts the time behavior to HDLRuby::Low.
@@ -3031,7 +3048,8 @@ module HDLRuby::High
     # Handle the namespaces for accessing the hardware referencing methods.
 
     # The universe, i.e., the top system type.
-    Universe = SystemT.new(:"") {}
+    Universe = SystemT.new(:"") {} 
+
     # The universe does not have input, output, nor inout.
     class << Universe
         undef_method :input
@@ -3121,16 +3139,25 @@ module HDLRuby::High
         end
     end
 
+    # The current behavior: by default none.
+    @@cur_behavior = nil
+
     # Gets the enclosing behavior if any.
     def self.cur_behavior
-        # Gets the enclosing system type.
-        systemT = self.cur_systemT
-        # Gets the current behavior from it.
-        unless systemT.each_behavior.any? then
-            raise "Not within a behavior."
-        end
-        # return systemT.each.reverse_each.first
-        return systemT.last_behavior
+        # # Gets the enclosing system type.
+        # systemT = self.cur_systemT
+        # # Gets the current behavior from it.
+        # unless systemT.each_behavior.any? then
+        #     raise "Not within a behavior."
+        # end
+        # # return systemT.each.reverse_each.first
+        # return systemT.last_behavior
+        return @@cur_behavior
+    end
+
+    # Tell if we are in a behavior.
+    def self.in_behavior?
+        top_user.is_a?(Block)
     end
 
     # Gets the enclosing block if any.
@@ -3629,6 +3656,7 @@ module HDLRuby::High
     Bignum  = TypeSigned.new(:bignum,HDLRuby::Infinity..0)
     Real    = TypeFloat.new(:float)
 
+
 end
 
 # Enters in HDLRuby::High mode.
@@ -3652,4 +3680,10 @@ def self.configure_high
             end
         end
     end
+
+    # Generate the standard signals
+    # $clk = SignalI.new(:__universe__clk__,Bit,:inner)
+    # $rst = SignalI.new(:__universe__rst__,Bit,:inner)
+    $clk = Universe.inner :__universe__clk__
+    $rst = Universe.inner :__universe__rst__
 end
