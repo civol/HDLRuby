@@ -3,7 +3,7 @@ Type:
   name: bit
 ---
 SystemT:
-  name: dffI::T_
+  name: dff_fullI::T_
   inputs:
   - SignalI:
       name: clk

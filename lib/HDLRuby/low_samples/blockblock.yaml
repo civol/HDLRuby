@@ -1,0 +1,45 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: blockblockI::T_
+  inputs:
+  - SignalI:
+      name: i0
+      type: bit
+  - SignalI:
+      name: i1
+      type: bit
+  outputs:
+  - SignalI:
+      name: o0
+      type: bit
+  - SignalI:
+      name: o1
+      type: bit
+  inouts: []
+  inners:
+  - SignalI:
+      name: s0
+      type: bit
+  systemIs: []
+  connections: []
+  behaviors:
+  - Behavior:
+      events: []
+      block:
+        Block:
+          mode: par
+          inners:
+          - SignalI:
+              name: s0
+              type: bit
+          statements:
+          - Block:
+              mode: par
+              inners:
+              - SignalI:
+                  name: s0
+                  type: bit
+              statements: []

@@ -1,0 +1,77 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: ioI::T_
+  inputs:
+  - SignalI:
+      name: i
+      type: bit
+  outputs:
+  - SignalI:
+      name: o
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: i
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: o
+  behaviors: []
+---
+SystemT:
+  name: with_ioI::T_
+  inputs:
+  - SignalI:
+      name: i
+      type: bit
+  outputs:
+  - SignalI:
+      name: o
+      type: bit
+  inouts: []
+  inners: []
+  systemIs:
+  - SystemI:
+      name: ioI
+      systemT: ioI::T_
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: i
+          name: ioI
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: i
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: o
+          name: ioI
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: o
+  behaviors: []

@@ -1,0 +1,1567 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: dffIs[15]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[14]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[13]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[12]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[11]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[10]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[9]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[8]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[7]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[6]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[5]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[4]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[3]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[2]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[1]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: dffIs[0]::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  - SignalI:
+      name: qb
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: shifterI::T_
+  inputs:
+  - SignalI:
+      name: i0
+      type: bit
+  outputs:
+  - SignalI:
+      name: o0
+      type: bit
+  - SignalI:
+      name: o0b
+      type: bit
+  inouts: []
+  inners: []
+  systemIs:
+  - SystemI:
+      name: dffIs[0]
+      systemT: dffIs[0]::T_
+  - SystemI:
+      name: dffIs[1]
+      systemT: dffIs[1]::T_
+  - SystemI:
+      name: dffIs[2]
+      systemT: dffIs[2]::T_
+  - SystemI:
+      name: dffIs[3]
+      systemT: dffIs[3]::T_
+  - SystemI:
+      name: dffIs[4]
+      systemT: dffIs[4]::T_
+  - SystemI:
+      name: dffIs[5]
+      systemT: dffIs[5]::T_
+  - SystemI:
+      name: dffIs[6]
+      systemT: dffIs[6]::T_
+  - SystemI:
+      name: dffIs[7]
+      systemT: dffIs[7]::T_
+  - SystemI:
+      name: dffIs[8]
+      systemT: dffIs[8]::T_
+  - SystemI:
+      name: dffIs[9]
+      systemT: dffIs[9]::T_
+  - SystemI:
+      name: dffIs[10]
+      systemT: dffIs[10]::T_
+  - SystemI:
+      name: dffIs[11]
+      systemT: dffIs[11]::T_
+  - SystemI:
+      name: dffIs[12]
+      systemT: dffIs[12]::T_
+  - SystemI:
+      name: dffIs[13]
+      systemT: dffIs[13]::T_
+  - SystemI:
+      name: dffIs[14]
+      systemT: dffIs[14]::T_
+  - SystemI:
+      name: dffIs[15]
+      systemT: dffIs[15]::T_
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[1]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[0]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[2]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[1]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[3]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[2]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[4]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[3]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[5]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[4]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[6]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[5]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[7]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[6]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[8]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[7]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[9]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[8]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[10]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[9]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[11]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[10]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[12]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[11]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[13]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[12]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[14]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[13]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[15]
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[14]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dffIs[0]
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: i0
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: o0
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dffIs[15]
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: o0b
+      right:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: qb
+          name: dffIs[15]
+  behaviors: []

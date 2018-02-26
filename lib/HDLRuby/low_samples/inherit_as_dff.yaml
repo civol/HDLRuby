@@ -3,7 +3,7 @@ Type:
   name: bit
 ---
 SystemT:
-  name: dffI::T_
+  name: dff_fullI::T_
   inputs:
   - SignalI:
       name: clk
@@ -22,7 +22,10 @@ SystemT:
       name: qb
       type: bit
   inouts: []
-  inners: []
+  inners:
+  - SignalI:
+      name: db
+      type: bit
   systemIs: []
   connections:
   - Connection:
@@ -30,7 +33,7 @@ SystemT:
         RefName:
           ref:
             RefThis: {}
-          name: qb
+          name: db
       right:
         Unary:
           operator: "~"
@@ -38,7 +41,18 @@ SystemT:
             RefName:
               ref:
                 RefThis: {}
-              name: q
+              name: d
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: db
   behaviors:
   - Behavior:
       events:

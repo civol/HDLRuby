@@ -1,0 +1,149 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: with_beforeI::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  outputs:
+  - SignalI:
+      name: timeout
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections: []
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: rst
+      block:
+        Block:
+          mode: par
+          inners:
+          - SignalI:
+              name: ":0"
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 30
+                  - 0
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: timeout
+              right:
+                Value:
+                  type: integer
+                  content: 1
+          - Block:
+              mode: seq
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    Binary:
+                      operator: "=="
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+                      right:
+                        Value:
+                          type: integer
+                          content: 1
+                  'yes':
+                    Block:
+                      mode: seq
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: ":0"
+                          right:
+                            Value:
+                              type: integer
+                              content: 100
+                  'no': 
+                  noifs:
+                  - - Binary:
+                        operator: "!="
+                        left:
+                          RefName:
+                            ref:
+                              RefThis: {}
+                            name: ":0"
+                        right:
+                          Value:
+                            type: integer
+                            content: 0
+                    - Block:
+                        mode: seq
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: ":0"
+                            right:
+                              Binary:
+                                operator: "-"
+                                left:
+                                  RefName:
+                                    ref:
+                                      RefThis: {}
+                                    name: ":0"
+                                right:
+                                  Value:
+                                    type: integer
+                                    content: 1
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: timeout
+                            right:
+                              Value:
+                                type: integer
+                                content: 0

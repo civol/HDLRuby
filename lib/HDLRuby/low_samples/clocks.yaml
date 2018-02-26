@@ -1,0 +1,459 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: with_clocksI::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  outputs:
+  - SignalI:
+      name: sig0
+      type: bit
+  - SignalI:
+      name: sig1
+      type: bit
+  inouts: []
+  inners:
+  - SignalI:
+      name: ":0"
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 30
+          - 0
+  - SignalI:
+      name: ":1"
+      type: bit
+  - SignalI:
+      name: ":2"
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 30
+          - 0
+  - SignalI:
+      name: ":3"
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 30
+          - 0
+  - SignalI:
+      name: ":4"
+      type: bit
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: ":4"
+      right:
+        Binary:
+          operator: "|"
+          left:
+            Binary:
+              operator: "=="
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: ":2"
+              right:
+                Value:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: signed
+                      range:
+                      - 32
+                      - 0
+                  content: 2
+          right:
+            Binary:
+              operator: "=="
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: ":3"
+              right:
+                Value:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: signed
+                      range:
+                      - 32
+                      - 0
+                  content: 2
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - If:
+              condition:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rst
+              'yes':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":0"
+                      right:
+                        Value:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: signed
+                              range:
+                              - 31
+                              - 0
+                          content: 1
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":1"
+                      right:
+                        Value:
+                          type: integer
+                          content: 0
+              'no':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":0"
+                      right:
+                        Binary:
+                          operator: "+"
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: ":0"
+                          right:
+                            Value:
+                              type: integer
+                              content: 1
+              noifs:
+              - - Binary:
+                    operator: "=="
+                    left:
+                      RefName:
+                        ref:
+                          RefThis: {}
+                        name: ":0"
+                    right:
+                      Value:
+                        type: integer
+                        content: 0
+                - Block:
+                    mode: par
+                    inners: []
+                    statements:
+                    - Transmit:
+                        left:
+                          RefName:
+                            ref:
+                              RefThis: {}
+                            name: ":0"
+                        right:
+                          Value:
+                            type:
+                              TypeVector:
+                                name: ''
+                                base: signed
+                                range:
+                                - 31
+                                - 0
+                            content: 1
+                    - Transmit:
+                        left:
+                          RefName:
+                            ref:
+                              RefThis: {}
+                            name: ":1"
+                        right:
+                          Unary:
+                            operator: "~"
+                            child:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: ":1"
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: ":1"
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - If:
+              condition:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rst
+              'yes':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: sig0
+                      right:
+                        Value:
+                          type: integer
+                          content: 0
+              'no':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: sig0
+                      right:
+                        Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sig0
+              noifs: []
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - If:
+              condition:
+                Binary:
+                  operator: "=="
+                  left:
+                    Binary:
+                      operator: "|"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":2"
+                  right:
+                    Value:
+                      type: integer
+                      content: 0
+              'yes':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":2"
+                      right:
+                        Value:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: signed
+                              range:
+                              - 32
+                              - 0
+                          content: 2
+              'no': 
+              noifs: []
+  - Behavior:
+      events:
+      - Event:
+          type: negedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - If:
+              condition:
+                Binary:
+                  operator: "=="
+                  left:
+                    Binary:
+                      operator: "|"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":3"
+                  right:
+                    Value:
+                      type: integer
+                      content: 0
+              'yes':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":3"
+                      right:
+                        Value:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: signed
+                              range:
+                              - 32
+                              - 0
+                          content: 2
+              'no': 
+              noifs: []
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: ":4"
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - If:
+              condition:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rst
+              'yes':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: sig1
+                      right:
+                        Value:
+                          type: integer
+                          content: 0
+              'no':
+                Block:
+                  mode: par
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: sig1
+                      right:
+                        Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sig1
+              noifs: []

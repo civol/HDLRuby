@@ -1,0 +1,52 @@
+---
+Type:
+  name: unsigned
+---
+Type:
+  name: signed
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: vectorsI::T_
+  inputs:
+  - SignalI:
+      name: byte
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  outputs:
+  - SignalI:
+      name: bss
+      type:
+        TypeTuple:
+          name: ''
+          types:
+          - TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 7
+              - 0
+          - TypeVector:
+              name: ''
+              base: signed
+              range:
+              - 15
+              - 0
+          - TypeVector:
+              name: ''
+              base: unsigned
+              range:
+              - 15
+              - 0
+  inouts: []
+  inners: []
+  systemIs: []
+  connections: []
+  behaviors: []

@@ -1,0 +1,140 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: reg_makeI::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  outputs:
+  - SignalI:
+      name: q
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  - SignalI:
+      name: qb
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  inouts: []
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: qb
+      right:
+        Unary:
+          operator: "~"
+          child:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Concat:
+                      expressions:
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                      - Unary:
+                          operator: "~"
+                          child:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst

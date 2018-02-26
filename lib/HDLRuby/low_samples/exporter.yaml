@@ -1,0 +1,170 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: dff0::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  - SignalI:
+      name: d
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  inouts: []
+  inners: []
+  systemIs: []
+  connections: []
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: posedge
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: q
+              right:
+                Binary:
+                  operator: "&"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: d
+                  right:
+                    Unary:
+                      operator: "~"
+                      child:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: rst
+---
+SystemT:
+  name: importerI::T_
+  inputs:
+  - SignalI:
+      name: d
+      type: bit
+  - SignalI:
+      name: clk0
+      type: bit
+  - SignalI:
+      name: rst0
+      type: bit
+  outputs:
+  - SignalI:
+      name: q
+      type: bit
+  inouts: []
+  inners:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: rst
+      type: bit
+  systemIs:
+  - SystemI:
+      name: dff0
+      systemT: dff0::T_
+  connections:
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+          name: dff0
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: clk
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: rst
+          name: dff0
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: rst
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: d
+          name: dff0
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: d
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: clk
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: clk0
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefThis: {}
+          name: rst
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: rst0
+  - Connection:
+      left:
+        RefName:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: q
+          name: dff0
+      right:
+        RefName:
+          ref:
+            RefThis: {}
+          name: q
+  behaviors: []
