@@ -119,7 +119,7 @@ describing a digital circuit, and can be seen as a equivalent of the Verilog's
 construct where `type` is the data type of the signal (e.g., `bit` as in the
 code above) and direction indicates if the signal is an input, an output, an
 inout or an inner signal; and executable blocks (similar to `always` block of
-Verilog) are decribed using the `behavior` keyword.
+Verilog) are described using the `behavior` keyword.
 
 Once described, a HDLRuby::High system can be converted to a low-level
 description (HDLRuby::Low) using the `to_low` method.  For example the
@@ -298,7 +298,7 @@ Now assuming we opted for the first solution, we have now `dff_full` a highly
 advanced D-FF with such unique features as an inverted output. So we would like
 to use it in other designs, for example a shift register of `n` bits. Such a
 system will include a generic number of `dff_full` instance, and can be
-described as follows making use of the `zip` methods of the standard Ruby
+described as follows making use of the `each_cons` methods of the standard Ruby
 library for connecting them together with compact code:
 
 ```ruby
@@ -310,7 +310,7 @@ system :shifter do |n|
    [n].(dff_full).make :dffIs
 
    # Interconnect them as a shift register
-   dffIs[0..-2].zip(dffIs[1..-1]) { |ff0,ff1| ff1.d <= ff0.q }
+   dffIs[0..-1].each_cons { |ff0,ff1| ff1.d <= ff0.q }
 
    # Connects the input and output of the circuit
    dffIs[0].d <= in
@@ -367,7 +367,7 @@ From there, we will describe into more details each construct of HDLRuby::High.
 ### Naming rules
 <a name="names"></a>
 
-Several construct in HDLRuby::High are refered by name, e.g., systems, signals.
+Several construct in HDLRuby::High are referred by name, e.g., systems, signals.
 When such construct are declared, their name is to be specified by a ruby
 symbol starting with a lower case. For example, `:hello` is a valid name
 declaration, but `:Hello` is not.
@@ -435,7 +435,7 @@ as follows:
 input :clk
 ```
 
-Here is a more complete example of a system describng a 8-bit data, 16-bit
+Here is a more complete example of a system describing a 8-bit data, 16-bit
 address memory whose interface includes a 1-bit input clock (`clk`), a 1-bit
 input read/!write (`rwb`) for selecting reading or writing access, a 16-bit
 address input (`addr`) and an 8-bit data inout (the remaining of the code
@@ -647,8 +647,8 @@ connection is continuously executed, a transmission is only executed during
 the sequential execution of its block.
 
 A block statement is a sequence of statements, and allows to add hierarchy
-within a behavior. By default a block statement is in parallel mode, i.e., ita
-s execution is equivalent to a parallel execution.  For that purpose, the
+within a behavior. By default a block statement is in parallel mode, i.e., it's
+execution is equivalent to a parallel execution.  For that purpose, the
 transmissions such a block are non-blocking, i.e., the destination values will
 only change when the block is fully executed.  The other possible execution
 mode is called sequential and correspond to a true sequential execution.  For
@@ -687,7 +687,7 @@ block do
 end
 ```
 
-This latter kind of block statemetn is used for creating a new scope for
+This latter kind of block statement is used for creating a new scope for
 declaring signals without colliding with existing ones while keeping the
 current execution mode. For example it is possible to declare three different
 inner signals all called `sig` as follows:
@@ -925,6 +925,21 @@ keyword as follows:
 helse do
    <block contents>
 end
+```
+
+#### helsif
+
+In addition to `helse` it is possible to set additional conditions to an `hif`
+using the `helsif` keyword as follows:
+
+```ruby
+hif <condition 0> do
+   <block contents 0>
+end
+helsif <condition 1> do
+   <block contents 1>
+end
+...
 ```
 
 ##### About loops
