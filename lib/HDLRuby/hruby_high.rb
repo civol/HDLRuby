@@ -2177,7 +2177,7 @@ module HDLRuby::High
 
         # Converts to a new event.
         def to_event
-            return Event.new(:change,event)
+            return Event.new(:change,self.to_ref)
         end
 
         # Creates an access to elements of range +rng+ of the signal.
