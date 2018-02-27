@@ -1,0 +1,80 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: with_changeI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: y
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  outputs:
+  - SignalI:
+      name: s
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 16
+          - 0
+  inouts: []
+  inners: []
+  systemIs: []
+  connections: []
+  behaviors:
+  - Behavior:
+      events:
+      - Event:
+          type: change
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+      - Event:
+          type: change
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+      block:
+        Block:
+          mode: par
+          inners: []
+          statements:
+          - Transmit:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: s
+              right:
+                Binary:
+                  operator: "+"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: x
+                  right:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: y
