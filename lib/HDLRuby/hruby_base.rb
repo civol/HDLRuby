@@ -750,6 +750,10 @@ module HDLRuby::Base
         def width
             1
         end
+        # Gets the range of the type.
+        def range
+            0..0
+        end
     end
 
     ##
@@ -766,6 +770,10 @@ module HDLRuby::Base
         # Gets the bitwidth of the type, nil for undefined.
         def width
             1
+        end
+        # Gets the range of the type.
+        def range
+            0..0
         end
     end
 
@@ -784,6 +792,10 @@ module HDLRuby::Base
         def width
             1
         end
+        # Gets the range of the type.
+        def range
+            0..0
+        end
     end
 
     ##
@@ -800,6 +812,10 @@ module HDLRuby::Base
         # Gets the bitwidth of the type, nil for undefined.
         def width
             1
+        end
+        # Gets the range of the type.
+        def range
+            0..0
         end
     end
 

@@ -1,0 +1,767 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: with_eachI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  outputs:
+  - SignalI:
+      name: s
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  inouts:
+  - SignalI:
+      name: y
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  inners: []
+  systemIs: []
+  connections:
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 0
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 0
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 1
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 1
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 2
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 2
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 3
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 3
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 4
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 4
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 5
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 5
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 6
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 6
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 7
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 7
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 8
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 8
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 9
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 9
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 10
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 10
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 11
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 11
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 12
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 12
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 13
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 13
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 14
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 14
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: s
+          index:
+            Value:
+              type: integer
+              content: 15
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: x
+          index:
+            Value:
+              type: integer
+              content: 15
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 0
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 1
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 1
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 2
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 2
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 3
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 3
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 4
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 4
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 5
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 5
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 6
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 6
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 7
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 7
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 8
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 8
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 9
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 9
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 10
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 10
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 11
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 11
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 12
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 12
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 13
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 13
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 14
+  - Connection:
+      left:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 14
+      right:
+        RefIndex:
+          ref:
+            RefName:
+              ref:
+                RefThis: {}
+              name: y
+          index:
+            Value:
+              type: integer
+              content: 15
+  behaviors: []
+---
+SystemI:
+  name: with_eachI
+  systemT: with_eachI::T_

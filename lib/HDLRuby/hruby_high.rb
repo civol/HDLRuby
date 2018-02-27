@@ -2199,6 +2199,21 @@ module HDLRuby::High
                 return RefRange.new(self.to_ref,first..last)
             end
         end
+
+        # Iterate over the elements.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each) unless ruby_block
+            # A block? Apply it on each element.
+            self.type.range.heach do |i|
+                yield(self[i])
+            end
+        end
+
+        # Reference can be used like enumerator
+        include Enumerable
     end
 
     ##
@@ -3582,6 +3597,19 @@ module HDLRuby::High
             last = self.last
             last = last.respond_to?(:to_low) ? last.to_low : last
             return (first..last)
+        end
+
+        # Iterates over the range as hardware.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def heach(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:heach) unless ruby_block
+            # Order the bounds to be able to iterate.
+            first,last = self.first, self.last
+            first,last = first > last ? [last,first] : [first,last]
+            # Iterate.
+            (first..last).each(&ruby_block)
         end
     end
 

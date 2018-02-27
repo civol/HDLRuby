@@ -3,7 +3,7 @@ require 'HDLRuby'
 configure_high
 
 
-# A simple 16-bit adder
+# A simple test for using signals as event.
 system :with_change do
     [15..0].input :x,:y
     [16..0].output :s
