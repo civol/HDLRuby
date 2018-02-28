@@ -1226,15 +1226,15 @@ More details are given for each group of operator in the subsequent sections.
 table { width: 60%; }
 </style>
 
-| assignment operators (left-most operator of a statement) |
-| :---:         | :---                                     |
+Assignment operators (left-most operator of a statement):
+
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                                     |
 | :<=           | connection, if outside behavior          |
 | :<=           | transmission, if inside behavior         |
 
-| arithmetic operators                          |
-| :---:         | :---                          |
+Arithmetic operators:
+
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :+            | addition                      |
@@ -1246,8 +1246,8 @@ table { width: 60%; }
 | :+@           | positive sign                 |
 | :-@           | negation                      |
 
-| Comparison operators                          |
-| :---:         | :---                          |
+Comparison operators:
+
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :==           | equality                      |
@@ -1257,8 +1257,8 @@ table { width: 60%; }
 | :>=           | greater or equal              |
 | :<=           | smaller or equal              |
 
-| Logic and shift operators                     |
-| :---:         | :---                          |
+Logic and shift operators:
+
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :&            | bitwise / logical and         |
@@ -1270,8 +1270,8 @@ table { width: 60%; }
 | :lr           | left rotate                   |
 | :rr           | right rotate                  |
 
-| Conversion operators                          |
-| :---:         | :---                          |
+Conversion operators:
+
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :to\_bit      | cast to bit vector            |
@@ -1285,8 +1285,8 @@ table { width: 60%; }
 | :zext         | zero extension, converts to unsigned if signed    |
 | :sext         | sign extension, converts to sign                  |
 
-| Selection /concatenation operators            |
-| :---:         | :---                          |
+Selection /concatenation operators:
+
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :[]           | sub vector selection          |
@@ -1504,6 +1504,8 @@ followings:
 table { width: 90%; }
 </style>
 
+Additive and logical operators:
+
 | operator    | result width |
 | :---        | :---         |
 | <= (assign) | w  (error is raised if L.width < R.width) |
@@ -1527,6 +1529,8 @@ table { width: 90%; }
 | signed         | unsigned       | signed      | S.sext(L.width+1), L.zext(L.width+1).to_signed |
 | signed         | signed         | signed      | S.sext(L.width)             |
 
+
+Multiplicative operators:
 
 | operator    | result width      |
 | :---        | :---              |
