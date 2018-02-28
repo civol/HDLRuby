@@ -310,7 +310,7 @@ system :shifter do |n|
    [n].(dff_full).make :dffIs
 
    # Interconnect them as a shift register
-   dffIs[0..-1].each_cons { |ff0,ff1| ff1.d <= ff0.q }
+   dffIs[0..-1].each_cons(2) { |ff0,ff1| ff1.d <= ff0.q }
 
    # Connects the input and output of the circuit
    dffIs[0].d <= in
@@ -1228,7 +1228,6 @@ table { width: 60%; }
 
 | assignment operators (left-most operator of a statement) |
 | :---:         | :---                                     |
-
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                                     |
 | :<=           | connection, if outside behavior          |
@@ -1236,7 +1235,6 @@ table { width: 60%; }
 
 | arithmetic operators                          |
 | :---:         | :---                          |
-
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :+            | addition                      |
@@ -1250,7 +1248,6 @@ table { width: 60%; }
 
 | Comparison operators                          |
 | :---:         | :---                          |
-
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :==           | equality                      |
@@ -1262,7 +1259,6 @@ table { width: 60%; }
 
 | Logic and shift operators                     |
 | :---:         | :---                          |
-
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :&            | bitwise / logical and         |
@@ -1276,7 +1272,6 @@ table { width: 60%; }
 
 | Conversion operators                          |
 | :---:         | :---                          |
-
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :to\_bit      | cast to bit vector            |
@@ -1292,7 +1287,6 @@ table { width: 60%; }
 
 | Selection /concatenation operators            |
 | :---:         | :---                          |
-
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
 | :[]           | sub vector selection          |
@@ -1520,7 +1514,7 @@ table { width: 90%; }
 | >           | 1            |
 | <= (comp.)  | 1            |
 | >=          | 1            |
-| :---        | :---         |
+
 | S operand base | L operand base | result base | operand conversion          |
 | :---           | :---           | :---        | :---                        |
 | bit            | bit            | bit         | S.zext(L.width)             |
@@ -1539,7 +1533,7 @@ table { width: 90%; }
 | *           | lw * rw           |
 | /           | lw                |
 | %           | rw                |
-| :---        | :---              |
+
 | S operand base | L operand base | result base | operand conversion          |
 | :---           | :---           | :---        | :---                        |
 | bit            | bit            | bit         |                             |
