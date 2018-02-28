@@ -1222,18 +1222,14 @@ end
 The following table gives a summary of the operator available in HDLRuby::High.
 More details are given for each group of operator in the subsequent sections.
 
-<style>
-table { width: 60%; }
-</style>
-
-Assignment operators (left-most operator of a statement):
+__Assignment operators (left-most operator of a statement):__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                                     |
 | :<=           | connection, if outside behavior          |
 | :<=           | transmission, if inside behavior         |
 
-Arithmetic operators:
+__Arithmetic operators:__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
@@ -1246,7 +1242,7 @@ Arithmetic operators:
 | :+@           | positive sign                 |
 | :-@           | negation                      |
 
-Comparison operators:
+__Comparison operators:__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
@@ -1257,7 +1253,7 @@ Comparison operators:
 | :>=           | greater or equal              |
 | :<=           | smaller or equal              |
 
-Logic and shift operators:
+__Logic and shift operators:__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
@@ -1270,7 +1266,7 @@ Logic and shift operators:
 | :lr           | left rotate                   |
 | :rr           | right rotate                  |
 
-Conversion operators:
+__Conversion operators:__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
@@ -1285,7 +1281,7 @@ Conversion operators:
 | :zext         | zero extension, converts to unsigned if signed    |
 | :sext         | sign extension, converts to sign                  |
 
-Selection /concatenation operators:
+__Selection /concatenation operators:__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
@@ -1500,11 +1496,8 @@ followings:
  - `rw`: the width of the right operand's type before conversion
  
 
-<style>
-table { width: 90%; }
-</style>
 
-Additive and logical operators:
+__Additive and logical operators:__
 
 | operator    | result width |
 | :---        | :---         |
@@ -1530,13 +1523,17 @@ Additive and logical operators:
 | signed         | signed         | signed      | S.sext(L.width)             |
 
 
-Multiplicative operators:
+__Multiplicative operators:__
 
 | operator    | result width      |
 | :---        | :---              |
 | *           | lw * rw           |
 | /           | lw                |
 | %           | rw                |
+| :<< / :ls   | lw                |
+| :>> / :rs   | lw                |
+| :lr         | lw                |
+| :rr         | lw                |
 
 | S operand base | L operand base | result base | operand conversion          |
 | :---           | :---           | :---        | :---                        |
