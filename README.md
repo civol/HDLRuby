@@ -1503,7 +1503,7 @@ __Additive and logical operators:__
 | :---        | :---         |
 | <= (assign) | w  (error is raised if L.width < R.width) |
 | +, -        | w+1          |
-| &, |, ^     | w            |
+| &, \|, ^    | w            |
 | ==          | 1            |
 | <           | 1            |
 | >           | 1            |
