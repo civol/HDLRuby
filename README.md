@@ -944,13 +944,14 @@ end
 
 ##### About loops
 
-HDLRuby does not include any hardware construct for describing loops.
-It might look quite poor compared to the other HDL, but it is important to understand that current synthesis
-tools do not really synthesize hardware from such loops but instead preprocess
-them (e.g., unroll them) to synthesizable loop-less hardware. In HDLRuby::High,
-such features are natively supported using the Ruby control instructions, i.e.,
-the ruby loop constructs (`for`, `while`, and so on), but also more advanced
-ruby constructs like the enumerators (`each`, `times`, and so on).
+HDLRuby does not include any hardware construct for describing loops.  It might
+look quite poor compared to the other HDL, but it is important to understand
+that current synthesis tools do not really synthesize hardware from such loops
+but instead preprocess them (e.g., unroll them) to synthesizable loop-less
+hardware. In HDLRuby::High, such features are natively supported using the Ruby
+control instructions, i.e., the ruby loop constructs (`for`, `while`, and so
+on), but also more advanced ruby constructs like the enumerators (`each`,
+`times`, and so on).
 
 __Notes__:
 
@@ -981,8 +982,14 @@ unsigned values, signed values, or hierarchical content, and so on.
 
 #### Type construction
 
-There are three basic types, `bit`, `signed`, `unsigned`, that represent
-respectively 1-bit bit string, 1-bit unsigned value and 1-bit signed value.
+There are five basic types, `bit`, `signed`, `unsigned`, `integer` and `float`
+that represent respectively 1-bit bit string, 1-bit unsigned value, 1-bit
+signed value, Ruby integer values and Ruby floating point values (double
+precision). The three first types are HW and support 4-valued logic, whereas
+the two last types are SW (but are compatible with HW) and only support boolean
+logic.  Ruby integers can represent any element of Z (relative integers), and
+have for that purpose a variable bit-width.
+
 
 The other types are built from them using one of the two type operators.
 
@@ -1041,34 +1048,29 @@ type named `header` and a 24-bit sub type named `data`:
 ```
 
 
-#### Type compatibility and casting
+#### Type compatibility and conversion
 
-When two types are not compatible together, operations, connection or 
-transmission between two expression of these types are not permitted.
-The compatibility rules between two types are as follows:
+HDLRuby is strongly typed which means that when two types are not compatible
+together, operations, connection or transmission between two expression of
+these types are not permitted.  The compatibility rules between two types are
+as follows:
 
 1. The basic types are not compatible with one another.
 
-2. Two types of different bit width are not compatible together with two
-   exceptions:
+2. Two vector types are compatible if and only if the have the same range
+   and the same base type (i.e., the type of their elements).
 
-   - Two vectors of unsigned of are compatible together whatever their
-     respective size may be.
-
-   - Two vectors of signed of are compatible together whatever their respective
-     size may be.
-
-3. Two types of different endianness are not compatible together.
-
-3. Vectors are compatible if they have the same width and if their sub
-   types are compatible.
-
-4. Hierarchical types are compatible if the have the same sub types names
-   and if each sub type of same name are compatible.
+4. Hierarchical types are compatible if and only if they have the same 
+   subtypes names and each subtype of same name are compatible.
 
 The type of an expression can be converted to one of another type using a
-casting operator. Please refer to section [Casting operators](#cast) for
-more details about such an operator.
+conversion operator. Please refer to section [Conversion operators](#conversion)
+for more details about such an operator.
+
+__Note__:
+
+- For the unambiguous cases, conversion operators will be implicitly added,
+  please refer to section [Implicit conversions](#implicit) for more details.
 
 
 #### Declaring new types
@@ -1224,6 +1226,14 @@ More details are given for each group of operator in the subsequent sections.
 table { width: 60%; }
 </style>
 
+| assignment operators (left-most operator of a statement) |
+| :---:         | :---                                     |
+
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
+| :---          | :---                                     |
+| :<=           | connection, if outside behavior          |
+| :<=           | transmission, if inside behavior         |
+
 | arithmetic operators                          |
 | :---:         | :---                          |
 
@@ -1264,7 +1274,7 @@ table { width: 60%; }
 | :lr           | left rotate                   |
 | :rr           | right rotate                  |
 
-| Casting operators                             |
+| Conversion operators                          |
 | :---:         | :---                          |
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
@@ -1275,10 +1285,10 @@ table { width: 60%; }
 | :to\_big      | cast to big endian            |
 | :to\_little   | cast to little endian         |
 | :reverse      | reverse the bit order         |
-| :ljust        | increase width from the left  |
-| :rjust        | increase width from the right |
-| :zext         | zero extension                |
-| :sext         | sign extension                |
+| :ljust        | increase width from the left, preserves the sign  |
+| :rjust        | increase width from the right, preserves the sign |
+| :zext         | zero extension, converts to unsigned if signed    |
+| :sext         | sign extension, converts to sign                  |
 
 | Selection /concatenation operators            |
 | :---:         | :---                          |
@@ -1301,50 +1311,21 @@ __Notes__:
    operators, please refer to section [Logic operators](#logic) for a
    justification about this issue.
 
+#### Assignment operators
+<a name="assignment"></a>
+
+The assignment operators can be used with an types, and are actually the
+connection and the transmission operators, both being represented by `<=`.
+The first operator of a statement is necessarily an assignment operator,
+while the other occurrences of `<=` represents a comparison operator.
+
 #### Arithmetic operators
 <a name="arithmetic"></a>
 
 The arithmetic operators can only be used on `bit`, `unsigned` or `signed`
 vector types. These operators are `+`, `-`, `*`, `%` and the unary arithmetic
 operators are `-` and `+`. They have the same meaning as their Ruby
-equivalents. The operation actually performed depends on the data types of
-the operands according to the following table:
-
-<style>
-table { width: 90%; }
-</style>
-
-| type of operand(s) | operator  | type of arithmetic | type of result    | width of result |
-| :---               | :---      | :---               | :---              | :---
-| both `bit`         | any       | unsigned           | `bit`             | largest operand's
-| both `unsigned`    | :+ and :- | unsigned           | `unsigned`       | largest operand's plus 1 |
-| `bit` and `unsigned` | :+ and :- | unsigned           | `unsigned`       | largest operand's plus 1 |
-| both `signed`    | :+ and :- | signed  | `signed`       | largest operand's plus 1 |
-| `bit` and `signed`    | :+ and :- | signed  | `signed`       | largest operand's plus 1 |
-| `unsigned` and `signed` | :+ and :- | signed  | `signed`       | largest operand's plus 1 |
-| both `unsigned`    | :\*     | unsigned           | `unsigned`       | twice the largest operand's |
-| `bit` and `unsigned` | :\* | unsigned           | `unsigned`       | twice the largest operand's |
-| both `signed`    | :\* | signed  | `signed`       | twice largest operand's |
-| `bit` and `signed`    | :\* | signed  | `signed`       | twice the largest operand's |
-| `unsigned` and `signed` | :\* | signed  | `signed`       | twice the largest operand's |
-| both `unsigned`    | :/ and :% | unsigned           | `unsigned`       | largest operand's |
-| `bit` and `unsigned` | :/ and :% | unsigned           | `unsigned`       | largest operand's |
-| both `signed`    | :/ and :% | signed  | `signed`       | largest operand's |
-| `bit` and `signed`    | :/ and :% | signed  | `signed`       | largest operand's |
-| `unsigned` and `signed` | :/ and :% | signed  | `signed`       | largest operand's |
-| any | :+@ | identity | no change | no change |
-| `bit` | :-@ | two complement | `bit` | operand's |
-| `unsigned` | :-@ | two complement | `unsigned` | operand's |
-| `signed` | :-@ | opposite | `signed` | operand's plus 1 |
-
-
-In the table above:
-
- - Unsigned arithmetic stands from binary arithmetic without any sign. In this
-   case, the smallest operand is zero-extended to the width of the largest one.
- - Signed arithmetic stands for two's complement arithmetic. In this case, the
-   `signed` operands are signed extended, and the `unsigned` or the `bit`
-   operands are zero extended to the width of the largest value.
+equivalents.
 
 #### Comparison operators
 <a name="comparison"></a>
@@ -1403,15 +1384,14 @@ concatenation operators (please refer to section [Concatenation and selection
 operators](#concat). 
 
 
-#### Casting operators
-<a name="cast"></a>
+#### Conversion operators
+<a name="conversion"></a>
 
-There are two kind of casting operators.  The first kind of cast changes the
-type of the expression without changing its raw content, and are called the
-reinterpretation casts. The second kind of cast changes both the type and the
-value and are called conversion casts.
+There are two kind of conversion operators.  The first kind changes the type of
+the expression without changing its raw content, they are called the casts. The
+second kind of conversion changes both the type and the value.
 
-The reinterpretation casts include `to_bit`, `to_unsigned` and `to_signed` that
+The casts include `to_bit`, `to_unsigned` and `to_signed` that
 convert any type to a vector of respectively bit, unsigned and signed elements.
 For example the following code convert an expression of hierarchical type to an
 8-bit signed vector:
@@ -1421,17 +1401,17 @@ For example the following code convert an expression of hierarchical type to an
 sig.to_bit <= b01010011
 ```
 
-The second kind of cast change both the type and the value and are used to
+The second kind of changes both the type and the value and are used to
 adjust the width of the types. They can only be applied to vector of `bit`,
 `signed` or `unsinged` and can only increase the bit width (bit width can be
 truncated using the selection operator, please refer to the [next
-section](#concat)). These operators include first the bit width conversion
-casts: `ljust`, `rjust`, `zext` and `sext`; and include second, `to_big` and
+section](#concat)). These operators include first the bit width conversions:
+`ljust`, `rjust`, `zext` and `sext`; and include second, `to_big` and
 `to_little` that convert the endianness to respectively big or little endian by
 reversing the bit order if required, and `reverse` that reverse the bit order
 unconditionally.
 
-More precisely, the bit width conversion casts operate as follows:
+More precisely, the bit width conversions operate as follows:
 
  - `ljust` and `rjust` increases the size from respectively the left or the
    right. They take as argument the width of the new type and the value (0 or
@@ -1504,7 +1484,73 @@ Concatenation and selection are done using the `[]` operator as follows:
    sig3 <= sig1[4]
    ```
 
-   
+#### Implicit conversions
+<a name="implicit"></a>
+
+When the is no ambiguity with bit vector types of same endianness, HDLRuby will
+automatically insert conversion operators when two types are not compatible
+with one another.  The cases where such implicit conversions are applied are
+summarised in the following tables. The terms used of in these tables are the
+followings:
+
+ - `operator`: the operator in use
+ - `result width`: the width of the result's type
+ - `result base`: the base type of the result's type
+ - `S operand type`: the base type of the shortest operand
+ - `L operand type`: the base type of the longest operand
+ - `operand conversion`: the conversions added to make the operands compatible.
+ - `S`: the shortest operand
+ - `L`: the longest operand
+ - `w` : the width of the operands after conversion
+ - `lw`: the width of the left operand's type before conversion
+ - `rw`: the width of the right operand's type before conversion
+ 
+
+<style>
+table { width: 90%; }
+</style>
+
+| operator    | result width |
+| :---        | :---         |
+| <= (assign) | w  (error is raised if L.width < R.width) |
+| +, -        | w+1          |
+| &, |, ^     | w            |
+| ==          | 1            |
+| <           | 1            |
+| >           | 1            |
+| <= (comp.)  | 1            |
+| >=          | 1            |
+| :---        | :---         |
+| S operand base | L operand base | result base | operand conversion          |
+| :---           | :---           | :---        | :---                        |
+| bit            | bit            | bit         | S.zext(L.width)             |
+| bit            | unsigned       | unsigned    | S.zext(L.width).to_unsigned |
+| bit            | signed         | signed      | S.zext(max(S.width+1,L.width).to_signed |
+| unsigned       | bit            | unsigned    | S.zext(L.width), L.to_unsigned |
+| unsigned       | unsigned       | unsigned    | S.zext(L.width)             |
+| unsigned       | signed         | signed      | S.zext(max(S.width+1,L.width).to_signed |
+| signed         | bit            | signed      | S.sext(L.width+1), L.zext(L.width+1).to_signed |
+| signed         | unsigned       | signed      | S.sext(L.width+1), L.zext(L.width+1).to_signed |
+| signed         | signed         | signed      | S.sext(L.width)             |
+
+
+| operator    | result width      |
+| :---        | :---              |
+| *           | lw * rw           |
+| /           | lw                |
+| %           | rw                |
+| :---        | :---              |
+| S operand base | L operand base | result base | operand conversion          |
+| :---           | :---           | :---        | :---                        |
+| bit            | bit            | bit         |                             |
+| bit            | unsigned       | unsigned    | S.to_unsigned               |
+| bit            | signed         | signed      | S.zext(S.width+1).to_signed |
+| unsigned       | bit            | unsigned    | L.to_unsigned               |
+| unsigned       | unsigned       | unsigned    |                             |
+| unsigned       | signed         | signed      | S.zext(S.width).to_signed   |
+| signed         | bit            | signed      | L.zext(L.width+1).to_signed |
+| signed         | unsigned       | signed      | L.zext(L.width+1).to_signed |
+| signed         | signed         | signed      |                             |
 
 ### Time
 <a name="time"></a>
