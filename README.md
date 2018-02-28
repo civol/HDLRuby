@@ -1530,10 +1530,11 @@ __Multiplicative operators:__
 | *           | lw * rw           |
 | /           | lw                |
 | %           | rw                |
-| :<< / :ls   | lw                |
-| :>> / :rs   | lw                |
-| :lr         | lw                |
-| :rr         | lw                |
+| **          | rw                |
+| << / ls     | lw                |
+| >> / rs     | lw                |
+| lr          | lw                |
+| rr          | lw                |
 
 | S operand base | L operand base | result base | operand conversion          |
 | :---           | :---           | :---        | :---                        |
