@@ -158,12 +158,13 @@ module HDLRuby
                 object = klass.new(*singles.map{|k,v| basic_to_value(v) })
                 # Adds the multiple instances.
                 multiples.each do |k,v|
+                    # puts "k=#{k} v=#{v}"
                     # Construct the add method: add_<key name without ending s>
                     add_meth = ("add_" + k)[0..-2].to_sym
                     # Treat the values a an array.
                     v = v.values if v.is_a?(Hash)
                     v.each do |elem|
-                        object.send(add_meth, basic_to_value(elem) )
+                        object.send(add_meth, *basic_to_value(elem) )
                     end
                 end
                 return object
