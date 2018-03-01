@@ -991,6 +991,14 @@ module HDLRuby::Base
             return @types[index.to_i]
         end
 
+        # Adds a sub +type+.
+        def add_type(type)
+            unless type.is_a?(Type) then
+                raise "Invalid class for a type: #{sub.class}"
+            end
+            @types << type
+        end
+
         # Iterates over the sub name/type pair.
         #
         # Returns an enumerator if no ruby block is given.
