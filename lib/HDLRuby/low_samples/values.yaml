@@ -491,29 +491,12 @@ SystemT:
                     RefThis: {}
                   name: sig
               right:
-                Binary:
-                  operator: "%"
-                  left:
-                    Value:
-                      type:
-                        TypeVector:
-                          name: ''
-                          base: bit
-                          range:
-                          - 3
-                          - 0
-                      content:
-                        BitString:
-                          str: '0110'
-                  right:
-                    Value:
-                      type:
-                        TypeVector:
-                          name: ''
-                          base: bit
-                          range:
-                          - 3
-                          - 0
-                      content:
-                        BitString:
-                          str: '0010'
+                Value:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 3
+                      - 0
+                  content: 0

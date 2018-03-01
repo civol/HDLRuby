@@ -9,7 +9,7 @@ module HDLRuby
     module Vprocess
 
         # Arithmetic and logic operations
-        [ :+, :-, :*, :/, :&, :|, :**, :-@, :+@, :~,
+        [ :+, :-, :*, :/, :%, :&, :|, :**, :-@, :+@, :~,
           :<<, :>>,
           :==, :<, :>, :<=, :>=, :<=>  ].each do |op|
             define_method(op) do |value|
