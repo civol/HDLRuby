@@ -2412,7 +2412,7 @@ module HDLRuby::High
             # Remove the transission from the block.
             High.top_user.delete_statement(self)
             # Generate an expression.
-            return Binary.new(:<=,self.left,self.right)
+            return Binary.new(:<=,self.left.to_expr,self.right.to_expr)
         end
 
         # Converts the transmit to HDLRuby::Low.
