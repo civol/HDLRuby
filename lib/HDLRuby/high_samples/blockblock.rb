@@ -10,7 +10,7 @@ system :blockblock do
 
     behavior do
         inner :s0
-        block do
+        sub do
             inner :s0
         end
     end

@@ -761,6 +761,11 @@ module HDLRuby::High
         #     self.make_inners(bit,*names)
         # end
 
+        # Declares a sub name space for executing +ruby_block+.
+        def sub(&ruby_block)
+            self.add_block(self.mode,&ruby_block)
+        end
+
         # Declares a high-level behavior activated on a list of +events+, and
         # built by executing +ruby_block+.
         def behavior(*events, &ruby_block)
@@ -1725,8 +1730,8 @@ module HDLRuby::High
         # +ruby_block+.
         def initialize(condition, mode = nil, &ruby_block)
             # Create the yes block.
-            # yes_block = High.block(:par,&ruby_block)
-            yes_block = High.block(mode,&ruby_block)
+            # yes_block = High.make_block(:par,&ruby_block)
+            yes_block = High.make_block(mode,&ruby_block)
             # Creates the if statement.
             super(condition.to_expr,yes_block)
         end
@@ -1739,7 +1744,7 @@ module HDLRuby::High
             # If there is a no block, it is an error.
             raise "Cannot have two helse for a single if statement." if self.no
             # Create the no block if required
-            no_block = High.block(mode,&ruby_block)
+            no_block = High.make_block(mode,&ruby_block)
             # Sets the no block.
             self.no = no_block
         end
@@ -1753,7 +1758,7 @@ module HDLRuby::High
             # If there is a no block, it is an error.
             raise "Cannot have an helsif after an helse." if self.no
             # Create the noif block if required
-            noif_block = High.block(mode,&ruby_block)
+            noif_block = High.make_block(mode,&ruby_block)
             # Adds the noif block.
             self.add_noif(next_cond.to_expr,noif_block)
         end
@@ -1791,8 +1796,8 @@ module HDLRuby::High
         # Can only be used once for the given +match+.
         def hwhen(match, mode = nil, &ruby_block)
             # Create the nu block if required
-            # when_block = High.block(:par,&ruby_block)
-            when_block = High.block(mode,&ruby_block)
+            # when_block = High.make_block(:par,&ruby_block)
+            when_block = High.make_block(mode,&ruby_block)
             # Adds the case.
             self.add_when(match.to_expr,when_block)
         end
@@ -1803,8 +1808,8 @@ module HDLRuby::High
         # Can only be used once.
         def helse(mode = nil, &ruby_block)
             # Create the nu block if required
-            # no_block = High.block(:par,&ruby_block)
-            default_block = High.block(mode,&ruby_block)
+            # no_block = High.make_block(:par,&ruby_block)
+            default_block = High.make_block(mode,&ruby_block)
             # Sets the default block.
             self.default = default_block
         end
@@ -2705,7 +2710,7 @@ module HDLRuby::High
         # executing +ruby_block+.
         def add_block(mode = nil,&ruby_block)
             # Creates and adds the block.
-            block = High.block(mode,&ruby_block)
+            block = High.make_block(mode,&ruby_block)
             self.add_statement(block)
         end
 
@@ -2722,9 +2727,15 @@ module HDLRuby::High
         end
 
         # Creates a new block with the current mode built from +ruby_block+.
-        def block(&ruby_block)
-            return self.mode unless ruby_block
+        def sub(&ruby_block)
             self.add_block(self.mode,&ruby_block)
+        end
+
+        # Get the current mode of the block.
+        #
+        # NOTE: for name coherency purpose only. 
+        def block
+            return self.mode
         end
 
         # Need to be able to declare select operators
@@ -2876,8 +2887,8 @@ module HDLRuby::High
         # loop content is built using +ruby_block+.
         def repeat(delay, mode = nil, &ruby_block)
             # Build the content block.
-            # content = High.block(:par,&ruby_block)
-            content = High.block(mode,&ruby_block)
+            # content = High.make_block(:par,&ruby_block)
+            content = High.make_block(mode,&ruby_block)
             # Create and add the statement.
             self.add_statement(TimeRepeat.new(content,delay))
         end
@@ -2898,13 +2909,13 @@ module HDLRuby::High
     end
 
 
-    # Declares a block executed in +mode+, that can be timed or not depending 
+    # Creates a block executed in +mode+, that can be timed or not depending 
     # on the enclosing object and build it by executing the enclosing
     # +ruby_block+.
     #
     # NOTE: not a method to include since it can only be used with
     # a behavior or a block. Hence set as module method.
-    def self.block(mode = nil, &ruby_block)
+    def self.make_block(mode = nil, &ruby_block)
         unless mode then
             # No type of block given, get a default one.
             if top_user.is_a?(Block) then
@@ -2924,12 +2935,12 @@ module HDLRuby::High
         end
     end
 
-    # Declares a specifically timed block in +mode+ and build it by
+    # Creates a specifically timed block in +mode+ and build it by
     # executing the enclosing +ruby_block+.
     #
     # NOTE: not a method to include since it can only be used with
     # a behavior or a block. Hence set as module method.
-    def self.time_block(mode = nil,&ruby_block)
+    def self.make_time_block(mode = nil,&ruby_block)
         unless mode then
             # No type of block given, get a default one.
             if top_user.is_a?(Block) then
@@ -2957,7 +2968,7 @@ module HDLRuby::High
         #     # Add the events.
         #     events.each { |event| self.add_event(event) }
         #     # Create a default par block for the behavior.
-        #     block = High.block(:par,&ruby_block)
+        #     block = High.make_block(:par,&ruby_block)
         #     self.add_block(block)
         #     # # Build the block by executing the ruby block in context.
         #     # High.space_push(block)
@@ -2969,13 +2980,13 @@ module HDLRuby::High
         # +events+, and built by executing +ruby_block+.
         def initialize(*events,&ruby_block)
             # Create a default par block for the behavior.
-            # block = High.block(:par,&ruby_block)
+            # block = High.make_block(:par,&ruby_block)
             mode = nil
             if events.last.respond_to?(:to_sym) then
                 # A mode is given, use it.
                 mode = events.pop.to_sym
             end
-            # block = High.block(mode,&ruby_block)
+            # block = High.make_block(mode,&ruby_block)
             # Initialize the behavior with it.
             # super(block)
             super(nil)
@@ -2984,7 +2995,7 @@ module HDLRuby::High
             # Add the events.
             events.each { |event| self.add_event(event) }
             # Create and add the block.
-            self.block = High.block(mode,&ruby_block)
+            self.block = High.make_block(mode,&ruby_block)
             # Unset the current behavior
             @@cur_behavior = nil
         end
@@ -3014,7 +3025,7 @@ module HDLRuby::High
         #     # Create and add a default par block for the behavior.
         #     # NOTE: this block is forced to TimeBlock, so do not use
         #     # block(:par).
-        #     block = High.time_block(:par,&ruby_block)
+        #     block = High.make_time_block(:par,&ruby_block)
         #     # block = make_changer(TimeBlock).new(:par,&ruby_block)
         #     self.add_block(block)
         #     # # Build the block by executing the ruby block in context.
@@ -3028,8 +3039,8 @@ module HDLRuby::High
             # Create a default par block for the behavior.
             # NOTE: this block is forced to TimeBlock, so do not use
             # block(:par).
-            # block = High.time_block(:par,&ruby_block)
-            block = High.time_block(mode,&ruby_block)
+            # block = High.make_time_block(:par,&ruby_block)
+            block = High.make_time_block(mode,&ruby_block)
             # Initialize the behavior with it.
             super(block)
         end
