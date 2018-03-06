@@ -686,7 +686,7 @@ Finally it is possible to declare a block statement with the same mode as the
 enclosing one as follows:
 
 ```ruby
-block do
+sub do
     <list of statements>
 end
 ```
@@ -701,10 +701,10 @@ inner signals all called `sig` as follows:
 behavior(<sensibility list>) do
    inner :sig
    ...
-   block do
+   sub do
       inner :sig
       ...
-      block do
+      sub do
          inner :sig
          ...
       end
@@ -2221,7 +2221,7 @@ of a block after a given number of cycles:
 
 ```ruby
 def after(cycles,rst = $reset)
-   block do
+   sub do
       inner :count
       hif rst == 1 do
          count <= 0
