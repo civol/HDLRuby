@@ -35,13 +35,21 @@ module HDLRuby
 
                  BitString
                 ] 
-    # The names of the classes of HFLRuby supporting to_basic
+    # The names of the classes of HDLRuby supporting to_basic
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
     # The classes describing types (must be described only once)
     # TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
     TO_BASICS_TYPES = [Low::SystemT,
                        Low::Type,
                        Low::TypeVector, Low::TypeTuple, Low::TypeStruct]
+
+    # The name of the reference argument if any.
+    REF_ARG_NAMES = { Low::SystemI => "systemT",
+                      Low::SignalI => "type",
+                      Low::TypeVector => "base" }
+
+    # The table of the object that can be refered to, used when deserializing.
+    FROM_BASICS_REFS = { }
 
     # Tells if a +basic+ structure is a representation of an HDLRuby object.
     def self.is_basic_HDLRuby?(basic)
@@ -76,7 +84,8 @@ module HDLRuby
             # Arrays are kept as they are, but their content is converted
             # to basic.
             return value.map { |elem| value_to_basic(elem,types) }
-        elsif value.is_a?(Base::HashName) then
+        # elsif value.is_a?(Base::HashName) then
+        elsif value.is_a?(Low::HashName) then
             # Hash name, convert it to an array.
             return value.map { |v| value_to_basic(v,types) }
         elsif value.is_a?(Hash) then
@@ -153,9 +162,22 @@ module HDLRuby
                     (v.is_a?(Hash) or v.is_a?(Array)) and !is_basic_HDLRuby?(v)
                 end
                 # Create the object.
-                # puts "singles = #{singles}"
-                # puts "multiples = #{multiples}"
-                object = klass.new(*singles.map{|k,v| basic_to_value(v) })
+                # Get the name of the reference used in the constructor if any
+                ref = REF_ARG_NAMES[klass]
+                # Process the arguments of the object constructor.
+                singles.map! do |k,v|
+                    # puts "k=#{k} v=#{v}"
+                    elem = basic_to_value(v)
+                    if ref == k and elem.is_a?(String) then
+                        # The argument is actually a reference, get the
+                        # corresponding object.
+                        elem = FROM_BASICS_REFS[elem.to_sym]
+                    end
+                    elem
+                end
+                # Build the object with the processed arguments.
+                # object = klass.new(*singles.map{|k,v| basic_to_value(v) })
+                object = klass.new(*singles)
                 # Adds the multiple instances.
                 multiples.each do |k,v|
                     # puts "k=#{k} v=#{v}"
@@ -167,6 +189,11 @@ module HDLRuby
                         object.send(add_meth, *basic_to_value(elem) )
                     end
                 end
+                # Store the objects if it is named.
+                if object.respond_to?(:name) then
+                    FROM_BASICS_REFS[object.name] = object
+                end
+                # Returns the resulting object.
                 return object
             else
                 # No, this a standard hash, keep it as is but convert its 

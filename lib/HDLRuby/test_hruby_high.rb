@@ -354,7 +354,7 @@ begin
     end
 
     systemI1Time = systemI1Behaviors[1]
-    unless systemI1Time.is_a?(Base::TimeBehavior) then
+    unless systemI1Time.is_a?(Low::TimeBehavior) then
         puts "Error: invalid behavior class: got #{systemI1Time.class} but expecting TimeBehavior."
         success = false
     end

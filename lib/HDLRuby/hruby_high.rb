@@ -1,4 +1,4 @@
-require "HDLRuby/hruby_base"
+# require "HDLRuby/hruby_base"
 require "HDLRuby/hruby_low"
 require "HDLRuby/hruby_types"
 require "HDLRuby/hruby_values"
@@ -11,7 +11,7 @@ require 'set'
 #######################################################
 module HDLRuby::High
 
-    Base = HDLRuby::Base
+    # Base = HDLRuby::Base
     Low  = HDLRuby::Low
 
     # Gets the infinity.
@@ -288,7 +288,7 @@ module HDLRuby::High
 
     ## 
     # Describes a high-level system type.
-    class SystemT < Base::SystemT
+    class SystemT < Low::SystemT
         High = HDLRuby::High
 
         # include HMix
@@ -1218,7 +1218,7 @@ module HDLRuby::High
     # Describes a high-level data type.
     #
     # NOTE: by default a type is not specified.
-    class Type < Base::Type
+    class Type < Low::Type
         High = HDLRuby::High
 
         include Htype
@@ -1324,7 +1324,7 @@ module HDLRuby::High
 
     # ##
     # # Describes a numeric type.
-    # class TypeNumeric < Base::TypeNumeric
+    # class TypeNumeric < Low::TypeNumeric
     #     High = HDLRuby::High
 
     #     include Htype
@@ -1352,7 +1352,7 @@ module HDLRuby::High
     ##
     # Describes a vector type.
     # class TypeVector < TypeExtend
-    class TypeVector < Base::TypeVector
+    class TypeVector < Low::TypeVector
         High = HDLRuby::High
         include Htype
         include HvectorType
@@ -1492,7 +1492,7 @@ module HDLRuby::High
     ##
     # Describes a tuple type.
     # class TypeTuple < Tuple
-    class TypeTuple < Base::TypeTuple
+    class TypeTuple < Low::TypeTuple
         High = HDLRuby::High
 
         include Htype
@@ -1508,12 +1508,12 @@ module HDLRuby::High
     ##
     # Describes a structure type.
     # class TypeStruct < TypeHierarchy
-    class TypeStruct < Base::TypeStruct
+    class TypeStruct < Low::TypeStruct
         High = HDLRuby::High
 
         include Htype
 
-        # Moved to Base
+        # Moved to Low
         # # Gets the bitwidth of the type, nil for undefined.
         # #
         # # NOTE: must be redefined for specific types.
@@ -1607,7 +1607,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level system instance.
-    class SystemI < Base::SystemI
+    class SystemI < Low::SystemI
         High = HDLRuby::High
 
         include SingletonExtend
@@ -1720,7 +1720,7 @@ module HDLRuby::High
 
     ## 
     # Describes a high-level if statement.
-    class If < Base::If
+    class If < Low::If
         High = HDLRuby::High
 
         include HStatement
@@ -1778,7 +1778,7 @@ module HDLRuby::High
 
     ## 
     # Describes a high-level case statement.
-    class Case < Base::Case
+    class Case < Low::Case
         High = HDLRuby::High
 
         include HStatement
@@ -1833,7 +1833,7 @@ module HDLRuby::High
 
     ##
     # Describes a delay: not synthesizable.
-    class Delay < Base::Delay
+    class Delay < Low::Delay
         High = HDLRuby::High
 
         include HStatement
@@ -1850,7 +1850,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level wait delay statement.
-    class TimeWait < Base::TimeWait
+    class TimeWait < Low::TimeWait
         include HStatement
 
         # Converts the wait statement to HDLRuby::Low.
@@ -1862,7 +1862,7 @@ module HDLRuby::High
 
     ## 
     # Describes a timed loop statement: not synthesizable!
-    class TimeRepeat < Base::TimeRepeat
+    class TimeRepeat < Low::TimeRepeat
         include HStatement
 
         # Converts the repeat statement to HDLRuby::Low.
@@ -1934,10 +1934,10 @@ module HDLRuby::High
         # # Sets the +parent+ construct.
         # def parent=(parent)
         #     # Check and set the type.
-        #     unless ( parent.is_a?(Base::Expression) or
-        #              parent.is_a?(Base::Transmit) or
-        #              parent.is_a?(Base::If) or
-        #              parent.is_a?(Base::Case) ) then
+        #     unless ( parent.is_a?(Low::Expression) or
+        #              parent.is_a?(Low::Transmit) or
+        #              parent.is_a?(Low::If) or
+        #              parent.is_a?(Low::Case) ) then
         #         raise "Invalid class for a type: #{type.class}."
         #     end
         #     @parent = parent
@@ -2018,7 +2018,7 @@ module HDLRuby::High
         #
         # NOTE: it is converted afterward to an expression if required.
         def <=(expr)
-            if High.top_user.is_a?(HDLRuby::Base::Block) then
+            if High.top_user.is_a?(HDLRuby::Low::Block) then
                 # We are in a block, so generate and add a Transmit.
                 High.top_user.
                     add_statement(Transmit.new(self.to_ref,expr.to_expr))
@@ -2034,7 +2034,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level unary expression
-    class Unary < Base::Unary
+    class Unary < Low::Unary
         include HExpression
 
         # Converts to a new expression.
@@ -2051,7 +2051,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level binary expression
-    class Binary < Base::Binary
+    class Binary < Low::Binary
         include HExpression
 
         # Converts to a new expression.
@@ -2069,7 +2069,7 @@ module HDLRuby::High
 
     # ##
     # # Describes a high-level ternary expression
-    # class Ternary < Base::Ternary
+    # class Ternary < Low::Ternary
     #     include HExpression
     # end
 
@@ -2077,7 +2077,7 @@ module HDLRuby::High
     # Describes a section operation (generalization of the ternary operator).
     #
     # NOTE: choice is using the value of +select+ as an index.
-    class Select < Base::Select
+    class Select < Low::Select
         include HExpression
 
         # Converts to a new expression.
@@ -2100,7 +2100,7 @@ module HDLRuby::High
 
     ##
     # Describes z high-level concat expression.
-    class Concat < Base::Concat
+    class Concat < Low::Concat
         include HExpression
 
         # Converts to a new expression.
@@ -2125,7 +2125,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level value.
-    class Value < Base::Value
+    class Value < Low::Value
         include HExpression
         include HDLRuby::Vprocess
 
@@ -2193,7 +2193,7 @@ module HDLRuby::High
                 # Number range: convert it to an expression.
                 rng = rng.to_expr
             end 
-            if rng.is_a?(HDLRuby::Base::Expression) then
+            if rng.is_a?(HDLRuby::Low::Expression) then
                 # Index case
                 return RefIndex.new(self.to_ref,rng)
             else
@@ -2223,7 +2223,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level object reference: no low-level equivalent!
-    class RefObject < Base::Ref
+    class RefObject < Low::Ref
         include HRef
 
         # The refered object.
@@ -2264,7 +2264,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level concat reference.
-    class RefConcat < Base::RefConcat
+    class RefConcat < Low::RefConcat
         include HRef
 
         # Converts to a new reference.
@@ -2288,7 +2288,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level index reference.
-    class RefIndex < Base::RefIndex
+    class RefIndex < Low::RefIndex
         include HRef
 
         # Converts to a new reference.
@@ -2304,7 +2304,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level range reference.
-    class RefRange < Base::RefRange
+    class RefRange < Low::RefRange
         include HRef
 
         # Converts to a new reference.
@@ -2321,7 +2321,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level name reference.
-    class RefName < Base::RefName
+    class RefName < Low::RefName
         include HRef
 
         # Converts to a new reference.
@@ -2337,7 +2337,7 @@ module HDLRuby::High
 
     ##
     # Describes a this reference.
-    class RefThis < Base::RefThis
+    class RefThis < Low::RefThis
         High = HDLRuby::High
         include HRef
        
@@ -2375,7 +2375,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level event.
-    class Event < Base::Event
+    class Event < Low::Event
         # Converts to a new event.
         def to_event
             # return self
@@ -2404,7 +2404,7 @@ module HDLRuby::High
 
     ## 
     # Decribes a transmission statement.
-    class Transmit < Base::Transmit
+    class Transmit < Low::Transmit
         High = HDLRuby::High
 
         include HStatement
@@ -2429,7 +2429,7 @@ module HDLRuby::High
 
     ## 
     # Describes a connection.
-    class Connection < Base::Connection
+    class Connection < Low::Connection
         High = HDLRuby::High
 
         # Converts the connection to a comparison expression.
@@ -2495,7 +2495,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level signal.
-    class SignalI < Base::SignalI
+    class SignalI < Low::SignalI
         High = HDLRuby::High
 
         include HRef
@@ -2809,7 +2809,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level block.
-    class Block < Base::Block
+    class Block < Low::Block
         High = HDLRuby::High
 
         include HBlock
@@ -2861,7 +2861,7 @@ module HDLRuby::High
     # NOTE: 
     # * this is the only kind of block that can include time statements. 
     # * this kind of block is not synthesizable!
-    class TimeBlock < Base::TimeBlock
+    class TimeBlock < Low::TimeBlock
         High = HDLRuby::High
 
         include HBlock
@@ -2957,7 +2957,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level behavior.
-    class Behavior < Base::Behavior
+    class Behavior < Low::Behavior
         High = HDLRuby::High
 
         # # Creates a new behavior executing +block+ activated on a list of
@@ -3015,7 +3015,7 @@ module HDLRuby::High
 
     ##
     # Describes a high-level timed behavior.
-    class TimeBehavior < Base::TimeBehavior
+    class TimeBehavior < Low::TimeBehavior
         High = HDLRuby::High
 
         # # Creates a new timed behavior built by executing +ruby_block+.

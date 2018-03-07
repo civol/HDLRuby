@@ -149,7 +149,7 @@ begin
         $success = false
     end
     print "  SystemI 2 (SystemT designated by name)... "
-    $systemI2 = SystemI.new("systemI2",:systemT1)
+    $systemI2 = SystemI.new("systemI2",$systemT1)
     if $systemI2.systemT != $systemT1 then
         puts "Error: invalid system type, got #{$systemI2.systemT.name} but expecting systemT1."
         success = false
@@ -261,7 +261,7 @@ def eName2Exp(name)
     end
     # puts "ref=#{ref}"
     unless ref
-        return Value.new(:bit8,name.to_i)
+        return Value.new($bit8,name.to_i)
     end
     return ref
 end
@@ -297,7 +297,7 @@ eNames.each do |eName|
             puts "Error: invalid first result for each_ref_deep, got #{all_refs[0]} but expecting #{expression.left}."
             success = false
         end
-        if expression.right.is_a?(HDLRuby::Base::Ref) then
+        if expression.right.is_a?(HDLRuby::Low::Ref) then
             unless all_refs[1] == expression.right then
                 puts "Error: invalid second result for each_ref_deep, got #{all_refs[1]} but expecting #{expression.right}."
                 success = false
@@ -734,7 +734,7 @@ begin
 
     puts "  Reference path... "
     $systemT0.each_connection.with_index do |connection,i|
-        unless connection.right.is_a?(HDLRuby::Base::Ref) then
+        unless connection.right.is_a?(HDLRuby::Low::Ref) then
             # Skip connections to expression since they are not defined through
             # $cNames
             next
