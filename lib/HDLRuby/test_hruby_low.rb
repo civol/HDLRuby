@@ -2,7 +2,7 @@
 ##            Program for testing the HDLRuby::Low module.            ##
 ########################################################################
 
-require "HDLRuby.rb"
+require "HDLRuby/hruby_low.rb"
 require "HDLRuby/hruby_serializer.rb"
 
 include HDLRuby::Low
@@ -11,8 +11,8 @@ $success = true
 
 print "\nCreating system types... "
 begin
-    $systemT0 = SystemT.new(:systemT0)
-    $systemT1 = SystemT.new(:systemT1)
+    $systemT0 = SystemT.new(:systemT0, Scope.new)
+    $systemT1 = SystemT.new(:systemT1, Scope.new)
     if $systemT0.name == :systemT0 then
         puts "Ok."
     else
@@ -732,46 +732,48 @@ begin
 
     # puts $systemT0.each_signal.to_a.size
 
-    puts "  Reference path... "
-    $systemT0.each_connection.with_index do |connection,i|
-        unless connection.right.is_a?(HDLRuby::Low::Ref) then
-            # Skip connections to expression since they are not defined through
-            # $cNames
-            next
-        end
-        # Get the path.
-        path = connection.left.path_each
-        print "    left path[#{i}]=#{path.to_a}... "
-        signal_p = $systemT0.get_signal(path)
-        # And test from the refernce directly (must be identical).
-        signal_r = $systemT0.get_signal(connection.left)
-        print "signal #{signal_p.name}... "
-        exp_left_str = $cNames.keys[i]
-        case exp_left_str[1]
-        when "0" then
-            exp_left = $systemT0.get_signal(exp_left_str[2..-1])
-        when "1" then
-            exp_left = $systemI1.systemT.get_signal(exp_left_str[2..-1])
-        when "2" then
-            exp_left = $systemI2.systemT.get_signal(exp_left_str[2..-1])
-        else
-            raise "Test-internal error: could not find signal for #{exp_left_str}."
-        end
-        success = true
-        if exp_left != signal_p then
-            puts "Error: invalid signal from path #{path}, got #{signal_p.name} but expecting #{exp_left.name}."
-            success = false
-        end
-        if exp_left != signal_r then
-            puts "Error: invalid signal from reference #{path}, got #{signal_r.name} but expecting #{exp_left.name}."
-            success = false
-        end
-        if success then
-            puts "Ok."
-        else
-            $success = false
-        end
-    end
+    # NOTE: The access by path is deprecated.
+    #
+    # puts "  Reference path... "
+    # $systemT0.each_connection.with_index do |connection,i|
+    #     unless connection.right.is_a?(HDLRuby::Low::Ref) then
+    #         # Skip connections to expression since they are not defined through
+    #         # $cNames
+    #         next
+    #     end
+    #     # Get the path.
+    #     path = connection.left.path_each
+    #     print "    left path[#{i}]=#{path.to_a}... "
+    #     signal_p = $systemT0.get_signal(path)
+    #     # And test from the refernce directly (must be identical).
+    #     signal_r = $systemT0.get_signal(connection.left)
+    #     print "signal #{signal_p.name}... "
+    #     exp_left_str = $cNames.keys[i]
+    #     case exp_left_str[1]
+    #     when "0" then
+    #         exp_left = $systemT0.get_signal(exp_left_str[2..-1])
+    #     when "1" then
+    #         exp_left = $systemI1.systemT.get_signal(exp_left_str[2..-1])
+    #     when "2" then
+    #         exp_left = $systemI2.systemT.get_signal(exp_left_str[2..-1])
+    #     else
+    #         raise "Test-internal error: could not find signal for #{exp_left_str}."
+    #     end
+    #     success = true
+    #     if exp_left != signal_p then
+    #         puts "Error: invalid signal from path #{path}, got #{signal_p.name} but expecting #{exp_left.name}."
+    #         success = false
+    #     end
+    #     if exp_left != signal_r then
+    #         puts "Error: invalid signal from reference #{path}, got #{signal_r.name} but expecting #{exp_left.name}."
+    #         success = false
+    #     end
+    #     if success then
+    #         puts "Ok."
+    #     else
+    #         $success = false
+    #     end
+    # end
 # rescue Exception => e
 #     puts "Error: unexpected exception raised #{e.inspect}\n"
 #     $success = false

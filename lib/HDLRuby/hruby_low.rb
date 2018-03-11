@@ -52,90 +52,55 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes system type.
+    ##
+    # Describes a system type.
+    #
+    # NOTE: delegates its content-related methods to its Scope object.
     class SystemT
 
         # The name of the system.
         attr_reader :name
 
-        # Creates a new system type named +name+.
-        def initialize(name)
+        # The scope of the system type.
+        attr_reader :scope
+
+        # Creates a new system type named +name+ with +scope+.
+        def initialize(name,scope)
             # Set the name as a symbol.
             @name = name.to_sym
-            # Initialize the signal instance lists.
-            # @inputs = {}
-            # @outputs = {}
-            # @inouts = {}
-            # @inners = {}
+
+            # Initialize the interface (signal instance lists).
             @inputs  = HashName.new
             @outputs = HashName.new
             @inouts  = HashName.new
-            @inners  = HashName.new
-            # Initialize the system instances list.
-            # @systemIs = {}
-            @systemIs = HashName.new
-            # Initialize the connections list.
-            @connections = []
-            # Initialize the behaviors lists.
-            @behaviors = []
-        end
 
-        # Handling the system instances.
-
-        # Adds system instance +systemI+.
-        def add_systemI(systemI)
-            # Checks and add the systemI.
-            unless systemI.is_a?(SystemI)
-                raise "Invalid class for a system instance: #{systemI.class}"
+            # Check the scope
+            unless scope.is_a?(Scope)
+                raise "Invalid class for a system instance: #{scope.class}"
             end
-            # if @systemIs.has_key?(systemI.name) then
-            if @systemIs.include?(systemI) then
-                raise "SystemI #{systemI.name} already present."
+            # Set the parent of the scope
+            scope.parent = self
+            # Set the scope
+            @scope = scope
+
+
+            # The methods delegated to the scope.
+            # Do not use Delegator to keep hand on the attributes of the class.
+
+            [:add_scope,     :each_scope,                     :delete_scope,
+             :add_systemI,   :each_systemI,   :get_systemI,   :delete_systemI,
+             :add_inner,     :each_inner,     :get_inner,     :delete_inner,
+             :add_behavior,  :each_behavior,                  :delete_behavior,
+             :add_connection,:each_connection,                :delete_connection
+            ].each do |meth_sym|
+                define_singleton_method(meth_sym,
+                                        &(@scope.method(meth_sym).to_proc))
             end
-            # @systemIs[systemI.name] = systemI
-            # Set the parent of the instance
-            systemI.parent = self
-            # puts "systemI = #{systemI}, parent=#{self}"
-            # Add the instance
-            @systemIs.add(systemI)
-        end
-
-        # Iterates over the system instances.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_systemI(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_systemI) unless ruby_block
-            # A block? Apply it on each system instance.
-            # @systemIs.each_value(&ruby_block)
-            @systemIs.each(&ruby_block)
-        end
-
-        # Tells if there is any system instance.
-        def has_systemI?
-            return !@systemIs.empty?
-        end
-
-        # Gets a system instance by +name+.
-        def get_systemI(name)
-            return @systemIs[name]
-        end
-
-        # Deletes system instance systemI.
-        def delete_systemI(systemI)
-            if @systemIs.key?(systemI.name) then
-                # The instance is present, do remove it.
-                @systemIs.delete(systemI.name)
-                # And remove its parent.
-                systemI.parent = nil
-            end
-            systemI
         end
 
         # Handling the signals.
-        
-        # Adds input signal +signal+.
+
+        # Adds input +signal+.
         def add_input(signal)
             # print "add_input with signal: #{signal.name}\n"
             # Checks and add the signal.
@@ -153,7 +118,7 @@ module HDLRuby::Low
             @inputs.add(signal)
         end
 
-        # Adds output  signal +signal+.
+        # Adds output +signal+.
         def add_output(signal)
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
@@ -170,7 +135,7 @@ module HDLRuby::Low
             @outputs.add(signal)
         end
 
-        # Adds inout signal +signal+.
+        # Adds inout +signal+.
         def add_inout(signal)
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
@@ -185,23 +150,6 @@ module HDLRuby::Low
             signal.parent = self
             # And add the signal.
             @inouts.add(signal)
-        end
-
-        # Adds inner signal +signal+.
-        def add_inner(signal)
-            # Checks and add the signal.
-            unless signal.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signal.class}"
-            end
-            # if @inners.has_key?(signal.name) then
-            if @inners.include?(signal) then
-                raise "SignalI #{signal.name} already present."
-            end
-            # @inners[signal.name] = signal
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @inners.add(signal)
         end
 
         # Iterates over the input signals.
@@ -237,36 +185,20 @@ module HDLRuby::Low
             @inouts.each(&ruby_block)
         end
 
-        # Iterates over the inner signals.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_inner(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_inner) unless ruby_block
-            # A block? Apply it on each inner signal instance.
-            # @inners.each_value(&ruby_block)
-            @inners.each(&ruby_block)
-        end
-
-        # Iterates over all the signals (input, output, inout, inner).
+        # Iterates over all the signals of the system including its
+        # scope (input, output, inout, inner).
         #
         # Returns an enumerator if no ruby block is given.
         def each_signal(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal) unless ruby_block
             # A block? Apply it on each signal instance.
-            # @inputs.each_value(&ruby_block)
-            # @outputs.each_value(&ruby_block)
-            # @inouts.each_value(&ruby_block)
-            # @inners.each_value(&ruby_block)
             @inputs.each(&ruby_block)
             @outputs.each(&ruby_block)
             @inouts.each(&ruby_block)
-            @inners.each(&ruby_block)
         end
 
-        # Iterates over all the signals of the system type and its system
-        # instances.
+        # Iterates over all the signals of the system type and its scope.
         def each_signal_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal_deep) unless ruby_block
@@ -275,36 +207,25 @@ module HDLRuby::Low
             self.each_signal(&ruby_block)
             # Then apply on the behaviors (since in HDLRuby:High, blocks can
             # include signals).
-            self.each_behavior do |behavior|
-                behavior.block.each_signal_deep(&ruby_block)
-            end
-            # Then recurse on the system instances.
-            self.each_systemI do |systemI|
-                systemI.each_signal_deep(&ruby_block)
-            end
+            @scope.each_signal_deep(&ruby_block)
         end
 
-        # Tells if there is any input.
+        # Tells if there is any input signal.
         def has_input?
             return !@inputs.empty?
         end
 
-        # Tells if there is any output.
+        # Tells if there is any output signal.
         def has_output?
             return !@outputs.empty?
         end
 
-        # Tells if there is any output.
+        # Tells if there is any output signal.
         def has_inout?
             return !@inouts.empty?
         end
 
-        # Tells if there is any inner.
-        def has_inner?
-            return !@inners.empty?
-        end
-
-        # Tells if there is any signal.
+        # Tells if there is any signal (including in the scope of the system).
         def has_signal?
             return ( self.has_input? or self.has_output? or self.has_inout? or
                      self.has_inner? )
@@ -325,44 +246,10 @@ module HDLRuby::Low
             return @inouts[name.to_sym]
         end
 
-        ## Gets an inner signal by +name+.
-        def get_inner(name)
-            return @inners[name.to_sym]
-        end
-
-        ## Gets a signal by +path+.
-        #
-        #  NOTE: +path+ can also be a single name or a reference object.
-        def get_signal(path)
-            path = path.path_each if path.respond_to?(:path_each) # Ref case.
-            if path.respond_to?(:each) then
-                # Path is iterable: look for the first name.
-                path = path.each
-                name = path.each.next
-                # Maybe it is a system instance.
-                systemI = self.get_systemI(name)
-                if systemI then
-                    # Yes, look for the remaining of the path into the
-                    # corresponding system type.
-                    return systemI.systemT.get_signal(path)
-                else
-                    # Maybe it is a signal name.
-                    return self.get_signal(name)
-                end
-            else
-                # Path is a single name, look for the signal in the system's
-                # Try in the inputs.
-                signal = get_input(path)
-                return signal if signal
-                # Try in the outputs.
-                signal = get_output(path)
-                return signal if signal
-                # Try in the inouts.
-                signal = get_inout(path)
-                return signal if signal
-                # Not found yet, look into the inners.
-                return get_inner(path)
-            end
+        # Gets an inner signal by +name+.
+        def get_signal(name)
+            return get_input(name) || get_output(name) || get_inout(name) ||
+                   get_inner(name)
         end
 
         # Deletes input +signal+.
@@ -396,6 +283,241 @@ module HDLRuby::Low
                 signal.parent = nil
             end
             signal
+        end
+
+    end
+
+
+    ## 
+    # Describes scopes of system types.
+    class Scope
+
+        include Hparent
+
+        # Creates a new scope.
+        def initialize
+            # puts "New scope=#{self}"
+            # Initialize the sub scopes.
+            @scopes = []
+            # Initialize the inner signal instance lists.
+            @inners  = HashName.new
+            # Initialize the system instances list.
+            @systemIs = HashName.new
+            # Initialize the connections list.
+            @connections = []
+            # Initialize the behaviors lists.
+            @behaviors = []
+        end
+
+        # Handling the scopes
+        
+        # Adds a new +scope+.
+        def add_scope(scope)
+            # Checks and add the scope.
+            unless scope.is_a?(Scope)
+                raise "Invalid class for a system instance: #{scope.class}"
+            end
+            if @scopes.include?(scope) then
+                raise "Scope #{scope} already present."
+            end
+            # Set the parent of the scope
+            scope.parent = self
+            # Add the instance
+            @scopes.add(scope)
+        end
+
+        # Iterates over the sub scopes.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_scope(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_scope) unless ruby_block
+            # A block? Apply it on each sub scope.
+            @scopes.each(&ruby_block)
+        end
+
+        # Tells if there is any sub scope.
+        def has_scope?
+            return !@scopes.empty?
+        end
+
+        # Deletes a scope.
+        def delete_scope(scope)
+            # Remove the scope from the list
+            @scopes.delete(scope)
+            # And remove its parent.
+            scope.parent = nil
+            # Return the deleted scope
+            scope
+        end
+
+        # Handling the system instances.
+
+        # Adds system instance +systemI+.
+        def add_systemI(systemI)
+            # puts "add_systemI with name #{systemI.name}"
+            # Checks and add the systemI.
+            unless systemI.is_a?(SystemI)
+                raise "Invalid class for a system instance: #{systemI.class}"
+            end
+            if @systemIs.include?(systemI) then
+                raise "SystemI #{systemI.name} already present."
+            end
+            # Set the parent of the instance
+            systemI.parent = self
+            # puts "systemI = #{systemI}, parent=#{self}"
+            # Add the instance
+            @systemIs.add(systemI)
+        end
+
+        # Iterates over the system instances.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_systemI(&ruby_block)
+            # puts "each_systemI from scope=#{self}"
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemI) unless ruby_block
+            # A block? Apply it on each system instance.
+            @systemIs.each(&ruby_block)
+        end
+
+        # Tells if there is any system instance.
+        def has_systemI?
+            return !@systemIs.empty?
+        end
+
+        # Gets a system instance by +name+.
+        def get_systemI(name)
+            return @systemIs[name]
+        end
+
+        # Deletes system instance systemI.
+        def delete_systemI(systemI)
+            if @systemIs.key?(systemI.name) then
+                # The instance is present, do remove it.
+                @systemIs.delete(systemI.name)
+                # And remove its parent.
+                systemI.parent = nil
+            end
+            systemI
+        end
+
+        # Handling the signals.
+        
+        # Adds inner signal +signal+.
+        def add_inner(signal)
+            # Checks and add the signal.
+            unless signal.is_a?(SignalI)
+                raise "Invalid class for a signal instance: #{signal.class}"
+            end
+            # if @inners.has_key?(signal.name) then
+            if @inners.include?(signal) then
+                raise "SignalI #{signal.name} already present."
+            end
+            # @inners[signal.name] = signal
+            # Set the parent of the signal.
+            signal.parent = self
+            # And add the signal.
+            @inners.add(signal)
+        end
+
+        # Iterates over the inner signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inner(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_inner) unless ruby_block
+            # A block? Apply it on each inner signal instance.
+            # @inners.each_value(&ruby_block)
+            @inners.each(&ruby_block)
+        end
+
+        # Iterates over all the signals (Equivalent to each_inner).
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal) unless ruby_block
+            # A block? Apply it on each signal instance.
+            @inners.each(&ruby_block)
+        end
+
+        # Iterates over all the signals of the scope, its behaviors', its
+        # instances' and its sub scopes'.
+        def each_signal_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_deep) unless ruby_block
+            # A block?
+            # First iterate over the current system type's signals.
+            self.each_signal(&ruby_block)
+            # Then apply on the behaviors (since in HDLRuby:High, blocks can
+            # include signals).
+            self.each_behavior do |behavior|
+                behavior.block.each_signal_deep(&ruby_block)
+            end
+            # Then recurse on the system instances.
+            self.each_systemI do |systemI|
+                systemI.each_signal_deep(&ruby_block)
+            end
+            # The recurse on the sub scopes.
+            self.each_scope do |scope|
+                scope.each_signal_deep(&ruby_block)
+            end
+        end
+
+        # Tells if there is any inner.
+        def has_inner?
+            return !@inners.empty?
+        end
+
+        # Tells if there is any signal, equivalent to has_inner?
+        def has_signal?
+            return self.has_inner?
+        end
+
+        ## Gets an inner signal by +name+.
+        def get_inner(name)
+            return @inners[name.to_sym]
+        end
+
+        # ## Gets a signal by +path+.
+        # #
+        # #  NOTE: +path+ can also be a single name or a reference object.
+        # def get_signal(path)
+        #     path = path.path_each if path.respond_to?(:path_each) # Ref case.
+        #     if path.respond_to?(:each) then
+        #         # Path is iterable: look for the first name.
+        #         path = path.each
+        #         name = path.each.next
+        #         # Maybe it is a system instance.
+        #         systemI = self.get_systemI(name)
+        #         if systemI then
+        #             # Yes, look for the remaining of the path into the
+        #             # corresponding system type.
+        #             return systemI.systemT.get_signal(path)
+        #         else
+        #             # Maybe it is a signal name.
+        #             return self.get_signal(name)
+        #         end
+        #     else
+        #         # Path is a single name, look for the signal in the system's
+        #         # Try in the inputs.
+        #         signal = get_input(path)
+        #         return signal if signal
+        #         # Try in the outputs.
+        #         signal = get_output(path)
+        #         return signal if signal
+        #         # Try in the inouts.
+        #         signal = get_inout(path)
+        #         return signal if signal
+        #         # Not found yet, look into the inners.
+        #         return get_inner(path)
+        #     end
+        # end
+
+        # Gets an inner signal by +name+, equivalent to get_inner.
+        def get_signal(name)
+            return @inners[name]
         end
 
         # Deletes inner +signal+.

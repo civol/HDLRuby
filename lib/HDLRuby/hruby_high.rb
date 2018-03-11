@@ -99,6 +99,9 @@ module HDLRuby::High
         # Tell if an +object+ is the user of the namespace or of one of its
         # concats.
         def user_deep?(object)
+            # puts "@user=#{@user}, @concats=#{@concats.size}, object=#{object}"
+            # Convert the object to a user if appliable (for SystemT)
+            object = object.to_user if object.respond_to?(:to_user)
             # Maybe object is the user of this namespace.
             return true if user?(object)
             # No, try in the concat namespaces.
@@ -291,13 +294,12 @@ module HDLRuby::High
     class SystemT < Low::SystemT
         High = HDLRuby::High
 
-        # include HMix
-        include Hinner
+        # include Hinner
 
         include SingletonExtend
 
-        # The private namespace
-        attr_reader :private_namespace
+        # # The private namespace
+        # attr_reader :private_namespace
 
         # The public namespace
         attr_reader :public_namespace
@@ -312,18 +314,21 @@ module HDLRuby::High
         # The proc +ruby_block+ is executed when instantiating the system.
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
-            super(name)
+            super(name,Scope.new(&ruby_block))
 
-            # Initialize the set of grouped system instances.
-            @groupIs = {}
+            # # Initialize the set of grouped system instances.
+            # @groupIs = {}
 
             # Initialize the set of extensions to transmit to the instances'
             # eigen class
-            @singleton_instanceO = Namespace.new(self)
+            # @singleton_instanceO = Namespace.new(self)
+            @singleton_instanceO = Namespace.new(self.scope)
 
-            # Creates the private and the public namespaces.
-            @private_namespace = Namespace.new(self)
-            @public_namespace = Namespace.new(self)
+            # # Creates the private and the public namespaces.
+            # @private_namespace = Namespace.new(self)
+            # Creates the public namespace.
+            # @public_namespace = Namespace.new(self)
+            @public_namespace = Namespace.new(self.scope)
 
             # Check and set the mixins.
             mixins.each do |mixin|
@@ -334,13 +339,598 @@ module HDLRuby::High
             @to_includes = mixins
             # Prepare the instantiation methods
             make_instantiater(name,SystemI,:add_systemI,&ruby_block)
-            # # Initialize the set of unbounded signals.
-            # @unbounds = {}
+
+            # # Initialize the set of exported inner signals and instances
+            # @exports = {}
+
+            # # Initialize the set of included system instances.
+            # @includeIs = {}
+        end
+
+        # Converts to a namespace user.
+        def to_user
+            # Returns the scope.
+            return @scope
+        end
+
+        # # Adds a group of system +instances+ named +name+.
+        # def add_groupI(name, *instances)
+        #     # Ensure name is a symbol and is not already used for another
+        #     # group.
+        #     name = name.to_sym
+        #     if @groupIs.key?(name)
+        #         raise "Group of system instances named #{name} already exist."
+        #     end
+        #     # Add the group.
+        #     @groupIs[name.to_sym] = instances
+        #     # Sets the parent of the instances.
+        #     instances.each { |instance| instance.parent = self }
+        # end
+
+        # # Access a group of system instances by +name+.
+        # #
+        # # NOTE: the result is a copy of the group for avoiding side effects.
+        # def get_groupI(name)
+        #     return @groupIs[name.to_sym].clone
+        # end
+
+        # # Iterates over the group of system instances.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_groupI(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_groupI) unless ruby_block
+        #     # A block? Apply it on each input signal instance.
+        #     @groupIs.each(&ruby_block)
+        # end
+
+        # Creates and adds a set of inputs typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inputs(type, *names)
+            res = nil
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    res = self.add_input(SignalI.new(name,type,:input))
+                else
+                    raise "Invalid class for a name: #{name.class}"
+                end
+            end
+            return res
+        end
+
+        # Creates and adds a set of outputs typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_outputs(type, *names)
+            # puts "type=#{type.inspect}"
+            res = nil
+            names.each do |name|
+                # puts "name=#{name}"
+                if name.respond_to?(:to_sym) then
+                    res = self.add_output(SignalI.new(name,type,:output))
+                else
+                    raise "Invalid class for a name: #{name.class}"
+                end
+            end
+            return res
+        end
+
+        # Creates and adds a set of inouts typed +type+ from a list of +names+.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inouts(type, *names)
+            res = nil
+            names.each do |name|
+                if name.respond_to?(:to_sym) then
+                    res = self.add_inout(SignalI.new(name,type,:inout))
+                else
+                    raise "Invalid class for a name: #{name.class}"
+                end
+            end
+            return res
+        end
+
+        # # Creates and adds a set of inners typed +type+ from a list of +names+.
+        # #
+        # # NOTE: a name can also be a signal, is which case it is duplicated. 
+        # def make_inners(type, *names)
+        #     res = nil
+        #     names.each do |name|
+        #         if name.respond_to?(:to_sym) then
+        #             res = self.add_inner(SignalI.new(name,type,:inner))
+        #         else
+        #             raise "Invalid class for a name: #{name.class}"
+        #         end
+        #     end
+        #     return res
+        # end
+
+        # # Adds a +name+ to export.
+        # #
+        # # NOTE: if the name do not corresponds to any inner signal nor
+        # # instance, raise an exception.
+        # def add_export(name)
+        #     # Check the name.
+        #     name = name.to_sym
+        #     # Look for construct to make public.
+        #     # Maybe it is an inner signals.
+        #     inner = self.get_inner(name)
+        #     if inner then
+        #         # Yes set it as export.
+        #         @exports[name] = inner
+        #         return
+        #     end
+        #     # No, maybe it is an instance.
+        #     instance = self.get_systemI(name)
+        #     if instance then
+        #         # Yes, set it as export.
+        #         @exports[name] = instance
+        #         return
+        #     end
+        #     # No, error.
+        #     raise NameError.new("Invalid name for export: #{name}")
+        # end
+
+        # # Iterates over the exported constructs.
+        # #
+        # # Returns an enumerator if no ruby block is given.
+        # def each_export(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_export) unless ruby_block
+        #     # A block? Apply it on each input signal instance.
+        #     @exports.each_value(&ruby_block)
+        # end
+
+        # Iterates over the exported constructs
+        #
+        # NOTE: look into the scope.
+        def each_export(&ruby_block)
+            @scope.each_export(&ruby_block)
+        end
+
+        # Gets class containing the extension for the instances.
+        def singleton_instance
+            @singleton_instanceO.singleton_class
+        end
+
+        # Opens for extension.
+        #
+        # NOTE: actually executes +ruby_block+ in the context of the scope
+        #       of the system.
+        def open(&ruby_block)
+            # # No push since should not merge the current environment into
+            # # the system's.
+            # High.space_insert(-1,@private_namespace)
+            # High.top_user.instance_eval(&ruby_block)
+            # # High.top_user.postprocess
+            # High.space_pop
+            self.scope.open(&ruby_block)
+        end
+
+        # The proc used for instantiating the system type.
+        attr_reader :instance_proc
+        
+        # The instantiation target class.
+        attr_reader :instance_class
+
+        # The instance owning the system if it is an eigen system
+        attr_reader :owner
+
+        # Sets the +owner+.
+        #
+        # Note: will make the system eigen
+        def owner=(owner)
+            @owner = owner
+        end
+
+        # Instantiate the system type to an instance named +i_name+ with
+        # possible arguments +args+.
+        def instantiate(i_name,*args)
+            # Create the eigen type.
+            eigen = self.class.new(:"")
+            # # Extends eigen with self.
+            # eigen.extend(self)
+            # High.space_push(eigen.private_namespace)
+            # # Fills its namespace with the content of the current system type
+            # # (this latter may already contains access points if it has been
+            # #  opended for extension previously).
+            # eigen.private_namespace.concat_namespace(@private_namespace)
+            # # Include the mixin systems given when declaring the system.
+            # @to_includes.each { |system| eigen.include(system) }
+            # # Execute the instantiation block
+            # High.top_user.instance_exec(*args,&@instance_proc) if @instance_proc
+            # High.space_pop
+
+            # Include the mixin systems given when declaring the system.
+            @to_includes.each { |system| eigen.scope.include(system) }
+
+            # Fills the scope of the eigen class.
+            eigen.scope.fill_high(self.scope,*args)
+            # puts "eigen scope=#{eigen.scope}"
+            
+            # Fill the public namespace
+            space = eigen.public_namespace
+            # Interface signals
+            eigen.each_signal do |signal|
+                # if signal.dir != :inner then
+                    space.send(:define_singleton_method,signal.name) { signal }
+                # end
+            end
+            # Exported objects
+            eigen.each_export do |export|
+                space.send(:define_singleton_method,export.name) { export }
+            end
+
+            # Create the instance.
+            instance = @instance_class.new(i_name,eigen)
+            # Link it to its eigen system
+            eigen.owner = instance
+            # Extend it.
+            instance.eigen_extend(@singleton_instanceO)
+            # puts "instance scope= #{instance.systemT.scope}"
+            # Return the resulting instance
+            return instance
+        end
+
+        # Generates the instantiation capabilities including an instantiation
+        # method +name+ for hdl-like instantiation, target instantiation as
+        # +klass+, added to the calling object with +add_instance+, and
+        # whose eigen type is initialized by +ruby_block+.
+        def make_instantiater(name,klass,add_instance,&ruby_block)
+            # Set the instanciater.
+            @instance_proc = ruby_block
+            # Set the target instantiation class.
+            @instance_class = klass
+
+            # Unnamed types do not have associated access method.
+            return if name.empty?
+
+            obj = self # For using the right self within the proc
+            High.space_reg(name) do |*args|
+                # If no name it is actually an access to the system type.
+                return obj if args.empty?
+                # Get the names from the arguments.
+                i_names = args.shift
+                # puts "i_names=#{i_names}(#{i_names.class})"
+                i_names = [*i_names]
+                instance = nil # The current instance
+                i_names.each do |i_name|
+                    # Instantiate.
+                    instance = obj.instantiate(i_name,*args)
+                    # Add the instance.
+                    High.top_user.send(add_instance,instance)
+                end
+                # Return the last instance.
+                instance
+            end
+        end
+
+        # Missing methods may be immediate values, if not, they are looked up
+        include Hmissing
+
+        # Methods used for describing a system in HDLRuby::High
+
+        # Declares high-level bit input signals named +names+.
+        def input(*names)
+            self.make_inputs(bit,*names)
+        end
+
+        # Declares high-level bit output signals named +names+.
+        def output(*names)
+            self.make_outputs(bit,*names)
+        end
+
+        # Declares high-level bit inout signals named +names+.
+        def inout(*names)
+            self.make_inouts(bit,*names)
+        end
+
+        # # Declares high-level bit inner signals named +names+.
+        # def inner(*names)
+        #     self.make_inners(bit,*names)
+        # end
+
+        # # Declares a high-level behavior activated on a list of +events+, and
+        # # built by executing +ruby_block+.
+        # def behavior(*events, &ruby_block)
+        #     # Preprocess the events.
+        #     events.map! do |event|
+        #         event.to_event
+        #     end
+        #     # Create and add the resulting behavior.
+        #     self.add_behavior(Behavior.new(*events,&ruby_block))
+        # end
+
+        # # Declares a high-level timed behavior built by executing +ruby_block+.
+        # def timed(&ruby_block)
+        #     # Create and add the resulting behavior.
+        #     self.add_behavior(TimeBehavior.new(&ruby_block))
+        # end
+
+
+        # # Creates a new parallel block built from +ruby_block+.
+        # #
+        # # This methods first creates a new behavior to put the block in.
+        # def par(&ruby_block)
+        #     self.behavior do
+        #         par(&ruby_block)
+        #     end
+        # end
+
+        # # Creates a new sequential block built from +ruby_block+.
+        # #
+        # # This methods first creates a new behavior to put the block in.
+        # def seq(&ruby_block)
+        #     self.behavior do
+        #         seq(&ruby_block)
+        #     end
+        # end
+
+        # # Statements automatically enclosed in a behavior.
+        # 
+        # # Creates a new if statement with a +condition+ that when met lead
+        # # to the execution of the block in +mode+ generated by the +ruby_block+.
+        # #
+        # # NOTE:
+        # #  * the else part is defined through the helse method.
+        # #  * a behavior is created to enclose the hif.
+        # def hif(condition, mode = nil, &ruby_block)
+        #     self.behavior do
+        #         hif(condition,mode,&ruby_block)
+        #     end
+        # end
+
+        # # Sets the block executed when the condition is not met to the block
+        # # in +mode+ generated by the execution of +ruby_block+.
+        # #
+        # # Can only be used once.
+        # #
+        # # NOTE: added to the hif of the last behavior.
+        # def helse(mode = nil, &ruby_block)
+        #     # There is a ruby_block: the helse is assumed to be with
+        #     # the last statement of the last behavior.
+        #     statement = self.last_behavior.last_statement
+        #     # Completes the hif or the hcase statement.
+        #     unless statement.is_a?(If) or statement.is_a?(Case) then
+        #         raise "Error: helse statement without hif nor hcase (#{statement.class})."
+        #     end
+        #     statement.helse(mode, &ruby_block)
+        # end
+
+        # # Sets the condition check when the condition is not met to the block,
+        # # with a +condition+ that when met lead
+        # # to the execution of the block in +mode+ generated by the +ruby_block+.
+        # def helsif(condition, mode = nil, &ruby_block)
+        #     # There is a ruby_block: the helse is assumed to be with
+        #     # the last statement of the last behavior.
+        #     statement = @statements.last
+        #     # Completes the hif statement.
+        #     unless statement.is_a?(If) then
+        #         raise "Error: helsif statement without hif (#{statement.class})."
+        #     end
+        #     statement.helsif(condition, mode, &ruby_block)
+        # end
+
+        # # Creates a new case statement with a +value+ used for deciding which
+        # # block to execute.
+        # #
+        # # NOTE: 
+        # #  * the when part is defined through the hwhen method.
+        # #  * a new behavior is created to enclose the hcase.
+        # def hcase(value)
+        #     self.behavior do
+        #         hcase(condition,value)
+        #     end
+        # end
+
+        # # Sets the block of a case structure executed when the +match+ is met
+        # # to the block in +mode+ generated by the execution of +ruby_block+.
+        # #
+        # # Can only be used once.
+        # def hwhen(match, mode = nil, &ruby_block)
+        #     # There is a ruby_block: the helse is assumed to be with
+        #     # the last statement of the last behavior.
+        #     statement = @statements.last
+        #     # Completes the hcase statement.
+        #     unless statement.is_a?(Case) then
+        #         raise "Error: hwhen statement without hcase (#{statement.class})."
+        #     end
+        #     statement.hwhen(match, mode, &ruby_block)
+        # end
+        # 
+
+        # # Sets the constructs corresponding to +names+ as exports.
+        # def export(*names)
+        #     names.each {|name| self.add_export(name) }
+        # end
+
+        # Extend the class according to another +system+.
+        def extend(system)
+            # Adds the singleton methods
+            self.eigen_extend(system)
+            # Adds the singleton methods for the instances.
+            @singleton_instanceO.eigen_extend(system.singleton_instance)
+        end
+
+        # # Include another +system+ type with possible +args+ instanciation
+        # # arguments.
+        # def include(system,*args)
+        #     if @includeIs.key?(system.name) then
+        #         raise "Cannot include twice the same system."
+        #     end
+        #     # Extends with system.
+        #     self.extend(system)
+        #     # Create the instance to include
+        #     instance = system.instantiate(:"",*args)
+        #     # Concat its public namespace to the current one.
+        #     self.private_namespace.concat_namespace(instance.public_namespace)
+        #     # Adds it the list of includeds
+        #     @includeIs[system.name] = instance
+        # end
+
+        # Casts as an included +system+.
+        #
+        # NOTE: use the includes of the scope.
+        def as(system)
+            # system = system.name if system.respond_to?(:name)
+            # return @includeIs[system].public_namespace
+            return self.scope.as(system.scope)
+        end
+
+        include Hmux
+
+        # Fills a low level system with self's contents.
+        #
+        # NOTE: name conflicts are treated in the current NameStack state.
+        def fill_low(systemTlow)
+            # puts "fill_low with systemTlow=#{systemTlow}"
+            # Adds its input signals.
+            self.each_input { |input|  systemTlow.add_input(input.to_low) }
+            # Adds its output signals.
+            self.each_output { |output| systemTlow.add_output(output.to_low) }
+            # Adds its inout signals.
+            self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
+            # # Adds the inner signals.
+            # self.each_inner { |inner|  systemTlow.add_inner(inner.to_low) }
+            # # Adds the instances.
+            # # Single ones.
+            # self.each_systemI { |systemI|
+            #     systemTlow.add_systemI(systemI.to_low) 
+            # }
+            # # Grouped ones.
+            # self.each_groupI do |name,systemIs|
+            #     systemIs.each.with_index { |systemI,i|
+            #         # Sets the name of the system instance
+            #         # (required for conversion of further accesses).
+            #         # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
+            #         systemI.name = name.to_s + "[#{i}]"
+            #         # And convert it to low
+            #         systemTlow.add_systemI(systemI.to_low())
+            #     }
+            # end
+            # # Adds the connections.
+            # self.each_connection { |connection|
+            #     systemTlow.add_connection(connection.to_low)
+            # }
+            # # Adds the behaviors.
+            # self.each_behavior { |behavior|
+            #     systemTlow.add_behavior(behavior.to_low)
+            # }
+        end
+
+        # Converts the system to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            name = name.to_s
+            if name.empty? then
+                raise "Cannot convert a system without a name to HDLRuby::Low."
+            end
+            # Create the resulting low system type.
+            systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name),
+                                                   self.scope.to_low)
+            # Fills the interface of the new system from the included
+            # systems, must look into the scope since it it the scope
+            # that contains the included systems.
+            self.scope.each_included do |included| 
+                included.systemT.fill_low(systemTlow)
+            end
+            # # Push the private namespace for the low generation.
+            # High.space_push(@private_namespace)
+            # # Pushes on the name stack for converting the internals of
+            # # the system.
+            # High.names_push
+            # # Adds the content of its included systems.
+            # @includeIs.each_value { |space| space.user.fill_low(systemTlow) }
+            # Adds the content of the actual system.
+            self.fill_low(systemTlow)
+            # # Restores the name stack.
+            # High.names_pop
+            # # Restores the namespace stack.
+            # High.space_pop
+            # # Return theresulting system.
+            return systemTlow
+        end
+    end
+
+    # Methods for declaring system types.
+
+    # Declares a high-level system type named +name+, with +includes+ mixins
+    # hardware types and using +ruby_block+ for instantiating.
+    def system(name = :"", *includes, &ruby_block)
+        # print "system ruby_block=#{ruby_block}\n"
+        # Creates the resulting system.
+        return SystemT.new(name,*includes,&ruby_block)
+    end
+
+
+    ## 
+    # Describes a scope for a system type
+    class Scope < Low::Scope
+        High = HDLRuby::High
+
+        # include HMix
+        include Hinner
+
+        include SingletonExtend
+
+        # The private namespace
+        attr_reader :private_namespace
+
+        # # The public namespace
+        # attr_reader :public_namespace
+
+        ##
+        # Creates a new scope.
+        #
+        # The proc +ruby_block+ is executed when instantiating the scope.
+        def initialize(&ruby_block)
+            # Initialize the scope structure
+            super()
+
+            # Initialize the set of grouped system instances.
+            @groupIs = {}
+
+            # # Initialize the set of extensions to transmit to the instances'
+            # # eigen class
+            # @singleton_instanceO = Namespace.new(self)
+
+            # Creates the private and the public namespaces.
+            @private_namespace = Namespace.new(self)
+            # @public_namespace = Namespace.new(self)
+
+            # # Check and set the mixins.
+            # mixins.each do |mixin|
+            #     unless mixin.is_a?(SystemT) then
+            #         raise "Invalid class for inheriting: #{mixin.class}."
+            #     end
+            # end
+            # @to_includes = mixins
+            # # Prepare the instantiation methods
+            # make_instantiater(name,SystemI,:add_systemI,&ruby_block)
 
             # Initialize the set of exported inner signals and instances
             @exports = {}
             # Initialize the set of included system instances.
             @includeIs = {}
+        end
+
+        # Converts to a namespace user.
+        def to_user
+            # Already a user.
+            return self
+        end
+
+        # The name of the scope if any.
+        #
+        # NOTE: 
+        #  * the name of the first scope of a system is the system's.
+        #  * for building reference path with converting to low.
+        def name
+            if self.parent.is_a?(SystemT) then
+                return self.parent.name
+            else
+                return :""
+            end
         end
 
         # Adds a group of system +instances+ named +name+.
@@ -374,67 +964,55 @@ module HDLRuby::High
             @groupIs.each(&ruby_block)
         end
 
-        # Creates and adds a set of inputs typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_inputs(type, *names)
-            res = nil
-            names.each do |name|
-                if name.respond_to?(:to_sym) then
-                    # self.add_input(SignalI.new(rn!(name),type,:input))
-                    res = self.add_input(SignalI.new(name,type,:input))
-                else
-                    # Deactivated because conflict with parent.
-                    # signal = name.clone
-                    # signal.dir = :input
-                    # self.add_input(signal)
-                    raise "Invalid class for a name: #{name.class}"
-                end
-            end
-            return res
-        end
+        # # Creates and adds a set of inputs typed +type+ from a list of +names+.
+        # #
+        # # NOTE: a name can also be a signal, is which case it is duplicated. 
+        # def make_inputs(type, *names)
+        #     res = nil
+        #     names.each do |name|
+        #         if name.respond_to?(:to_sym) then
+        #             res = self.add_input(SignalI.new(name,type,:input))
+        #         else
+        #             # Deactivated because conflict with parent.
+        #             raise "Invalid class for a name: #{name.class}"
+        #         end
+        #     end
+        #     return res
+        # end
 
-        # Creates and adds a set of outputs typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_outputs(type, *names)
-            # puts "type=#{type.inspect}"
-            res = nil
-            names.each do |name|
-                # puts "name=#{name}"
-                if name.respond_to?(:to_sym) then
-                    # self.add_output(SignalI.new(rn!(name),type,:output))
-                    res = self.add_output(SignalI.new(name,type,:output))
-                else
-                    # Deactivated because conflict with parent.
-                    # signal = name.clone
-                    # signal.dir = :output
-                    # self.add_output(signal)
-                    raise "Invalid class for a name: #{name.class}"
-                end
-            end
-            return res
-        end
+        # # Creates and adds a set of outputs typed +type+ from a list of +names+.
+        # #
+        # # NOTE: a name can also be a signal, is which case it is duplicated. 
+        # def make_outputs(type, *names)
+        #     # puts "type=#{type.inspect}"
+        #     res = nil
+        #     names.each do |name|
+        #         # puts "name=#{name}"
+        #         if name.respond_to?(:to_sym) then
+        #             res = self.add_output(SignalI.new(name,type,:output))
+        #         else
+        #             # Deactivated because conflict with parent.
+        #             raise "Invalid class for a name: #{name.class}"
+        #         end
+        #     end
+        #     return res
+        # end
 
-        # Creates and adds a set of inouts typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_inouts(type, *names)
-            res = nil
-            names.each do |name|
-                if name.respond_to?(:to_sym) then
-                    # self.add_inout(SignalI.new(rn!(name),type,:inout))
-                    res = self.add_inout(SignalI.new(name,type,:inout))
-                else
-                    # Deactivated because conflict with parent.
-                    # signal = name.clone
-                    # signal.dir = :inout
-                    # self.add_inout(signal)
-                    raise "Invalid class for a name: #{name.class}"
-                end
-            end
-            return res
-        end
+        # # Creates and adds a set of inouts typed +type+ from a list of +names+.
+        # #
+        # # NOTE: a name can also be a signal, is which case it is duplicated. 
+        # def make_inouts(type, *names)
+        #     res = nil
+        #     names.each do |name|
+        #         if name.respond_to?(:to_sym) then
+        #             res = self.add_inout(SignalI.new(name,type,:inout))
+        #         else
+        #             # Deactivated because conflict with parent.
+        #             raise "Invalid class for a name: #{name.class}"
+        #         end
+        #     end
+        #     return res
+        # end
 
         # Creates and adds a set of inners typed +type+ from a list of +names+.
         #
@@ -443,33 +1021,14 @@ module HDLRuby::High
             res = nil
             names.each do |name|
                 if name.respond_to?(:to_sym) then
-                    # self.add_inner(SignalI.new(rn!(name),type,:inner))
                     res = self.add_inner(SignalI.new(name,type,:inner))
                 else
                     # Deactivated because conflict with parent.
-                    # signal = name.clone
-                    # signal.dir = :inner
-                    # self.add_inner(signal)
                     raise "Invalid class for a name: #{name.class}"
                 end
             end
             return res
         end
-
-        # # Iterates over all the signals of the system type and its system
-        # # instances.
-        # def each_signal_deep(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_signal_deep) unless ruby_block
-        #     # A block?
-        #     # First, apply on the signals and and system instances.
-        #     super(&ruby_block)
-        #     # Apply on the behaviors (since in HDLRuby:High, blocks can
-        #     # include signals).
-        #     self.each_behavior do |behavior|
-        #         behavior.block.each_signal_deep(&ruby_block)
-        #     end
-        # end
 
         # Adds a +name+ to export.
         #
@@ -505,265 +1064,189 @@ module HDLRuby::High
             return to_enum(:each_export) unless ruby_block
             # A block? Apply it on each input signal instance.
             @exports.each_value(&ruby_block)
+            # And apply on the sub scopes if any.
+            @scopes.each {|scope| scope.each_export(&ruby_block) }
         end
 
-        # # Gets an exported element (signal or system instance) by +name+.
-        # def get_export(name)
-        #     # Maybe it is an interface signal.
-        #     signal = self.get_input(name)
-        #     return signal if signal
-        #     signal = self.get_output(name)
-        #     return signal if signal
-        #     signal = self.get_inout(name)
-        #     return signal if signal
-        #     # No, may be it is an inner signal or an instance explicitely
-        #     # exported
-        #     return @exports[name.to_sym]
+        # Iterates over the included systems.
+        def each_included(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_included) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @includeIs.each_value(&ruby_block)
+            # And apply on the sub scopes if any.
+            @scopes.each {|scope| scope.each_included(&ruby_block) }
+        end
+
+
+        # # Gets class containing the extension for the instances.
+        # def singleton_instance
+        #     @singleton_instanceO.singleton_class
         # end
-
-        # Gets class containing the extension for the instances.
-        def singleton_instance
-            @singleton_instanceO.singleton_class
-        end
 
         # Opens for extension.
         #
         # NOTE: actually executes +ruby_block+ in the context.
         def open(&ruby_block)
-            # High.space_push(self)
-            # High.space_push(@private_namespace)
             # No push since should not merge the current environment into
             # the system's.
             High.space_insert(-1,@private_namespace)
             High.top_user.instance_eval(&ruby_block)
-            # High.top_user.postprocess
             High.space_pop
         end
 
-        # The proc used for instantiating the system type.
-        attr_reader :instance_proc
-        
-        # The instantiation target class.
-        attr_reader :instance_class
+        # # The proc used for instantiating the system type.
+        # attr_reader :instance_proc
+        # 
+        # # The instantiation target class.
+        # attr_reader :instance_class
 
-        # The instance owning the system if it is an eigen system
-        attr_reader :owner
+        # # The instance owning the system if it is an eigen system
+        # attr_reader :owner
 
-        # Sets the +owner+.
-        #
-        # Note: will make the system eigen
-        def owner=(owner)
-            @owner = owner
-        end
+        # # Sets the +owner+.
+        # #
+        # # Note: will make the system eigen
+        # def owner=(owner)
+        #     @owner = owner
+        # end
 
-        # Instantiate the system type to an instance named +i_name+ with
-        # possible arguments +args+.
-        def instantiate(i_name,*args)
-            # Create the eigen type.
-            eigen = self.class.new(:"")
-            # Extends eigen with self.
-            eigen.extend(self)
-            # High.space_push(eigen)
-            High.space_push(eigen.private_namespace)
-            # Fills its namespace with the content of the current system type
+        # Fills the scope using +base+ as model scope with possible arguments
+        # +args+.
+        def fill_high(base,*args)
+            # # Extends eigen with the base scope.
+            # eigen.extend(self)
+            High.space_push(@private_namespace)
+            # Fills its namespace with the content of the base scope
             # (this latter may already contains access points if it has been
             #  opended for extension previously).
-            eigen.private_namespace.concat_namespace(@private_namespace)
-            # Include the mixin systems given when declaring the system.
-            @to_includes.each { |system| eigen.include(system) }
+            @private_namespace.concat_namespace(base.private_namespace)
+            # # Include the mixin systems given when declaring the system.
+            # @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
-            High.top_user.instance_exec(*args,&@instance_proc) if @instance_proc
-            # High.top_user.postprocess
+            instance_proc = base.parent.instance_proc if base.parent.is_a?(SystemT)
+            High.top_user.instance_exec(*args,&instance_proc) if instance_proc
             High.space_pop
-            
-            # Fill the public namespace
-            space = eigen.public_namespace
-            # Interface signals
-            eigen.each_signal do |signal|
-                if signal.dir != :inner then
-                    space.send(:define_singleton_method,signal.name) { signal }
-                end
-            end
-            # Export objects
-            eigen.each_export do |export|
-                space.send(:define_singleton_method,export.name) { export }
-            end
-
-            # Create the instance.
-            instance = @instance_class.new(i_name,eigen)
-            # Link it to its eigen system
-            eigen.owner = instance
-            # Extend it.
-            instance.eigen_extend(@singleton_instanceO)
-            # Return the resulting instance
-            return instance
         end
 
-        # Generates the instantiation capabilities including an instantiation
-        # method +name+ for hdl-like instantiation, target instantiation as
-        # +klass+, added to the calling object with +add_instance+, and
-        # whose eigen type is initialized by +ruby_block+.
-        def make_instantiater(name,klass,add_instance,&ruby_block)
-            # Set the instanciater.
-            @instance_proc = ruby_block
-            # Set the target instantiation class.
-            @instance_class = klass
+        # # Generates the instantiation capabilities including an instantiation
+        # # method +name+ for hdl-like instantiation, target instantiation as
+        # # +klass+, added to the calling object with +add_instance+, and
+        # # whose eigen type is initialized by +ruby_block+.
+        # def make_instantiater(name,klass,add_instance,&ruby_block)
+        #     # Set the instanciater.
+        #     @instance_proc = ruby_block
+        #     # Set the target instantiation class.
+        #     @instance_class = klass
 
-            # Unnamed types do not have associated access method.
-            return if name.empty?
+        #     # Unnamed types do not have associated access method.
+        #     return if name.empty?
 
-            # Set the hdl-like instantiation method.
-            # HDLRuby::High.send(:define_method,name.to_sym) do |i_name,*args|
-            #     # Instantiate.
-            #     instance = self.instantiate(i_name,*args)
-            #     # Add the instance.
-            #     binding.receiver.send(add_instance,instance)
-            # end
-            obj = self # For using the right self within the proc
-            High.space_reg(name) do |*args|
-                # If no name it is actually an access to the system type.
-                return obj if args.empty?
-                # Get the names from the arguments.
-                i_names = args.shift
-                # puts "i_names=#{i_names}(#{i_names.class})"
-                i_names = [*i_names]
-                instance = nil # The current instance
-                i_names.each do |i_name|
-                    # Instantiate.
-                    instance = obj.instantiate(i_name,*args)
-                    # Add the instance.
-                    High.top_user.send(add_instance,instance)
-                end
-                # Return the last instance.
-                instance
-            end
-            # High.space_reg(name) do |i_name,*args|
-            #     # Instantiate.
-            #     instance = obj.instantiate(i_name,*args)
-            #     # Add the instance.
-            #     High.top_user.send(add_instance,instance)
-            # end
-        end
-
-        # Tells if the system type is generic or not.
-        #
-        # NOTE: a system type is generic if one of its signal is generic.
-        def generic?
-            return self.each_signal_deep.any? do |signal|
-                signal.type.generic?
-            end
-        end
-
-        # # Set up the parent structure of the whole system.
-        # def make_parents_deep
-        #     # Connections.
-        #     self.each_connection_deep.each(:make_parents_deep)
-        #     # Statements.
-        #     self.each_statement_deep.each(:make_parents_deep)
-        # end
-
-        # # Resolves the unknown signal types and conflicts.
-        # def resolve_types
-        #     # Gather each typed construction and parition them among the
-        #     # the processable and the non processable (e.g.: void + void
-        #     # cannot be processed as is.)
-        #     typed_pro = []
-        #     typed_unk = {}
-        #     self.each_typed_deep do |typed|
-        #         if typed.ref? then
-        #             # Reference cases.
-        #             if typed.type.generic? then
-        #                 # The reference's type is not processable yet.
-        #                 typed_unk[self.get_signal(typed)] << typed
-        #             else
-        #                 # The regerence's type is processable.
-        #                 typed_pro << typed
-        #             end
-        #         else
-        #             # Other cases: look for a non-generically typed child.
-        #             if typed.each_child.any? {|child|!child.type.generic? } then
-        #                 # The typed object is processable.
-        #                 typed_pro << typed
-        #             else
-        #                 # The typed object is not processable yet.
-        #                 typed.each_child do |child|
-        #                     if child.ref? then
-        #                         typed_unk[self.get_signal(typed)] << typed
-        #                     else
-        #                         typed_unk[child] << typed
-        #                     end
-        #                 end
-        #             end
-        #         end
-        #     end
-
-        #     # Process the processable types until there is no unprocessable
-        #     # types left.
-        #     begin
-        #         resolved = []
-        #         typed_pro.each do |typed|
-        #             unless typed.resolve_type(self) then
-        #                 raise "Internal error: type unresolvable."
-        #             end
-        #             ICIICI
-        #             resolved_signals += arrow.each_ref.map do |ref|
-        #                 self.get_signal(ref)
-        #             end
-        #         end
-        #         typed_pro = resolved_signals.each.reduce([]) do |ar,signal|
-        #             ar.concat(typed_unk[signal])
-        #         end
-        #     end while !typed_pro.empty?
-        # end
-            
-
-
-        # # Missing methods may be immediate values, if not, they are looked up
-        # # in the upper level of the namespace.
-        # def method_missing(m, *args, &ruby_block)
-        #     print "method_missing in class=#{self.class} with m=#{m}\n"
-        #     # Is the missing method an immediate value?
-        #     value = m.to_value
-        #     return value if value and args.empty?
-        #     # # No, maybe it is an exported construct from an included system
-        #     # # provided there are no arguments.
-        #     # if args.empty? then
-        #     #     @includeIs.each_value do |systemI|
-        #     #         construct = systemI.get_export(m)
-        #     #         return construct if construct
-        #     #     end
+        #     # Set the hdl-like instantiation method.
+        #     # HDLRuby::High.send(:define_method,name.to_sym) do |i_name,*args|
+        #     #     # Instantiate.
+        #     #     instance = self.instantiate(i_name,*args)
+        #     #     # Add the instance.
+        #     #     binding.receiver.send(add_instance,instance)
         #     # end
-        #     # No look in the upper level of the name space
-        #     High.space_call(m,*args,&ruby_block)
+        #     obj = self # For using the right self within the proc
+        #     High.space_reg(name) do |*args|
+        #         # If no name it is actually an access to the system type.
+        #         return obj if args.empty?
+        #         # Get the names from the arguments.
+        #         i_names = args.shift
+        #         # puts "i_names=#{i_names}(#{i_names.class})"
+        #         i_names = [*i_names]
+        #         instance = nil # The current instance
+        #         i_names.each do |i_name|
+        #             # Instantiate.
+        #             instance = obj.instantiate(i_name,*args)
+        #             # Add the instance.
+        #             High.top_user.send(add_instance,instance)
+        #         end
+        #         # Return the last instance.
+        #         instance
+        #     end
+        #     # High.space_reg(name) do |i_name,*args|
+        #     #     # Instantiate.
+        #     #     instance = obj.instantiate(i_name,*args)
+        #     #     # Add the instance.
+        #     #     High.top_user.send(add_instance,instance)
+        #     # end
         # end
+      
+        # Methods delegated to the upper system.
+
+        # Adds input +signal+ in the current system.
+        def add_input(signal)
+            self.parent.add_input(signal)
+        end
+       
+        # Adds output +signal+ in the current system.
+        def add_output(signal)
+            self.parent.add_output(signal)
+        end
+
+        # Adds inout +signal+ in the current system.
+        def add_inout(signal)
+            self.parent.add_inout(signal)
+        end
+
+        # Creates and adds a set of inputs typed +type+ from a list of +names+
+        # in the current system.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inputs(type, *names)
+            self.parent.make_inputs(type,*names)
+        end
+
+        # Creates and adds a set of outputs typed +type+ from a list of +names+
+        # in the current system.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_outputs(type, *names)
+            self.parent.make_outputs(type,*names)
+        end
+
+        # Creates and adds a set of inouts typed +type+ from a list of +names+
+        # in the current system.
+        #
+        # NOTE: a name can also be a signal, is which case it is duplicated. 
+        def make_inouts(type, *names)
+            self.parent.make_inouts(type,*names)
+        end
+
 
         include Hmissing
 
         # Methods used for describing a system in HDLRuby::High
-
-        # Declares high-level bit input signals named +names+.
-        def input(*names)
-            self.make_inputs(bit,*names)
-        end
-
-        # Declares high-level bit output signals named +names+.
-        def output(*names)
-            self.make_outputs(bit,*names)
-        end
-
-        # Declares high-level bit inout signals named +names+.
-        def inout(*names)
-            self.make_inouts(bit,*names)
-        end
 
         # # Declares high-level bit inner signals named +names+.
         # def inner(*names)
         #     self.make_inners(bit,*names)
         # end
 
-        # Declares a sub name space for executing +ruby_block+.
+        # Declares high-level bit input signals named +names+
+        # in the current system.
+        def input(*names)
+            self.parent.input(*names)
+        end
+
+        # Declares high-level bit output signals named +names+
+        # in the current system.
+        def output(*names)
+            self.parent.output(*names)
+        end
+
+        # Declares high-level bit inout signals named +names+
+        # in the current system.
+        def inout(*names)
+            self.parent.inout(*names)
+        end
+
+        # Declares a sub scope +ruby_block+.
         def sub(&ruby_block)
-            self.add_block(self.mode,&ruby_block)
+            self.add_scope(&ruby_block)
         end
 
         # Declares a high-level behavior activated on a list of +events+, and
@@ -880,37 +1363,24 @@ module HDLRuby::High
             names.each {|name| self.add_export(name) }
         end
 
-        # Extend the class according to another +system+.
-        def extend(system)
-            # Adds the singleton methods
-            # system.singleton_methods.each do |name|
-            #     unless self.respond_to?(name) then
-            #         self.define_singleton_method(name,
-            #                                      system.singleton_method(name))
-            #     end
-            # end
-            self.eigen_extend(system)
-            # Adds the singleton methods for the instances.
-            # iClass = system.singleton_instance
-            # iClass.singleton_methods.each do |name|
-            #     unless @singleton_instance.respond_to?(name) then
-            #         @singleton_instance.define_singleton_method(name,
-            #                     iClass.singleton_method(name))
-            #     end
-            # end
-            @singleton_instanceO.eigen_extend(system.singleton_instance)
-        end
+        # # Extend the class according to another +system+.
+        # def extend(system)
+        #     # Adds the singleton methods
+        #     self.eigen_extend(system)
+        #     @singleton_instanceO.eigen_extend(system.singleton_instance)
+        # end
 
-        # Include another +system+ type with possible +args+ instanciation
+        # Include a +system+ type with possible +args+ instanciation
         # arguments.
         def include(system,*args)
             if @includeIs.key?(system.name) then
                 raise "Cannot include twice the same system."
             end
             # Extends with system.
-            self.extend(system)
+            self.eigen_extend(system)
             # Create the instance to include
             instance = system.instantiate(:"",*args)
+            # puts "instance=#{instance}"
             # Concat its public namespace to the current one.
             self.private_namespace.concat_namespace(instance.public_namespace)
             # Adds it the list of includeds
@@ -925,22 +1395,16 @@ module HDLRuby::High
 
         include Hmux
 
-        # Fills a low level system with self's contents.
+        # Fills a low level scope with self's contents.
         #
         # NOTE: name conflicts are treated in the current NameStack state.
-        def fill_low(systemTlow)
-            # Adds its input signals.
-            self.each_input { |input|  systemTlow.add_input(input.to_low) }
-            # Adds its output signals.
-            self.each_output { |output| systemTlow.add_output(output.to_low) }
-            # Adds its inout signals.
-            self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
+        def fill_low(scopeLow)
             # Adds the inner signals.
-            self.each_inner { |inner|  systemTlow.add_inner(inner.to_low) }
+            self.each_inner { |inner|  scopeLow.add_inner(inner.to_low) }
             # Adds the instances.
             # Single ones.
             self.each_systemI { |systemI|
-                systemTlow.add_systemI(systemI.to_low) 
+                scopeLow.add_systemI(systemI.to_low) 
             }
             # Grouped ones.
             self.each_groupI do |name,systemIs|
@@ -950,56 +1414,40 @@ module HDLRuby::High
                     # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
                     systemI.name = name.to_s + "[#{i}]"
                     # And convert it to low
-                    systemTlow.add_systemI(systemI.to_low())
+                    scopeLow.add_systemI(systemI.to_low())
                 }
             end
             # Adds the connections.
             self.each_connection { |connection|
-                systemTlow.add_connection(connection.to_low)
+                # puts "connection=#{connection}"
+                scopeLow.add_connection(connection.to_low)
             }
             # Adds the behaviors.
             self.each_behavior { |behavior|
-                systemTlow.add_behavior(behavior.to_low)
+                scopeLow.add_behavior(behavior.to_low)
             }
         end
 
-        # Converts the system to HDLRuby::Low and set its +name+.
-        def to_low(name = self.name)
-            name = name.to_s
-            if name.empty? then
-                raise "Cannot convert a system without a name to HDLRuby::Low."
-            end
-            # Create the resulting low system type.
-            systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name))
-            # # Push the low conversion stack.
-            # High.low_push(self)
+        # Converts the scope to HDLRuby::Low.
+        def to_low()
+            # Create the resulting low scope.
+            scopeLow = HDLRuby::Low::Scope.new()
             # Push the private namespace for the low generation.
             High.space_push(@private_namespace)
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
             # Adds the content of its included systems.
-            @includeIs.each_value { |space| space.user.fill_low(systemTlow) }
+            @includeIs.each_value {|instance| instance.user.fill_low(scopeLow) }
             # Adds the content of the actual system.
-            self.fill_low(systemTlow)
+            self.fill_low(scopeLow)
             # Restores the name stack.
             High.names_pop
             # Restores the namespace stack.
             High.space_pop
             # Return theresulting system.
-            return systemTlow
+            return scopeLow
         end
-    end
-
-    # Methods for declaring system types.
-
-    # Declares a high-level system type named +name+, with +includes+ mixins
-    # hardware types and using +ruby_block+ for instantiating.
-    def system(name = :"", *includes, &ruby_block)
-        # print "system ruby_block=#{ruby_block}\n"
-        # Creates the resulting system.
-        return SystemT.new(name,*includes,&ruby_block)
-        # return make_changer(SystemT).new(name,*includes,&ruby_block)
     end
     
 
@@ -1616,6 +2064,7 @@ module HDLRuby::High
         def initialize(name, systemT)
             # Initialize the system instance structure.
             super(name,systemT)
+            # puts "New systemI with scope=#{self.systemT.scope}"
 
             # Sets the hdl-like access to the system instance.
             obj = self # For using the right self within the proc
@@ -1659,27 +2108,17 @@ module HDLRuby::High
         # system type.
         def method_missing(m, *args, &ruby_block)
             # print "method_missing in class=#{self.class} with m=#{m}\n"
-            # # No argument, might be an exported element
-            # if args.empty? then
-            #     exported = self.get_export(m)
-            #     if exported then
-            #         # A exported element is found, return it.
-            #         return exported
-            #     end
-            # end
-            # # Nothing found.
-            # raise NoMethodError.new("undefined local variable or method `#{name}'.")
             self.public_namespace.send(m,*args,&ruby_block)
         end
 
 
         # Methods to transmit to the systemT
         
-        # Gets the private namespace.
-        def private_namespace
-            self.systemT.private_namespace
-        end
-        
+        # # Gets the private namespace.
+        # def private_namespace
+        #     self.systemT.private_namespace
+        # end
+        # 
         # Gets the public namespace.
         def public_namespace
             self.systemT.public_namespace
@@ -2244,13 +2683,13 @@ module HDLRuby::High
             # Build the path of the reference.
             path = []
             cur = @object
-            # while(!High.low_has?(cur)) do
-            # while(!High.top_user.equal?(cur)) do
             while(!High.top_user.user_deep?(cur)) do
+                # puts "first cur=#{cur}"
                 cur = cur.owner if cur.respond_to?(:owner)
-                # puts "cur=#{cur}" #, "name=#{cur.name}"
+                # puts "cur=#{cur}", "name=#{cur.name}"
                 path << cur.name
                 cur = cur.parent
+                # cur = cur.scope if cur.respond_to?(:scope)
                 # puts " parent=#{cur} found? #{High.top_user.user_deep?(cur)}"
             end
             # puts "path=#{path}"
@@ -3091,7 +3530,7 @@ module HDLRuby::High
 
     # The namespace stack: never empty, the top is a nameless system without
     # input nor output.
-    Namespaces = [Universe.private_namespace]
+    Namespaces = [Universe.scope.private_namespace]
     private_constant :Namespaces
 
     # Pushes +namespace+.
@@ -3160,8 +3599,10 @@ module HDLRuby::High
             raise "Not within a system type."
         else
             return Namespaces.reverse_each.find do |space|
-                space.user.is_a?(SystemT)
-            end.user
+                # space.user.is_a?(SystemT)
+                space.user.is_a?(Scope) and space.user.parent.is_a?(SystemT)
+            # end.user
+            end.user.parent
         end
     end
 
@@ -3723,6 +4164,6 @@ def self.configure_high
     # Generate the standard signals
     # $clk = SignalI.new(:__universe__clk__,Bit,:inner)
     # $rst = SignalI.new(:__universe__rst__,Bit,:inner)
-    $clk = Universe.inner :__universe__clk__
-    $rst = Universe.inner :__universe__rst__
+    $clk = Universe.scope.inner :__universe__clk__
+    $rst = Universe.scope.inner :__universe__rst__
 end

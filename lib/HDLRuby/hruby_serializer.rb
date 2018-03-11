@@ -16,6 +16,7 @@ module HDLRuby
     TO_BASICS = [
                  # Low::SystemT, Low::SignalT, Low::Behavior, Low::TimeBehavior,
                  Low::SystemT,
+                 Low::Scope,
                  Low::Type, # Low::TypeNumeric, 
                  Low::TypeVector,
                  Low::TypeSigned, Low::TypeUnsigned, Low::TypeFloat,
@@ -177,6 +178,7 @@ module HDLRuby
                 end
                 # Build the object with the processed arguments.
                 # object = klass.new(*singles.map{|k,v| basic_to_value(v) })
+                puts "klass=#{klass}, singles=#{singles}"
                 object = klass.new(*singles)
                 # Adds the multiple instances.
                 multiples.each do |k,v|

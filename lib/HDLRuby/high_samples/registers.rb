@@ -15,7 +15,7 @@ system :dff0 do
 end
 
 # Instantiate it for checking.
-Universe.dff0 :dff0I
+dff0 :dff0I
 
 
 # Decribes another D-FF
@@ -28,7 +28,7 @@ system :dff1 do
 end
 
 # Instantiate it for checking.
-Universe.dff1 :dff1I
+dff1 :dff1I
 
 
 # Describes an 8-bit register
@@ -42,7 +42,7 @@ system :reg8 do
 end
 
 # Instantiate it for checking.
-Universe.reg8 :reg8I
+reg8 :reg8I
 
 
 # Describes a n-bit register.
@@ -56,7 +56,7 @@ system :regn do |n|
 end
 
 # Instantiate it for checking.
-Universe.regn :regn8I,8
+regn :regn8I,8
 
 
 # Describes a register of generic type.
@@ -70,12 +70,12 @@ system :reg do |typ|
 end
 
 # Instantiate it for checking.
-Universe.reg :regbit8I, bit[7..0]
+reg :regbit8I, bit[7..0]
 
 
 
 # Function generating the body of a register description.
-def reg_body(typ)
+def make_reg_body(typ)
     input :clk, :rst
     typ.input :d
     typ.output :q,:qb
@@ -86,26 +86,26 @@ end
 
 # Now declare the systems decribing the registers.
 system :dff_body do
-    reg_body(bit)
+    make_reg_body(bit)
 end
 
 system :reg8_body do
-    reg_body(bit[7..0])
+    make_reg_body(bit[7..0])
 end
 
 system :regn_body do |n|
-    reg_body(bit[n-1..0])
+    make_reg_body(bit[n-1..0])
 end
 
 system :reg_body do |typ|
-    reg_body(typ)
+    make_reg_body(typ)
 end
 
 # Instantiate these systems for checking them.
-Universe.dff_body  :dff_bodyI
-Universe.reg8_body :reg8_bodyI
-Universe.regn_body :regn_bodyI, 8
-Universe.reg_body  :reg_bodyI, bit[7..0]
+dff_body  :dff_bodyI
+reg8_body :reg8_bodyI
+regn_body :regn_bodyI, 8
+reg_body  :reg_bodyI, bit[7..0]
 
 
 # Function generating a register declaration.

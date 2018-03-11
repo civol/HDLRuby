@@ -131,6 +131,7 @@ print "Instantiate it... "
 begin
     # $systemI1 = $systemT1.instantiate("systemI1",SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner),SignalI.new(:"",$uchar,:inner))
     $systemI1 = $systemT1.instantiate("systemI1")
+    puts "$systemI1 scope=#{$systemI1.systemT.scope}"
     systemI1Is = $systemI1.each_systemI.to_a
     success = true
     if systemI1Is.size != 1 then
