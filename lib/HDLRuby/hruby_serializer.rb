@@ -45,9 +45,11 @@ module HDLRuby
                        Low::TypeVector, Low::TypeTuple, Low::TypeStruct]
 
     # The name of the reference argument if any.
-    REF_ARG_NAMES = { Low::SystemI => "systemT",
-                      Low::SignalI => "type",
-                      Low::TypeVector => "base" }
+    REF_ARG_NAMES = { Low::SystemI    => "systemT",
+                      Low::SignalI    => "type",
+                      Low::TypeVector => "base",
+                      Low::Value      => "type"
+                    }
 
     # The table of the object that can be refered to, used when deserializing.
     FROM_BASICS_REFS = { }
