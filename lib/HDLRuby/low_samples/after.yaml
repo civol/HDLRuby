@@ -26,96 +26,76 @@ SystemT:
       name: timeout
       type: bit
   inouts: []
-  inners: []
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: clk
-      - Event:
-          type: posedge
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: rst
-      block:
-        Block:
-          mode: par
-          inners:
-          - SignalI:
-              name: ":0"
-              type:
-                TypeVector:
-                  name: ''
-                  base: bit
-                  range:
-                  - 30
-                  - 0
-          statements:
-          - Transmit:
-              left:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: timeout
-              right:
-                Value:
-                  type: integer
-                  content: 0
-          - Block:
-              mode: seq
-              inners: []
+                  name: clk
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rst
+          block:
+            Block:
+              mode: par
+              inners:
+              - SignalI:
+                  name: ":0"
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 30
+                      - 0
               statements:
-              - If:
-                  condition:
-                    Binary:
-                      operator: "=="
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: rst
-                      right:
-                        Value:
-                          type: integer
-                          content: 1
-                  'yes':
-                    Block:
-                      mode: seq
-                      inners: []
-                      statements:
-                      - Transmit:
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: timeout
+                  right:
+                    Value:
+                      type: integer
+                      content: 0
+              - Block:
+                  mode: seq
+                  inners: []
+                  statements:
+                  - If:
+                      condition:
+                        Binary:
+                          operator: "=="
                           left:
                             RefName:
                               ref:
                                 RefThis: {}
-                              name: ":0"
+                              name: rst
                           right:
                             Value:
                               type: integer
-                              content: 100
-                  'no':
-                    Block:
-                      mode: seq
-                      inners: []
-                      statements:
-                      - Transmit:
-                          left:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: ":0"
-                          right:
-                            Binary:
-                              operator: "-"
+                              content: 1
+                      'yes':
+                        Block:
+                          mode: seq
+                          inners: []
+                          statements:
+                          - Transmit:
                               left:
                                 RefName:
                                   ref:
@@ -124,30 +104,53 @@ SystemT:
                               right:
                                 Value:
                                   type: integer
-                                  content: 1
-                  noifs:
-                  - - Binary:
-                        operator: "=="
-                        left:
-                          RefName:
-                            ref:
-                              RefThis: {}
-                            name: ":0"
-                        right:
-                          Value:
-                            type: integer
-                            content: 0
-                    - Block:
-                        mode: seq
-                        inners: []
-                        statements:
-                        - Transmit:
+                                  content: 100
+                      'no':
+                        Block:
+                          mode: seq
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: ":0"
+                              right:
+                                Binary:
+                                  operator: "-"
+                                  left:
+                                    RefName:
+                                      ref:
+                                        RefThis: {}
+                                      name: ":0"
+                                  right:
+                                    Value:
+                                      type: integer
+                                      content: 1
+                      noifs:
+                      - - Binary:
+                            operator: "=="
                             left:
                               RefName:
                                 ref:
                                   RefThis: {}
-                                name: timeout
+                                name: ":0"
                             right:
                               Value:
                                 type: integer
-                                content: 1
+                                content: 0
+                        - Block:
+                            mode: seq
+                            inners: []
+                            statements:
+                            - Transmit:
+                                left:
+                                  RefName:
+                                    ref:
+                                      RefThis: {}
+                                    name: timeout
+                                right:
+                                  Value:
+                                    type: integer
+                                    content: 1

@@ -29,120 +29,123 @@ SystemT:
       name: dout
       type: bit
   inouts: []
-  inners:
-  - SignalI:
-      name: reg
-      type:
-        TypeVector:
-          name: ''
-          base: bit
-          range:
-          - 15
-          - 0
-  systemIs: []
-  connections:
-  - Connection:
-      left:
-        RefName:
-          ref:
-            RefThis: {}
-          name: dout
-      right:
-        RefIndex:
-          ref:
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: reg
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 15
+              - 0
+      systemIs: []
+      connections:
+      - Connection:
+          left:
             RefName:
               ref:
                 RefThis: {}
-              name: reg
-          index:
-            Value:
-              type: integer
-              content: 15
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+              name: dout
+          right:
+            RefIndex:
               ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: rst
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: reg
-                      right:
-                        Value:
-                          type: integer
-                          content: 0
-              'no':
-                Block:
-                  mode: seq
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefIndex:
-                          ref:
+                  name: reg
+              index:
+                Value:
+                  type: integer
+                  content: 15
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: rst
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
                             RefName:
                               ref:
                                 RefThis: {}
                               name: reg
-                          index:
+                          right:
                             Value:
                               type: integer
                               content: 0
-                      right:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: din
-                  - Transmit:
-                      left:
-                        RefRange:
-                          ref:
+                  'no':
+                    Block:
+                      mode: seq
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: reg
+                              index:
+                                Value:
+                                  type: integer
+                                  content: 0
+                          right:
                             RefName:
                               ref:
                                 RefThis: {}
-                              name: reg
-                          range:
-                          - Value:
-                              type: integer
-                              content: 15
-                          - Value:
-                              type: integer
-                              content: 1
-                      right:
-                        RefRange:
-                          ref:
-                            RefName:
+                              name: din
+                      - Transmit:
+                          left:
+                            RefRange:
                               ref:
-                                RefThis: {}
-                              name: reg
-                          range:
-                          - Value:
-                              type: integer
-                              content: 14
-                          - Value:
-                              type: integer
-                              content: 0
-              noifs: []
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: reg
+                              range:
+                              - Value:
+                                  type: integer
+                                  content: 15
+                              - Value:
+                                  type: integer
+                                  content: 1
+                          right:
+                            RefRange:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: reg
+                              range:
+                              - Value:
+                                  type: integer
+                                  content: 14
+                              - Value:
+                                  type: integer
+                                  content: 0
+                  noifs: []

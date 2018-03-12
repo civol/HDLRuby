@@ -1,9 +1,12 @@
+hello_out
+hello_out
+hello_in
 ---
 Type:
   name: bit
 ---
 SystemT:
-  name: adderI::T_
+  name: conditionalsI::T_
   inputs:
   - SignalI:
       name: x
@@ -31,7 +34,7 @@ SystemT:
           name: ''
           base: bit
           range:
-          - 16
+          - 15
           - 0
   inouts: []
   scope:

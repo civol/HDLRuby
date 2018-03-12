@@ -34,47 +34,50 @@ SystemT:
           - 16
           - 0
   inouts: []
-  inners: []
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: change
-          ref:
-            RefName:
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: change
               ref:
-                RefThis: {}
-              name: x
-      - Event:
-          type: change
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: y
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - Transmit:
-              left:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: s
-              right:
-                Binary:
-                  operator: "+"
+                  name: x
+          - Event:
+              type: change
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: y
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - Transmit:
                   left:
                     RefName:
                       ref:
                         RefThis: {}
-                      name: x
+                      name: s
                   right:
-                    RefName:
-                      ref:
-                        RefThis: {}
-                      name: y
+                    Binary:
+                      operator: "+"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: x
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: y

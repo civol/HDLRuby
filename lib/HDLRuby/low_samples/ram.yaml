@@ -31,100 +31,103 @@ SystemT:
           range:
           - 7
           - 0
-  inners:
-  - SignalI:
-      name: content
-      type:
-        TypeVector:
-          name: ''
-          base:
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: content
+          type:
             TypeVector:
               name: ''
-              base: bit
-              range:
-              - 7
-              - 0
-          range:
-          - 65535
-          - 0
-  systemIs: []
-  connections:
-  - Connection:
-      left:
-        RefName:
-          ref:
-            RefThis: {}
-          name: data
-      right:
-        Select:
-          operator: "?"
-          select:
-            RefName:
-              ref:
-                RefThis: {}
-              name: rwb
-          choices:
-          - RefIndex:
-              ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: content
-              index:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: addr
-          - Value:
-              type:
+              base:
                 TypeVector:
                   name: ''
                   base: bit
                   range:
                   - 7
                   - 0
-              content:
-                BitString:
-                  str: zzzzzzzz
-  behaviors:
-  - Behavior:
-      events: []
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
-                Unary:
-                  operator: "~"
-                  child:
+              range:
+              - 65535
+              - 0
+      systemIs: []
+      connections:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefThis: {}
+              name: data
+          right:
+            Select:
+              operator: "?"
+              select:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rwb
+              choices:
+              - RefIndex:
+                  ref:
                     RefName:
                       ref:
                         RefThis: {}
-                      name: rwb
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefIndex:
-                          ref:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: content
-                          index:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: addr
-                      right:
+                      name: content
+                  index:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: addr
+              - Value:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 7
+                      - 0
+                  content:
+                    BitString:
+                      str: zzzzzzzz
+      behaviors:
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    Unary:
+                      operator: "~"
+                      child:
                         RefName:
                           ref:
                             RefThis: {}
-                          name: data
-              'no': 
-              noifs: []
+                          name: rwb
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: content
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: addr
+                          right:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: data
+                  'no': 
+                  noifs: []

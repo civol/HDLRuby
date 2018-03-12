@@ -23,81 +23,61 @@ SystemT:
       type: bit
   outputs: []
   inouts: []
-  inners:
-  - SignalI:
-      name: sig0
-      type: bit
-  - SignalI:
-      name: sig1
-      type: bit
-  - SignalI:
-      name: ":0"
-      type:
-        TypeVector:
-          name: ''
-          base: bit
-          range:
-          - 3
-          - 0
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: sig0
+          type: bit
+      - SignalI:
+          name: sig1
+          type: bit
+      - SignalI:
+          name: ":0"
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 3
+              - 0
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: clk
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: rst
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
                 RefName:
                   ref:
                     RefThis: {}
                   name: rst
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: ":0"
-                      right:
-                        Value:
-                          type: integer
-                          content: 0
-              'no':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: ":0"
-                      right:
-                        Binary:
-                          operator: "+"
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: rst
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
                           left:
                             RefName:
                               ref:
@@ -106,111 +86,182 @@ SystemT:
                           right:
                             Value:
                               type: integer
+                              content: 0
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: ":0"
+                          right:
+                            Binary:
+                              operator: "+"
+                              left:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: ":0"
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 1
+                  noifs: []
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    Binary:
+                      operator: ">="
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: ":0"
+                      right:
+                        Value:
+                          type: integer
+                          content: 10
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sig0
+                          right:
+                            Value:
+                              type: integer
                               content: 1
-              noifs: []
-  - Behavior:
-      events: []
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
-                Binary:
-                  operator: ">="
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sig0
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
+                  noifs: []
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rst
+          block:
+            Block:
+              mode: par
+              inners:
+              - SignalI:
+                  name: ":1"
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 4
+                      - 0
+              statements:
+              - Transmit:
                   left:
                     RefName:
                       ref:
                         RefThis: {}
-                      name: ":0"
+                      name: sig1
                   right:
                     Value:
                       type: integer
-                      content: 10
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: sig0
-                      right:
-                        Value:
-                          type: integer
-                          content: 1
-              'no':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: sig0
-                      right:
-                        Value:
-                          type: integer
-                          content: 0
-              noifs: []
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: clk
-      - Event:
-          type: posedge
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: rst
-      block:
-        Block:
-          mode: par
-          inners:
-          - SignalI:
-              name: ":1"
-              type:
-                TypeVector:
-                  name: ''
-                  base: bit
-                  range:
-                  - 4
-                  - 0
-          statements:
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig1
-              right:
-                Value:
-                  type: integer
-                  content: 0
-          - If:
-              condition:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: __universe__rst__
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
+                      content: 0
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: __universe__rst__
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: ":1"
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
+                  'no': 
+                  noifs:
+                  - - Binary:
+                        operator: "<"
+                        left:
+                          RefName:
+                            ref:
+                              RefThis: {}
+                            name: ":1"
+                        right:
+                          Value:
+                            type: integer
+                            content: 20
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: ":1"
+                            right:
+                              Binary:
+                                operator: "+"
+                                left:
+                                  RefName:
+                                    ref:
+                                      RefThis: {}
+                                    name: ":1"
+                                right:
+                                  Value:
+                                    type: integer
+                                    content: 1
+              - If:
+                  condition:
+                    Binary:
+                      operator: ">="
                       left:
                         RefName:
                           ref:
@@ -219,69 +270,21 @@ SystemT:
                       right:
                         Value:
                           type: integer
-                          content: 0
-              'no': 
-              noifs:
-              - - Binary:
-                    operator: "<"
-                    left:
-                      RefName:
-                        ref:
-                          RefThis: {}
-                        name: ":1"
-                    right:
-                      Value:
-                        type: integer
-                        content: 20
-                - Block:
-                    mode: par
-                    inners: []
-                    statements:
-                    - Transmit:
-                        left:
-                          RefName:
-                            ref:
-                              RefThis: {}
-                            name: ":1"
-                        right:
-                          Binary:
-                            operator: "+"
-                            left:
-                              RefName:
-                                ref:
-                                  RefThis: {}
-                                name: ":1"
-                            right:
-                              Value:
-                                type: integer
-                                content: 1
-          - If:
-              condition:
-                Binary:
-                  operator: ">="
-                  left:
-                    RefName:
-                      ref:
-                        RefThis: {}
-                      name: ":1"
-                  right:
-                    Value:
-                      type: integer
-                      content: 20
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: sig1
-                      right:
-                        Value:
-                          type: integer
-                          content: 1
-              'no': 
-              noifs: []
+                          content: 20
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sig1
+                          right:
+                            Value:
+                              type: integer
+                              content: 1
+                  'no': 
+                  noifs: []

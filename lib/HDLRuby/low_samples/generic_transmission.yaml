@@ -32,52 +32,55 @@ SystemT:
       name: result
       type: bit
   inouts: []
-  inners: []
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - Transmit:
-              left:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: result
-              right:
-                Select:
-                  operator: "?"
-                  select:
-                    Binary:
-                      operator: "=="
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: data
-                      right:
-                        Value:
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: result
+                  right:
+                    Select:
+                      operator: "?"
+                      select:
+                        Binary:
+                          operator: "=="
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: data
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
+                      choices:
+                      - Value:
                           type: integer
                           content: 0
-                  choices:
-                  - Value:
-                      type: integer
-                      content: 0
-                  - Value:
-                      type: integer
-                      content: 1
+                      - Value:
+                          type: integer
+                          content: 1
 ---
 SystemT:
   name: sysA::T_
@@ -99,60 +102,63 @@ SystemT:
           - 7
           - 0
   inouts: []
-  inners: []
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - Transmit:
-              left:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: data
-              right:
-                Select:
-                  operator: "?"
-                  select:
-                    Binary:
-                      operator: "=="
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: rst
-                      right:
-                        Value:
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: data
+                  right:
+                    Select:
+                      operator: "?"
+                      select:
+                        Binary:
+                          operator: "=="
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: rst
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
+                      choices:
+                      - Value:
                           type: integer
                           content: 0
-                  choices:
-                  - Value:
-                      type: integer
-                      content: 0
-                  - Binary:
-                      operator: "+"
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: data
-                      right:
-                        Value:
-                          type: integer
-                          content: 1
+                      - Binary:
+                          operator: "+"
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: data
+                          right:
+                            Value:
+                              type: integer
+                              content: 1
 ---
 SystemT:
   name: serialABI::T_
@@ -168,132 +174,112 @@ SystemT:
       name: result
       type: bit
   inouts: []
-  inners:
-  - SignalI:
-      name: bufA
-      type:
-        TypeVector:
-          name: ''
-          base: bit
-          range:
-          - 7
-          - 0
-  - SignalI:
-      name: scntA
-      type:
-        TypeVector:
-          name: ''
-          base: bit
-          range:
-          - 2
-          - 0
-  - SignalI:
-      name: bufB
-      type:
-        TypeVector:
-          name: ''
-          base: bit
-          range:
-          - 7
-          - 0
-  - SignalI:
-      name: scntB
-      type:
-        TypeVector:
-          name: ''
-          base: bit
-          range:
-          - 2
-          - 0
-  - SignalI:
-      name: sdat
-      type: bit
-  systemIs:
-  - SystemI:
-      name: sysA
-      systemT: sysA::T_
-  - SystemI:
-      name: sysB
-      systemT: sysB::T_
-  connections:
-  - Connection:
-      left:
-        RefName:
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: clk
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: bufA
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 7
+              - 0
+      - SignalI:
+          name: scntA
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 2
+              - 0
+      - SignalI:
+          name: bufB
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 7
+              - 0
+      - SignalI:
+          name: scntB
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 2
+              - 0
+      - SignalI:
+          name: sdat
+          type: bit
+      systemIs:
+      - SystemI:
           name: sysA
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: clk
-  - Connection:
-      left:
-        RefName:
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: clk
+          systemT: sysA::T_
+      - SystemI:
           name: sysB
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: clk
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
+          systemT: sysB::T_
+      connections:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+              name: sysA
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
+      - Connection:
+          left:
+            RefName:
+              ref:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: rst
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: scntA
-                      right:
-                        Value:
-                          type: integer
-                          content: 0
-              'no':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: scntA
-                      right:
-                        Binary:
-                          operator: "+"
+                  name: clk
+              name: sysB
+          right:
+            RefName:
+              ref:
+                RefThis: {}
+              name: clk
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: rst
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
                           left:
                             RefName:
                               ref:
@@ -302,75 +288,75 @@ SystemT:
                           right:
                             Value:
                               type: integer
-                              content: 1
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: sdat
-                      right:
-                        RefIndex:
-                          ref:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: bufA
-                          index:
+                              content: 0
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
                             RefName:
                               ref:
                                 RefThis: {}
                               name: scntA
-              noifs: []
-  - Behavior:
-      events:
-      - Event:
-          type: negedge
-          ref:
-            RefName:
+                          right:
+                            Binary:
+                              operator: "+"
+                              left:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: scntA
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 1
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sdat
+                          right:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: bufA
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: scntA
+                  noifs: []
+      - Behavior:
+          events:
+          - Event:
+              type: negedge
               ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: rst
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: scntB
-                      right:
-                        Value:
-                          type: integer
-                          content: 0
-              'no':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: scntB
-                      right:
-                        Binary:
-                          operator: "+"
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: rst
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
                           left:
                             RefName:
                               ref:
@@ -379,23 +365,46 @@ SystemT:
                           right:
                             Value:
                               type: integer
-                              content: 1
-                  - Transmit:
-                      left:
-                        RefIndex:
-                          ref:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: bufB
-                          index:
+                              content: 0
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
                             RefName:
                               ref:
                                 RefThis: {}
                               name: scntB
-                      right:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: sdat
-              noifs: []
+                          right:
+                            Binary:
+                              operator: "+"
+                              left:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: scntB
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 1
+                      - Transmit:
+                          left:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: bufB
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: scntB
+                          right:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: sdat
+                  noifs: []

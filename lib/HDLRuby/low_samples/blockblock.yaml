@@ -19,27 +19,30 @@ SystemT:
       name: o1
       type: bit
   inouts: []
-  inners:
-  - SignalI:
-      name: s0
-      type: bit
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events: []
-      block:
-        Block:
-          mode: par
-          inners:
-          - SignalI:
-              name: s0
-              type: bit
-          statements:
-          - Block:
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: s0
+          type: bit
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events: []
+          block:
+            Block:
               mode: par
               inners:
               - SignalI:
                   name: s0
                   type: bit
-              statements: []
+              statements:
+              - Block:
+                  mode: par
+                  inners:
+                  - SignalI:
+                      name: s0
+                      type: bit
+                  statements: []

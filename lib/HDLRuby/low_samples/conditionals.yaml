@@ -1,0 +1,99 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: conditionalsI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: y
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  outputs:
+  - SignalI:
+      name: s
+      type: bit
+  inouts: []
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    Binary:
+                      operator: "<="
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: x
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: y
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: s
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: s
+                          right:
+                            Value:
+                              type: integer
+                              content: 1
+                  noifs: []

@@ -1,6 +1,16 @@
 ---
 Type:
+  name: signed
+---
+Type:
   name: bit
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
 ---
 SystemT:
   name: memH::T_
@@ -31,92 +41,95 @@ SystemT:
           range:
           - 7
           - 0
-  inners:
-  - SignalI:
-      name: content
-      type:
-        TypeVector:
-          name: ''
-          base:
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: content
+          type:
             TypeVector:
               name: ''
-              base: bit
+              base:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 7
+                  - 0
               range:
-              - 7
+              - 65535
               - 0
-          range:
-          - 65535
-          - 0
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: rwb
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: data
-                      right:
-                        RefIndex:
-                          ref:
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: rwb
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
                             RefName:
                               ref:
                                 RefThis: {}
-                              name: content
-                          index:
+                              name: data
+                          right:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: content
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: addr
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: content
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: addr
+                          right:
                             RefName:
                               ref:
                                 RefThis: {}
-                              name: addr
-              'no':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefIndex:
-                          ref:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: content
-                          index:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: addr
-                      right:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: data
-              noifs: []
+                              name: data
+                  noifs: []
 ---
 SystemT:
   name: memL::T_
@@ -147,92 +160,95 @@ SystemT:
           range:
           - 7
           - 0
-  inners:
-  - SignalI:
-      name: content
-      type:
-        TypeVector:
-          name: ''
-          base:
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: content
+          type:
             TypeVector:
               name: ''
-              base: bit
+              base:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 7
+                  - 0
               range:
-              - 7
+              - 65535
               - 0
-          range:
-          - 65535
-          - 0
-  systemIs: []
-  connections: []
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
               ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - If:
-              condition:
                 RefName:
                   ref:
                     RefThis: {}
-                  name: rwb
-              'yes':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: data
-                      right:
-                        RefIndex:
-                          ref:
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: rwb
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
                             RefName:
                               ref:
                                 RefThis: {}
-                              name: content
-                          index:
+                              name: data
+                          right:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: content
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: addr
+                  'no':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefIndex:
+                              ref:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: content
+                              index:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: addr
+                          right:
                             RefName:
                               ref:
                                 RefThis: {}
-                              name: addr
-              'no':
-                Block:
-                  mode: par
-                  inners: []
-                  statements:
-                  - Transmit:
-                      left:
-                        RefIndex:
-                          ref:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: content
-                          index:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: addr
-                      right:
-                        RefName:
-                          ref:
-                            RefThis: {}
-                          name: data
-              noifs: []
+                              name: data
+                  noifs: []
 ---
 SystemT:
   name: mem16_16_longI::T_
@@ -263,143 +279,146 @@ SystemT:
           range:
           - 15
           - 0
-  inners: []
-  systemIs:
-  - SystemI:
-      name: memL
-      systemT: memL::T_
-  - SystemI:
-      name: memH
-      systemT: memH::T_
-  connections:
-  - Connection:
-      left:
-        RefName:
-          ref:
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs:
+      - SystemI:
+          name: memL
+          systemT: memL::T_
+      - SystemI:
+          name: memH
+          systemT: memH::T_
+      connections:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+              name: memL
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: clk
-          name: memL
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: clk
-  - Connection:
-      left:
-        RefName:
-          ref:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rwb
+              name: memL
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: rwb
-          name: memL
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: rwb
-  - Connection:
-      left:
-        RefName:
-          ref:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: addr
+              name: memL
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: addr
-          name: memL
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: addr
-  - Connection:
-      left:
-        RefName:
-          ref:
+      - Connection:
+          left:
             RefName:
               ref:
-                RefThis: {}
-              name: data
-          name: memL
-      right:
-        RefRange:
-          ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: data
+              name: memL
+          right:
+            RefRange:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: data
+              range:
+              - Value:
+                  type: integer
+                  content: 7
+              - Value:
+                  type: integer
+                  content: 0
+      - Connection:
+          left:
             RefName:
               ref:
-                RefThis: {}
-              name: data
-          range:
-          - Value:
-              type: integer
-              content: 7
-          - Value:
-              type: integer
-              content: 0
-  - Connection:
-      left:
-        RefName:
-          ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+              name: memH
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: clk
-          name: memH
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: clk
-  - Connection:
-      left:
-        RefName:
-          ref:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: rwb
+              name: memH
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: rwb
-          name: memH
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: rwb
-  - Connection:
-      left:
-        RefName:
-          ref:
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: addr
+              name: memH
+          right:
             RefName:
               ref:
                 RefThis: {}
               name: addr
-          name: memH
-      right:
-        RefName:
-          ref:
-            RefThis: {}
-          name: addr
-  - Connection:
-      left:
-        RefName:
-          ref:
+      - Connection:
+          left:
             RefName:
               ref:
-                RefThis: {}
-              name: data
-          name: memH
-      right:
-        RefRange:
-          ref:
-            RefName:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: data
+              name: memH
+          right:
+            RefRange:
               ref:
-                RefThis: {}
-              name: data
-          range:
-          - Value:
-              type: integer
-              content: 15
-          - Value:
-              type: integer
-              content: 8
-  behaviors: []
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: data
+              range:
+              - Value:
+                  type: integer
+                  content: 15
+              - Value:
+                  type: integer
+                  content: 8
+      behaviors: []

@@ -40,101 +40,104 @@ SystemT:
           - 7
           - 0
   inouts: []
-  inners: []
-  systemIs: []
-  connections:
-  - Connection:
-      left:
-        RefName:
-          ref:
-            RefThis: {}
-          name: qb
-      right:
-        Unary:
-          operator: "~"
-          child:
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections:
+      - Connection:
+          left:
             RefName:
               ref:
                 RefThis: {}
-              name: q
-  behaviors:
-  - Behavior:
-      events:
-      - Event:
-          type: posedge
-          ref:
-            RefName:
-              ref:
-                RefThis: {}
-              name: clk
-      block:
-        Block:
-          mode: par
-          inners: []
-          statements:
-          - Transmit:
-              left:
+              name: qb
+          right:
+            Unary:
+              operator: "~"
+              child:
                 RefName:
                   ref:
                     RefThis: {}
                   name: q
-              right:
-                Binary:
-                  operator: "&"
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - Transmit:
                   left:
                     RefName:
                       ref:
                         RefThis: {}
-                      name: d
+                      name: q
                   right:
-                    Concat:
-                      expressions:
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
-                      - Unary:
-                          operator: "~"
-                          child:
-                            RefName:
-                              ref:
-                                RefThis: {}
-                              name: rst
+                    Binary:
+                      operator: "&"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: d
+                      right:
+                        Concat:
+                          expressions:
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst
+                          - Unary:
+                              operator: "~"
+                              child:
+                                RefName:
+                                  ref:
+                                    RefThis: {}
+                                  name: rst

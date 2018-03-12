@@ -16,487 +16,490 @@ SystemT:
       name: sig
       type: bit
   inouts: []
-  inners: []
-  systemIs: []
-  connections: []
-  behaviors:
-  - TimeBehavior:
-      events: []
-      block:
-        TimeBlock:
-          mode: par
-          inners: []
-          statements:
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1010'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1001'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1100'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: unsigned
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1010'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: unsigned
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1001'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: unsigned
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1100'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: signed
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1010'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: signed
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1001'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: signed
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: '1100'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 11
-                      - 0
-                  content:
-                    BitString:
-                      str: '000110010011'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 11
-                      - 0
-                  content:
-                    BitString:
-                      str: '000110010011'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 11
-                      - 0
-                  content:
-                    BitString:
-                      str: '1110011011'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 10
-                      - 0
-                  content:
-                    BitString:
-                      str: '1110011011'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 15
-                      - 0
-                  content:
-                    BitString:
-                      str: '0000111100101110'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 15
-                      - 0
-                  content:
-                    BitString:
-                      str: '0000111100101110'
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 3
-                      - 0
-                  content:
-                    BitString:
-                      str: 1zzx
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 4
-                      - 0
-                  content: 12
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 4
-                      - 0
-                  content: 0
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 6
-                      - 0
-                  content: 12
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 3
-                      - 0
-                  content: 3
-          - TimeWait:
-              delay:
-                Delay:
-                  value: 1
-                  unit: us
-          - Transmit:
-              left:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: sig
-              right:
-                Value:
-                  type:
-                    TypeVector:
-                      name: ''
-                      base: bit
-                      range:
-                      - 3
-                      - 0
-                  content: 0
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - TimeBehavior:
+          events: []
+          block:
+            TimeBlock:
+              mode: par
+              inners: []
+              statements:
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1010'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1001'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1100'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: unsigned
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1010'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: unsigned
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1001'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: unsigned
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1100'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: signed
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1010'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: signed
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1001'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: signed
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1100'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 11
+                          - 0
+                      content:
+                        BitString:
+                          str: '000110010011'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 11
+                          - 0
+                      content:
+                        BitString:
+                          str: '000110010011'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 11
+                          - 0
+                      content:
+                        BitString:
+                          str: '1110011011'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 10
+                          - 0
+                      content:
+                        BitString:
+                          str: '1110011011'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 15
+                          - 0
+                      content:
+                        BitString:
+                          str: '0000111100101110'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 15
+                          - 0
+                      content:
+                        BitString:
+                          str: '0000111100101110'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: 1zzx
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 4
+                          - 0
+                      content: 12
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 4
+                          - 0
+                      content: 0
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 6
+                          - 0
+                      content: 12
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content: 3
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content: 0

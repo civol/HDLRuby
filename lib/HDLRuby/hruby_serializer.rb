@@ -82,7 +82,8 @@ module HDLRuby
             return value
         elsif  value.is_a?(Range)
             # Convert to an array made of the converted first and last.
-            return [value_to_basic(value.first),value_to_basic(value.last)]
+            return [value_to_basic(value.first,types),
+                    value_to_basic(value.last,types)]
         elsif value.is_a?(Array) then
             # Arrays are kept as they are, but their content is converted
             # to basic.
@@ -180,7 +181,7 @@ module HDLRuby
                 end
                 # Build the object with the processed arguments.
                 # object = klass.new(*singles.map{|k,v| basic_to_value(v) })
-                puts "klass=#{klass}, singles=#{singles}"
+                # puts "klass=#{klass}, singles=#{singles}"
                 object = klass.new(*singles)
                 # Adds the multiple instances.
                 multiples.each do |k,v|
@@ -242,6 +243,7 @@ module HDLRuby
                 # without converting it.
                 # print "Adding type with name=#{self.name}\n"
                 types[self.name] = self
+                # puts "types=#{types}"
                 # And return the name.
                 return self.name.to_s
             end

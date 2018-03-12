@@ -46,7 +46,10 @@ SystemT:
               - 15
               - 0
   inouts: []
-  inners: []
-  systemIs: []
-  connections: []
-  behaviors: []
+  scope:
+    Scope:
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors: []
