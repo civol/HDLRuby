@@ -879,6 +879,9 @@ module HDLRuby::High
         # # The public namespace
         # attr_reader :public_namespace
 
+        # The return value when building the scope.
+        attr_reader :return_value
+
         ##
         # Creates a new scope.
         #
@@ -1127,7 +1130,7 @@ module HDLRuby::High
             @private_namespace ||= Namespace.new(self)
             # Build the scope.
             High.space_push(@private_namespace)
-            High.top_user.instance_eval(&ruby_block)
+            @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
 
@@ -1148,7 +1151,7 @@ module HDLRuby::High
             # @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
             instance_proc = base.parent.instance_proc if base.parent.is_a?(SystemT)
-            High.top_user.instance_exec(*args,&instance_proc) if instance_proc
+            @return_value = High.top_user.instance_exec(*args,&instance_proc) if instance_proc
             High.space_pop
         end
 
@@ -1269,7 +1272,12 @@ module HDLRuby::High
 
         # Declares a sub scope +ruby_block+.
         def sub(&ruby_block)
-            self.add_scope(Scope.new(&ruby_block))
+            # Creates the new scope.
+            scope = Scope.new(&ruby_block)
+            # Add it
+            self.add_scope(scope)
+            # Use its return value
+            return scope.return_value
         end
 
         # Declares a high-level behavior activated on a list of +events+, and
@@ -3081,6 +3089,9 @@ module HDLRuby::High
         # The private namespace
         attr_reader :private_namespace
 
+        # The return value when building the scope.
+        attr_reader :return_value
+
         # Build the block by executing +ruby_block+.
         def build(&ruby_block)
             # # High-level blocks can include inner signals.
@@ -3090,7 +3101,7 @@ module HDLRuby::High
             # Build the block.
             # High.space_push(self)
             High.space_push(@private_namespace)
-            High.top_user.instance_eval(&ruby_block)
+            @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
 
@@ -3171,9 +3182,12 @@ module HDLRuby::High
         # Creates and adds a new block executed in +mode+ built by
         # executing +ruby_block+.
         def add_block(mode = nil,&ruby_block)
-            # Creates and adds the block.
+            # Creates the block.
             block = High.make_block(mode,&ruby_block)
+            # Adds it as a statement.
             self.add_statement(block)
+            # Use its return value.
+            return block.return_value
         end
 
         # Creates a new parallel block built from +ruby_block+.
