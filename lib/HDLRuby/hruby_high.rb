@@ -314,7 +314,7 @@ module HDLRuby::High
         # The proc +ruby_block+ is executed when instantiating the system.
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
-            super(name,Scope.new(&ruby_block))
+            super(name,Scope.new)
 
             # # Initialize the set of grouped system instances.
             # @groupIs = {}
@@ -546,7 +546,7 @@ module HDLRuby::High
             @to_includes.each { |system| eigen.scope.include(system) }
 
             # Fills the scope of the eigen class.
-            eigen.scope.fill_high(self.scope,*args)
+            eigen.scope.build_top(self.scope,*args)
             # puts "eigen scope=#{eigen.scope}"
             
             # Fill the public namespace
@@ -882,10 +882,16 @@ module HDLRuby::High
         ##
         # Creates a new scope.
         #
-        # The proc +ruby_block+ is executed when instantiating the scope.
+        # The proc +ruby_block+ is executed for building the scope.
+        # If no block is provided, the scope is the top of a system and
+        # is filled by the instantiation procedure of the system.
         def initialize(&ruby_block)
             # Initialize the scope structure
             super()
+
+            # Builds the scope if a ruby block is provided
+            # (which means the scope is not the top of a system).
+            self.build(&ruby_block) if block_given?
 
             # Initialize the set of grouped system instances.
             @groupIs = {}
@@ -1111,9 +1117,26 @@ module HDLRuby::High
         #     @owner = owner
         # end
 
-        # Fills the scope using +base+ as model scope with possible arguments
+
+        # Build the scope by executing +ruby_block+.
+        #
+        # NOTE: used when the scope is not the top of a system.
+        def build(&ruby_block)
+            # High-level scopes can include inner signals.
+            # And therefore require a namespace.
+            @private_namespace ||= Namespace.new(self)
+            # Build the scope.
+            High.space_push(@private_namespace)
+            High.top_user.instance_eval(&ruby_block)
+            High.space_pop
+        end
+
+
+        # Builds the scope using +base+ as model scope with possible arguments
         # +args+.
-        def fill_high(base,*args)
+        #
+        # NOTE: Used by the instantiation procedure of a system.
+        def build_top(base,*args)
             # # Extends eigen with the base scope.
             # eigen.extend(self)
             High.space_push(@private_namespace)
