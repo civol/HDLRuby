@@ -1246,7 +1246,7 @@ module HDLRuby::High
 
         # Declares a sub scope +ruby_block+.
         def sub(&ruby_block)
-            self.add_scope(&ruby_block)
+            self.add_scope(Scope.new(&ruby_block))
         end
 
         # Declares a high-level behavior activated on a list of +events+, and

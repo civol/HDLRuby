@@ -323,7 +323,7 @@ module HDLRuby::Low
             # Set the parent of the scope
             scope.parent = self
             # Add the instance
-            @scopes.add(scope)
+            @scopes << scope
         end
 
         # Iterates over the sub scopes.
