@@ -2,13 +2,13 @@ require 'HDLRuby'
 
 configure_high
 
-# System with blocks in blocks.
-system :blockblock do
+# System with scopes within scopes.
+system :scopescope do
     input  :i0,:i1
     output :o0,:o1
     inner  :s0
 
-    behavior do
+    sub do
         inner :s0
         sub do
             inner :s0
@@ -17,10 +17,10 @@ system :blockblock do
 end
 
 # Instantiate it for checking.
-blockblock :blockblockI
+scopescope :scopescopeI
 
 # Generate the low level representation.
-low = blockblockI.to_low
+low = scopescopeI.to_low
 
 # Displays it
 puts low.to_yaml
