@@ -1,12 +1,19 @@
-hello_out
-hello_out
-hello_in
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
 ---
 Type:
   name: bit
 ---
 SystemT:
-  name: conditionalsI::T_
+  name: functionsI::T_
   inputs:
   - SignalI:
       name: x
@@ -26,9 +33,45 @@ SystemT:
           range:
           - 15
           - 0
+  - SignalI:
+      name: z
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
   outputs:
   - SignalI:
-      name: s
+      name: a
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: b
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: c
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: d
       type:
         TypeVector:
           name: ''
@@ -39,7 +82,44 @@ SystemT:
   inouts: []
   scope:
     Scope:
-      scopes: []
+      scopes:
+      - Scope:
+          scopes: []
+          inners:
+          - SignalI:
+              name: nothing
+              type: bit
+          systemIs: []
+          connections: []
+          behaviors: []
+      - Scope:
+          scopes: []
+          inners:
+          - SignalI:
+              name: nothing_really
+              type: bit
+          systemIs: []
+          connections:
+          - Connection:
+              left:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: d
+              right:
+                Binary:
+                  operator: "-"
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: x
+                  right:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: y
+          behaviors: []
       inners: []
       systemIs: []
       connections:
@@ -48,7 +128,7 @@ SystemT:
             RefName:
               ref:
                 RefThis: {}
-              name: s
+              name: a
           right:
             Binary:
               operator: "+"
@@ -62,4 +142,43 @@ SystemT:
                   ref:
                     RefThis: {}
                   name: y
-      behaviors: []
+      - Connection:
+          left:
+            RefName:
+              ref:
+                RefThis: {}
+              name: c
+          right:
+            Value:
+              type: integer
+              content: 1
+      behaviors:
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              inners:
+              - SignalI:
+                  name: something
+                  type: bit
+              statements:
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: b
+                  right:
+                    Binary:
+                      operator: "-"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: x
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: y

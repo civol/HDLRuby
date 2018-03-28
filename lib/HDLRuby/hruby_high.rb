@@ -852,15 +852,6 @@ module HDLRuby::High
         end
     end
 
-    # Methods for declaring system types.
-
-    # Declares a high-level system type named +name+, with +includes+ mixins
-    # hardware types and using +ruby_block+ for instantiating.
-    def system(name = :"", *includes, &ruby_block)
-        # print "system ruby_block=#{ruby_block}\n"
-        # Creates the resulting system.
-        return SystemT.new(name,*includes,&ruby_block)
-    end
 
 
     ## 
@@ -1274,8 +1265,11 @@ module HDLRuby::High
         def sub(&ruby_block)
             # Creates the new scope.
             scope = Scope.new(&ruby_block)
+            # puts "new scope=#{scope}"
             # Add it
             self.add_scope(scope)
+            # puts "self=#{self}"
+            # puts "self scopes=#{self.each_scope.to_a.join(",")}"
             # Use its return value
             return scope.return_value
         end
@@ -1430,8 +1424,10 @@ module HDLRuby::High
         #
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(scopeLow)
+            # Adds the inner scopes.
+            self.each_scope { |scope| scopeLow.add_scope(scope.to_low) }
             # Adds the inner signals.
-            self.each_inner { |inner|  scopeLow.add_inner(inner.to_low) }
+            self.each_inner { |inner| scopeLow.add_inner(inner.to_low) }
             # Adds the instances.
             # Single ones.
             self.each_systemI { |systemI|
@@ -2043,6 +2039,8 @@ module HDLRuby::High
 
 
 
+    ## Methods for declaring system types and functions.
+
     # The type constructors.
 
     # Creates an unnamed structure type from a +content+.
@@ -2067,6 +2065,38 @@ module HDLRuby::High
         # Name it.
         type.name = name
         return type
+    end
+
+    # Methods for declaring systems
+
+    # Declares a high-level system type named +name+, with +includes+ mixins
+    # hardware types and using +ruby_block+ for instantiating.
+    def system(name = :"", *includes, &ruby_block)
+        # print "system ruby_block=#{ruby_block}\n"
+        # Creates the resulting system.
+        return SystemT.new(name,*includes,&ruby_block)
+    end
+
+    # Methods for declaring function
+
+    # Declares a function named +name+ using +ruby_block+ as body.
+    #
+    # NOTE: a function is a short-cut for a method that creates a scope.
+    def function(name, &ruby_block)
+        if HDLRuby::High.in_systemT? then
+            define_singleton_method(name.to_sym) do |*args|
+                sub do
+                    HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
+                    # ruby_block.call(*args)
+                end
+            end
+        else
+            define_method(name.to_sym) do |*args|
+                sub do
+                    HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
+                end
+            end
+        end
     end
 
 
@@ -3628,6 +3658,11 @@ module HDLRuby::High
         return to_enum(:space_each) unless ruby_block
         # A block? Apply it on each system instance.
         Namespaces.each(&ruby_block)
+    end
+
+    # Tells if within a system type.
+    def self.in_systemT?
+        return Namespaces.size > 1
     end
 
     # Gets the enclosing system type if any.
