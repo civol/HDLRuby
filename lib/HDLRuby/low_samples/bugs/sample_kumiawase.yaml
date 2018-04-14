@@ -1,0 +1,332 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: led7segI::T_
+  inputs:
+  - SignalI:
+      name: in0
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 3
+          - 0
+  outputs:
+  - SignalI:
+      name: out
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 6
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: out
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 6
+              - 0
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - Case:
+                  value:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: in0
+                  whens:
+                  - - Value:
+                        type: integer
+                        content: 0
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '0111111'
+                  - - Value:
+                        type: integer
+                        content: 1
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '0000110'
+                  - - Value:
+                        type: integer
+                        content: 2
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1011011'
+                  - - Value:
+                        type: integer
+                        content: 3
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1001111'
+                  - - Value:
+                        type: integer
+                        content: 4
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1100110'
+                  - - Value:
+                        type: integer
+                        content: 5
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1111101'
+                  - - Value:
+                        type: integer
+                        content: 6
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1111101'
+                  - - Value:
+                        type: integer
+                        content: 7
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '0000111'
+                  - - Value:
+                        type: integer
+                        content: 8
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1111111'
+                  - - Value:
+                        type: integer
+                        content: 9
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: out
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1100111'
+                  default:
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: out
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
