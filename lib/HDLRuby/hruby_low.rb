@@ -1728,8 +1728,9 @@ module HDLRuby::Low
         attr_reader :default
 
         # Creates a new case statement whose excution flow is decided from
-        # +value+.
-        def initialize(value)
+        # +value+ with a possible cases given in +whens+ and +default
+        # + (can be set later)
+        def initialize(value, default = nil, whens = [])
             # Check and set the value.
             unless value.is_a?(Expression)
                 raise "Invalid class for a value: #{value.class}"
@@ -1737,21 +1738,35 @@ module HDLRuby::Low
             @value = value
             # And set its parent.
             value.parent = self
-            # Initialize the match cases.
-            @whens = []
+            # Checks and set the default case if any.
+            self.default = default if default
+            # Initialize the match cases, and check them.
+            @whens = whens
+            # puts "whens=#{whens}"
+            @whens.each do |match,statement|
+                # Checks the match.
+                unless match.is_a?(Expression)
+                    raise "Invalid class for a case match: #{match.class}"
+                end
+                # Checks statement.
+                unless statement.is_a?(Statement)
+                    raise "Invalid class for a statement: #{statement.class}"
+                end
+            end
         end
 
         # Adds a possible +match+ for the case's value that lead to the 
         # execution of +statement+.
         def add_when(match,statement)
-            # Checks and sets the match.
+            # Checks the match.
             unless match.is_a?(Expression)
                 raise "Invalid class for a case match: #{match.class}"
             end
-            # Checks and sets the statement.
+            # Checks statement.
             unless statement.is_a?(Statement)
                 raise "Invalid class for a statement: #{statement.class}"
             end
+            # Add the case.
             @whens << [match,statement]
             # And set their parents.
             match.parent = statement.parent = self

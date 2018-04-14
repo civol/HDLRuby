@@ -1,0 +1,444 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: saikoroI::T_
+  inputs:
+  - SignalI:
+      name: ck
+      type: bit
+  - SignalI:
+      name: reset
+      type: bit
+  - SignalI:
+      name: enable
+      type: bit
+  outputs:
+  - SignalI:
+      name: lamp
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 6
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      scopes: []
+      inners:
+      - SignalI:
+          name: cnt
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 2
+              - 0
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: ck
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: reset
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - If:
+                  condition:
+                    Binary:
+                      operator: "=="
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: reset
+                      right:
+                        Value:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 0
+                              - 0
+                          content:
+                            BitString:
+                              str: '1'
+                  'yes':
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: cnt
+                          right:
+                            Value:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 2
+                                  - 0
+                              content:
+                                BitString:
+                                  str: '0001'
+                  'no': 
+                  noifs:
+                  - - Binary:
+                        operator: "=="
+                        left:
+                          RefName:
+                            ref:
+                              RefThis: {}
+                            name: enable
+                        right:
+                          Value:
+                            type:
+                              TypeVector:
+                                name: ''
+                                base: bit
+                                range:
+                                - 0
+                                - 0
+                            content:
+                              BitString:
+                                str: '1'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - If:
+                            condition:
+                              Binary:
+                                operator: "<="
+                                left:
+                                  RefName:
+                                    ref:
+                                      RefThis: {}
+                                    name: cnt
+                                right:
+                                  Value:
+                                    type:
+                                      TypeVector:
+                                        name: ''
+                                        base: bit
+                                        range:
+                                        - 2
+                                        - 0
+                                    content:
+                                      BitString:
+                                        str: '0110'
+                            'yes':
+                              Block:
+                                mode: par
+                                inners: []
+                                statements:
+                                - Transmit:
+                                    left:
+                                      RefName:
+                                        ref:
+                                          RefThis: {}
+                                        name: cnt
+                                    right:
+                                      Value:
+                                        type:
+                                          TypeVector:
+                                            name: ''
+                                            base: bit
+                                            range:
+                                            - 2
+                                            - 0
+                                        content:
+                                          BitString:
+                                            str: '0001'
+                            'no':
+                              Block:
+                                mode: par
+                                inners: []
+                                statements:
+                                - Transmit:
+                                    left:
+                                      RefName:
+                                        ref:
+                                          RefThis: {}
+                                        name: cnt
+                                    right:
+                                      Binary:
+                                        operator: "+"
+                                        left:
+                                          RefName:
+                                            ref:
+                                              RefThis: {}
+                                            name: cnt
+                                        right:
+                                          Value:
+                                            type:
+                                              TypeVector:
+                                                name: ''
+                                                base: bit
+                                                range:
+                                                - 2
+                                                - 0
+                                            content:
+                                              BitString:
+                                                str: '0001'
+                            noifs: []
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              inners: []
+              statements:
+              - Case:
+                  value:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: cnt
+                  whens:
+                  - - Value:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: bit
+                            range:
+                            - 2
+                            - 0
+                        content:
+                          BitString:
+                            str: '0001'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: lamp
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '0001000'
+                  - - Value:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: bit
+                            range:
+                            - 2
+                            - 0
+                        content:
+                          BitString:
+                            str: '0010'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: lamp
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1000001'
+                  - - Value:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: bit
+                            range:
+                            - 2
+                            - 0
+                        content:
+                          BitString:
+                            str: '0011'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: lamp
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '0011100'
+                  - - Value:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: bit
+                            range:
+                            - 2
+                            - 0
+                        content:
+                          BitString:
+                            str: '0100'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: lamp
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1010101'
+                  - - Value:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: bit
+                            range:
+                            - 2
+                            - 0
+                        content:
+                          BitString:
+                            str: '0101'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: lamp
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1011101'
+                  - - Value:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: bit
+                            range:
+                            - 2
+                            - 0
+                        content:
+                          BitString:
+                            str: '0110'
+                    - Block:
+                        mode: par
+                        inners: []
+                        statements:
+                        - Transmit:
+                            left:
+                              RefName:
+                                ref:
+                                  RefThis: {}
+                                name: lamp
+                            right:
+                              Value:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 6
+                                    - 0
+                                content:
+                                  BitString:
+                                    str: '1110111'
+                  default:
+                    Block:
+                      mode: par
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: lamp
+                          right:
+                            Value:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 6
+                                  - 0
+                              content:
+                                BitString:
+                                  str: xxxxxxx

@@ -39,10 +39,12 @@ module HDLRuby
     # The names of the classes of HDLRuby supporting to_basic
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
     # The classes describing types (must be described only once)
-    # TO_BASICS_TYPES = [Low::SystemT, Low::SignalT]
     TO_BASICS_TYPES = [Low::SystemT,
                        Low::Type,
                        Low::TypeVector, Low::TypeTuple, Low::TypeStruct]
+
+    # The list of fields to exclude from serialization.
+    FIELDS_TO_EXCLUDE = { Low::SystemT => [:@interface ] }
 
     # The name of the reference argument if any.
     REF_ARG_NAMES = { Low::SystemI    => "systemT",
@@ -181,7 +183,7 @@ module HDLRuby
                 end
                 # Build the object with the processed arguments.
                 # object = klass.new(*singles.map{|k,v| basic_to_value(v) })
-                # puts "klass=#{klass}, singles=#{singles}"
+                # puts "klass=#{klass}, singles=#{singles.join("\n")}, multiples=#{multiples.join("\n")}"
                 object = klass.new(*singles)
                 # Adds the multiple instances.
                 multiples.each do |k,v|
@@ -267,7 +269,10 @@ module HDLRuby
             result = { class_name => content }
             # Fills the contents with the instance variables value.
             self.instance_variables.each do |var_sym|
+                # Skip the fields that should not be serialized
                 next if var_sym == :@parent
+                next if (FIELDS_TO_EXCLUDE[self.class] and 
+                         FIELDS_TO_EXCLUDE[self.class].include?(var_sym) )
                 # print "for instance variable #{var_sym}...\n"
                 # Skip the parent.
                 # Get the value of the variable.
