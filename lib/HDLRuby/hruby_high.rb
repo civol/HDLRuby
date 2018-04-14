@@ -2134,18 +2134,30 @@ module HDLRuby::High
 
         # Connects signals of the system instance according to +connects+.
         #
-        # NOTE: +connects+ is a hash table where each entry gives the
+        # NOTE: +connects+ can be a hash table where each entry gives the
         # correspondance between a system's signal name and an external
-        # signal to connect to.
-        def call(connects)
-            # Ensures connect is a hash.
-            connects = connects.to_h
-            # Performs the connections.
-            connects.each do |left,right|
-                # Gets the signal corresponding to connect.
-                left = self.get_signal(left)
-                # Make the connection.
-                left <= right
+        # signal to connect to, or a list of signals that will be connected
+        # in the order of declaration.
+        def call(*connects)
+            # Checks if it is a connection through is a hash.
+            if connects.size == 1 and connects[0].respond_to?(:to_h) then
+                # Yes, perform a connection by name
+                connects = connects[0].to_h
+                # Performs the connections.
+                connects.each do |left,right|
+                    # Gets the signal corresponding to connect.
+                    left = self.get_signal(left)
+                    # Make the connection.
+                    left <= right
+                end
+            else
+                # No, perform a connection is order of declaration
+                connects.each.with_index do |csig,i|
+                    # Gets i-est signal to connect
+                    ssig = self.get_interface(i)
+                    # Make the connection.
+                    ssig <= csig
+                end
             end
         end
 

@@ -70,9 +70,11 @@ module HDLRuby::Low
             @name = name.to_sym
 
             # Initialize the interface (signal instance lists).
-            @inputs  = HashName.new
-            @outputs = HashName.new
-            @inouts  = HashName.new
+            @inputs  = HashName.new # The input signals by name
+            @outputs = HashName.new # The output signals by name
+            @inouts  = HashName.new # The inout signals by name
+            @interface = []         # The interface signals in order of
+                                    # declaration
 
             # Check the scope
             unless scope.is_a?(Scope)
@@ -107,15 +109,14 @@ module HDLRuby::Low
             unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @inputs.has_key?(signal.name) then
             if @inputs.include?(signal) then
                 raise "SignalI #{signal.name} already present."
             end
-            # @inputs[signal.name] = signal
             # Set the parent of the signal.
             signal.parent = self
             # And add the signal.
             @inputs.add(signal)
+            @interface << signal
         end
 
         # Adds output +signal+.
@@ -124,15 +125,14 @@ module HDLRuby::Low
             unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @outputs.has_key?(signal.name) then
             if @outputs.include?(signal) then
                 raise "SignalI #{signal.name} already present."
             end
-            # @outputs[signal.name] = signal
             # Set the parent of the signal.
             signal.parent = self
             # And add the signal.
             @outputs.add(signal)
+            @interface << signal
         end
 
         # Adds inout +signal+.
@@ -141,15 +141,14 @@ module HDLRuby::Low
             unless signal.is_a?(SignalI)
                 raise "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @inouts.has_key?(signal.name) then
             if @inouts.include?(signal) then
                 raise "SignalI #{signal.name} already present."
             end
-            # @inouts[signal.name] = signal
             # Set the parent of the signal.
             signal.parent = self
             # And add the signal.
             @inouts.add(signal)
+            @interface << signal
         end
 
         # Iterates over the input signals.
@@ -159,7 +158,6 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_input) unless ruby_block
             # A block? Apply it on each input signal instance.
-            # @inputs.each_value(&ruby_block)
             @inputs.each(&ruby_block)
         end
 
@@ -170,7 +168,6 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_output) unless ruby_block
             # A block? Apply it on each output signal instance.
-            # @outputs.each_value(&ruby_block)
             @outputs.each(&ruby_block)
         end
 
@@ -181,7 +178,6 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_inout) unless ruby_block
             # A block? Apply it on each inout signal instance.
-            # @inouts.each_value(&ruby_block)
             @inouts.each(&ruby_block)
         end
 
@@ -246,10 +242,20 @@ module HDLRuby::Low
             return @inouts[name.to_sym]
         end
 
-        # Gets an inner signal by +name+.
+        # ## Gets an inner signal by +name+.
+        # def get_inner(name)
+        #     return @inners[name.to_sym]
+        # end
+
+        # Gets a signal by +name+.
         def get_signal(name)
-            return get_input(name) || get_output(name) || get_inout(name) ||
-                   get_inner(name)
+            return get_input(name) || get_output(name) || get_inout(name) # ||
+                   # get_inner(name)
+        end
+
+        # Gets an interface signal by order of declaration +i+.
+        def get_interface(i)
+            return @interface[i]
         end
 
         # Deletes input +signal+.
@@ -257,6 +263,7 @@ module HDLRuby::Low
             if @inputs.key?(signal) then
                 # The signal is present, delete it.
                 @inputs.delete(signal.name)
+                @interface.delete(signal)
                 # And remove its parent.
                 signal.parent = nil
             end
@@ -268,6 +275,7 @@ module HDLRuby::Low
             if @outputs.key?(signal) then
                 # The signal is present, delete it.
                 @outputs.delete(signal.name)
+                @interface.delete(signal)
                 # And remove its parent.
                 signal.parent = nil
             end
@@ -279,6 +287,7 @@ module HDLRuby::Low
             if @inouts.key?(signal) then
                 # The signal is present, delete it.
                 @inouts.delete(signal.name)
+                @interface.delete(signal)
                 # And remove its parent.
                 signal.parent = nil
             end
@@ -1531,7 +1540,7 @@ module HDLRuby::Low
                        :each_input, :each_output, :each_inout, :each_inner,
                        :each_signal, :each_signal_deep,
                        :get_input, :get_output, :get_inout, :get_inner,
-                       :get_signal,
+                       :get_signal, :get_interface,
                        :each_systemI, :get_systemI,
                        :each_connection, :each_connection_deep,
                        :each_statement_deep, :each_arrow_deep,
