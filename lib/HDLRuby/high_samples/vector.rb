@@ -6,6 +6,9 @@ configure_high
 system :vectors do
     [7..0].input :byte
     [ bit[8], signed[16], unsigned[16] ].output :bss
+
+    # For testing each_type, no hardware is generated.
+    bss.type.each_type {|t| }
 end
 
 

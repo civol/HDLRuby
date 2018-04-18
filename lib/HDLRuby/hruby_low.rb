@@ -303,8 +303,13 @@ module HDLRuby::Low
 
         include Hparent
 
-        # Creates a new scope.
-        def initialize
+        # The name of the scope if any
+        attr_reader :name
+
+        # Creates a new scope with a possible +name+.
+        def initialize(name = :"")
+            # Check and set the name.
+            @name = name.to_sym
             # puts "New scope=#{self}"
             # Initialize the sub scopes.
             @scopes = []
@@ -1145,7 +1150,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
             # A block? Apply it on each input signal instance.
-            @types.each_value(&ruby_block)
+            @types.each(&ruby_block)
         end
 
         # Gets the bitwidth
