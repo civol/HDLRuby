@@ -1347,7 +1347,8 @@ module HDLRuby::High
         def helsif(condition, mode = nil, &ruby_block)
             # There is a ruby_block: the helse is assumed to be with
             # the last statement of the last behavior.
-            statement = @statements.last
+            # statement = @statements.last
+            statement = self.last_behavior.last_statement
             # Completes the hif statement.
             unless statement.is_a?(If) then
                 raise "Error: helsif statement without hif (#{statement.class})."
