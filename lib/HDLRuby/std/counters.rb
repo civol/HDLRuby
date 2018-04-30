@@ -31,7 +31,8 @@ module HDLRuby::High::Std
             # Get the signal of the counter.
             counter = HDLRuby::High.cur_block.get_inner(name)
             # Apply the code on the counter.
-            code.call(counter)
+            # code.call(counter)
+            instance_exec(counter,&code)
         end
     end
 
@@ -49,7 +50,8 @@ module HDLRuby::High::Std
                 end
                 helsif(counter.to_expr != 0) do
                     counter.to_ref <= counter.to_expr - 1
-                    code.call
+                    # code.call
+                    instance_eval(&code)
                 end
             end
         end
@@ -67,7 +69,8 @@ module HDLRuby::High::Std
                     counter.to_ref <= init.to_expr
                 end
                 helsif(counter.to_expr == 0) do
-                    code.call
+                    # code.call
+                    instance_eval(&code)
                 end
                 helse do
                     counter.to_ref <= counter.to_expr - 1

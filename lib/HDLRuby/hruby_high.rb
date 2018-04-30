@@ -72,13 +72,6 @@ module HDLRuby::High
 
         # Concats another +namespace+ to current one.
         def concat_namespace(namespace)
-            # # Ensure namespace is really a namespace
-            # namespace = namespace.to_namespace
-            # # Adds its singleton methods to current namespace
-            # namespace.singleton_methods.each do |method|
-            #     self.add!(method,&namespace.singleton_method(method))
-            # end
-            
             # Ensure namespace is really a namespace and concat it.
             namespace = namespace.to_namespace
             self.eigen_extend(namespace)
@@ -166,8 +159,8 @@ module HDLRuby::High
             if High.space_index(self) then
                 # Yes, self is in it, can try the methods in the space.
                 High.space_call(m,*args,&ruby_block)
-            elsif self.respond_to?(:private_namespace) and
-                  High.space_index(self.private_namespace) then
+            elsif self.respond_to?(:namespace) and
+                  High.space_index(self.namespace) then
                 # Yes, the private namespace is in it, can try the methods in
                 # the space.
                 High.space_call(m,*args,&ruby_block)
@@ -183,6 +176,45 @@ module HDLRuby::High
         end
     end
 
+    module HScope_missing
+
+        include Hmissing
+
+        alias h_missing method_missing
+
+        # Missing methods are looked for in the private namespace.
+        # 
+        # NOTE: it is ok to use the private namespace because the scope
+        # can only be accessed if it is available from its systemT.
+        def method_missing(m, *args, &ruby_block)
+            # Is the scope currently opened?
+            # puts "self.class=#{self.class}"
+            if High.space_top.user_deep?(self) then
+                # Yes, use the stack of namespaces.
+                h_missing(m,*args,&ruby_block)
+            else
+                # No, look into the current namespace and return a reference
+                # to the result if it is a referable hardware object.
+                res = self.namespace.send(m,*args,&ruby_block)
+                if res.respond_to?(:to_ref) then
+                    # This is a referable object, build the reference from
+                    # the namespace.
+                    return RefObject.new(self.to_ref,res)
+                end
+            end
+
+            # puts "method_missing in scope=#{@name}(#{self}) with m=#{m}"
+            # puts "self.namespace=#{self.namespace}" 
+            # # puts "namespace methods = #{self.namespace.methods}"
+            # if self.namespace.respond_to?(m) then
+            #     puts "Found"
+            #     self.namespace.send(m,*args,&ruby_block)
+            # else
+            #     puts "NOT Found"
+            #     h_missing(m,*args,&ruby_block)
+            # end
+        end
+    end
 
 
     ##
@@ -263,6 +295,7 @@ module HDLRuby::High
                         res = nil
                         names.each do |name|
                             if name.respond_to?(:to_sym) then
+                                # Adds the inner signal
                                 res = self.add_inner(SignalI.new(name,type,:inner))
                             else
                                 # Deactivated because conflict with parent.
@@ -298,10 +331,9 @@ module HDLRuby::High
 
         include SingletonExtend
 
-        # # The private namespace
-        # attr_reader :private_namespace
-
         # The public namespace
+        #
+        # NOTE: the private namespace is the namespace of the scope object.
         attr_reader :public_namespace
 
         ##
@@ -314,20 +346,14 @@ module HDLRuby::High
         # The proc +ruby_block+ is executed when instantiating the system.
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
-            super(name,Scope.new)
-
-            # # Initialize the set of grouped system instances.
-            # @groupIs = {}
+            # super(name,Scope.new())
+            super(name,Scope.new(name))
 
             # Initialize the set of extensions to transmit to the instances'
             # eigen class
-            # @singleton_instanceO = Namespace.new(self)
             @singleton_instanceO = Namespace.new(self.scope)
 
-            # # Creates the private and the public namespaces.
-            # @private_namespace = Namespace.new(self)
-            # Creates the public namespace.
-            # @public_namespace = Namespace.new(self)
+            # Create the public namespace.
             @public_namespace = Namespace.new(self.scope)
 
             # Check and set the mixins.
@@ -501,7 +527,7 @@ module HDLRuby::High
         def open(&ruby_block)
             # # No push since should not merge the current environment into
             # # the system's.
-            # High.space_insert(-1,@private_namespace)
+            # High.space_insert(-1,@namespace)
             # High.top_user.instance_eval(&ruby_block)
             # # High.top_user.postprocess
             # High.space_pop
@@ -531,11 +557,11 @@ module HDLRuby::High
             eigen = self.class.new(:"")
             # # Extends eigen with self.
             # eigen.extend(self)
-            # High.space_push(eigen.private_namespace)
+            # High.space_push(eigen.namespace)
             # # Fills its namespace with the content of the current system type
             # # (this latter may already contains access points if it has been
             # #  opended for extension previously).
-            # eigen.private_namespace.concat_namespace(@private_namespace)
+            # eigen.namespace.concat_namespace(@namespace)
             # # Include the mixin systems given when declaring the system.
             # @to_includes.each { |system| eigen.include(system) }
             # # Execute the instantiation block
@@ -553,13 +579,21 @@ module HDLRuby::High
             space = eigen.public_namespace
             # Interface signals
             eigen.each_signal do |signal|
-                # if signal.dir != :inner then
-                    space.send(:define_singleton_method,signal.name) { signal }
-                # end
+                # space.send(:define_singleton_method,signal.name) { signal }
+                space.send(:define_singleton_method,signal.name) do
+                    # RefName.new(eigen.owner.to_ref,signal.name)
+                    # RefName.new(eigen.owner.to_ref,signal)
+                    RefObject.new(eigen.owner.to_ref,signal)
+                end
             end
             # Exported objects
             eigen.each_export do |export|
-                space.send(:define_singleton_method,export.name) { export }
+                # space.send(:define_singleton_method,export.name) { export }
+                space.send(:define_singleton_method,export.name) do
+                    # RefName.new(eigen.owner.to_ref,export.name)
+                    # RefName.new(eigen.owner.to_ref,export)
+                    RefObject.new(eigen.owner.to_ref,export)
+                end
             end
 
             # Create the instance.
@@ -601,7 +635,7 @@ module HDLRuby::High
                     # Add the instance.
                     High.top_user.send(add_instance,instance)
                 end
-                # Return the last instance.
+                # # Return the last instance.
                 instance
             end
         end
@@ -764,7 +798,7 @@ module HDLRuby::High
         #     # Create the instance to include
         #     instance = system.instantiate(:"",*args)
         #     # Concat its public namespace to the current one.
-        #     self.private_namespace.concat_namespace(instance.public_namespace)
+        #     self.namespace.concat_namespace(instance.public_namespace)
         #     # Adds it the list of includeds
         #     @includeIs[system.name] = instance
         # end
@@ -835,7 +869,7 @@ module HDLRuby::High
                 included.systemT.fill_low(systemTlow)
             end
             # # Push the private namespace for the low generation.
-            # High.space_push(@private_namespace)
+            # High.space_push(@namespace)
             # # Pushes on the name stack for converting the internals of
             # # the system.
             # High.names_push
@@ -864,54 +898,45 @@ module HDLRuby::High
 
         include SingletonExtend
 
-        # The private namespace
-        attr_reader :private_namespace
+        # The name of the scope if any.
+        attr_reader :name
 
-        # # The public namespace
-        # attr_reader :public_namespace
+        # The namespace
+        attr_reader :namespace
 
         # The return value when building the scope.
         attr_reader :return_value
 
         ##
-        # Creates a new scope.
+        # Creates a new scope with possible +name+.
         #
         # The proc +ruby_block+ is executed for building the scope.
         # If no block is provided, the scope is the top of a system and
         # is filled by the instantiation procedure of the system.
-        def initialize(&ruby_block)
+        def initialize(name = :"", &ruby_block)
             # Initialize the scope structure
-            super()
+            super(name)
 
-            # Builds the scope if a ruby block is provided
-            # (which means the scope is not the top of a system).
-            self.build(&ruby_block) if block_given?
+            unless name.empty? then
+                # Named scope, set the hdl-like access to the scope.
+                obj = self # For using the right self within the proc
+                High.space_reg(name) { obj }
+            end
 
             # Initialize the set of grouped system instances.
             @groupIs = {}
 
-            # # Initialize the set of extensions to transmit to the instances'
-            # # eigen class
-            # @singleton_instanceO = Namespace.new(self)
-
-            # Creates the private and the public namespaces.
-            @private_namespace = Namespace.new(self)
-            # @public_namespace = Namespace.new(self)
-
-            # # Check and set the mixins.
-            # mixins.each do |mixin|
-            #     unless mixin.is_a?(SystemT) then
-            #         raise "Invalid class for inheriting: #{mixin.class}."
-            #     end
-            # end
-            # @to_includes = mixins
-            # # Prepare the instantiation methods
-            # make_instantiater(name,SystemI,:add_systemI,&ruby_block)
+            # Creates the namespace.
+            @namespace = Namespace.new(self)
 
             # Initialize the set of exported inner signals and instances
             @exports = {}
             # Initialize the set of included system instances.
             @includeIs = {}
+
+            # Builds the scope if a ruby block is provided
+            # (which means the scope is not the top of a system).
+            self.build(&ruby_block) if block_given?
         end
 
         # Converts to a namespace user.
@@ -920,18 +945,18 @@ module HDLRuby::High
             return self
         end
 
-        # The name of the scope if any.
-        #
-        # NOTE: 
-        #  * the name of the first scope of a system is the system's.
-        #  * for building reference path with converting to low.
-        def name
-            if self.parent.is_a?(SystemT) then
-                return self.parent.name
-            else
-                return :""
-            end
-        end
+        # # The name of the scope if any.
+        # #
+        # # NOTE: 
+        # #  * the name of the first scope of a system is the system's.
+        # #  * for building reference path with converting to low.
+        # def name
+        #     if self.parent.is_a?(SystemT) then
+        #         return self.parent.name
+        #     else
+        #         return @name
+        #     end
+        # end
 
         # Adds a group of system +instances+ named +name+.
         def add_groupI(name, *instances)
@@ -964,14 +989,15 @@ module HDLRuby::High
             @groupIs.each(&ruby_block)
         end
 
-        # # Creates and adds a set of inputs typed +type+ from a list of +names+.
+        # Cf. Hinner
+        # # Creates and adds a set of inners typed +type+ from a list of +names+.
         # #
         # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_inputs(type, *names)
+        # def make_inners(type, *names)
         #     res = nil
         #     names.each do |name|
         #         if name.respond_to?(:to_sym) then
-        #             res = self.add_input(SignalI.new(name,type,:input))
+        #             res = self.add_inner(SignalI.new(name,type,:inner))
         #         else
         #             # Deactivated because conflict with parent.
         #             raise "Invalid class for a name: #{name.class}"
@@ -979,56 +1005,6 @@ module HDLRuby::High
         #     end
         #     return res
         # end
-
-        # # Creates and adds a set of outputs typed +type+ from a list of +names+.
-        # #
-        # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_outputs(type, *names)
-        #     # puts "type=#{type.inspect}"
-        #     res = nil
-        #     names.each do |name|
-        #         # puts "name=#{name}"
-        #         if name.respond_to?(:to_sym) then
-        #             res = self.add_output(SignalI.new(name,type,:output))
-        #         else
-        #             # Deactivated because conflict with parent.
-        #             raise "Invalid class for a name: #{name.class}"
-        #         end
-        #     end
-        #     return res
-        # end
-
-        # # Creates and adds a set of inouts typed +type+ from a list of +names+.
-        # #
-        # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_inouts(type, *names)
-        #     res = nil
-        #     names.each do |name|
-        #         if name.respond_to?(:to_sym) then
-        #             res = self.add_inout(SignalI.new(name,type,:inout))
-        #         else
-        #             # Deactivated because conflict with parent.
-        #             raise "Invalid class for a name: #{name.class}"
-        #         end
-        #     end
-        #     return res
-        # end
-
-        # Creates and adds a set of inners typed +type+ from a list of +names+.
-        #
-        # NOTE: a name can also be a signal, is which case it is duplicated. 
-        def make_inners(type, *names)
-            res = nil
-            names.each do |name|
-                if name.respond_to?(:to_sym) then
-                    res = self.add_inner(SignalI.new(name,type,:inner))
-                else
-                    # Deactivated because conflict with parent.
-                    raise "Invalid class for a name: #{name.class}"
-                end
-            end
-            return res
-        end
 
         # Adds a +name+ to export.
         #
@@ -1079,48 +1055,28 @@ module HDLRuby::High
         end
 
 
-        # # Gets class containing the extension for the instances.
-        # def singleton_instance
-        #     @singleton_instanceO.singleton_class
-        # end
-
         # Opens for extension.
         #
         # NOTE: actually executes +ruby_block+ in the context.
         def open(&ruby_block)
             # No push since should not merge the current environment into
             # the system's.
-            High.space_insert(-1,@private_namespace)
+            High.space_insert(-1,@namespace)
             High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
-
-        # # The proc used for instantiating the system type.
-        # attr_reader :instance_proc
-        # 
-        # # The instantiation target class.
-        # attr_reader :instance_class
-
-        # # The instance owning the system if it is an eigen system
-        # attr_reader :owner
-
-        # # Sets the +owner+.
-        # #
-        # # Note: will make the system eigen
-        # def owner=(owner)
-        #     @owner = owner
-        # end
 
 
         # Build the scope by executing +ruby_block+.
         #
         # NOTE: used when the scope is not the top of a system.
         def build(&ruby_block)
-            # High-level scopes can include inner signals.
-            # And therefore require a namespace.
-            @private_namespace ||= Namespace.new(self)
+            # Namespace already there
+            # # High-level scopes can include inner signals.
+            # # And therefore require a namespace.
+            # @namespace ||= Namespace.new(self)
             # Build the scope.
-            High.space_push(@private_namespace)
+            High.space_push(@namespace)
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
@@ -1131,13 +1087,11 @@ module HDLRuby::High
         #
         # NOTE: Used by the instantiation procedure of a system.
         def build_top(base,*args)
-            # # Extends eigen with the base scope.
-            # eigen.extend(self)
-            High.space_push(@private_namespace)
+            High.space_push(@namespace)
             # Fills its namespace with the content of the base scope
             # (this latter may already contains access points if it has been
             #  opended for extension previously).
-            @private_namespace.concat_namespace(base.private_namespace)
+            @namespace.concat_namespace(base.namespace)
             # # Include the mixin systems given when declaring the system.
             # @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
@@ -1146,51 +1100,6 @@ module HDLRuby::High
             High.space_pop
         end
 
-        # # Generates the instantiation capabilities including an instantiation
-        # # method +name+ for hdl-like instantiation, target instantiation as
-        # # +klass+, added to the calling object with +add_instance+, and
-        # # whose eigen type is initialized by +ruby_block+.
-        # def make_instantiater(name,klass,add_instance,&ruby_block)
-        #     # Set the instanciater.
-        #     @instance_proc = ruby_block
-        #     # Set the target instantiation class.
-        #     @instance_class = klass
-
-        #     # Unnamed types do not have associated access method.
-        #     return if name.empty?
-
-        #     # Set the hdl-like instantiation method.
-        #     # HDLRuby::High.send(:define_method,name.to_sym) do |i_name,*args|
-        #     #     # Instantiate.
-        #     #     instance = self.instantiate(i_name,*args)
-        #     #     # Add the instance.
-        #     #     binding.receiver.send(add_instance,instance)
-        #     # end
-        #     obj = self # For using the right self within the proc
-        #     High.space_reg(name) do |*args|
-        #         # If no name it is actually an access to the system type.
-        #         return obj if args.empty?
-        #         # Get the names from the arguments.
-        #         i_names = args.shift
-        #         # puts "i_names=#{i_names}(#{i_names.class})"
-        #         i_names = [*i_names]
-        #         instance = nil # The current instance
-        #         i_names.each do |i_name|
-        #             # Instantiate.
-        #             instance = obj.instantiate(i_name,*args)
-        #             # Add the instance.
-        #             High.top_user.send(add_instance,instance)
-        #         end
-        #         # Return the last instance.
-        #         instance
-        #     end
-        #     # High.space_reg(name) do |i_name,*args|
-        #     #     # Instantiate.
-        #     #     instance = obj.instantiate(i_name,*args)
-        #     #     # Add the instance.
-        #     #     High.top_user.send(add_instance,instance)
-        #     # end
-        # end
       
         # Methods delegated to the upper system.
 
@@ -1233,15 +1142,52 @@ module HDLRuby::High
             self.parent.make_inouts(type,*names)
         end
 
+        # Converts to a new reference.
+        def to_ref
+            # return RefName.new(this,self.name)
+            # return RefName.new(this,self)
+            return RefObject.new(this,self)
+        end
 
-        include Hmissing
+
+        include HScope_missing
+        # Moved to Hscope_missing for sharing with block
+        # include Hmissing
+        # alias h_missing method_missing
+
+        # # Missing methods are looked for in the private namespace.
+        # # 
+        # # NOTE: it is ok to use the private namespace because the scope
+        # # can only be accessed if it is available from its systemT.
+        # def method_missing(m, *args, &ruby_block)
+        #     # Is the scope currently opened?
+        #     if High.space_top.user_deep?(self) then
+        #         # Yes, use the stack of namespaces.
+        #         h_missing(m,*args,&ruby_block)
+        #     else
+        #         # No, look into the current namespace and return a reference
+        #         # to the result if it is a referable hardware object.
+        #         res = self.namespace.send(m,*args,&ruby_block)
+        #         if res.respond_to?(:to_ref) then
+        #             # This is a referable object, build the reference from
+        #             # the namespace.
+        #             return RefObject.new(self.to_ref,res)
+        #         end
+        #     end
+
+        #     # puts "method_missing in scope=#{@name}(#{self}) with m=#{m}"
+        #     # puts "self.namespace=#{self.namespace}" 
+        #     # # puts "namespace methods = #{self.namespace.methods}"
+        #     # if self.namespace.respond_to?(m) then
+        #     #     puts "Found"
+        #     #     self.namespace.send(m,*args,&ruby_block)
+        #     # else
+        #     #     puts "NOT Found"
+        #     #     h_missing(m,*args,&ruby_block)
+        #     # end
+        # end
 
         # Methods used for describing a system in HDLRuby::High
-
-        # # Declares high-level bit inner signals named +names+.
-        # def inner(*names)
-        #     self.make_inners(bit,*names)
-        # end
 
         # Declares high-level bit input signals named +names+
         # in the current system.
@@ -1261,10 +1207,10 @@ module HDLRuby::High
             self.parent.inout(*names)
         end
 
-        # Declares a sub scope +ruby_block+.
-        def sub(&ruby_block)
+        # Declares a sub scope with possible +name+ and built from +ruby_block+.
+        def sub(name = :"", &ruby_block)
             # Creates the new scope.
-            scope = Scope.new(&ruby_block)
+            scope = Scope.new(name,&ruby_block)
             # puts "new scope=#{scope}"
             # Add it
             self.add_scope(scope)
@@ -1408,7 +1354,7 @@ module HDLRuby::High
             instance = system.instantiate(:"",*args)
             # puts "instance=#{instance}"
             # Concat its public namespace to the current one.
-            self.private_namespace.concat_namespace(instance.public_namespace)
+            self.namespace.concat_namespace(instance.public_namespace)
             # Adds it the list of includeds
             @includeIs[system.name] = instance
         end
@@ -1461,7 +1407,7 @@ module HDLRuby::High
             # Create the resulting low scope.
             scopeLow = HDLRuby::Low::Scope.new()
             # Push the private namespace for the low generation.
-            High.space_push(@private_namespace)
+            High.space_push(@namespace)
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
@@ -2133,6 +2079,14 @@ module HDLRuby::High
             High.space_reg(name) { obj }
         end
 
+
+        # Converts to a new reference.
+        def to_ref
+            # return RefName.new(this,self.name)
+            # return RefName.new(this,self)
+            return RefObject.new(this,self)
+        end
+
         # Connects signals of the system instance according to +connects+.
         #
         # NOTE: +connects+ can be a hash table where each entry gives the
@@ -2148,6 +2102,10 @@ module HDLRuby::High
                 connects.each do |left,right|
                     # Gets the signal corresponding to connect.
                     left = self.get_signal(left)
+                    # Convert it to a reference.
+                    # left = RefName.new(self.to_ref,left.name)
+                    # left = RefName.new(self.to_ref,left)
+                    left = RefObject.new(self.to_ref,left)
                     # Make the connection.
                     left <= right
                 end
@@ -2156,6 +2114,10 @@ module HDLRuby::High
                 connects.each.with_index do |csig,i|
                     # Gets i-est signal to connect
                     ssig = self.get_interface(i)
+                    # Convert it to a reference.
+                    # ssig = RefName.new(self.to_ref,ssig.name)
+                    # ssig = RefName.new(self.to_ref,ssig)
+                    ssig = RefObject.new(self.to_ref,ssig)
                     # Make the connection.
                     ssig <= csig
                 end
@@ -2188,11 +2150,6 @@ module HDLRuby::High
 
         # Methods to transmit to the systemT
         
-        # # Gets the private namespace.
-        # def private_namespace
-        #     self.systemT.private_namespace
-        # end
-        # 
         # Gets the public namespace.
         def public_namespace
             self.systemT.public_namespace
@@ -2734,44 +2691,70 @@ module HDLRuby::High
         include Enumerable
     end
 
+
+
     ##
     # Describes a high-level object reference: no low-level equivalent!
     class RefObject < Low::Ref
         include HRef
 
+        # The base of the reference
+        attr_reader :base
+
         # The refered object.
         attr_reader :object
 
-        # Creates a new reference to +object+.
-        def initialize(object)
+        # Creates a new reference from a +base+ reference and named +object+.
+        def initialize(base,object)
+            # Check and set the base (it must be convertible to a reference).
+            unless base.respond_to?(:to_ref)
+                raise "Invalid base for a RefObject: #{base}"
+            end
+            @base = base
+            # Check and set the object (it must have a name).
+            unless object.respond_to?(:name)
+                raise "Invalid object for a RefObject: #{object}"
+            end
             @object = object
         end
 
         # Converts to a new reference.
         def to_ref
-            return RefObject.new(@object)
+            return RefObject.new(@base,@object)
         end
 
-        # Converts the reference to a low-level name reference.
+        # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # Build the path of the reference.
-            path = []
-            cur = @object
-            while(!High.top_user.user_deep?(cur)) do
-                # puts "first cur=#{cur}"
-                cur = cur.owner if cur.respond_to?(:owner)
-                # puts "cur=#{cur}", "name=#{cur.name}"
-                path << cur.name
-                cur = cur.parent
-                # cur = cur.scope if cur.respond_to?(:scope)
-                # puts " parent=#{cur} found? #{High.top_user.user_deep?(cur)}"
-            end
-            # puts "path=#{path}"
-            # Build the references from the path.
-            ref = this.to_low
-            path.each { |name| ref = HDLRuby::Low::RefName.new(ref,name) }
-            return ref
+            # puts "To low for ref with name=#{self.name} and subref=#{self.ref}"
+            return HDLRuby::Low::RefName.new(@base.to_ref.to_low,@object.name)
         end
+
+        # Missing methods are looked for into the refered object.
+        def method_missing(m, *args, &ruby_block)
+            @object.send(m,*args,&ruby_block)
+        end
+
+
+    #     # Converts the reference to a low-level name reference.
+    #     def to_low
+    #         # Build the path of the reference.
+    #         path = []
+    #         cur = @object
+    #         while(!High.top_user.user_deep?(cur)) do
+    #             puts "first cur=#{cur}"
+    #             cur = cur.owner if cur.respond_to?(:owner)
+    #             puts "cur=#{cur}", "name=#{cur.name}"
+    #             path << cur.name
+    #             cur = cur.parent
+    #             # cur = cur.scope if cur.respond_to?(:scope)
+    #             puts " parent=#{cur} found? #{High.top_user.user_deep?(cur)}"
+    #         end
+    #         # puts "path=#{path}"
+    #         # Build the references from the path.
+    #         ref = this.to_low
+    #         path.each { |name| ref = HDLRuby::Low::RefName.new(ref,name) }
+    #         return ref
+    #     end
     end
 
 
@@ -2840,10 +2823,12 @@ module HDLRuby::High
         # Converts to a new reference.
         def to_ref
             return RefName.new(self.ref.to_ref,self.name)
+            # return RefName.new(self.ref.to_ref,self)
         end
 
         # Converts the name reference to HDLRuby::Low.
         def to_low
+            # puts "To low for ref with name=#{self.name} and subref=#{self.ref}"
             return HDLRuby::Low::RefName.new(self.ref.to_low,self.name)
         end
     end
@@ -2857,6 +2842,11 @@ module HDLRuby::High
         # Deactivated since incompatible with the parent features.
         # # The only useful instance of RefThis.
         # This = RefThis.new
+
+        # Converts to a new reference.
+        def to_ref
+            return RefThis.new
+        end
 
         # Gets the enclosing system type.
         def system
@@ -3047,7 +3037,11 @@ module HDLRuby::High
             if type.respond_to?(:each_name) then
                 type.each_name do |name|
                     self.define_singleton_method(name) do
-                        RefName.new(self.to_ref,name)
+                        # RefName.new(self.to_ref,name)
+                        # RefName.new(self.to_ref,
+                        #             SignalI.new(name,type.get_type(name)))
+                        RefObject.new(self.to_ref,
+                                    SignalI.new(name,type.get_type(name)))
                     end
                 end
             end
@@ -3109,7 +3103,8 @@ module HDLRuby::High
         # Converts to a new reference.
         def to_ref
             # return RefName.new(this,self.name)
-            return RefObject.new(self)
+            # return RefName.new(this,self)
+            return RefObject.new(this,self)
         end
 
         # Converts to a new expression.
@@ -3129,36 +3124,49 @@ module HDLRuby::High
     module HBlock
         High = HDLRuby::High
 
-        # The private namespace
-        attr_reader :private_namespace
+        # The namespace
+        attr_reader :namespace
 
         # The return value when building the scope.
         attr_reader :return_value
 
         # Build the block by executing +ruby_block+.
         def build(&ruby_block)
-            # # High-level blocks can include inner signals.
-            # @inners ||= {}
-            # And therefore require a namespace.
-            @private_namespace ||= Namespace.new(self)
+            # # # High-level blocks can include inner signals.
+            # # @inners ||= {}
+            # Already there
+            # # And therefore require a namespace.
+            # @namespace ||= Namespace.new(self)
             # Build the block.
             # High.space_push(self)
-            High.space_push(@private_namespace)
+            High.space_push(@namespace)
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
 
-        # # Missing methods are looked up in the upper level of the namespace.
-        # def method_missing(m, *args, &ruby_block)
-        #     print "method_missing in class=#{self.class} with m=#{m}\n"
-        #     # Is the missing method an immediate value?
-        #     value = m.to_value
-        #     return value if value and args.empty?
-        #     # No look up in the upper level of the namespace.
-        #     High.space_call(m,*args,&ruby_block)
-        # end
+        # Converts to a new reference.
+        def to_ref
+            # return RefName.new(this,self.name)
+            # return RefName.new(this,self)
+            return RefObject.new(this,self)
+        end
 
-        include Hmissing
+        include HScope_missing
+        # include Hmissing
+        # alias h_missing method_missing
+
+        # # Missing methods are looked for in the private namespace.
+        # # 
+        # # NOTE: it is ok to use the private namespace because the scope
+        # # can only be accessed if it is available from its systemT.
+        # def method_missing(m, *args, &ruby_block)
+        #     # print "method_missing in class=#{self.class} with m=#{m}\n"
+        #     if self.namespace.respond_to?(m) then
+        #         self.namespace.send(m,*args,&ruby_block)
+        #     else
+        #         h_missing(m,*args,&ruby_block)
+        #     end
+        # end
 
         # # Adds inner signal +signal+.
         # def add_inner(signal)
@@ -3222,32 +3230,35 @@ module HDLRuby::High
         #     end
         # end
 
-        # Creates and adds a new block executed in +mode+ built by
-        # executing +ruby_block+.
-        def add_block(mode = nil,&ruby_block)
+        # Creates and adds a new block executed in +mode+, with possible +name+
+        # and built by executing +ruby_block+.
+        def add_block(mode = nil, name = :"", &ruby_block)
             # Creates the block.
-            block = High.make_block(mode,&ruby_block)
+            block = High.make_block(mode,name,&ruby_block)
             # Adds it as a statement.
             self.add_statement(block)
             # Use its return value.
             return block.return_value
         end
 
-        # Creates a new parallel block built from +ruby_block+.
-        def par(&ruby_block)
+        # Creates a new parallel block with possible +name+ and 
+        # built from +ruby_block+.
+        def par(name = :"", &ruby_block)
             return :par unless ruby_block
-            self.add_block(:par,&ruby_block)
+            self.add_block(:par,name,&ruby_block)
         end
 
-        # Creates a new sequential block built from +ruby_block+.
-        def seq(&ruby_block)
+        # Creates a new sequential block with possible +name+ and
+        # built from +ruby_block+.
+        def seq(name = :"", &ruby_block)
             return :seq unless ruby_block
-            self.add_block(:seq,&ruby_block)
+            self.add_block(:seq,name,&ruby_block)
         end
 
-        # Creates a new block with the current mode built from +ruby_block+.
-        def sub(&ruby_block)
-            self.add_block(self.mode,&ruby_block)
+        # Creates a new block with the current mode with possible +name+ and
+        # built from +ruby_block+.
+        def sub(name = :"", &ruby_block)
+            self.add_block(self.mode,name,&ruby_block)
         end
 
         # Get the current mode of the block.
@@ -3334,28 +3345,31 @@ module HDLRuby::High
         include HBlock
         include Hinner
 
-        # Creates a new +mode+ sort of block and build it by executing
-        # +ruby_block+.
-        # def initialize(mode, extensions = [], &ruby_block)
-        def initialize(mode, &ruby_block)
+        # Creates a new +mode+ sort of block, with possible +name+
+        # and build it by executing +ruby_block+.
+        def initialize(mode, name=:"", &ruby_block)
             # Initialize the block.
-            super(mode)
-            # extensions.each do |extension|
-            #     self.singleton_class.class_eval(&extension)
-            # end
+            super(mode,name)
+
+            unless name.empty? then
+                # Named block, set the hdl-like access to the block.
+                obj = self # For using the right self within the proc
+                High.space_reg(name) { obj }
+            end
+
+            # Creates the namespace.
+            @namespace = Namespace.new(self)
+
             # puts "methods = #{self.methods.sort}"
             build(&ruby_block)
-
-            # Creates the private namespace.
-            @private_namespace = Namespace.new(self)
         end
 
         # Converts the block to HDLRuby::Low.
         def to_low
             # Create the resulting block
             blockL = HDLRuby::Low::Block.new(self.mode)
-            # Push the private namespace for the low generation.
-            High.space_push(@private_namespace)
+            # Push the namespace for the low generation.
+            High.space_push(@namespace)
             # Pushes on the name stack for converting the internals of
             # the block.
             High.names_push
@@ -3385,15 +3399,21 @@ module HDLRuby::High
 
         include HBlock
 
-        # Creates a new +type+ sort of block and build it by executing
-        # +ruby_block+.
-        # def initialize(type, extensions = [], &ruby_block)
-        def initialize(type, &ruby_block)
+        # Creates a new +type+ sort of block with possible +name+
+        # and build it by executing +ruby_block+.
+        def initialize(type, name = :"", &ruby_block)
             # Initialize the block.
-            super(type)
-            # extensions.each do |extension|
-            #     self.singleton_class.class_eval(&extension)
-            # end
+            super(type,name)
+
+            unless name.empty? then
+                # Named block, set the hdl-like access to the block.
+                obj = self # For using the right self within the proc
+                High.space_reg(name) { obj }
+            end
+
+            # Creates the namespace.
+            @namespace = Namespace.new(self)
+
             build(&ruby_block)
         end
 
@@ -3428,13 +3448,13 @@ module HDLRuby::High
     end
 
 
-    # Creates a block executed in +mode+, that can be timed or not depending 
-    # on the enclosing object and build it by executing the enclosing
-    # +ruby_block+.
+    # Creates a block executed in +mode+, with possible +name+,
+    # that can be timed or not depending on the enclosing object and build
+    # it by executing the enclosing +ruby_block+.
     #
     # NOTE: not a method to include since it can only be used with
     # a behavior or a block. Hence set as module method.
-    def self.make_block(mode = nil, &ruby_block)
+    def self.make_block(mode = nil, name = :"", &ruby_block)
         unless mode then
             # No type of block given, get a default one.
             if top_user.is_a?(Block) then
@@ -3447,19 +3467,19 @@ module HDLRuby::High
         end
         if top_user.is_a?(TimeBlock) then
             # return TimeBlock.new(mode,from_users(:block_extensions),&ruby_block)
-            return TimeBlock.new(mode,&ruby_block)
+            return TimeBlock.new(mode,name,&ruby_block)
         else
             # return Block.new(mode,from_users(:block_extensions),&ruby_block)
-            return Block.new(mode,&ruby_block)
+            return Block.new(mode,name,&ruby_block)
         end
     end
 
-    # Creates a specifically timed block in +mode+ and build it by
-    # executing the enclosing +ruby_block+.
+    # Creates a specifically timed block in +mode+, with possible +name+
+    # and build it by executing the enclosing +ruby_block+.
     #
     # NOTE: not a method to include since it can only be used with
     # a behavior or a block. Hence set as module method.
-    def self.make_time_block(mode = nil,&ruby_block)
+    def self.make_time_block(mode = nil, name = :"", &ruby_block)
         unless mode then
             # No type of block given, get a default one.
             if top_user.is_a?(Block) then
@@ -3471,7 +3491,7 @@ module HDLRuby::High
             end
         end
         # return TimeBlock.new(mode,top_user.block_extensions,&ruby_block)
-        return TimeBlock.new(mode,&ruby_block)
+        return TimeBlock.new(mode,name,&ruby_block)
     end
 
     ##
@@ -3610,16 +3630,17 @@ module HDLRuby::High
 
     # The namespace stack: never empty, the top is a nameless system without
     # input nor output.
-    Namespaces = [Universe.scope.private_namespace]
+    Namespaces = [Universe.scope.namespace]
     private_constant :Namespaces
 
     # Pushes +namespace+.
     def self.space_push(namespace)
         # Emsure namespace is really a namespace.
         namespace = namespace.to_namespace
-        # Concat the current top to namespace so that it has access to the
-        # existing hardware constructs.
-        namespace.concat_namespace(Namespaces[-1])
+        # # Concat the current top to namespace so that it has access to the
+        # # existing hardware constructs.
+        # LALALA
+        # # namespace.concat_namespace(Namespaces[-1])
         # Adds the namespace to the top.
         Namespaces.push(namespace)
     end
@@ -3742,20 +3763,21 @@ module HDLRuby::High
         # print "space_call with name=#{name}\n"
         # Ensures name is a symbol.
         name = name.to_sym
-        # # Look from the top of the stack.
-        # Namespaces.reverse_each do |space|
-        #     if space.respond_to?(name) then
-        #         # print "Found is space user with class=#{space.user.class}\n"
-        #         # The method is found, call it.
-        #         return space.send(name,*args)
-        #     end
-        # end
+        # Look from the top of the namespace stack.
+        Namespaces.reverse_each do |space|
+            if space.respond_to?(name) then
+                # print "Found is space user with class=#{space.user.class}\n"
+                # The method is found, call it.
+                return space.send(name,*args)
+            end
+        end
         # Look in the top namespace.
-        if Namespaces[-1].respond_to?(name) then
-            # Found.
-            return Namespaces[-1].send(name,*args,&ruby_block)
+        # if Namespaces[-1].respond_to?(name) then
+        #     # Found.
+        #     return Namespaces[-1].send(name,*args,&ruby_block)
+        # end
         # Look in the global methods.
-        elsif HDLRuby::High.respond_to?(name) then
+        if HDLRuby::High.respond_to?(name) then
             # Found.
             return HDLRuby::High.send(name,*args,&ruby_block)
         end
@@ -4234,7 +4256,7 @@ def self.configure_high
             # Is the missing method an immediate value?
             value = m.to_value
             return value if value and args.empty?
-            # puts "Universe methods: #{Universe.private_namespace.methods}"
+            # puts "Universe methods: #{Universe.namespace.methods}"
             # Not a value, but maybe it is in the namespaces
             if Namespaces[-1].respond_to?(m) then
                 # Yes use it.

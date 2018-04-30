@@ -1902,8 +1902,13 @@ module HDLRuby::Low
         # The execution mode of the block.
         attr_reader :mode
 
-        # Creates a new +mode+ sort of block.
-        def initialize(mode)
+        # The name of the block if any
+        attr_reader :name
+
+        # Creates a new +mode+ sort of block with possible +name+.
+        def initialize(mode, name = :"")
+            # Check and set the name.
+            @name = name.to_sym
             # Check and set the type.
             @mode = mode.to_sym
             # Initializes the list of inner statements.

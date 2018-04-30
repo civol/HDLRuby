@@ -57,6 +57,7 @@ end
 mem16_16_long :mem16_16_longI
 
 # Generate the low level representation.
+# low = mem16_16I.to_low
 low = mem16_16_longI.to_low
 
 # Displays it

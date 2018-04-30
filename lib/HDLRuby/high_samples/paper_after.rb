@@ -2,7 +2,6 @@ require 'HDLRuby'
 
 configure_high
 
-
 def after(number, clk = $clk, rst = $rst, &code)
     if in_behavior? and cur_behavior.on_edge? then
         counter = uniq_name
@@ -11,7 +10,8 @@ def after(number, clk = $clk, rst = $rst, &code)
         helsif(counter < number) do
             counter <= counter + 1
         end
-        hif(counter >= number) { code.call }
+        # hif(counter >= number) { code.call }
+        hif(counter >= number) { instance_eval(&code) }
     else
         counter = uniq_name
         cur_systemT.open do
@@ -21,7 +21,8 @@ def after(number, clk = $clk, rst = $rst, &code)
                 helse { counter <= counter + 1 }
             end
         end
-        hif(counter >= number) { code.call }
+        # hif(counter >= number) { code.call }
+        hif(counter >= number) { instance_eval(&code) }
     end
 end
 
