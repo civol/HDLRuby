@@ -2030,7 +2030,7 @@ module HDLRuby::High
     #
     # NOTE: a function is a short-cut for a method that creates a scope.
     def function(name, &ruby_block)
-        if HDLRuby::High.in_systemT? then
+        if HDLRuby::High.in_system? then
             define_singleton_method(name.to_sym) do |*args|
                 sub do
                     HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
@@ -2850,7 +2850,7 @@ module HDLRuby::High
 
         # Gets the enclosing system type.
         def system
-            return High.cur_systemT
+            return High.cur_system
         end
 
         # Gets the enclosing behavior if any.
@@ -3695,12 +3695,12 @@ module HDLRuby::High
     end
 
     # Tells if within a system type.
-    def self.in_systemT?
+    def self.in_system?
         return Namespaces.size > 1
     end
 
     # Gets the enclosing system type if any.
-    def self.cur_systemT
+    def self.cur_system
         if Namespaces.size <= 1 then
             raise "Not within a system type."
         else
@@ -3718,7 +3718,7 @@ module HDLRuby::High
     # Gets the enclosing behavior if any.
     def self.cur_behavior
         # # Gets the enclosing system type.
-        # systemT = self.cur_systemT
+        # systemT = self.cur_system
         # # Gets the current behavior from it.
         # unless systemT.each_behavior.any? then
         #     raise "Not within a behavior."
@@ -4016,7 +4016,7 @@ module HDLRuby::High
         # def to_ref
         #     # Create the unbounded signal and add it to the upper system type.
         #     signal = SignalI.new(self,void,:no)
-        #     High.cur_systemT.add_unbound(signal)
+        #     High.cur_system.add_unbound(signal)
         #     # Convert it to a reference and return the result.
         #     return signal.to_ref
         # end
