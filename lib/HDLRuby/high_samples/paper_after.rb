@@ -14,7 +14,7 @@ def after(number, clk = $clk, rst = $rst, &code)
         hif(counter >= number) { instance_eval(&code) }
     else
         counter = uniq_name
-        cur_systemT.open do
+        cur_system.open do
             counter = [Math::log2(number).to_i+1].inner counter
             behavior(clk.posedge,rst.posedge) do
                 hif(rst) { counter <= 0 }

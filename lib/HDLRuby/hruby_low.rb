@@ -227,22 +227,42 @@ module HDLRuby::Low
                      self.has_inner? )
         end
 
-        ## Gets an input signal by +name+.
+        # Gets an array containing all the input signals.
+        def get_all_inputs
+            return each_input.to_a
+        end
+
+        # Gets an array containing all the output signals.
+        def get_all_outputs
+            return each_output.to_a
+        end
+
+        # Gets an array containing all the inout signals.
+        def get_all_inouts
+            return each_inout.to_a
+        end
+
+        # Gets an array containing all the signals.
+        def get_all_signals
+            return each_signal.to_a
+        end
+
+        # Gets an input signal by +name+.
         def get_input(name)
             return @inputs[name.to_sym]
         end
 
-        ## Gets an output signal by +name+.
+        # Gets an output signal by +name+.
         def get_output(name)
             return @outputs[name.to_sym]
         end
 
-        ## Gets an inout signal by +name+.
+        # Gets an inout signal by +name+.
         def get_inout(name)
             return @inouts[name.to_sym]
         end
 
-        # ## Gets an inner signal by +name+.
+        # # Gets an inner signal by +name+.
         # def get_inner(name)
         #     return @inners[name.to_sym]
         # end
@@ -487,6 +507,11 @@ module HDLRuby::Low
         # Tells if there is any signal, equivalent to has_inner?
         def has_signal?
             return self.has_inner?
+        end
+
+        ## Gets an array containing all the inner signals.
+        def get_all_inners
+            return each_inner.to_a
         end
 
         ## Gets an inner signal by +name+.
@@ -1120,6 +1145,11 @@ module HDLRuby::Low
             @types = content
         end
 
+        # Gets an array containing all the syb types.
+        def get_all_types
+            return @types.clone
+        end
+
         # Gets a sub type by +index+.
         def get_type(index)
             return @types[index.to_i]
@@ -1177,6 +1207,11 @@ module HDLRuby::Low
                 end
                 [ k.to_sym, v ]
             end.to_h
+        end
+
+        # Gets an array containing all the syb types.
+        def get_all_types
+            return @types.values
         end
 
         # Gets a sub type by +name+.

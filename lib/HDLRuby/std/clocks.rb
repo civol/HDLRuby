@@ -15,8 +15,8 @@ module HDLRuby::High::Std
     def make_clock(event, times)
         clock = nil # The resulting clock
 
-        # Enters the current systemT
-        HDLRuby::High.cur_systemT.open do
+        # Enters the current system
+        HDLRuby::High.cur_system.open do
 
             # Ensures times is a value.
             times = times.to_value
@@ -84,8 +84,8 @@ module HDLRuby::High::Std
     def make_2edge_clock(event,times)
         clock = nil # The resulting clock
 
-        # Enters the current systemT
-        HDLRuby::High.cur_systemT.open do
+        # Enters the current system
+        HDLRuby::High.cur_system.open do
             # Ensure times is a value.
             times = times.to_value
 
