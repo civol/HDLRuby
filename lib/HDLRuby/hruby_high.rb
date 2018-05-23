@@ -1225,7 +1225,7 @@ module HDLRuby::High
         def behavior(*events, &ruby_block)
             # Preprocess the events.
             events.map! do |event|
-                event.to_event
+                event.respond_to?(:to_event) ? event.to_event : event
             end
             # Create and add the resulting behavior.
             self.add_behavior(Behavior.new(*events,&ruby_block))
@@ -1247,13 +1247,14 @@ module HDLRuby::High
             end
         end
 
-        # Creates a new sequential block built from +ruby_block+.
+        # Creates a new sequential block with possible +name+ and
+        # built from +ruby_block+.
         #
-        # This methods first creates a new behavior to put the block in.
-        def seq(&ruby_block)
-            self.behavior do
-                seq(&ruby_block)
-            end
+        # This methods first creates a new behavior to put the block in,
+        # but if no block is given returns :seq.
+        def seq(name = :"", &ruby_block)
+            return :seq unless ruby_block
+            self.behavior(:seq,&ruby_block)
         end
 
         # Statements automatically enclosed in a behavior.
