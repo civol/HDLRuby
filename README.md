@@ -496,8 +496,8 @@ For example, the following code declares a 1-bit inner signal named `w1` and a
 2-bit inner signal named `w2`:
 
 ```ruby
-inner w1
-[1..0].inner w2
+inner :w1
+[1..0].inner :w2
 ```
 
 A connection between signals is done using the arrow operator `<=` as follows:
@@ -1166,7 +1166,7 @@ __Notes__:
    following code will actually  set `sig` to 4 instead of 100:
 
    ```ruby
-   [3..0].inner sig
+   [3..0].inner :sig
    sig <= 100
    ```
 
@@ -1209,7 +1209,7 @@ end
 
 system :my_system do
    input :clk, :rst
-   { sub0: bit, sub1: bit}.inner sig
+   { sub0: bit, sub1: bit}.inner :sig
    
    dff(:dff0).(clk: clk, rst: rst)
    dff0.d <= sig.sub0
@@ -1396,7 +1396,7 @@ expressions of any type type to vectors of respectively `bit`, `unsigned` and
 hierarchical type to an 8-bit signed vector:
 
 ```ruby
-[ up: signed[3..0], down: unsigned[3..0] ].inner sig
+[ up: signed[3..0], down: unsigned[3..0] ].inner :sig
 sig.to_bit <= b01010011
 ```
 
@@ -1417,8 +1417,8 @@ More precisely, the bit width conversions operate as follows:
    right:
 
    ```ruby
-   [7..0].inner sig0
-   [11..0].inner sig1
+   [7..0].inner :sig0
+   [11..0].inner :sig1
    sig0 <= 25
    sig1 <= sig0.ljust(12,1)
    ```
@@ -1430,8 +1430,8 @@ More precisely, the bit width conversions operate as follows:
    the left:
 
    ```ruby
-   signed[7..0].inner sig0
-   [11..0].inner sig1
+   signed[7..0].inner :sig0
+   [11..0].inner :sig1
    sig0 <= -120
    sig1 <= sig0.zext(12)
    ```
@@ -1443,8 +1443,8 @@ More precisely, the bit width conversions operate as follows:
    right:
 
    ```ruby
-   signed[0..7].inner sig0
-   [0..11].inner sig1
+   signed[0..7].inner :sig0
+   [0..11].inner :sig1
    sig0 <= -120
    sig1 <= sig0.sext(12)
    ```
@@ -1471,9 +1471,9 @@ Concatenation and selection are done using the `[]` operator as follows:
    them. For example, the following code concatenates `sig0` to `sig1`:
 
    ```ruby
-   [3..0].inner sig0
-   [7..0].inner sig1
-   [11..0].inner sig2
+   [3..0].inner :sig0
+   [7..0].inner :sig1
+   [11..0].inner :sig2
    sig0 <= 5
    sig1 <= 6
    sig2 <= [sig0, sig1]
@@ -1486,10 +1486,10 @@ Concatenation and selection are done using the `[]` operator as follows:
    from 3 to 1 of `sig0` and bit 4 of `sig1`:
 
    ```ruby
-   [7..0].inner sig0
-   [7..0].inner sig1
-   [3..0].inner sig2
-   bit.inner    sig3
+   [7..0].inner :sig0
+   [7..0].inner :sig1
+   [3..0].inner :sig2
+   bit.inner    :sig3
    sig0 <= 5
    sig1 <= 6
    sig2 <= sig0[3..1]
