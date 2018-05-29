@@ -1,0 +1,115 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: with_seqI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: y
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: clk
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  outputs:
+  - SignalI:
+      name: o
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 16
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      name: ''
+      scopes: []
+      inners:
+      - SignalI:
+          name: w
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 16
+              - 0
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: posedge
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          block:
+            Block:
+              name: ''
+              mode: seq
+              inners: []
+              statements:
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: w
+                  right:
+                    Binary:
+                      operator: "+"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: x
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: y
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: o
+                  right:
+                    Binary:
+                      operator: "+"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: w
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: y
