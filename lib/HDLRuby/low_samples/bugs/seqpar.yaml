@@ -1,0 +1,184 @@
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: seqparI::T_
+  inputs:
+  - SignalI:
+      name: clk
+      type: bit
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  - SignalI:
+      name: y
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  outputs:
+  - SignalI:
+      name: o0
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  - SignalI:
+      name: o1
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      name: ''
+      scopes: []
+      inners:
+      - SignalI:
+          name: w0
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 7
+              - 0
+      - SignalI:
+          name: w1
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 7
+              - 0
+      - SignalI:
+          name: w2
+          type:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 7
+              - 0
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events:
+          - Event:
+              type: change
+              ref:
+                RefName:
+                  ref:
+                    RefThis: {}
+                  name: clk
+          block:
+            Block:
+              mode: par
+              name: ''
+              inners: []
+              statements:
+              - Block:
+                  mode: seq
+                  name: ''
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: w1
+                      right:
+                        Binary:
+                          operator: "-"
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: x
+                          right:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: y
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: w0
+                  right:
+                    Binary:
+                      operator: "+"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: w1
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: y
+              - Transmit:
+                  left:
+                    RefName:
+                      ref:
+                        RefThis: {}
+                      name: w2
+                  right:
+                    Binary:
+                      operator: "+"
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: w1
+                      right:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: w0
+              - Block:
+                  mode: seq
+                  name: ''
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          ref:
+                            RefThis: {}
+                          name: o1
+                      right:
+                        Binary:
+                          operator: "+"
+                          left:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: w0
+                          right:
+                            RefName:
+                              ref:
+                                RefThis: {}
+                              name: w2

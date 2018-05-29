@@ -1942,10 +1942,11 @@ module HDLRuby::Low
 
         # Creates a new +mode+ sort of block with possible +name+.
         def initialize(mode, name = :"")
-            # Check and set the name.
-            @name = name.to_sym
+            # puts "new block with mode=#{mode} and name=#{name}"
             # Check and set the type.
             @mode = mode.to_sym
+            # Check and set the name.
+            @name = name.to_sym
             # Initializes the list of inner statements.
             # @inners = {}
             @inners = HashName.new

@@ -71,8 +71,8 @@ SystemT:
                   name: clk
           block:
             Block:
-              name: ''
               mode: seq
+              name: ''
               inners: []
               statements:
               - Transmit:
