@@ -8,52 +8,54 @@ system :values do
 
     timed do
         !1.us
-        sig <= b4b1010
+        sig <= _1010
         !1.us
-        sig <= bb1001
+        sig <= _b4b1010
         !1.us
-        sig <= b1100
+        sig <= _bb1001
+        !1.us
+        sig <= _b1100
 
         !1.us
-        sig <= u4b1010
+        sig <= _u4b1010
         !1.us
-        sig <= ub1001
+        sig <= _ub1001
         !1.us
-        sig <= u1100
+        sig <= _u1100
 
         !1.us
-        sig <= s4b1010
+        sig <= _s4b1010
         !1.us
-        sig <= sb1001
+        sig <= _sb1001
         !1.us
-        sig <= s1100
+        sig <= _s1100
 
         !1.us
-        sig <= b12o0623
+        sig <= _b12o0623
         !1.us
-        sig <= bo0623
+        sig <= _bo0623
         !1.us
-        sig <= b12d0923
+        sig <= _b12d0923
         !1.us
-        sig <= bd0923
+        sig <= _bd0923
         !1.us
-        sig <= b16h0F2E
+        sig <= _b16h0F2E
         !1.us
-        sig <= bh0F2E
+        sig <= _bh0F2E
 
         !1.us
-        sig <= b1ZZX
+        sig <= _b1ZZX
 
         !1.us
-        sig <= b0110 + b0110
+        sig <= _b0110 + _b0110
         !1.us
-        sig <= b0110 - b0110
+        sig <= _b0110 - _b0110
         !1.us
-        sig <= b0110 * b0010
+        sig <= _b0110 * _b0010
         !1.us
-        sig <= b0110 / b0010
+        sig <= _b0110 / _b0010
         !1.us
-        sig <= b0110 % b0010
+        sig <= _b0110 % _b0010
     end
 end
 

@@ -4029,10 +4029,18 @@ module HDLRuby::High
         def to_value
             str = self.to_s
             # puts "str=#{str}"
+            return nil if str[0] != "_" # Bit string are prefixed by "_"
+            # Remove the "_" not needed any longer.
+            str = str[1..-1]
             # Get and check the type
             type = str[0]
-            # puts "type=#{type}"
-            str = str[1..-1]
+            if type == "0" or type == "1" then
+                # Default binary
+                type = "b"
+            else
+                # Not a default type
+                str = str[1..-1]
+            end
             return nil if str.empty?
             return nil unless ["b","u","s"].include?(type)
             # Get the width if any.
