@@ -1121,10 +1121,10 @@ and operations among other expressions using [expression operators](#operators).
 
 The immediate values of HDLRuby::High can represent vectors of `bit`,
 `unsigned` and `signed`, and integer or floating point numbers. They are
-described with a header that indicates the vector type and the base used for
-representing the value, followed by a numeral representing the value.  The bit
-width of a value is obtained by default from the width of the numeral, but it
-is also possible to enforce it in the header.
+prefixed by a `_` character and include a header that indicates the vector type
+and the base used for representing the value, followed by a numeral
+representing the value.  The bit width of a value is obtained by default from
+the width of the numeral, but it is also possible to enforce it in the header.
 
 The vector type specifiers are the followings:
  
@@ -1137,7 +1137,7 @@ The vector type specifiers are the followings:
 
 The base specifiers are the followings:
 
- - `b`: binary,
+ - `b`: binary, can be omitted,
 
  - `o`: octal,
  
@@ -1149,13 +1149,14 @@ For example, all the following immediate values represent an 8-bit `100` (either
 in unsigned or signed representation):
 
 ```ruby
-bb01100100
-b8b1100100
-b01100100
-u8d100
-s8d100
-uh64
-s8o144
+_bb01100100
+_b8b1100100
+_b01100100
+_01100100
+_u8d100
+_s8d100
+_uh64
+_s8o144
 ```
 
 __Notes__:
