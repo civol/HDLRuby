@@ -7,7 +7,7 @@ system :dff do
     input :clk, :rst, :d
     output :q
 
-    behavior(clk.posedge) { q <= d & ~rst }
+    par(clk.posedge) { q <= d & ~rst }
 end
 
 # A system wrapping a D-FF and exporting things.

@@ -12,7 +12,7 @@ system :dff do
 
     db <= ~d
 
-    behavior(clk.posedge) { q <= d & ~rst }
+    par(clk.posedge) { q <= d & ~rst }
 
     export :db
 end

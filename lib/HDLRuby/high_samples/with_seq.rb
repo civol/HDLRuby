@@ -9,7 +9,7 @@ system :with_seq do
     [16..0].inner :w
     [16..0].output :o
 
-    behavior(clk.posedge,seq) do
+    seq(clk.posedge) do
        w <= x + y
        o <= w + y
     end

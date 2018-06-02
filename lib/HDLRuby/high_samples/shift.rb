@@ -12,7 +12,7 @@ system :shift16 do
 
     dout <= reg[15] # The output is the last bit of the register.
 
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         hif(rst) { reg <= 0 }
         helse seq do
             reg[0] <= din

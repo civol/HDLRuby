@@ -9,44 +9,44 @@ system :saikoro do
 	[2..0].inner :cnt
 
 #1始まりの6進カウンタ
-	behavior(ck.posedge,reset.posedge) do
-	  hif(reset==b1b1) do
-		cnt<=b3h1
+	par(ck.posedge,reset.posedge) do
+	  hif(reset==_b1b1) do
+		cnt<=_b3h1
 	  end
-	  helsif(enable==b1b1) do
-		hif(cnt<=b3h6) do
-			cnt<=b3h1
+	  helsif(enable==_b1b1) do
+		hif(cnt<=_b3h6) do
+			cnt<=_b3h1
 	    end
 		helse do
-			cnt<=cnt+b3h1
+			cnt<=cnt+_b3h1
 		end
 	  end
 	end
 	
 	# [6..0].function :dec
 	# [2..0].input    :din
-	behavior do
+	par do
 	    hcase(cnt) 
-		hwhen b3h1 do
-			lamp <= b7b0001000
+		hwhen _b3h1 do
+			lamp <= _b7b0001000
 		end
-		hwhen b3h2 do
-			lamp <= b7b1000001
+		hwhen _b3h2 do
+			lamp <= _b7b1000001
 		end
-		hwhen b3h3 do 
-			lamp <= b7b0011100
+		hwhen _b3h3 do 
+			lamp <= _b7b0011100
 		end
-		hwhen b3h4 do 
-			lamp <= b7b1010101
+		hwhen _b3h4 do 
+			lamp <= _b7b1010101
 		end
-		hwhen b3h5 do 
-			lamp <= b7b1011101
+		hwhen _b3h5 do 
+			lamp <= _b7b1011101
 		end
-		hwhen b3h6 do
-			lamp <= b7b1110111
+		hwhen _b3h6 do
+			lamp <= _b7b1110111
 		end
 		helse do
-			lamp <= b7bxxxxxxx
+			lamp <= _b7bxxxxxxx
 	    end
     end
 	

@@ -1220,42 +1220,65 @@ module HDLRuby::High
             return scope.return_value
         end
 
-        # Declares a high-level behavior activated on a list of +events+, and
-        # built by executing +ruby_block+.
-        def behavior(*events, &ruby_block)
+        # # Declares a high-level behavior activated on a list of
+        # # +events+, and built by executing +ruby_block+.
+        # def behavior(*events, &ruby_block)
+        #     # Preprocess the events.
+        #     events.map! do |event|
+        #         event.respond_to?(:to_event) ? event.to_event : event
+        #     end
+        #     # Create and add the resulting behavior.
+        #     self.add_behavior(Behavior.new(*events,&ruby_block))
+        # end
+
+        # Declares a high-level sequential behavior activated on a list of
+        # +events+, and built by executing +ruby_block+.
+        def seq(*events, &ruby_block)
             # Preprocess the events.
             events.map! do |event|
                 event.respond_to?(:to_event) ? event.to_event : event
             end
             # Create and add the resulting behavior.
-            self.add_behavior(Behavior.new(*events,&ruby_block))
+            self.add_behavior(Behavior.new(:seq,*events,&ruby_block))
+        end
+
+        # Declares a high-level parallel behavior activated on a list of
+        # +events+, and built by executing +ruby_block+.
+        def par(*events, &ruby_block)
+            # Preprocess the events.
+            events.map! do |event|
+                event.respond_to?(:to_event) ? event.to_event : event
+            end
+            # Create and add the resulting behavior.
+            self.add_behavior(Behavior.new(:par,*events,&ruby_block))
         end
 
         # Declares a high-level timed behavior built by executing +ruby_block+.
+        # By default, timed behavior are sequential.
         def timed(&ruby_block)
             # Create and add the resulting behavior.
-            self.add_behavior(TimeBehavior.new(&ruby_block))
+            self.add_behavior(TimeBehavior.new(:seq,&ruby_block))
         end
 
 
-        # Creates a new parallel block built from +ruby_block+.
-        #
-        # This methods first creates a new behavior to put the block in.
-        def par(&ruby_block)
-            self.behavior do
-                par(&ruby_block)
-            end
-        end
+        # # Creates a new parallel block built from +ruby_block+.
+        # #
+        # # This methods first creates a new behavior to put the block in.
+        # def par(&ruby_block)
+        #     self.behavior do
+        #         par(&ruby_block)
+        #     end
+        # end
 
-        # Creates a new sequential block with possible +name+ and
-        # built from +ruby_block+.
-        #
-        # This methods first creates a new behavior to put the block in,
-        # but if no block is given returns :seq.
-        def seq(name = :"", &ruby_block)
-            return :seq unless ruby_block
-            self.behavior(:seq,&ruby_block)
-        end
+        # # Creates a new sequential block with possible +name+ and
+        # # built from +ruby_block+.
+        # #
+        # # This methods first creates a new behavior to put the block in,
+        # # but if no block is given returns :seq.
+        # def seq(name = :"", &ruby_block)
+        #     return :seq unless ruby_block
+        #     self.behavior(:seq,&ruby_block)
+        # end
 
         # Statements automatically enclosed in a behavior.
         
@@ -1266,7 +1289,7 @@ module HDLRuby::High
         #  * the else part is defined through the helse method.
         #  * a behavior is created to enclose the hif.
         def hif(condition, mode = nil, &ruby_block)
-            self.behavior do
+            self.par do
                 hif(condition,mode,&ruby_block)
             end
         end
@@ -1310,7 +1333,7 @@ module HDLRuby::High
         #  * the when part is defined through the hwhen method.
         #  * a new behavior is created to enclose the hcase.
         def hcase(value)
-            self.behavior do
+            self.par do
                 hcase(condition,value)
             end
         end
@@ -2957,7 +2980,7 @@ module HDLRuby::High
             # be put in a new behavior instead.
             left.parent = right.parent = nil
             # Create the new behavior replacing the connection.
-            behavior = Behavior.new(event) do
+            behavior = Behavior.new(:par,event) do
                 left <= right
             end
             # Adds the behavior.
@@ -2978,7 +3001,7 @@ module HDLRuby::High
             # be put in a new behavior instead.
             left.parent = right.parent = nil
             # Create the new behavior replacing the connection.
-            behavior = Behavior.new() do
+            behavior = Behavior.new(:par) do
                 hif(condition) do
                     left <= right
                 end
@@ -3518,17 +3541,17 @@ module HDLRuby::High
 
         # Creates a new behavior executing +block+ activated on a list of
         # +events+, and built by executing +ruby_block+.
-        def initialize(*events,&ruby_block)
+        # +mode+ can be either :seq or :par for respectively sequential or
+        # parallel.
+        def initialize(mode,*events,&ruby_block)
             # Create a default par block for the behavior.
             # block = High.make_block(:par,&ruby_block)
-            mode = nil
-            if events.last.respond_to?(:to_sym) then
-                # A mode is given, use it.
-                mode = events.pop.to_sym
-            end
-            # block = High.make_block(mode,&ruby_block)
+            # mode = nil
+            # if events.last.respond_to?(:to_sym) then
+            #     # A mode is given, use it.
+            #     mode = events.pop.to_sym
+            # end
             # Initialize the behavior with it.
-            # super(block)
             super(nil)
             # Sets the current behavior
             @@cur_behavior = self
@@ -3575,11 +3598,9 @@ module HDLRuby::High
         # end
 
         # Creates a new timed behavior built by executing +ruby_block+.
-        def initialize(mode = nil, &ruby_block)
+        # +mode+ can be either :seq or :par for respectively sequential or
+        def initialize(mode, &ruby_block)
             # Create a default par block for the behavior.
-            # NOTE: this block is forced to TimeBlock, so do not use
-            # block(:par).
-            # block = High.make_time_block(:par,&ruby_block)
             block = High.make_time_block(mode,&ruby_block)
             # Initialize the behavior with it.
             super(block)

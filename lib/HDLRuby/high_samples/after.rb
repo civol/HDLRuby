@@ -12,7 +12,7 @@ system :with_after do
     input :clk,:rst
     output :timeout
 
-    behavior(clk.posedge,rst.posedge) do
+    par(clk.posedge,rst.posedge) do
         timeout <= 0
         after(100,rst) { timeout <= 1 }
     end

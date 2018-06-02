@@ -8,7 +8,7 @@ system :conditionals do
     [15..0].input :x,:y
     output :s
 
-    behavior do
+    par do
         hif x <= y do
             s <= 0
         end

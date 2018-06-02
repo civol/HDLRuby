@@ -11,7 +11,7 @@ system :ram8_16 do
     bit[7..0][2**16].inner :content
 
     # Reading the memory
-    data <= mux(en && rwb, content[addr], bhZZ)
+    data <= mux(en && rwb, content[addr], _bhZZ)
     # Writing the memory
     ( content[addr] <= data ).hif(en && ~rwb)
 end

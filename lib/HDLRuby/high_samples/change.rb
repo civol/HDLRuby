@@ -8,7 +8,7 @@ system :with_change do
     [15..0].input :x,:y
     [16..0].output :s
 
-    behavior x,y do
+    par x,y do
         s <= x + y
     end
 end

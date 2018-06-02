@@ -9,7 +9,7 @@ system :dff0 do
 
     qb <= ~q
 
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         q <= d & ~rst
     end
 end

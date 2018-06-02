@@ -7,7 +7,7 @@ system :systemA do
     input :clk, :rst
     [7..0].output :data
 
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         ( data <= mux(rst == 0, 0, data + 1) ).hif(data.can_write)
     end
 end
@@ -19,7 +19,7 @@ system :systemB do
     [7..0].input :data
     output :result
 
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         ( result <= mux(data == 0, 0, 1) ).hif(data.can_read)
     end
 end
@@ -53,7 +53,7 @@ system :serialAB do
     inner :sdat          # Serial data line
 
     # Handle the serial transmission A side.
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         hif (rst) {
             scntA <= 0
         }
@@ -64,7 +64,7 @@ system :serialAB do
     end
 
     # Handle the serial transmission B side.
-    behavior(clk.negedge) do
+    par(clk.negedge) do
         hif rst do
             scntB <= 0
         end ; helse do

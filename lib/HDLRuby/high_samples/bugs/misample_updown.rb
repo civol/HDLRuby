@@ -8,13 +8,13 @@ system :updown_cnt do
 	[3..0].inner  :q
 	
 	hif (res) do
-		q<=b4h0
+		q<=_b4h0
 	end
 	helsif(down) do
-		q<=q-b4h1	
+		q<=q-_b4h1	
 	end
 	helse do
-		q<=q+b4h1
+		q<=q+_b4h1
 	end
 end
 

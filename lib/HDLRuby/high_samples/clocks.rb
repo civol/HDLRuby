@@ -14,12 +14,12 @@ system :with_clocks do
 
     configure_clocks(rst)
 
-    behavior(clk.posedge * 2) do
+    par(clk.posedge * 2) do
         hif(rst) { sig0 <= 0 }
         helse { sig0 <= ~sig0 }
     end
 
-    behavior(clk.posedge * 3) do
+    par(clk.posedge * 3) do
         hif(rst) { sig1 <= 0 }
         helse { sig1 <= ~sig1 }
     end

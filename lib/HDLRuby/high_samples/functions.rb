@@ -9,7 +9,7 @@ end
 
 def hello_mix(u,v,w)
     puts "hello_mix"
-    behavior do
+    par do
         inner :something
         w <= u - v
     end

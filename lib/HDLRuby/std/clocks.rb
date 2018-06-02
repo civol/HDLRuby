@@ -38,7 +38,7 @@ module HDLRuby::High::Std
             clock = get_inner(name)
             
             # Control it.
-            behavior(event) do
+            par(event) do
                 hif(@@__clocks_rst) do
                     counter.to_ref <= times.to_expr
                     clock.to_ref <= 0
@@ -114,13 +114,13 @@ module HDLRuby::High::Std
             clock = get_inner(name)
 
             # Control the event counter
-            behavior(event) do
+            par(event) do
                 hif(@@__clocks_rst | counter.to_expr == 0) do
                     counter.to_ref <= times.to_expr/2 + 1
                 end
             end
             # Control the inverteed event counter
-            behavior(event.invert) do
+            par(event.invert) do
                 hif(@@__clocks_rst | counter_inv.to_expr == 0) do
                     counter_inv.to_ref <= times.to_expr/2 + 1
                 end

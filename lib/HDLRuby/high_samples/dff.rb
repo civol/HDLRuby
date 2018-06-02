@@ -10,7 +10,7 @@ system :dff do
 
     qb <= ~q
 
-    behavior(clk.posedge) { q <= d & ~rst }
+    par(clk.posedge) { q <= d & ~rst }
 end
 
 # Instantiate it for checking.

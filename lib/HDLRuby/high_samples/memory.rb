@@ -10,7 +10,7 @@ system :mem8_16 do
 
     bit[7..0][2**16].inner :content
     
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         hif(rwb) { data <= content[addr] }
         helse    { content[addr] <= data }
     end

@@ -8,7 +8,7 @@ system :blockblock do
     output :o0,:o1
     inner  :s0
 
-    behavior do
+    par do
         inner :s0
         sub do
             inner :s0

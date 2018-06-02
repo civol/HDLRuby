@@ -7,37 +7,37 @@ system :led7seg do
 	[6..0].output :out
 	[6..0].inner :out
 	
-	behavior do
+	par do
 		hcase(in0)
 			hwhen 0 do
-				out <= b7b0111111
+				out <= _b7b0111111
 			end
 			hwhen 1 do
-				out <= b7b0000110
+				out <= _b7b0000110
 			end
 			hwhen 2 do
-				out <= b7b1011011
+				out <= _b7b1011011
 			end
 			hwhen 3 do
-				out <= b7b1001111
+				out <= _b7b1001111
 			end
 			hwhen 4 do
-				out <= b7b1100110
+				out <= _b7b1100110
 			end
 			hwhen 5 do
-				out <= b7b1111101
+				out <= _b7b1111101
 			end
 			hwhen 6 do
-				out <= b7b1111101
+				out <= _b7b1111101
 			end
 			hwhen 7 do
-				out <= b7b0000111
+				out <= _b7b0000111
 			end
 			hwhen 8 do
-				out <= b7b1111111
+				out <= _b7b1111111
 			end
 			hwhen 9 do
-				out <= b7b1100111
+				out <= _b7b1100111
 			end
 			helse do 
 				out <= 0

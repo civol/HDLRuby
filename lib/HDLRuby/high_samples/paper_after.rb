@@ -16,7 +16,7 @@ def after(number, clk = $clk, rst = $rst, &code)
         counter = uniq_name
         cur_system.open do
             counter = [Math::log2(number).to_i+1].inner counter
-            behavior(clk.posedge,rst.posedge) do
+            par(clk.posedge,rst.posedge) do
                 hif(rst) { counter <= 0 }
                 helse { counter <= counter + 1 }
             end
@@ -34,7 +34,7 @@ system :test_after0 do
     after(10,clk,rst) { sig0 <= 1 }
     helse             { sig0 <= 0 }
 
-    behavior(clk.posedge,rst.posedge) do
+    par(clk.posedge,rst.posedge) do
         sig1 <= 0
         after(20) { sig1 <= 1 }
     end
