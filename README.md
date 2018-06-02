@@ -107,7 +107,7 @@ system :dff do
    bit.input :clk, :rst, :d
    bit.output :q
 
-   behavior(clk.posedge) do
+   par(clk.posedge) do
       q <= d & ~rst
    end
 end
@@ -119,7 +119,9 @@ describing a digital circuit. This keyword is an equivalent of the Verilog's
 construct where `type` is the data type of the signal (e.g., `bit` as in the
 code above) and `direction` indicates if the signal is an input, an output, an
 inout or an inner one; and executable blocks (similar to `always` block of
-Verilog) are described using the `behavior` keyword.
+Verilog) are described using the `par` keyword when they are parallel and
+`seq` when they are sequential (i.e, with respectively non-blocking and
+blocking assignments).
 
 Once described, a HDLRuby::High system can be converted to a low-level
 description (HDLRuby::Low) using the `to_low` method.  For example the
@@ -451,7 +453,7 @@ system :mem8_16 do
 
     bit[7..0][2**16].inner :content
     
-    behavior(clk.posedge) do
+    par(clk.posedge) do
         hif(rwb) { data <= content[addr] }
         helse    { content[addr] <= data }
     end
@@ -603,14 +605,15 @@ end
 
 #### Behavioral description in a system.
 
-In a system, behavioral descriptions are declared using the `behavior` keyword.
-They are the equivalent of the Verilog `always` blocks.
+In a system, paraellel behavioral descriptions are declared using the `par`
+keyword.  and sequential behavioral descriptions are declared using the the
+`seq` keyword.  They are the equivalent of the Verilog `always` blocks.
 
 A behavior is made of a list of events (the sensitivity list) upon which it is
 activated, and a list of statements. A behavior is declared as follows:
 
 ```ruby
-behavior <list of events> do
+par <list of events> do
    <list of statements>
 end
 ```
@@ -650,55 +653,59 @@ connection is continuously executed, a transmission is only executed during
 the execution of its block.
 
 A block comprises a list of statements. It is used for adding hierarchy
-within a behavior. By default a block statement is in parallel mode, i.e., it's
-execution is equivalent to a parallel execution.  For that purpose, the
-transmission statements in such a block are non-blocking, i.e., the destination
-values will only change when the block is fully executed.  The other possible
-execution mode is called sequential and corresponds to a true sequential
-execution.  For this latter mode, the transmissions are blocking, i.e., the
-destination value of a transmission is updated before the next statement is
-executed. A behavior based on a sequential block is declared as follows:
+within a behavior. Blocks can be either parallel or sequential, i.e., their
+transmission statements are respectively non-blocking or blocking.
+By default, a top block is created when declaring a behavior, and it
+inherits from its execution mode. For example, with the following code,
+the top block of the behavior is sequential.
 
 ```ruby
-behavior <list of events>,seq do
-   <list of statements>
+system :with_sequential_behavior do
+   seq do
+      <list of statements>
+   end
 end
 ```
 
-It is possible to change the execution mode inside a block by declaring a new
-block statement. An sequential inner block is declared as follows:
+It is possible to declare new blocks within an existing block.
+For declaring a sub block with the same execution mode as the upper one,
+the keyword `sub` is used. For example, the following code declare a
+sub block within a sequential block, with the same execution mode:
 
 ```ruby
-seq do
-   <list of statements>
+system :with_sequential_behavior do
+   seq do
+      <list of statements>
+      sub do
+         <list of statements>
+      end
+   end
 end
 ```
 
-It is also possible to declare a parallel block statement as follows:
+A sub block can also have a different execution mode if it is declared using
+`seq`, that will force sequential execution mode, and `par` that will force
+parallel execution mode. For example in the following code, a parallel sub
+block is declared within a sequential one:
 
 ```ruby
-par do
-   <list of statements>
+system :with_sequential_behavior do
+   seq do
+      <list of statements>
+      par do
+         <list of statements>
+      end
+   end
 end
 ```
 
-Finally it is possible to declare a block statement with the same mode as the
-enclosing one as follows:
-
-```ruby
-sub do
-    <list of statements>
-end
-```
-
-This latter kind of block statement is used for creating a new scope for
-declaring signals without colliding with existing ones while keeping the
-current execution mode. For example it is possible to declare three different
-inner signals all called `sig` as follows:
+Sub blocks have their own scope so that it is possible to declare signals 
+signals without colliding with existing ones. For example it is possible to
+declare three different inner signals all called `sig` as follows:
 
 ```ruby
 ...
-behavior(<sensibility list>) do
+par(<sensibility list>) do
    inner :sig
    ...
    sub do
@@ -726,7 +733,7 @@ system :shift16 do
 
    dout <= reg[15] # The output is the last bit of the register.
 
-   behavior(clk.posedge) do
+   par(clk.posedge) do
       hif(rst) { reg <= 0 }
       helse do
          reg[0] <= din
@@ -751,7 +758,7 @@ system :shift16 do
 
    dout <= reg[15] # The output is the last bit of the register.
 
-   behavior(clk.posedge) do
+   par(clk.posedge) do
       hif(rst) { reg <= 0 }
       helse seq do
          reg[0] <= din
@@ -785,7 +792,7 @@ as follows:
 For example the following two code samples are equivalent:
 
 ```ruby
-behavior(clk.posedge) do
+par(clk.posedge) do
    a <= b+1
 end
 ```
@@ -795,7 +802,7 @@ end
 ```
 
 This operator can also be applied on block statements as follows, but the code
-might not be as readable as one using the `behavior` keyword:
+might not be as readable as one using the `par` or `seq` keywords:
 
 ```ruby
 ( seq do
@@ -826,15 +833,15 @@ of the `clk` signal.
 ```ruby
 inner :clk
 
-behavior(clk.posedge) do
+par(clk.posedge) do
 ...
 end
 
-behavior(clk.negedge) do
+par(clk.negedge) do
 ...
 end
 
-behavior(clk.change) do
+par(clk.change) do
 ...
 end
 ```
@@ -1205,7 +1212,7 @@ system :dff do
    input :clk, :rst, :d
    output :q
 
-   behavior(clk.posedge) { q <= d & ~rst }
+   par(clk.posedge) { q <= d & ~rst }
 end
 
 system :my_system do
@@ -1640,8 +1647,8 @@ There are two kinds of such statements:
 
 #### Parallel and sequential execution
 
-Time behaviors can include both parallel and sequential blocks. The execution
-semantic is the following:
+Time behaviors are by default sequential but they can include both parallel and
+sequential blocks. The execution semantic is the following:
 
  - A sequential block in a time behavior is executed sequentially.
 
@@ -1784,7 +1791,7 @@ system :dff do
    input :clk, :rst, :d
    output :q
 
-   behavior(clk.posedge) { q <= d & ~rst }
+   par(clk.posedge) { q <= d & ~rst }
 end
 
 system :dff_full do
@@ -2156,7 +2163,7 @@ system :sys1 do
    input :sig0, :clk
    output :sig1
 
-   behavior(clk.posedge) do
+   par(clk.posedge) do
       some_arrow
    end
 end
@@ -2190,7 +2197,7 @@ __Warning__:
   end
 
   system :sys2 do
-     behavior do
+     par do
         in_decl
      end
   end
@@ -2258,7 +2265,7 @@ system :led_after do
    output :led
    input :clk
 
-   behavior(clk.posedge) do
+   par(clk.posedge) do
       (led <= 0).hif($reset)
       after(100000) { led <= 1 }
    end
