@@ -13,7 +13,7 @@ system :with_names do
         a <= x + y
     end
 
-    behavior do
+    par do
         inner :a
         a <= me.a * z
 
