@@ -19,6 +19,7 @@ module HDLRuby
         # Type resolution: decide which class to use for representing
         # a computating result with +type+.
         def resolve(type)
+            # puts "type=#{type}"
             if self.float? then
                 return self
             elsif type.float? then
@@ -37,6 +38,22 @@ module HDLRuby
                 return type
             end
         end
+
+        # Range access with +idx+
+        # NOTE: 
+        #  - +idx+ may be a range.
+        #  - Do not use the [] operator for this since it is used for
+        #    defining vector types!
+        def slice(idx)
+            if idx.is_a?(Range) then
+                # Make a resized vector.
+                return make(:"",self.base,idx)
+            else
+                # Return the base type.
+                return self.base
+            end
+        end
+
 
         # Arithmetic operations
 
@@ -140,6 +157,7 @@ module HDLRuby
 
         # Equals
         alias :== :&
+        alias :!= :&
 
         # Inferior
         alias :< :&

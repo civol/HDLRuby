@@ -1,10 +1,11 @@
-# require "HDLRuby/hruby_base"
+"HDLRuby/hruby_base"
 require "HDLRuby/hruby_low"
 require "HDLRuby/hruby_types"
 require "HDLRuby/hruby_values"
 require "HDLRuby/hruby_bstr"
 
 require 'set'
+require 'forwardable'
 
 ##
 # High-level libraries for describing digital hardware.        
@@ -230,7 +231,7 @@ module HDLRuby::High
             choices = choices.flatten(1) if choices.size == 1
             choices.map! { |choice| choice.to_expr }
             # Generate the select expression.
-            return Select.new("?",select.to_expr,*choices)
+            return Select.new(choices[0].type,"?",select.to_expr,*choices)
         end
     end
 
@@ -574,15 +575,13 @@ module HDLRuby::High
             # Fills the scope of the eigen class.
             eigen.scope.build_top(self.scope,*args)
             # puts "eigen scope=#{eigen.scope}"
-            
+
             # Fill the public namespace
             space = eigen.public_namespace
             # Interface signals
             eigen.each_signal do |signal|
                 # space.send(:define_singleton_method,signal.name) { signal }
                 space.send(:define_singleton_method,signal.name) do
-                    # RefName.new(eigen.owner.to_ref,signal.name)
-                    # RefName.new(eigen.owner.to_ref,signal)
                     RefObject.new(eigen.owner.to_ref,signal)
                 end
             end
@@ -590,8 +589,6 @@ module HDLRuby::High
             eigen.each_export do |export|
                 # space.send(:define_singleton_method,export.name) { export }
                 space.send(:define_singleton_method,export.name) do
-                    # RefName.new(eigen.owner.to_ref,export.name)
-                    # RefName.new(eigen.owner.to_ref,export)
                     RefObject.new(eigen.owner.to_ref,export)
                 end
             end
@@ -600,7 +597,8 @@ module HDLRuby::High
             instance = @instance_class.new(i_name,eigen)
             # Link it to its eigen system
             eigen.owner = instance
-            # Extend it.
+
+            # Extend the instance.
             instance.eigen_extend(@singleton_instanceO)
             # puts "instance scope= #{instance.systemT.scope}"
             # Return the resulting instance
@@ -1144,8 +1142,6 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            # return RefName.new(this,self.name)
-            # return RefName.new(this,self)
             return RefObject.new(this,self)
         end
 
@@ -1688,6 +1684,21 @@ module HDLRuby::High
     
     # Creates the basic types.
     
+    # Module providing the properties of a basic type.
+    # NOTE: requires method 'to_low' to be defined.
+    module HbasicType
+        # Get all the metods from Low::Bit appart from 'base'
+        extend Forwardable
+        def_delegators :to_low, :signed?, :unsigned?, :fixed?, :float?,
+                              :width, :range
+
+        # Get the base type, actually self for leaf types.
+        def base
+            self
+        end
+
+    end
+   
     # Defines a basic type +name+.
     def self.define_type(name)
         name = name.to_sym
@@ -1696,54 +1707,83 @@ module HDLRuby::High
         return type
     end
 
-    # # The void type.
-    # define_type :void
+    # The void type
+    Void = define_type(:void)
+    class << Void
+        # Converts the type to HDLRuby::Low.
+        def to_low
+            return Low::Void
+        end
+
+        include HbasicType
+    end
 
     # The bit type.
     Bit = define_type(:bit)
     class << Bit
-        # Tells if the type fixed point.
-        def fixed?
-            return true
+        # # Tells if the type fixed point.
+        # def fixed?
+        #     return true
+        # end
+        # # Gets the bitwidth of the type, nil for undefined.
+        # def width
+        #     1
+        # end
+
+        # Converts the type to HDLRuby::Low.
+        def to_low
+            return Low::Bit
         end
-        # Gets the bitwidth of the type, nil for undefined.
-        def width
-            1
-        end
+
+        include HbasicType
     end
 
     # The signed bit type.
     Signed = define_type(:signed)
     class << Signed 
-        # Tells if the type is signed.
-        def signed?
-            return true
+        # # Tells if the type is signed.
+        # def signed?
+        #     return true
+        # end
+        # # Tells if the type is fixed point.
+        # def fixed?
+        #     return true
+        # end
+        # # Gets the bitwidth of the type, nil for undefined.
+        # def width
+        #     1
+        # end
+
+        # Converts the type to HDLRuby::Low.
+        def to_low
+            return Low::Signed
         end
-        # Tells if the type is fixed point.
-        def fixed?
-            return true
-        end
-        # Gets the bitwidth of the type, nil for undefined.
-        def width
-            1
-        end
+
+        include HbasicType
     end
 
     # The unsigned bit type.
     Unsigned = define_type(:unsigned)
     class << Unsigned
-        # Tells if the type is unsigned.
-        def unsigned?
-            return true
+        # # Tells if the type is unsigned.
+        # def unsigned?
+        #     return true
+        # end
+        # # Tells if the type is fixed point.
+        # def fixed?
+        #     return true
+        # end
+        # # Gets the bitwidth of the type, nil for undefined.
+        # def width
+        #     1
+        # end
+
+        # Converts the type to HDLRuby::Low.
+        def to_low
+            return Low::Unsigned
         end
-        # Tells if the type is fixed point.
-        def fixed?
-            return true
-        end
-        # Gets the bitwidth of the type, nil for undefined.
-        def width
-            1
-        end
+
+        include HbasicType
     end
 
     # # The numeric type (for all the Ruby Numeric types).
@@ -1752,19 +1792,29 @@ module HDLRuby::High
     # The float bit type
     Float = define_type(:float)
     class << Float
-        # Tells if the type is signed.
-        def signed?
-            return true
+        # # Tells if the type is signed.
+        # def signed?
+        #     return true
+        # end
+        # # Tells if the type is floating point.
+        # def float?
+        #     return true
+        # end
+        # # Gets the bitwidth of the type, nil for undefined.
+        # def width
+        #     1
+        # end
+
+        # Converts the type to HDLRuby::Low.
+        def to_low
+            return Low::Float
         end
-        # Tells if the type is floating point.
-        def float?
-            return true
-        end
-        # Gets the bitwidth of the type, nil for undefined.
-        def width
-            1
-        end
+
+        include HbasicType
     end
+    
+
+
 
 
 
@@ -2024,19 +2074,19 @@ module HDLRuby::High
     #     return TypeUnion.new(:"",content)
     # end
 
-    # Creates type named +name+ and using +ruby_block+ for building it.
-    def type(name,&ruby_block)
-        # Builds the type.
-        type = HDLRuby::High.top_user.instance_eval(&ruby_block)
-        # Ensures type is really a type.
-        # unless type.is_a?(Type) then
-        unless type.respond_to?(:htype?) then
-            raise "Invalid class for a type: #{type.class}."
-        end
-        # Name it.
-        type.name = name
-        return type
-    end
+    # # Creates type named +name+ and using +ruby_block+ for building it.
+    # def type(name,&ruby_block)
+    #     # Builds the type.
+    #     type = HDLRuby::High.top_user.instance_eval(&ruby_block)
+    #     # Ensures type is really a type.
+    #     # unless type.is_a?(Type) then
+    #     unless type.respond_to?(:htype?) then
+    #         raise "Invalid class for a type: #{type.class}."
+    #     end
+    #     # Name it.
+    #     type.name = name
+    #     return type
+    # end
 
     # Methods for declaring systems
 
@@ -2103,12 +2153,20 @@ module HDLRuby::High
             High.space_reg(name) { obj }
         end
 
+        # The type of a systemI: for now Void (may change in the future).
+        def type
+            return void
+        end
 
         # Converts to a new reference.
         def to_ref
-            # return RefName.new(this,self.name)
-            # return RefName.new(this,self)
-            return RefObject.new(this,self)
+            if self.name.empty? then
+                # No name, happens if inside the systemI so use this.
+                return this
+            else
+                # A name.
+                return RefObject.new(this,self)
+            end
         end
 
         # Connects signals of the system instance according to +connects+.
@@ -2127,8 +2185,6 @@ module HDLRuby::High
                     # Gets the signal corresponding to connect.
                     left = self.get_signal(left)
                     # Convert it to a reference.
-                    # left = RefName.new(self.to_ref,left.name)
-                    # left = RefName.new(self.to_ref,left)
                     left = RefObject.new(self.to_ref,left)
                     # Make the connection.
                     left <= right
@@ -2139,8 +2195,6 @@ module HDLRuby::High
                     # Gets i-est signal to connect
                     ssig = self.get_interface(i)
                     # Convert it to a reference.
-                    # ssig = RefName.new(self.to_ref,ssig.name)
-                    # ssig = RefName.new(self.to_ref,ssig)
                     ssig = RefObject.new(self.to_ref,ssig)
                     # Make the connection.
                     ssig <= csig
@@ -2393,7 +2447,9 @@ module HDLRuby::High
         [:"-@",:"@+",:"!",:"~",
          :boolean, :bit, :signed, :unsigned].each do |operator|
             define_method(operator) do
-                return Unary.new(operator,self.to_expr)
+                # return Unary.new(operator,self.to_expr)
+                return Unary.new(self.to_expr.type.send(operator),operator,
+                                 self.to_expr)
             end
         end
 
@@ -2402,7 +2458,10 @@ module HDLRuby::High
          :"&",:"|",:"^",:"<<",:">>",
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
             define_method(operator) do |right|
-                return Binary.new(operator,self.to_expr,right.to_expr)
+                # return Binary.new(operator,self.to_expr,right.to_expr)
+                return Binary.new(
+                    self.to_expr.type.send(operator,right.to_expr.type),
+                    operator, self.to_expr,right.to_expr)
             end
         end
 
@@ -2533,12 +2592,15 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            return Unary.new(self.operator,self.child.to_expr)
+            # return Unary.new(self.operator,self.child.to_expr)
+            return Unary.new(self.type,self.operator,self.child.to_expr)
         end
 
         # Converts the unary expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Unary.new(self.operator,self.child.to_low)
+            # return HDLRuby::Low::Unary.new(self.operator,self.child.to_low)
+            return HDLRuby::Low::Unary.new(self.type.to_low, self.operator,
+                                           self.child.to_low)
         end
     end
 
@@ -2550,12 +2612,15 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            return Binary.new(self.operator,self.left.to_expr,self.right.to_expr)
+            # return Binary.new(self.operator,self.left.to_expr,self.right.to_expr)
+            return Binary.new(self.type, self.operator,
+                              self.left.to_expr, self.right.to_expr)
         end
 
         # Converts the binary expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Binary.new(self.operator,
+            # return HDLRuby::Low::Binary.new(self.operator,
+            return HDLRuby::Low::Binary.new(self.type.to_low, self.operator,
                                            self.left.to_low, self.right.to_low)
         end
     end
@@ -2576,7 +2641,7 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            return Select.new("?",self.select.to_expr,
+            return Select.new(self.type,"?",self.select.to_expr,
             *self.each_choice.map do |choice|
                 choice.to_expr
             end)
@@ -2584,7 +2649,9 @@ module HDLRuby::High
 
         # Converts the selection expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Select.new("?",self.select.to_low,
+            # return HDLRuby::Low::Select.new("?",self.select.to_low,
+            return HDLRuby::Low::Select.new(self.type.to_low,"?",
+                                            self.select.to_low,
             *self.each_choice.map do |choice|
                 choice.to_low
             end)
@@ -2599,7 +2666,12 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            return Concat.new(
+            # return Concat.new(
+            #     self.each_expression.lazy.map do |expr|
+            #         expr.to_expr
+            #     end
+            # )
+            return Concat.new(self.type,
                 self.each_expression.lazy.map do |expr|
                     expr.to_expr
                 end
@@ -2608,7 +2680,11 @@ module HDLRuby::High
 
         # Converts the concatenation expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Concat.new(
+            # return HDLRuby::Low::Concat.new(
+            #     self.each_expression.lazy.map do |expr|
+            #         expr.to_low
+            #     end
+            return HDLRuby::Low::Concat.new(self.type.to_low,
                 self.each_expression.lazy.map do |expr|
                     expr.to_low
                 end
@@ -2689,13 +2765,16 @@ module HDLRuby::High
             end 
             if rng.is_a?(HDLRuby::Low::Expression) then
                 # Index case
-                return RefIndex.new(self.to_ref,rng)
+                # return RefIndex.new(self.to_ref,rng)
+                return RefIndex.new(self.type.base,self.to_ref,rng)
             else
                 # Range case, ensure it is made among expression.
                 first = rng.first.to_expr
                 last = rng.last.to_expr
                 # Abd create the reference.
-                return RefRange.new(self.to_ref,first..last)
+                # return RefRange.new(self.to_ref,first..last)
+                return RefRange.new(self.type.slice(first..last),
+                                    self.to_ref,first..last)
             end
         end
 
@@ -2730,6 +2809,13 @@ module HDLRuby::High
 
         # Creates a new reference from a +base+ reference and named +object+.
         def initialize(base,object)
+            if object.respond_to?(:type) then
+                # Typed object, so typed reference.
+                super(object.type)
+            else
+                # Untyped object, so untyped reference.
+                super(void)
+            end
             # Check and set the base (it must be convertible to a reference).
             unless base.respond_to?(:to_ref)
                 raise "Invalid base for a RefObject: #{base}"
@@ -2749,8 +2835,9 @@ module HDLRuby::High
 
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # puts "To low for ref with name=#{self.name} and subref=#{self.ref}"
-            return HDLRuby::Low::RefName.new(@base.to_ref.to_low,@object.name)
+            # return HDLRuby::Low::RefName.new(@base.to_ref.to_low,@object.name)
+            return HDLRuby::Low::RefName.new(self.type.to_low,
+                                             @base.to_ref.to_low,@object.name)
         end
 
         # Missing methods are looked for into the refered object.
@@ -2789,7 +2876,12 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            return RefConcat.new(
+            # return RefConcat.new(
+            #     self.each_ref.lazy.map do |ref|
+            #         ref.to_ref
+            #     end
+            # )
+            return RefConcat.new(self.type,
                 self.each_ref.lazy.map do |ref|
                     ref.to_ref
                 end
@@ -2798,7 +2890,12 @@ module HDLRuby::High
 
         # Converts the concat reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefConcat.new(
+            # return HDLRuby::Low::RefConcat.new(
+            #     self.each_ref.lazy.map do |ref|
+            #         ref.to_low
+            #     end
+            # )
+            return HDLRuby::Low::RefConcat.new(self.type.to_low,
                 self.each_ref.lazy.map do |ref|
                     ref.to_low
                 end
@@ -2813,12 +2910,16 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            return RefIndex.new(self.ref.to_ref,self.index.to_expr)
+            # return RefIndex.new(self.ref.to_ref,self.index.to_expr)
+            return RefIndex.new(self.type.base,
+                                self.ref.to_ref,self.index.to_expr)
         end
 
         # Converts the index reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefIndex.new(self.ref.to_low,self.index.to_low)
+            # return HDLRuby::Low::RefIndex.new(self.ref.to_low,self.index.to_low)
+            return HDLRuby::Low::RefIndex.new(self.type.to_low,
+                                              self.ref.to_low,self.index.to_low)
         end
     end
 
@@ -2829,13 +2930,17 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            return RefRange.new(self.ref.to_ref,
+            # return RefRange.new(self.ref.to_ref,
+            #                   self.range.first.to_expr..self.range.last.to_expr)
+            return RefRange.new(self.type,self.ref.to_ref,
                               self.range.first.to_expr..self.range.last.to_expr)
         end
 
         # Converts the range reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefRange.new(self.ref.to_low,self.range.to_low)
+            # return HDLRuby::Low::RefRange.new(self.ref.to_low,self.range.to_low)
+            return HDLRuby::Low::RefRange.new(self.type.to_low,
+                self.ref.to_low,self.range.to_low)
         end
     end
 
@@ -2847,13 +2952,14 @@ module HDLRuby::High
         # Converts to a new reference.
         def to_ref
             return RefName.new(self.ref.to_ref,self.name)
-            # return RefName.new(self.ref.to_ref,self)
         end
 
         # Converts the name reference to HDLRuby::Low.
         def to_low
             # puts "To low for ref with name=#{self.name} and subref=#{self.ref}"
-            return HDLRuby::Low::RefName.new(self.ref.to_low,self.name)
+            # return HDLRuby::Low::RefName.new(self.ref.to_low,self.name)
+            return HDLRuby::Low::RefName.new(self.type.to_low,
+                                             self.ref.to_low,self.name)
         end
     end
 
@@ -2944,7 +3050,10 @@ module HDLRuby::High
             # Remove the transission from the block.
             High.top_user.delete_statement(self)
             # Generate an expression.
-            return Binary.new(:<=,self.left.to_expr,self.right.to_expr)
+            # return Binary.new(:<=,self.left.to_expr,self.right.to_expr)
+            return Binary.new(
+                self.left.to_expr.type.send(:<=,self.right.to_expr.type),
+                :<=,self.left.to_expr,self.right.to_expr)
         end
 
         # Converts the transmit to HDLRuby::Low.
@@ -3061,9 +3170,6 @@ module HDLRuby::High
             if type.respond_to?(:each_name) then
                 type.each_name do |name|
                     self.define_singleton_method(name) do
-                        # RefName.new(self.to_ref,name)
-                        # RefName.new(self.to_ref,
-                        #             SignalI.new(name,type.get_type(name)))
                         RefObject.new(self.to_ref,
                                     SignalI.new(name,type.get_type(name)))
                     end
@@ -3126,8 +3232,6 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            # return RefName.new(this,self.name)
-            # return RefName.new(this,self)
             return RefObject.new(this,self)
         end
 
@@ -3170,8 +3274,6 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            # return RefName.new(this,self.name)
-            # return RefName.new(this,self)
             return RefObject.new(this,self)
         end
 
@@ -3942,14 +4044,20 @@ module HDLRuby::High
 
         # Converts to a new high-level expression.
         def to_expr
-            expr = Concat.new
+            # expr = Concat.new
+            expr = Concat.new(TypeTuple.new(:"",*self.map do |elem|
+                elem.to_expr.type
+            end))
             self.each {|elem| expr.add_expression(elem.to_expr) }
             expr
         end
 
         # Converts to a new high-level reference.
         def to_ref
-            expr = RefConcat.new
+            # expr = RefConcat.new
+            expr = RefConcat.new(TypeTuple.new(:"",*self.map do |elem|
+                elem.to_ref.type
+            end))
             self.each {|elem| expr.add_ref(elem.to_ref) }
             expr
         end

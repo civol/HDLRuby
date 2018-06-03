@@ -894,12 +894,37 @@ module HDLRuby::Low
             return false
         end
 
+        # Gets the bitwidth of the type, by default 0.
+        def width
+            0
+        end
+
+        # Gets the range of the type, by default range is not defined.
+        def range
+            raise "No range for type #{self}"
+        end
+
+        # Gets the base type, by default base type is not defined.
+        def base
+            raise "No base type for type #{self}"
+        end
+
+    end
+
+    
+    ##
+    # The void type.
+    class << (Void = Type.new(:void) )
+        # Get the base type, actually self for leaf types.
+        def base
+            self
+        end
     end
 
     # The leaf types.
     
     ##
-    # The bit types leaf.
+    # The bit type leaf.
     class << ( Bit = Type.new(:bit) )
         # Tells if the type fixed point.
         def fixed?
@@ -912,6 +937,10 @@ module HDLRuby::Low
         # Gets the range of the type.
         def range
             0..0
+        end
+        # Get the base type, actually self for leaf types.
+        def base
+            self
         end
     end
 
@@ -934,6 +963,10 @@ module HDLRuby::Low
         def range
             0..0
         end
+        # Get the base type, actually self for leaf types.
+        def base
+            self
+        end
     end
 
     ##
@@ -955,6 +988,10 @@ module HDLRuby::Low
         def range
             0..0
         end
+        # Get the base type, actually self for leaf types.
+        def base
+            self
+        end
     end
 
     ##
@@ -975,6 +1012,10 @@ module HDLRuby::Low
         # Gets the range of the type.
         def range
             0..0
+        end
+        # Get the base type, actually self for leaf types.
+        def base
+            self
         end
     end
 
@@ -2143,6 +2184,24 @@ module HDLRuby::Low
 
         include Hparent
 
+        # # Gets the type of the expression.
+        # def type
+        #     # By default: the void type.
+        #     return Void
+        # end
+
+        attr_reader :type
+
+        # Creates a new Expression with +type+
+        def initialize(type = Void)
+            # Check and set the type.
+            if type.is_a?(Type) then
+                @type = type
+            else
+                raise "Invalid class for a type: #{type.class}."
+            end
+        end
+
         # Iterates over the expression children if any.
         def each_child(&ruby_block)
             # By default: no child.
@@ -2166,20 +2225,23 @@ module HDLRuby::Low
     # Describes a value.
     class Value < Expression
 
-        # The type of value.
-        attr_reader :type
+        # Moved to Expression
+        # # The type of value.
+        # attr_reader :type
 
         # The content of the value.
         attr_reader :content
 
         # Creates a new value typed +type+ and containing +content+.
         def initialize(type,content)
-            # Check and set the type.
-            if type.is_a?(Type) then
-                @type = type
-            else
-                raise "Invalid class for a type: #{type.class}."
-            end
+            # Moved to Expression.
+            # # Check and set the type.
+            # if type.is_a?(Type) then
+            #     @type = type
+            # else
+            #     raise "Invalid class for a type: #{type.class}."
+            # end
+            super(type)
             # Checks and set the content: Ruby Numeric and HDLRuby BitString 
             # are supported. Strings or equivalent are converted to BitString.
             unless content.is_a?(Numeric) or content.is_a?(HDLRuby::BitString)
@@ -2218,11 +2280,14 @@ module HDLRuby::Low
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Operation < Expression
+
         # The operator of the operation.
         attr_reader :operator
 
-        # Creates a new operation applying +operator+.
-        def initialize(operator)
+        # Creates a new operation with +type+ applying +operator+.
+        # def initialize(operator)
+        def initialize(type,operator)
+            super(type)
             # Check and set the operator.
             @operator = operator.to_sym
         end
@@ -2235,11 +2300,13 @@ module HDLRuby::Low
         # The child.
         attr_reader :child
 
-        # Creates a new unary expression applying +operator+ on +child+
-        # expression.
-        def initialize(operator,child)
+        # Creates a new unary expression with +type+ applying +operator+ on 
+        # +child+ expression.
+        # def initialize(operator,child)
+        def initialize(type,operator,child)
             # Initialize as a general operation.
-            super(operator)
+            # super(operator)
+            super(type,operator)
             # Check and set the child.
             unless child.is_a?(Expression)
                 raise "Invalid class for an expression: #{child.class}"
@@ -2281,11 +2348,13 @@ module HDLRuby::Low
         # The right child.
         attr_reader :right
 
-        # Creates a new binary expression applying +operator+ on +left+
-        # and +right+ children expressions.
-        def initialize(operator,left,right)
+        # Creates a new binary expression with +type+ applying +operator+ on
+        # +left+ and +right+ children expressions.
+        # def initialize(operator,left,right)
+        def initialize(type,operator,left,right)
             # Initialize as a general operation.
-            super(operator)
+            # super(operator)
+            super(type,operator)
             # Check and set the children.
             unless left.is_a?(Expression)
                 raise "Invalid class for an expression: #{left.class}"
@@ -2331,12 +2400,13 @@ module HDLRuby::Low
         # The selection child (connection).
         attr_reader :select
 
-        # Creates a new operator selecting from the value of +select+ one
-        # of the +choices+.
-        def initialize(operator,select,*choices)
+        # Creates a new operator with +type+ selecting from the value of 
+        # +select+ one of the +choices+.
+        # def initialize(operator,select,*choices)
+        def initialize(type,operator,select,*choices)
             # Initialize as a general operation.
-            # super(:"?")
-            super(operator)
+            # super(operator)
+            super(type,operator)
             # Check and set the selection.
             # puts "select = #{select}"
             unless select.is_a?(Expression)
@@ -2414,8 +2484,11 @@ module HDLRuby::Low
     ## 
     # Describes a concatenation expression.
     class Concat < Expression
-        # Creates a new expression concatenation several +expressions+ together.
-        def initialize(expressions = [])
+        # Creates a new concatenation with +type+ of several +expressions+
+        # together.  
+        # def initialize(expressions = [])
+        def initialize(type,expressions = [])
+            super(type)
             # Initialize the array of expressions that are concatenated.
             @expressions = []
             # Check and add the expressions.
@@ -2480,9 +2553,11 @@ module HDLRuby::Low
     # Describes concatenation reference.
     class RefConcat < Ref
 
-        # Creates a new reference concatenating the references of +refs+
-        # together.
-        def initialize(refs = [])
+        # Creates a new reference with +type+ concatenating the references of
+        # +refs+ together.
+        # def initialize(refs = [])
+        def initialize(type, refs = [])
+            super(type)
             # Check and set the refs.
             refs.each do |ref|
                 unless ref.is_a?(Expression) then
@@ -2516,8 +2591,10 @@ module HDLRuby::Low
         # The access index.
         attr_reader :index
 
-        # Create a new index reference accessing +ref+ at +index+.
-        def initialize(ref,index)
+        # Create a new index reference with +type+ accessing +ref+ at +index+.
+        # def initialize(ref,index)
+        def initialize(type,ref,index)
+            super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then
                 raise "Invalid class for a reference: #{ref.class}."
@@ -2561,8 +2638,10 @@ module HDLRuby::Low
         # The access range.
         attr_reader :range
 
-        # Create a new range reference accessing +ref+ at +range+.
-        def initialize(ref,range)
+        # Create a new range reference with +type+ accessing +ref+ at +range+.
+        # def initialize(ref,range)
+        def initialize(type,ref,range)
+            super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then
                 raise "Invalid class for a reference: #{ref.class}."
@@ -2611,8 +2690,10 @@ module HDLRuby::Low
         # The access name.
         attr_reader :name
 
-        # Create a new named reference accessing +ref+ with +name+.
-        def initialize(ref,name)
+        # Create a new named reference with +type+ accessing +ref+ with +name+.
+        # def initialize(ref,name)
+        def initialize(type,ref,name)
+            super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then
                 raise "Invalid class for a reference: #{ref.class}."
