@@ -18,7 +18,10 @@ module HDLRuby::High::Std
                 type.output :o
                 o <= i
             end
-            return High::SystemI.new(systemT,High.uniq_name)
+            # return High::SystemI.new(High.uniq_name,systemT)
+            res = systemT.instantiate(High.uniq_name)
+            High.cur_system.add_systemI(res)
+            res
         end
 
         ## Class describing a wrapper for inserting a component in the
@@ -46,14 +49,21 @@ module HDLRuby::High::Std
             # Connects +src+ signal to +dst+ signal through the pipeline.
             def connect(src,dst)
                 # Ensure dst is valid.
-                puts "@component=#{@component}"
-                ICIICI: que faire des scope et de each_input?
-                unless @component.each_input.include?(dst) then
-                    raise "#{dst} is not an input signal of #{@component}"
+                # puts "@component=#{@component}"
+                # puts "#src=#{src}, dst=#{dst}"
+                # unless @component.each_input.include?(dst) then
+                #     raise "#{dst} is not an input signal of #{@component}"
+                # end
+                unless dst.parent == @component or
+                       # dst.object.parent == @component then
+                        dst.base.object == @component then
+                    # puts "dst.parent = #{dst.parent}"
+                    # puts "dst.base = #{dst.base}"
+                    raise "#{dst} is not a signal of #{@component}"
                 end
                 # Allocates the signal in the pipeline register.
-                @register << @pipeline.block.add_inner(src.type,
-                                                        High.uniq_name)
+                @register << @pipeline.block.add_inner(
+                               SignalI.new(High.uniq_name,src.type,:inner))
                 # Connect src to it
                 @pipeline.block.add_statement(
                     Transmit.new(@register.last.to_ref,src.to_expr) )
@@ -79,7 +89,7 @@ module HDLRuby::High::Std
             @rst = rst.to_event
 
             # Create the behavior controlling the pipeline.
-            @behavior = High::Behavior.new(@clk,@rst) {}
+            @behavior = High::Behavior.new(:par,@clk,@rst) {}
             # Add it to the current scope.
             High.cur_system.add_behavior(@behavior)
 
@@ -122,7 +132,7 @@ module HDLRuby::High::Std
 
             # Add the components.
             args.each do |component, number|
-                puts "Adding #{component} at #{number}"
+                # puts "Adding #{component} at #{number}"
                 # Adjust the depth of the pipeline if required.
                 if self.depth <= number then
                     @stages.fill(self.depth..number) { Array.new }
@@ -163,43 +173,48 @@ module HDLRuby::High::Std
 
             # Add the connections.
             args.each do |src,dst|
+                # Get the real source and destination.
                 # Ensure to get the real source and destination.
-                src = src.object if src.is_a?(RefObject)
-                dst = dst.object if dst.is_a?(RefObject)
-                puts "src=#{src.name}, src.parent=#{src.parent}"
-                puts "dst=#{dst.name}, dst.parent=#{dst.parent}"
+                src_obj = src.is_a?(RefObject) ? src.object : src
+                dst_obj = dst.is_a?(RefObject) ? dst.object : dst
+                # puts "src_obj=#{src_obj.name}, src_obj.parent=#{src_obj.parent}"
+                # puts "dst_obj=#{dst_obj.name}, dst_obj.parent=#{dst_obj.parent}"
                 # Get the wrapper containing the source signal if any
-                src_wrp = self.get_wrapper(src.parent)
+                src_wrp = self.get_wrapper(src_obj.parent)
                 # Get the wrapper containing the destination signal if any
-                dst_wrp = self.get_wrapper(dst.parent)
+                dst_wrp = self.get_wrapper(dst_obj.parent)
 
                 # Get the stages of the signals if any (within the pipeline).
                 dst_stg = dst_wrp && dst_wrp.stage
                 src_stg = src_wrp && src_wrp.stage
 
                 # Inner connection?
-                if dst_stg and src_stg then
+                # if dst_stg and src_stg then
+                if dst_stg then
+                    src_stg = -1 unless src_stg # Extern connection to inner stage
                     # Yes, connect after inserting delays if dst_stg > src_stg+1
                     while dst_stg > src_stg+1 do
                         # Creates the delay systemI
                         delay = Pipeline.make_delay(src.type)
                         # Add it to the pipeline
-                        wrp = self.add_delay(delay,src_stg+1)
+                        # wrp = self.add_delay(delay,src_stg+1)
+                        self.add(delay,src_stg+1)
+                        wrp = self.get_wrapper(delay)
                         # Connect it
-                        wrp.connect(delay.o,src)
+                        wrp.connect(src,delay.i)
                         # Prepare the connect to the next stage
                         src_stg += 1
-                        src = delay.out
+                        src = delay.o
                     end
-                    dst_wrp.connect(dst,src)
-                elsif dst_stg then
-                    # No, but it is a connection to one component of the
-                    # pipeline.
-                    dst_wrp.connect(dst,src)
+                    dst_wrp.connect(src,dst)
+                # elsif dst_stg then
+                #     # No, but it is a connection to one component of the
+                #     # pipeline, insert delay until its stage is reached.
+                #     dst_wrp.connect(src,dst)
                 elsif src_stg then
                     # No, but it is a connection from one component of the
                     # pipeline.
-                    puts "self.block=#{self.block}"
+                    # puts "self.block=#{self.block}"
                     self.block.add_statement(
                         Transmit.new(dst.to_ref,src.to_ref) )
                 else
