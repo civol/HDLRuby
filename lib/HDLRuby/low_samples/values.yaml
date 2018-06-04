@@ -6,6 +6,9 @@ Type:
   name: unsigned
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -18,6 +21,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -27,7 +31,8 @@ SystemT:
           events: []
           block:
             TimeBlock:
-              mode: par
+              mode: seq
+              name: ''
               inners: []
               statements:
               - TimeWait:
@@ -38,8 +43,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -61,8 +68,35 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
+                      name: sig
+                  right:
+                    Value:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      content:
+                        BitString:
+                          str: '1010'
+              - TimeWait:
+                  delay:
+                    Delay:
+                      value: 1
+                      unit: us
+              - Transmit:
+                  left:
+                    RefName:
+                      type: bit
+                      ref:
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -84,8 +118,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -107,8 +143,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -130,8 +168,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -153,8 +193,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -176,8 +218,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -199,8 +243,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -222,8 +268,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -245,8 +293,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -268,8 +318,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -291,8 +343,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -314,8 +368,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -337,8 +393,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -360,8 +418,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -383,8 +443,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -406,8 +468,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -427,8 +491,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -448,8 +514,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -469,8 +537,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:
@@ -490,8 +560,10 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: sig
                   right:
                     Value:

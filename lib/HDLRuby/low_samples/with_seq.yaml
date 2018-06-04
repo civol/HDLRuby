@@ -1,5 +1,8 @@
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -66,8 +69,16 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
@@ -78,38 +89,104 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 16
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: w
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 16
+                          - 0
                       operator: "+"
                       left:
                         RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 15
+                              - 0
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: x
                       right:
                         RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 15
+                              - 0
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: y
               - Transmit:
                   left:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 16
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: o
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 17
+                          - 0
                       operator: "+"
                       left:
                         RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 16
+                              - 0
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: w
                       right:
                         RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 15
+                              - 0
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: y
+---
+SystemI:
+  name: with_seqI
+  systemT: with_seqI::T_

@@ -1,5 +1,8 @@
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -30,6 +33,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -37,20 +41,45 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: s
           right:
             Binary:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 15
+                  - 0
               operator: "<"
               left:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: x
               right:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: y
       behaviors: []

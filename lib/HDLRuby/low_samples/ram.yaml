@@ -1,5 +1,8 @@
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -33,6 +36,7 @@ SystemT:
           - 0
   scope:
     Scope:
+      name: ''
       scopes: []
       inners:
       - SignalI:
@@ -55,28 +59,62 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 7
+                  - 0
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: data
           right:
             Select:
+              type: bit
               operator: "?"
               select:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: rwb
               choices:
               - RefIndex:
+                  type: bit
                   ref:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 7
+                              - 0
+                          range:
+                          - 65535
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: content
                   index:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 15
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: addr
               - Value:
                   type:
@@ -95,39 +133,75 @@ SystemT:
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     Unary:
+                      type: bit
                       operator: "~"
                       child:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: rwb
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefIndex:
+                              type: bit
                               ref:
                                 RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base:
+                                        TypeVector:
+                                          name: ''
+                                          base: bit
+                                          range:
+                                          - 7
+                                          - 0
+                                      range:
+                                      - 65535
+                                      - 0
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: content
                               index:
                                 RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 15
+                                      - 0
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: addr
                           right:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 7
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: data
                   'no': 
                   noifs: []

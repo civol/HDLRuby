@@ -10,6 +10,9 @@ TypeVector:
   - 0
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -37,6 +40,7 @@ SystemT:
           - 0
   scope:
     Scope:
+      name: ''
       scopes: []
       inners:
       - SignalI:
@@ -59,11 +63,285 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 7
+                      - 0
+                  range:
+                  - 255
+                  - 0
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: content
           right:
             Concat:
+              type:
+                TypeTuple:
+                  name: ''
+                  types:
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
+                  - integer
               expressions:
               - Value:
                   type: integer
@@ -836,19 +1114,50 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 7
+                  - 0
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: data
           right:
             RefIndex:
+              type: bit
               ref:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 7
+                          - 0
+                      range:
+                      - 255
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: content
               index:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 7
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: addr
       behaviors: []

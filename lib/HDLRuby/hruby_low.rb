@@ -1199,7 +1199,7 @@ module HDLRuby::Low
         # Adds a sub +type+.
         def add_type(type)
             unless type.is_a?(Type) then
-                raise "Invalid class for a type: #{sub.class}"
+                raise "Invalid class for a type: #{type.class} (#{type})"
             end
             @types << type
         end

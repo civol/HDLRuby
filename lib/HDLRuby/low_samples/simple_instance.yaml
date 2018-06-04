@@ -1,5 +1,8 @@
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -15,6 +18,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -22,13 +26,17 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: i
           right:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: o
       behaviors: []
 ---
@@ -45,6 +53,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs:
@@ -55,29 +64,39 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
                 RefName:
+                  type: void
                   ref:
-                    RefThis: {}
-                  name: i
-              name: ioI
+                    RefThis:
+                      type: void
+                  name: ioI
+              name: i
           right:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: i
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
                 RefName:
+                  type: void
                   ref:
-                    RefThis: {}
-                  name: o
-              name: ioI
+                    RefThis:
+                      type: void
+                  name: ioI
+              name: o
           right:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: o
       behaviors: []

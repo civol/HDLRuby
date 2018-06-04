@@ -50,6 +50,13 @@ module HDLRuby
     REF_ARG_NAMES = { Low::SystemI    => "systemT",
                       Low::SignalI    => "type",
                       Low::TypeVector => "base",
+                      Low::TypeTuple  => "types",
+                      Low::RefThis    => "type",
+                      Low::RefName    => "type",
+                      Low::RefIndex   => "type",
+                      Low::Unary      => "type",
+                      Low::Binary     => "type",
+                      Low::Select     => "type",
                       Low::Value      => "type"
                     }
 
@@ -172,8 +179,9 @@ module HDLRuby
                 ref = REF_ARG_NAMES[klass]
                 # Process the arguments of the object constructor.
                 singles.map! do |k,v|
-                    # puts "k=#{k} v=#{v}"
+                    # puts "ref=#{ref} k=#{k} v=#{v}"
                     elem = basic_to_value(v)
+                    # puts "elem=#{elem}"
                     if ref == k and elem.is_a?(String) then
                         # The argument is actually a reference, get the
                         # corresponding object.
@@ -193,7 +201,16 @@ module HDLRuby
                     # Treat the values a an array.
                     v = v.values if v.is_a?(Hash)
                     v.each do |elem|
-                        object.send(add_meth, *basic_to_value(elem) )
+                        # object.send(add_meth, *basic_to_value(elem) )
+                        elem = basic_to_value(elem)
+                        # puts "ref=#{ref}, k=#{k}"
+                        if ref == k and elem.is_a?(String) then
+                            # The argument is actually a reference, get the
+                            # corresponding object.
+                            elem = FROM_BASICS_REFS[elem.to_sym]
+                        end
+                        # puts "elem=#{elem}"
+                        object.send(add_meth, *elem )
                     end
                 end
                 # Store the objects if it is named.

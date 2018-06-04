@@ -1,5 +1,8 @@
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -24,6 +27,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -31,16 +35,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -49,35 +58,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -102,6 +128,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -109,16 +136,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -127,35 +159,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -180,6 +229,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -187,16 +237,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -205,35 +260,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -258,6 +330,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -265,16 +338,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -283,35 +361,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -336,6 +431,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -343,16 +439,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -361,35 +462,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -414,6 +532,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -421,16 +540,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -439,35 +563,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -492,6 +633,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -499,16 +641,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -517,35 +664,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -570,6 +734,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -577,16 +742,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -595,35 +765,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -648,6 +835,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -655,16 +843,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -673,35 +866,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -726,6 +936,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -733,16 +944,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -751,35 +967,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -804,6 +1037,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -811,16 +1045,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -829,35 +1068,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -882,6 +1138,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -889,16 +1146,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -907,35 +1169,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -960,6 +1239,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -967,16 +1247,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -985,35 +1270,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -1038,6 +1340,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -1045,16 +1348,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -1063,35 +1371,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -1116,6 +1441,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -1123,16 +1449,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -1141,35 +1472,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -1194,6 +1542,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs: []
@@ -1201,16 +1550,21 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: qb
           right:
             Unary:
+              type: bit
               operator: "~"
               child:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: q
       behaviors:
       - Behavior:
@@ -1219,35 +1573,52 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - Transmit:
                   left:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: q
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 0
+                          - 0
                       operator: "&"
                       left:
                         RefName:
+                          type: bit
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: d
                       right:
                         Unary:
+                          type: bit
                           operator: "~"
                           child:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
 ---
 SystemT:
@@ -1266,6 +1637,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners: []
       systemIs:
@@ -1321,298 +1693,271 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[1]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[0]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[2]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[1]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[3]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[2]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[4]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[3]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[5]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[4]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[6]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[5]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[7]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[6]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[8]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[7]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[9]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[8]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[10]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[9]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[11]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[10]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[12]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[11]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[13]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[12]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[14]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[13]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[15]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[14]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: d
-              name: dffIs[0]
+                RefThis:
+                  type: void
+              name: d
           right:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: i0
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: o0
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: q
-              name: dffIs[15]
+                RefThis:
+                  type: void
+              name: q
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: o0b
           right:
             RefName:
+              type: bit
               ref:
-                RefName:
-                  ref:
-                    RefThis: {}
-                  name: qb
-              name: dffIs[15]
+                RefThis:
+                  type: void
+              name: qb
       behaviors: []

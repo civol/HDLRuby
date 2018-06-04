@@ -10,6 +10,9 @@ TypeVector:
   - 0
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -31,6 +34,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners:
       - SignalI:
@@ -47,15 +51,26 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: dout
           right:
             RefIndex:
+              type: bit
               ref:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: reg
               index:
                 Value:
@@ -68,30 +83,44 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: rst
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 15
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: reg
                           right:
                             Value:
@@ -100,15 +129,25 @@ SystemT:
                   'no':
                     Block:
                       mode: seq
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefIndex:
+                              type: bit
                               ref:
                                 RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 15
+                                      - 0
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: reg
                               index:
                                 Value:
@@ -116,16 +155,37 @@ SystemT:
                                   content: 0
                           right:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: din
                       - Transmit:
                           left:
                             RefRange:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - Value:
+                                      type: integer
+                                      content: 15
+                                  - Value:
+                                      type: integer
+                                      content: 1
                               ref:
                                 RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 15
+                                      - 0
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: reg
                               range:
                               - Value:
@@ -136,10 +196,29 @@ SystemT:
                                   content: 1
                           right:
                             RefRange:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - Value:
+                                      type: integer
+                                      content: 14
+                                  - Value:
+                                      type: integer
+                                      content: 0
                               ref:
                                 RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 15
+                                      - 0
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: reg
                               range:
                               - Value:

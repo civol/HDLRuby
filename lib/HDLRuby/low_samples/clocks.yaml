@@ -10,6 +10,9 @@ TypeVector:
   - 0
 ---
 Type:
+  name: void
+---
+Type:
   name: bit
 ---
 SystemT:
@@ -31,6 +34,7 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes: []
       inners:
       - SignalI:
@@ -71,19 +75,43 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type: bit
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: ":4"
           right:
             Binary:
+              type:
+                TypeVector:
+                  name: ''
+                  base: signed
+                  range:
+                  - 32
+                  - 0
               operator: "|"
               left:
                 Binary:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: signed
+                      range:
+                      - 32
+                      - 0
                   operator: "=="
                   left:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 30
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: ":2"
                   right:
                     Value:
@@ -97,11 +125,26 @@ SystemT:
                       content: 2
               right:
                 Binary:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: signed
+                      range:
+                      - 32
+                      - 0
                   operator: "=="
                   left:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 30
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: ":3"
                   right:
                     Value:
@@ -120,30 +163,44 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: rst
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 30
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":0"
                           right:
                             Value:
@@ -158,8 +215,10 @@ SystemT:
                       - Transmit:
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":1"
                           right:
                             Value:
@@ -168,21 +227,45 @@ SystemT:
                   'no':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 30
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":0"
                           right:
                             Binary:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: signed
+                                  range:
+                                  - 32
+                                  - 0
                               operator: "+"
                               left:
                                 RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 30
+                                      - 0
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: ":0"
                               right:
                                 Value:
@@ -190,11 +273,26 @@ SystemT:
                                   content: 1
                   noifs:
                   - - Binary:
+                        type:
+                          TypeVector:
+                            name: ''
+                            base: signed
+                            range:
+                            - 31
+                            - 0
                         operator: "=="
                         left:
                           RefName:
+                            type:
+                              TypeVector:
+                                name: ''
+                                base: bit
+                                range:
+                                - 30
+                                - 0
                             ref:
-                              RefThis: {}
+                              RefThis:
+                                type: void
                             name: ":0"
                         right:
                           Value:
@@ -202,13 +300,22 @@ SystemT:
                             content: 0
                     - Block:
                         mode: par
+                        name: ''
                         inners: []
                         statements:
                         - Transmit:
                             left:
                               RefName:
+                                type:
+                                  TypeVector:
+                                    name: ''
+                                    base: bit
+                                    range:
+                                    - 30
+                                    - 0
                                 ref:
-                                  RefThis: {}
+                                  RefThis:
+                                    type: void
                                 name: ":0"
                             right:
                               Value:
@@ -223,16 +330,21 @@ SystemT:
                         - Transmit:
                             left:
                               RefName:
+                                type: bit
                                 ref:
-                                  RefThis: {}
+                                  RefThis:
+                                    type: void
                                 name: ":1"
                             right:
                               Unary:
+                                type: bit
                                 operator: "~"
                                 child:
                                   RefName:
+                                    type: bit
                                     ref:
-                                      RefThis: {}
+                                      RefThis:
+                                        type: void
                                     name: ":1"
       - Behavior:
           events:
@@ -240,30 +352,38 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: ":1"
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: rst
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: sig0
                           right:
                             Value:
@@ -272,21 +392,27 @@ SystemT:
                   'no':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: sig0
                           right:
                             Unary:
+                              type: bit
                               operator: "~"
                               child:
                                 RefName:
+                                  type: bit
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: sig0
                   noifs: []
       - Behavior:
@@ -295,30 +421,57 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: signed
+                          range:
+                          - 0
+                          - 31
                       operator: "=="
                       left:
                         Binary:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 0
+                              - 30
                           operator: "|"
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
                           right:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 30
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":2"
                       right:
                         Value:
@@ -327,13 +480,22 @@ SystemT:
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 30
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":2"
                           right:
                             Value:
@@ -353,30 +515,57 @@ SystemT:
               type: negedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: clk
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: signed
+                          range:
+                          - 0
+                          - 31
                       operator: "=="
                       left:
                         Binary:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 0
+                              - 30
                           operator: "|"
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: rst
                           right:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 30
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":3"
                       right:
                         Value:
@@ -385,13 +574,22 @@ SystemT:
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 30
+                                  - 0
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: ":3"
                           right:
                             Value:
@@ -411,30 +609,38 @@ SystemT:
               type: posedge
               ref:
                 RefName:
+                  type: bit
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: ":4"
           block:
             Block:
               mode: par
+              name: ''
               inners: []
               statements:
               - If:
                   condition:
                     RefName:
+                      type: bit
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: rst
                   'yes':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: sig1
                           right:
                             Value:
@@ -443,20 +649,26 @@ SystemT:
                   'no':
                     Block:
                       mode: par
+                      name: ''
                       inners: []
                       statements:
                       - Transmit:
                           left:
                             RefName:
+                              type: bit
                               ref:
-                                RefThis: {}
+                                RefThis:
+                                  type: void
                               name: sig1
                           right:
                             Unary:
+                              type: bit
                               operator: "~"
                               child:
                                 RefName:
+                                  type: bit
                                   ref:
-                                    RefThis: {}
+                                    RefThis:
+                                      type: void
                                   name: sig1
                   noifs: []

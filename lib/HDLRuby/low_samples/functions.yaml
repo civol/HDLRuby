@@ -1,3 +1,9 @@
+hello_out
+hello_out
+hello_in
+hello_mix
+hello_sub, John Doe
+hello_in_sub
 ---
 Type:
   name: signed
@@ -8,6 +14,9 @@ TypeVector:
   range:
   - 31
   - 0
+---
+Type:
+  name: void
 ---
 Type:
   name: bit
@@ -82,8 +91,10 @@ SystemT:
   inouts: []
   scope:
     Scope:
+      name: ''
       scopes:
       - Scope:
+          name: ''
           scopes: []
           inners:
           - SignalI:
@@ -93,6 +104,7 @@ SystemT:
           connections: []
           behaviors: []
       - Scope:
+          name: ''
           scopes: []
           inners:
           - SignalI:
@@ -103,21 +115,52 @@ SystemT:
           - Connection:
               left:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: d
               right:
                 Binary:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 16
+                      - 0
                   operator: "-"
                   left:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 15
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: x
                   right:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 15
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: y
           behaviors: []
       inners: []
@@ -126,27 +169,66 @@ SystemT:
       - Connection:
           left:
             RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 15
+                  - 0
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: a
           right:
             Binary:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 16
+                  - 0
               operator: "+"
               left:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: x
               right:
                 RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
                   ref:
-                    RefThis: {}
+                    RefThis:
+                      type: void
                   name: y
       - Connection:
           left:
             RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 15
+                  - 0
               ref:
-                RefThis: {}
+                RefThis:
+                  type: void
               name: c
           right:
             Value:
@@ -158,6 +240,7 @@ SystemT:
           block:
             Block:
               mode: par
+              name: ''
               inners:
               - SignalI:
                   name: something
@@ -166,19 +249,50 @@ SystemT:
               - Transmit:
                   left:
                     RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 15
+                          - 0
                       ref:
-                        RefThis: {}
+                        RefThis:
+                          type: void
                       name: b
                   right:
                     Binary:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 16
+                          - 0
                       operator: "-"
                       left:
                         RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 15
+                              - 0
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: x
                       right:
                         RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 15
+                              - 0
                           ref:
-                            RefThis: {}
+                            RefThis:
+                              type: void
                           name: y
