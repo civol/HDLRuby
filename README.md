@@ -10,21 +10,6 @@ __Warning__:
  - It is highly recommended to have both basic knowledge of the Ruby language
    and hardware description languages before using HDLRuby.
 
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'HDLRuby'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install HDLRuby
 
 ## Usage
 
