@@ -909,6 +909,15 @@ module HDLRuby::Low
             raise "No base type for type #{self}"
         end
 
+        # Tell if +type+ is equivalent to current type.
+        #
+        # NOTE: type can be compatible while not being equivalent, please
+        #       refer to `hruby_types.rb` for type compatibility.
+        def equivalent(type)
+            # By default, types are equivalent iff they have the same name.
+            return (type.is_a?(Type) and self.name == type.name)
+        end
+
     end
 
     
@@ -1224,9 +1233,47 @@ module HDLRuby::Low
             @types.each(&ruby_block)
         end
 
-        # Gets the bitwidth
+        # Tell if the tuple is regular, i.e., all its sub types are equivalent.
+        #
+        # NOTE: empty tuples are assumed not to be regular.
+        def is_regular?
+            return false if @types.empty?
+            t0 = @types[0]
+            @types[1..-1].each do |type|
+                return false unless t0.equivalent(type)
+            end
+            return true
+        end
+
+        # Gets the bitwidth.
         def width
             return @types.reduce(0) { |sum,type| sum + type.width }
+        end
+
+        # Gets the range of the type.
+        #
+        # NOTE: only valid if the tuple is regular (i.e., all its sub types 
+        #       are identical)
+        def range
+            if is_regular? then
+                # Regular tuple, return its range as if it was an array.
+                return 0..@types.size-1
+            else
+                raise "No range for type #{self}"
+            end
+        end
+
+        # Gets the base type.
+        #
+        # NOTE: only valid if the tuple is regular (i.e., all its sub types 
+        #       are identical)
+        def base
+            if is_regular? then
+                # Regular tuple, return the type of its first element.
+                return @types[0]
+            else
+                raise "No base type for type #{self}"
+            end
         end
     end
 
