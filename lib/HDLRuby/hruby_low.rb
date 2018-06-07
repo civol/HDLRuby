@@ -779,100 +779,6 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
-        # # The widths of the basic types.
-        # WIDTHS = { :bit => 1, :unsigned => 1, :signed => 1 }
-
-        # # The signs of the basic types.
-        # SIGNS = { :signed => true, :fixnum => true, :float => true,
-        #           :bignum => true }
-        # SIGNS.default = false
-
-        # # Gets the bitwidth of the type, nil for undefined.
-        # #
-        # # NOTE: must be redefined for specific types.
-        # def width
-        #     res = WIDTHS[self.name]
-        #     unless res then
-        #         raise "Invalid type for a width."
-        #     end
-        #     return res
-        # end
-
-        # # Tells if the type signed, false for unsigned.
-        # def signed?
-        #     return SIGNS[self.name]
-        # end
-
-        # # Tells if the type is unsigned, false for signed.
-        # def unsigned?
-        #     return !signed?
-        # end
-
-        # # Tells if the type is floating point.
-        # def float?
-        #     return self.name == :float
-        # end
-
-        # # Checks the compatibility with +type+
-        # def compatible?(type)
-        #     # # If type is void, compatible anyway.
-        #     # return true if type.name == :void
-        #     # Default: base types cases.
-        #     case self.name
-        #     # when :void then
-        #     #     # void is compatible with anything.
-        #     #     return true
-        #     when :bit then
-        #         # bit is compatible with bit signed and unsigned.
-        #         return [:bit,:signed,:unsigned].include?(type.name)
-        #     when :signed then
-        #         # Signed is compatible with bit and signed.
-        #         return [:bit,:signed].include?(type.name)
-        #     when :unsigned then
-        #         # Unsigned is compatible with bit and unsigned.
-        #         return [:bit,:unsigned].include?(type.name)
-        #     else
-        #         # Unknown type for compatibility: not compatible by default.
-        #         return false
-        #     end
-        # end
-
-        # # Merges with +type+
-        # def merge(type)
-        #     # # If type is void, return self.
-        #     # return self if type.name == :void
-        #     # Default: base types cases.
-        #     case self.name
-        #     # when :void then
-        #     #     # void: return type
-        #     #     return type
-        #     when :bit then
-        #         # bit is compatible with bit signed and unsigned.
-        #         if [:bit,:signed,:unsigned].include?(type.name) then
-        #             return type
-        #         else
-        #             raise "Incompatible types for merging: #{self}, #{type}."
-        #         end
-        #     when :signed then
-        #         # Signed is compatible with bit and signed.
-        #         if [:bit,:signed].include?(type.name) then
-        #             return self
-        #         else
-        #             raise "Incompatible types for merging: #{self}, #{type}."
-        #         end
-        #     when :unsigned then
-        #         # Unsigned is compatible with bit and unsigned.
-        #         if [:bit,:unsigned].include?(type.name)
-        #             return self
-        #         else
-        #             raise "Incompatible types for merging: #{self}, #{type}."
-        #         end
-        #     else
-        #         # Unknown type for compatibility: not compatible by default.
-        #         raise "Incompatible types for merging: #{self}, #{type}."
-        #     end
-        # end
-
 
         # Tells if the type signed.
         def signed?
@@ -894,14 +800,29 @@ module HDLRuby::Low
             return false
         end
 
+        # Tells if the type is a leaf.
+        def leaf?
+            return false
+        end
+
         # Gets the bitwidth of the type, by default 0.
         def width
             0
         end
 
+        # Tells if the type has a range.
+        def range?
+            return false
+        end
+
         # Gets the range of the type, by default range is not defined.
         def range
             raise "No range for type #{self}"
+        end
+
+        # Tells if the type has a base.
+        def base?
+            return false
         end
 
         # Gets the base type, by default base type is not defined.
@@ -920,21 +841,32 @@ module HDLRuby::Low
 
     end
 
+    # The leaf types.
+
+    ##
+    # The module giving leaf properties to a type.
+    module LLeaf
+        # Tells if the type is a leaf.
+        def leaf?
+            return true
+        end
+    end
+
     
     ##
     # The void type.
     class << (Void = Type.new(:void) )
-        # Get the base type, actually self for leaf types.
-        def base
-            self
-        end
+        include LLeaf
+        # # Get the base type, actually self for leaf types.
+        # def base
+        #     self
+        # end
     end
-
-    # The leaf types.
     
     ##
     # The bit type leaf.
     class << ( Bit = Type.new(:bit) )
+        include LLeaf
         # Tells if the type fixed point.
         def fixed?
             return true
@@ -947,15 +879,16 @@ module HDLRuby::Low
         def range
             0..0
         end
-        # Get the base type, actually self for leaf types.
-        def base
-            self
-        end
+        # # Get the base type, actually self for leaf types.
+        # def base
+        #     self
+        # end
     end
 
     ##
     # The signed types leaf.
     class << ( Signed = Type.new(:signed) )
+        include LLeaf
         # Tells if the type is signed.
         def signed?
             return true
@@ -972,15 +905,16 @@ module HDLRuby::Low
         def range
             0..0
         end
-        # Get the base type, actually self for leaf types.
-        def base
-            self
-        end
+        # # Get the base type, actually self for leaf types.
+        # def base
+        #     self
+        # end
     end
 
     ##
     # The unsigned types leaf.
     class << ( Unsigned = Type.new(:unsigned) )
+        include LLeaf
         # Tells if the type is unsigned.
         def unsigned?
             return true
@@ -997,15 +931,16 @@ module HDLRuby::Low
         def range
             0..0
         end
-        # Get the base type, actually self for leaf types.
-        def base
-            self
-        end
+        # # Get the base type, actually self for leaf types.
+        # def base
+        #     self
+        # end
     end
 
     ##
     # The float types leaf.
     class << ( Float = Type.new(:float) )
+        include LLeaf
         # Tells if the type is signed.
         def signed?
             return true
@@ -1022,10 +957,10 @@ module HDLRuby::Low
         def range
             0..0
         end
-        # Get the base type, actually self for leaf types.
-        def base
-            self
-        end
+        # # Get the base type, actually self for leaf types.
+        # def base
+        #     self
+        # end
     end
 
 
