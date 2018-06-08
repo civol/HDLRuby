@@ -830,6 +830,11 @@ module HDLRuby::Low
             raise "No base type for type #{self}"
         end
 
+        # Tells if the type has sub types.
+        def types?
+            return false
+        end
+
         # Tell if +type+ is equivalent to current type.
         #
         # NOTE: type can be compatible while not being equivalent, please
@@ -1130,6 +1135,11 @@ module HDLRuby::Low
             @types = content
         end
 
+        # Tells if the type has sub types.
+        def types?
+            return true
+        end
+
         # Gets an array containing all the syb types.
         def get_all_types
             return @types.clone
@@ -1230,6 +1240,11 @@ module HDLRuby::Low
                 end
                 [ k.to_sym, v ]
             end.to_h
+        end
+
+        # Tells if the type has sub types.
+        def types?
+            return true
         end
 
         # Gets an array containing all the syb types.
