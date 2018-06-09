@@ -1517,107 +1517,17 @@ module HDLRuby::High
             self
         end
 
-        # Moved to base
-        # # The widths of the basic types.
-        # WIDTHS = { :bit => 1, :unsigned => 1, :signed => 1,
-        #            :fixnum => 32, :float => 64, :bignum => High::Infinity }
-
-        # # The signs of the basic types.
-        # SIGNS = { :signed => true, :fixnum => true, :float => true,
-        #           :bignum => true }
-        # SIGNS.default = false
-
-        # # Gets the bitwidth of the type, nil for undefined.
-        # #
-        # # NOTE: must be redefined for specific types.
-        # def width
-        #     return WIDTHS[self.name]
-        # end
-
-        # # Tells if the type signed, false for unsigned.
-        # def signed?
-        #     return SIGNS[self.name]
-        # end
-
-        # # # Tells if the type is specified or not.
-        # # def void?
-        # #     return self.name == :void
-        # # end
-
-        # # # Tells if a type is generic or not.
-        # # def generic?
-        # #     return self.void?
-        # # end
-
-        # # Checks the compatibility with +type+
-        # def compatible?(type)
-        #     # # If type is void, compatible anyway.
-        #     # return true if type.name == :void
-        #     # Default: base types cases.
-        #     case self.name
-        #     # when :void then
-        #     #     # void is compatible with anything.
-        #     #     return true
-        #     when :bit then
-        #         # bit is compatible with bit signed and unsigned.
-        #         return [:bit,:signed,:unsigned].include?(type.name)
-        #     when :signed then
-        #         # Signed is compatible with bit and signed.
-        #         return [:bit,:signed].include?(type.name)
-        #     when :unsigned then
-        #         # Unsigned is compatible with bit and unsigned.
-        #         return [:bit,:unsigned].include?(type.name)
-        #     else
-        #         # Unknown type for compatibility: not compatible by default.
-        #         return false
-        #     end
-        # end
-
-        # # Merges with +type+
-        # def merge(type)
-        #     # # If type is void, return self.
-        #     # return self if type.name == :void
-        #     # Default: base types cases.
-        #     case self.name
-        #     # when :void then
-        #     #     # void: return type
-        #     #     return type
-        #     when :bit then
-        #         # bit is compatible with bit signed and unsigned.
-        #         if [:bit,:signed,:unsigned].include?(type.name) then
-        #             return type
-        #         else
-        #             raise "Incompatible types for merging: #{self}, #{type}."
-        #         end
-        #     when :signed then
-        #         # Signed is compatible with bit and signed.
-        #         if [:bit,:signed].include?(type.name) then
-        #             return self
-        #         else
-        #             raise "Incompatible types for merging: #{self}, #{type}."
-        #         end
-        #     when :unsigned then
-        #         # Unsigned is compatible with bit and unsigned.
-        #         if [:bit,:unsigned].include?(type.name)
-        #             return self
-        #         else
-        #             raise "Incompatible types for merging: #{self}, #{type}."
-        #         end
-        #     else
-        #         # Unknown type for compatibility: not compatible by default.
-        #         raise "Incompatible types for merging: #{self}, #{type}."
-        #     end
-        # end
-
-
-        # # Instantiate the type with arguments +args+ if required.
-        # #
-        # # NOTE: actually, only TypeSystemT actually require instantiation.
-        # def instantiate
-        #     self
-        # end
-
         # Type creation in HDLRuby::High.
+        
+        # Declares a new type definition with +name+ equivalent to current one.
+        def typedef(name)
+            # Create the new type.
+            typ = TypeDef.new(name,self)
+            # Register it.
+            High.space_reg(name) { typ }
+            # Return it.
+            return typ
+        end
 
         # Creates a new vector type of range +rng+ and with current type as
         # base.
@@ -1681,7 +1591,7 @@ module HDLRuby::High
         end
     end
 
-    
+ 
     # Creates the basic types.
     
     # Module providing the properties of a basic type.
@@ -1831,6 +1741,34 @@ module HDLRuby::High
     #         return HDLRuby::Low::TypeNumeric.new(name,self.numeric)
     #     end
     # end
+
+
+    ##
+    # Describes a high-level type definition.
+    #
+    # NOTE: type definition are actually type with a name refering to another
+    #       type (and equivalent to it).
+    class TypeDef < Low::TypeDef
+        High = HDLRuby::High
+
+        include Htype
+
+        # Type creation.
+
+        # Creates a new type definition named +name+ refering +type+.
+        def initialize(name,type)
+            # Initialize the type structure.
+            super(name,type)
+        end
+
+        # Converts the type to HDLRuby::Low and set its +name+.
+        #
+        # NOTE: should be overridden by other type classes.
+        def to_low(name = self.name)
+            return HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+        end
+    end
+
 
 
 
@@ -3167,7 +3105,8 @@ module HDLRuby::High
 
             # Hierarchical type allows access to sub references, so generate
             # the corresponding methods.
-            if type.respond_to?(:each_name) then
+            # if type.respond_to?(:each_name) then
+            if type.struct? then
                 type.each_name do |name|
                     self.define_singleton_method(name) do
                         RefObject.new(self.to_ref,
@@ -4001,6 +3940,17 @@ module HDLRuby::High
 
     # Extends the Hash class for declaring signals of structure types.
     class ::Hash
+
+        # Converts to a new type.
+        def to_type
+            return TypeStruct.new(:"",self)
+        end
+
+        # Declares a new type definition with +name+ equivalent to current one.
+        def typedef(name)
+            return self.to_type.typedef(name)
+        end
+
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
             names.each do |name|
@@ -4072,6 +4022,11 @@ module HDLRuby::High
                 # Tuple type case.
                 return TypeTuple.new(:"",*self)
             end
+        end
+
+        # Declares a new type definition with +name+ equivalent to current one.
+        def typedef(name)
+            return self.to_type.typedef(name)
         end
 
         # SignalI creation through the array take as type.

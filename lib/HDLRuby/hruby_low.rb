@@ -1,4 +1,5 @@
 require "HDLRuby/hruby_bstr"
+require 'forwardable'
 
 
 module HDLRuby
@@ -779,7 +780,6 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
-
         # Tells if the type signed.
         def signed?
             return false
@@ -835,16 +835,26 @@ module HDLRuby::Low
             return false
         end
 
+        # Tells if the type is regular (applies for tuples).
+        def regular?
+            return false
+        end
+
+        # Tells if the type has named sub types.
+        def struct?
+            return false
+        end
+
         # Tell if +type+ is equivalent to current type.
         #
         # NOTE: type can be compatible while not being equivalent, please
         #       refer to `hruby_types.rb` for type compatibility.
-        def equivalent(type)
+        def equivalent?(type)
             # By default, types are equivalent iff they have the same name.
             return (type.is_a?(Type) and self.name == type.name)
         end
-
     end
+
 
     # The leaf types.
 
@@ -969,6 +979,40 @@ module HDLRuby::Low
     end
 
 
+
+    ##
+    # Describes a high-level type definition.
+    #
+    # NOTE: type definition are actually type with a name refering to another
+    #       type (and equivalent to it).
+    class TypeDef < Type
+        extend Forwardable
+
+        # The definition of the type.
+        attr_reader :def
+
+        # Type creation.
+
+        # Creates a new type definition named +name+ from +type+.
+        def initialize(name,type)
+            # Initialize with name.
+            super(name)
+            # Set the referened type.
+            @def = type
+        end
+
+        # Delegate the type methods to the ref.
+        def_delegators :@def,
+                       :signed?, :unsigned?, :fixed?, :float?, :leaf?,
+                       :width, :range?, :range, :base?, :base, :types?,
+                       :get_all_types, :get_type, :each, :each_type, 
+                       :regular?,
+                       :each_name,
+                       :equivalent?
+    end
+
+
+
     ##
     # Describes a vector type.
     class TypeVector < Type
@@ -1036,30 +1080,15 @@ module HDLRuby::Low
             return @base.float?
         end
 
-        # # Checks the compatibility with +type+
-        # def compatible?(type)
-        #     # # if type is void, compatible anyway.
-        #     # return true if type.name == :void
-        #     # Compatible if same width and compatible base.
-        #     return false unless type.respond_to?(:dir)
-        #     return false unless type.respond_to?(:base)
-        #     return ( self.dir == type.dir and
-        #              self.base.compatible?(type.base) )
-        # end
-
-        # # Merges with +type+
-        # def merge(type)
-        #     # # if type is void, return self anyway.
-        #     # return self if type.name == :void
-        #     # Compatible if same width and compatible base.
-        #     unless type.respond_to?(:dir) and type.respond_to?(:base) then
-        #         raise "Incompatible types for merging: #{self}, #{type}."
-        #     end
-        #     unless self.dir == type.dir then
-        #         raise "Incompatible types for merging: #{self}, #{type}."
-        #     end
-        #     return TypeVector.new(@name,@range,@base.merge(type.base))
-        # end
+        # Tell if +type+ is equivalent to current type.
+        #
+        # NOTE: type can be compatible while not being equivalent, please
+        #       refer to `hruby_types.rb` for type compatibility.
+        def equivalent?(type)
+            return (type.is_a?(TypeVector) and
+                    @range == type.range
+                    @base.equivalent?(type.base) )
+        end
     end
 
 
@@ -1181,11 +1210,11 @@ module HDLRuby::Low
         # Tell if the tuple is regular, i.e., all its sub types are equivalent.
         #
         # NOTE: empty tuples are assumed not to be regular.
-        def is_regular?
+        def regular?
             return false if @types.empty?
             t0 = @types[0]
             @types[1..-1].each do |type|
-                return false unless t0.equivalent(type)
+                return false unless t0.equivalent?(type)
             end
             return true
         end
@@ -1200,7 +1229,7 @@ module HDLRuby::Low
         # NOTE: only valid if the tuple is regular (i.e., all its sub types 
         #       are identical)
         def range
-            if is_regular? then
+            if regular? then
                 # Regular tuple, return its range as if it was an array.
                 return 0..@types.size-1
             else
@@ -1213,12 +1242,21 @@ module HDLRuby::Low
         # NOTE: only valid if the tuple is regular (i.e., all its sub types 
         #       are identical)
         def base
-            if is_regular? then
+            if regular? then
                 # Regular tuple, return the type of its first element.
                 return @types[0]
             else
                 raise "No base type for type #{self}"
             end
+        end
+
+        # Tell if +type+ is equivalent to current type.
+        #
+        # NOTE: type can be compatible while not being equivalent, please
+        #       refer to `hruby_types.rb` for type compatibility.
+        def equivalent?(type)
+            return (type.is_a?(TypeTuple) and
+                    !@types.zip(type.types).index {|t0,t1| !t0.equivalent?(t1) })
         end
     end
 
@@ -1240,6 +1278,11 @@ module HDLRuby::Low
                 end
                 [ k.to_sym, v ]
             end.to_h
+        end
+
+        # Tells if the type has named sub types.
+        def struct?
+            return true
         end
 
         # Tells if the type has sub types.
@@ -1294,39 +1337,50 @@ module HDLRuby::Low
             return @types.reduce(0) {|sum,type| sum + type.width }
         end
 
-        # Checks the compatibility with +type+
-        def compatible?(type)
-            # # If type is void, compatible anyway.
-            # return true if type.name == :void
-            # Not compatible if different types.
-            return false unless type.is_a?(TypeStruct)
-            # Not compatibe unless each entry has the same name in same order.
-            return false unless self.each_name == type.each_name
-            self.each do |name,sub|
-                return false unless sub.compatible?(self.get_type(name))
-            end
-            return true
-        end
+        # # Checks the compatibility with +type+
+        # def compatible?(type)
+        #     # # If type is void, compatible anyway.
+        #     # return true if type.name == :void
+        #     # Not compatible if different types.
+        #     return false unless type.is_a?(TypeStruct)
+        #     # Not compatibe unless each entry has the same name in same order.
+        #     return false unless self.each_name == type.each_name
+        #     self.each do |name,sub|
+        #         return false unless sub.compatible?(self.get_type(name))
+        #     end
+        #     return true
+        # end
 
-        # Merges with +type+
-        def merge(type)
-            # # if type is void, return self anyway.
-            # return self if type.name == :void
-            # Not compatible if different types.
-            unless type.is_a?(TypeStruct) then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            # Not compatibe unless each entry has the same name and same order.
-            unless self.each_name == type.each_name then
-                raise "Incompatible types for merging: #{self}, #{type}."
-            end
-            # Creates the new type content
-            content = {}
-            self.each do |name,sub|
-                content[name] = self.get_type(name).merge(sub)
-            end
-            return TypeStruct.new(@name,content)
-        end  
+        # # Merges with +type+
+        # def merge(type)
+        #     # # if type is void, return self anyway.
+        #     # return self if type.name == :void
+        #     # Not compatible if different types.
+        #     unless type.is_a?(TypeStruct) then
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        #     # Not compatibe unless each entry has the same name and same order.
+        #     unless self.each_name == type.each_name then
+        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #     end
+        #     # Creates the new type content
+        #     content = {}
+        #     self.each do |name,sub|
+        #         content[name] = self.get_type(name).merge(sub)
+        #     end
+        #     return TypeStruct.new(@name,content)
+        # end  
+
+        # Tell if +type+ is equivalent to current type.
+        #
+        # NOTE: type can be compatible while not being equivalent, please
+        #       refer to `hruby_types.rb` for type compatibility.
+        def equivalent?(type)
+            return (type.is_a?(TypeStruct) and
+                    !@types.to_a.zip(type.types.to_a).index do |t0,t1|
+                t0[0] != t1[0] or !t0[1].equivalent?(t1[1])
+            end)
+        end
     end
 
 
