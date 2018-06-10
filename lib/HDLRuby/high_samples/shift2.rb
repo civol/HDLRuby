@@ -17,7 +17,7 @@ system :shifter do |n|
    output :o0, :o0b
 
    # Instantiating n D-FF
-   [n].(dff).make :dffIs
+   [n].dff :dffIs
 
    # Interconnect them as a shift register
    dffIs[0..-2].zip(dffIs[1..-1]) do |ff0,ff1|

@@ -380,37 +380,6 @@ module HDLRuby::High
             return @scope
         end
 
-        # # Adds a group of system +instances+ named +name+.
-        # def add_groupI(name, *instances)
-        #     # Ensure name is a symbol and is not already used for another
-        #     # group.
-        #     name = name.to_sym
-        #     if @groupIs.key?(name)
-        #         raise "Group of system instances named #{name} already exist."
-        #     end
-        #     # Add the group.
-        #     @groupIs[name.to_sym] = instances
-        #     # Sets the parent of the instances.
-        #     instances.each { |instance| instance.parent = self }
-        # end
-
-        # # Access a group of system instances by +name+.
-        # #
-        # # NOTE: the result is a copy of the group for avoiding side effects.
-        # def get_groupI(name)
-        #     return @groupIs[name.to_sym].clone
-        # end
-
-        # # Iterates over the group of system instances.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each_groupI(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_groupI) unless ruby_block
-        #     # A block? Apply it on each input signal instance.
-        #     @groupIs.each(&ruby_block)
-        # end
-
         # Creates and adds a set of inputs typed +type+ from a list of +names+.
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
@@ -609,6 +578,10 @@ module HDLRuby::High
         # method +name+ for hdl-like instantiation, target instantiation as
         # +klass+, added to the calling object with +add_instance+, and
         # whose eigen type is initialized by +ruby_block+.
+        #
+        # NOTE: actually creates two instantiater, a general one, being
+        #       registered in the namespace stack, and one for creating an
+        #       array of instances being registered in the Array class.
         def make_instantiater(name,klass,add_instance,&ruby_block)
             # Set the instanciater.
             @instance_proc = ruby_block
@@ -619,6 +592,8 @@ module HDLRuby::High
             return if name.empty?
 
             obj = self # For using the right self within the proc
+
+            # Create and register the general instantiater.
             High.space_reg(name) do |*args|
                 # If no name it is actually an access to the system type.
                 return obj if args.empty?
@@ -635,6 +610,11 @@ module HDLRuby::High
                 end
                 # # Return the last instance.
                 instance
+            end
+
+            # Create and register the array of instances instantiater.
+            ::Array.class_eval do
+                define_method(name) { |*args| make(name,*args) }
             end
         end
 
@@ -4071,19 +4051,45 @@ module HDLRuby::High
             end
         end
 
-        # Create an array of instances obtained by instantiating the elements
-        # using +args+ as argument and register the result to +name+.
+        # # Create an array of instances obtained by instantiating the elements
+        # # using +args+ as argument and register the result to +name+.
+        # #
+        # # NOTE: the instances are unnamed since it is the resulting array
+        # # that is registered.
+        # def make(name,*args)
+        #     # Instantiate the types.
+        #     instances = self.map { |elem| elem.instantiate(:"",*args) }
+        #     # Add them to the top system
+        #     High.space_top.user.add_groupI(name,*instances)
+        #     # Register and return the result.
+        #     High.space_reg(name) { High.space_top.user.get_groupI(name) }
+        #     return High.space_top.user.get_groupI(name)
+        # end
+
+        # Create an array of instances of system +name+, using +args+ as
+        # arguments.
         #
-        # NOTE: the instances are unnamed since it is the resulting array
-        # that is registered.
+        # NOTE: the array must have a single element that is an integer.
         def make(name,*args)
-            # Instantiate the types.
-            instances = self.map { |elem| elem.instantiate(:"",*args) }
+            # Check the array and get the number of elements.
+            size = self[0]
+            unless self.size == 1 and size.is_a?(::Integer)
+                raise "Invalid array for declaring a list of instances."
+            end
+            # Get the system to instantiate.
+            systemT = High.space_call(name)
+            # Get the name of the instance from the arguments.
+            nameI = args.shift.to_s
+            # Create the instances.
+            instances = size.times.map do |i| 
+                systemT.instantiate((nameI + "[#{i}]").to_sym,*args)
+            end
+            nameI = nameI.to_sym
             # Add them to the top system
-            High.space_top.user.add_groupI(name,*instances)
+            High.space_top.user.add_groupI(nameI,*instances)
             # Register and return the result.
-            High.space_reg(name) { High.space_top.user.get_groupI(name) }
-            return High.space_top.user.get_groupI(name)
+            High.space_reg(nameI) { High.space_top.user.get_groupI(nameI) }
+            return High.space_top.user.get_groupI(nameI)
         end
     end
 
