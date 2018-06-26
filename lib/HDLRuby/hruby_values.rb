@@ -8,12 +8,19 @@ module HDLRuby
     # To include to classes for value processing support.
     module Vprocess
 
-        # Arithmetic and logic operations
+        # Redefinition of the arithmetic and logic operations
         [ :+, :-, :*, :/, :%, :&, :|, :**, :-@, :+@, :~,
           :<<, :>>,
           :==, :<, :>, :<=, :>=, :<=>  ].each do |op|
+            # Actual redefinition.
             define_method(op) do |value|
+                # puts "value=#{value}"
                 # Ensures value is really a value.
+                unless value.to_value? then
+                    # Not a value, use the former method.
+                    # Assumed
+                    return self.send(orig_operator(op),value)
+                end
                 value = value.to_value
                 # Generate the resulting type.
                 res_type = self.type.send(op,value.type)

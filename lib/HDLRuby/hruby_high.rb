@@ -1073,7 +1073,7 @@ module HDLRuby::High
             # # Include the mixin systems given when declaring the system.
             # @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
-            instance_proc = base.parent.instance_proc if base.parent.is_a?(SystemT)
+            instance_proc = base.parent.instance_proc if base.parent.respond_to?(:instance_proc)
             @return_value = High.top_user.instance_exec(*args,&instance_proc) if instance_proc
             High.space_pop
         end
@@ -2347,6 +2347,11 @@ module HDLRuby::High
         # The type of the expression if resolved.
         attr_reader :type
 
+        # Tell if the expression can be converted to a value.
+        def to_value?
+            return false
+        end
+
         # Converts to a new value.
         #
         # NOTE: to be redefined.
@@ -2361,26 +2366,51 @@ module HDLRuby::High
             raise "Internal error: to_expr not defined yet for class: #{self.class}"
         end
 
+        # Gets the origin method for operation +op+.
+        def self.orig_operator(op)
+            return (op.to_s + "_orig").to_sym
+        end
+        def orig_operator(op)
+            HExpression.orig_operator(op)
+        end
+
         # Adds the unary operations generation.
         [:"-@",:"@+",:"!",:"~",
          :boolean, :bit, :signed, :unsigned].each do |operator|
-            define_method(operator) do
-                # return Unary.new(operator,self.to_expr)
+            # define_method(operator) do
+            #     # return Unary.new(operator,self.to_expr)
+            #     return Unary.new(self.to_expr.type.send(operator),operator,
+            #                      self.to_expr)
+            # end
+            meth = proc do
                 return Unary.new(self.to_expr.type.send(operator),operator,
                                  self.to_expr)
             end
+            # Defines the operator method.
+            define_method(operator,&meth) 
+            # And save it so that it can still be accessed if overidden.
+            define_method(orig_operator(operator),&meth)
         end
 
         # Adds the binary operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
          :"&",:"|",:"^",:"<<",:">>",
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
-            define_method(operator) do |right|
-                # return Binary.new(operator,self.to_expr,right.to_expr)
+            # define_method(operator) do |right|
+            #     # return Binary.new(operator,self.to_expr,right.to_expr)
+            #     return Binary.new(
+            #         self.to_expr.type.send(operator,right.to_expr.type),
+            #         operator, self.to_expr,right.to_expr)
+            # end
+            meth = proc do |right|
                 return Binary.new(
                     self.to_expr.type.send(operator,right.to_expr.type),
                     operator, self.to_expr,right.to_expr)
             end
+            # Defines the operator method.
+            define_method(operator,&meth) 
+            # And save it so that it can still be accessed if overidden.
+            define_method(orig_operator(operator),&meth)
         end
 
         # Methods for conversion for HDLRuby::Low: type processing, flattening
@@ -2616,6 +2646,11 @@ module HDLRuby::High
     class Value < Low::Value
         include HExpression
         include HDLRuby::Vprocess
+
+        # Tell if the expression can be converted to a value.
+        def to_value?
+            return true
+        end
 
         # Converts to a new value.
         def to_value
@@ -3847,6 +3882,11 @@ module HDLRuby::High
         #     return Value.new(TypeNumeric.new(:"",self),self)
         # end
 
+        # Tell if the expression can be converted to a value.
+        def to_value?
+            return true
+        end
+
         # Converts to a new high-level value.
         def to_value
             to_expr
@@ -4112,6 +4152,11 @@ module HDLRuby::High
         #     return signal.to_ref
         # end
         # alias :+@ :to_ref
+
+        # Tell if the expression can be converted to a value.
+        def to_value?
+            return true
+        end
 
         # Converts to a new value.
         #
