@@ -1,0 +1,101 @@
+---
+Type:
+  name: void
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: addI::T_
+  inputs:
+  - SignalI:
+      name: ina
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  - SignalI:
+      name: inb
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  outputs:
+  - SignalI:
+      name: result
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 16
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      name: ''
+      scopes: []
+      inners: []
+      systemIs: []
+      connections:
+      - Connection:
+          left:
+            RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 16
+                  - 0
+              ref:
+                RefThis:
+                  type: void
+              name: result
+          right:
+            Binary:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 16
+                  - 0
+              operator: "+"
+              left:
+                RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
+                  ref:
+                    RefThis:
+                      type: void
+                  name: ina
+              right:
+                RefName:
+                  type:
+                    TypeVector:
+                      name: ''
+                      base: bit
+                      range:
+                      - 15
+                      - 0
+                  ref:
+                    RefThis:
+                      type: void
+                  name: inb
+      behaviors: []
+---
+SystemI:
+  name: addI
+  systemT: addI::T_
