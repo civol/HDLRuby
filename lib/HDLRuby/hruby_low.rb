@@ -1019,6 +1019,11 @@ module HDLRuby::Low
         # The base type of the vector
         attr_reader :base
 
+        # Tells if the type has a base.
+        def base?
+            return true
+        end
+
         # The range of the vector.
         attr_reader :range
 
@@ -1235,6 +1240,14 @@ module HDLRuby::Low
             else
                 raise "No range for type #{self}"
             end
+        end
+
+        # Tells if the type has a base.
+        #
+        # NOTE: only if the tuple is regular (i.e., all its sub types
+        #       are identical)
+        def base?
+            return regular?
         end
 
         # Gets the base type.
