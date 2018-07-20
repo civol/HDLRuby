@@ -1,3 +1,4 @@
+#!/bin/bash
 # Script for testing all the samples
 
 for file in *.rb
