@@ -12,6 +12,11 @@ require 'forwardable'
 #######################################################
 module HDLRuby::High
 
+    # Tells HDLRuby is currently booting.
+    def self.booting?
+        true
+    end
+
     # Base = HDLRuby::Base
     Low  = HDLRuby::Low
 
@@ -61,11 +66,16 @@ module HDLRuby::High
             @concats = []
         end
 
-        # Adds method +name+ provided the name is not empty.
+        # Adds method +name+ provided the name is not empty and the method
+        # is not already defined in the current namespace.
         def add_method(name,&ruby_block)
+            # puts "add_method with name=#{name}"
             unless name.empty? then
                 if RESERVED.include?(name.to_sym) then
                     raise "Resevered name #{name} cannot be overridden."
+                end
+                if self.respond_to?(name) then
+                    raise "Symbol #{name} is already defined."
                 end
                 define_singleton_method(name,&ruby_block) 
             end
@@ -348,7 +358,7 @@ module HDLRuby::High
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
             # super(name,Scope.new())
-            super(name,Scope.new(name))
+            super(name,Scope.new(name,self))
 
             # Initialize the set of extensions to transmit to the instances'
             # eigen class
@@ -583,6 +593,7 @@ module HDLRuby::High
         #       registered in the namespace stack, and one for creating an
         #       array of instances being registered in the Array class.
         def make_instantiater(name,klass,add_instance,&ruby_block)
+            # puts "make_instantiater with name=#{name}"
             # Set the instanciater.
             @instance_proc = ruby_block
             # Set the target instantiation class.
@@ -887,25 +898,30 @@ module HDLRuby::High
 
         ##
         # Creates a new scope with possible +name+.
+        # If the scope is a top scope of a system, this systemT is
+        # given by +systemT+.
         #
         # The proc +ruby_block+ is executed for building the scope.
         # If no block is provided, the scope is the top of a system and
         # is filled by the instantiation procedure of the system.
-        def initialize(name = :"", &ruby_block)
+        def initialize(name = :"", systemT = nil, &ruby_block)
             # Initialize the scope structure
             super(name)
-
-            unless name.empty? then
-                # Named scope, set the hdl-like access to the scope.
-                obj = self # For using the right self within the proc
-                High.space_reg(name) { obj }
-            end
 
             # Initialize the set of grouped system instances.
             @groupIs = {}
 
             # Creates the namespace.
             @namespace = Namespace.new(self)
+
+            # Register the scope if it is not the top scope of a system
+            # (in which case the system has already be registered with
+            # the same name).
+            unless name.empty? or systemT then
+                # Named scope, set the hdl-like access to the scope.
+                obj = self # For using the right self within the proc
+                High.space_reg(name) { obj }
+            end
 
             # Initialize the set of exported inner signals and instances
             @exports = {}
@@ -1049,12 +1065,9 @@ module HDLRuby::High
         #
         # NOTE: used when the scope is not the top of a system.
         def build(&ruby_block)
-            # Namespace already there
-            # # High-level scopes can include inner signals.
-            # # And therefore require a namespace.
-            # @namespace ||= Namespace.new(self)
-            # Build the scope.
+            # Set the namespace for buidling the scope.
             High.space_push(@namespace)
+            # Build the scope.
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
@@ -4445,4 +4458,11 @@ def self.configure_high
     # $rst = SignalI.new(:__universe__rst__,Bit,:inner)
     $clk = Universe.scope.inner :__universe__clk__
     $rst = Universe.scope.inner :__universe__rst__
+
+
+
+    # Tells HDLRuby has finised booting.
+    def self.booting?
+        false
+    end
 end
