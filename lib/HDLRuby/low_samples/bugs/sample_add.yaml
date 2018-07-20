@@ -95,7 +95,3 @@ SystemT:
                       type: void
                   name: inb
       behaviors: []
----
-SystemI:
-  name: addI
-  systemT: addI::T_
