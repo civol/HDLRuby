@@ -2375,7 +2375,7 @@ module HDLRuby::High
         end
 
         # Adds the unary operations generation.
-        [:"-@",:"@+",:"!",:"~",
+        [:"-@",:"@+",:"~", :abs,
          :boolean, :bit, :signed, :unsigned].each do |operator|
             # define_method(operator) do
             #     # return Unary.new(operator,self.to_expr)
@@ -2413,6 +2413,21 @@ module HDLRuby::High
             define_method(orig_operator(operator),&meth)
         end
 
+        # Converts to a select operator using current expression as
+        # condition for one of the +choices+.
+        #
+        # NOTE: +choices+ can either be a list of arguments or an array.
+        # If +choices+ has only two entries
+        # (and it is not a hash), +value+ will be converted to a boolean.
+        def mux(*choices)
+            # Process the choices.
+            choices = choices.flatten(1) if choices.size == 1
+            choices.map! { |choice| choice.to_expr }
+            # Generate the select expression.
+            return Select.new(choices[0].type,"?",self.to_expr,*choices)
+        end
+
+
         # Methods for conversion for HDLRuby::Low: type processing, flattening
         # and so on
 
@@ -2427,6 +2442,19 @@ module HDLRuby::High
                 raise "Invalid class for a type: #{type.class}."
             end
             @type = type
+        end
+        # Converts to a select operator using current expression as
+        # condition for one of the +choices+.
+        #
+        # NOTE: +choices+ can either be a list of arguments or an array.
+        # If +choices+ has only two entries
+        # (and it is not a hash), +value+ will be converted to a boolean.
+        def mux(*choices)
+            # Process the choices.
+            choices = choices.flatten(1) if choices.size == 1
+            choices.map! { |choice| choice.to_expr }
+            # Generate the select expression.
+            return Select.new(choices[0].type,"?",self.to_expr,*choices)
         end
 
         # # The parent construct.

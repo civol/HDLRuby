@@ -62,12 +62,12 @@ module HDLRuby
             # Resolve the type class.
             resolved = self.resolve(type)
             # New type range: largest range + 1
-            bounds = [ self.range.first, type.range.first,
-                       self.range.last, type.range.last ]
+            bounds = [ self.range.first.to_i, type.range.first.to_i,
+                       self.range.last.to_i, type.range.last.to_i ]
             res_lsb =  bounds.min
             res_msb = bounds.max + 1
             # Create and return the new type: its endianess is the one of self
-            if self.range.first > self.range.last then
+            if self.range.first.to_i > self.range.last.to_i then
                 return resolved.make(:"",resolved.base,res_msb..res_lsb)
             else
                 return resolved.make(:"",resolved.base,res_lsb..res_msb)
@@ -82,12 +82,12 @@ module HDLRuby
             # Resolve the type class.
             resolved = self.resolve(type)
             # New type range: largest range * 2
-            bounds = [ self.range.first, type.range.first,
-                       self.range.last, type.range.last ]
+            bounds = [ self.range.first.to_i, type.range.first.to_i,
+                       self.range.last.to_i, type.range.last.to_i ]
             res_lsb =  bounds.min
             res_msb = bounds.max * 2
             # Create and return the new type: its endianess is the one of self
-            if self.range.first > self.range.last then
+            if self.range.first.to_i > self.range.last.to_i then
                 return resolved.make(:"",resolved.base,res_msb..res_lsb)
             else
                 return resolved.make(:"",resolved.base,res_lsb..res_msb)
@@ -99,12 +99,12 @@ module HDLRuby
             # Resolve the type class.
             resolved = self.resolve(type)
             # New type range: largest range 
-            bounds = [ self.range.first, type.range.first,
-                       self.range.last, type.range.last ]
+            bounds = [ self.range.first.to_i, type.range.first.to_i,
+                       self.range.last.to_i, type.range.last.to_i ]
             res_lsb =  bounds.min
             res_msb = bounds.max 
             # Create and return the new type: its endianess is the one of self
-            if self.range.first > self.range.last then
+            if self.range.first.to_i > self.range.last.to_i then
                 return resolved.make(:"",resolved.base,res_msb..res_lsb)
             else
                 return resolved.make(:"",resolved.base,res_lsb..res_msb)
@@ -124,6 +124,11 @@ module HDLRuby
             return self
         end
 
+        # Absolute value
+        def abs()
+            return self
+        end
+
         # Logical operations and comparisons
         
 
@@ -132,12 +137,12 @@ module HDLRuby
             # Resolve the type class.
             resolved = self.resolve(type)
             # New type range: largest range 
-            bounds = [ self.range.first, type.range.first,
-                       self.range.last, type.range.last ]
+            bounds = [ self.range.first.to_i, type.range.first.to_i,
+                       self.range.last.to_i, type.range.last.to_i ]
             res_lsb =  bounds.min
             res_msb = bounds.max 
             # Create and return the new type: its endianess is the one of self
-            if self.range.first > self.range.last then
+            if self.range.first.to_i > self.range.last.to_i then
                 return resolved.make(:"",resolved.base,res_msb..res_lsb)
             else
                 return resolved.make(:"",resolved.base,res_lsb..res_msb)
@@ -175,7 +180,27 @@ module HDLRuby
         alias :<=> :&
 
 
-        # Shifts: TODO
+        # Shifts
+
+        # Shift left
+        def <<(type)
+            # The result type is the type of left.
+            resolved = self
+            # New type range: 2**(type width) times self range
+            bounds = [ self.range.first.to_i, self.range.last.to_i ]
+            res_lsb =  bounds.min
+            res_msb = bounds.max +
+                (2 ** ((type.range.last-type.range.first).abs))
+            # Create and return the new type: its endianess is the one of self
+            if self.range.first.to_i > self.range.last.to_i then
+                return resolved.make(:"",resolved.base,res_msb..res_lsb)
+            else
+                return resolved.make(:"",resolved.base,res_lsb..res_msb)
+            end
+        end
+
+        # Shift right
+        alias :>> :<<
         
 
     end
