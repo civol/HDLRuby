@@ -1862,6 +1862,37 @@ module HDLRuby::Low
         end
     end
 
+    ##
+    # Describes a when for a case statement.
+    class When
+
+        include Hparent
+
+        # The value to match.
+        attr_reader :match
+        # The statement to execute in in case of match.
+        attr_reader :statement
+
+        # Creates a new when for a casde statement that executes +statement+
+        # on +match+.
+        def initialize(match,statement)
+            # Checks the match.
+            unless match.is_a?(Expression)
+                raise "Invalid class for a case match: #{match.class}"
+            end
+            # Checks statement.
+            unless statement.is_a?(Statement)
+                raise "Invalid class for a statement: #{statement.class}"
+            end
+            # Set the match.
+            @match = match
+            # Set the statement.
+            @statement = statement
+            # And set their parents.
+            match.parent = statement.parent = self
+        end
+    end
+
 
     ## 
     # Describes a case statement.
@@ -1885,37 +1916,52 @@ module HDLRuby::Low
             value.parent = self
             # Checks and set the default case if any.
             self.default = default if default
-            # Initialize the match cases, and check them.
-            @whens = whens
-            # puts "whens=#{whens}"
-            @whens.each do |match,statement|
-                # Checks the match.
-                unless match.is_a?(Expression)
-                    raise "Invalid class for a case match: #{match.class}"
-                end
-                # Checks statement.
-                unless statement.is_a?(Statement)
-                    raise "Invalid class for a statement: #{statement.class}"
-                end
-            end
+            # # Initialize the match cases, and check them.
+            # @whens = whens
+            # # puts "whens=#{whens}"
+            # @whens.each do |match,statement|
+            #     # Checks the match.
+            #     unless match.is_a?(Expression)
+            #         raise "Invalid class for a case match: #{match.class}"
+            #     end
+            #     # Checks statement.
+            #     unless statement.is_a?(Statement)
+            #         raise "Invalid class for a statement: #{statement.class}"
+            #     end
+            # end
+            @whens = []
+            # Checks and add the whens.
+            whens.each { |w| self.add_when(w) }
         end
 
-        # Adds a possible +match+ for the case's value that lead to the 
-        # execution of +statement+.
-        def add_when(match,statement)
-            # Checks the match.
-            unless match.is_a?(Expression)
-                raise "Invalid class for a case match: #{match.class}"
+        # # Adds a possible +match+ for the case's value that lead to the 
+        # # execution of +statement+.
+        # def add_when(match,statement)
+        #     # Checks the match.
+        #     unless match.is_a?(Expression)
+        #         raise "Invalid class for a case match: #{match.class}"
+        #     end
+        #     # Checks statement.
+        #     unless statement.is_a?(Statement)
+        #         raise "Invalid class for a statement: #{statement.class}"
+        #     end
+        #     # Add the case.
+        #     @whens << [match,statement]
+        #     # And set their parents.
+        #     match.parent = statement.parent = self
+        #     [match,statement]
+        # end
+
+        # Adds possible when case +w+.
+        def add_when(w)
+            # Check +w+.
+            unless w.is_a?(When)
+                raise "Invalid class for a when: #{w.class}"
             end
-            # Checks statement.
-            unless statement.is_a?(Statement)
-                raise "Invalid class for a statement: #{statement.class}"
-            end
-            # Add the case.
-            @whens << [match,statement]
-            # And set their parents.
-            match.parent = statement.parent = self
-            [match,statement]
+            # Add it.
+            @whens << w
+            # And set the parent of +w+.
+            w.parent = self
         end
 
         # Sets the default block.

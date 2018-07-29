@@ -27,7 +27,7 @@ module HDLRuby
                  # Low::SignalI, Low::SystemI, Low::Connection, 
                  Low::SignalI, Low::SystemI, Low::Connection, 
                  # Low::Declare, 
-                 Low::Transmit, Low::If, Low::Case,
+                 Low::Transmit, Low::If, Low::Case, Low::When,
                  Low::TimeWait, Low::TimeRepeat,
                  Low::Delay,
                  # Low::Value, Low::Unary, Low::Binary, Low::Ternary, Low::Concat,

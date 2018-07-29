@@ -1323,7 +1323,7 @@ module HDLRuby::High
         #  * a new behavior is created to enclose the hcase.
         def hcase(value)
             self.par do
-                hcase(condition,value)
+                hcase(value)
             end
         end
 
@@ -1334,7 +1334,7 @@ module HDLRuby::High
         def hwhen(match, mode = nil, &ruby_block)
             # There is a ruby_block: the helse is assumed to be with
             # the last statement of the last behavior.
-            statement = @statements.last
+            statement = @behaviors.last.last_statement
             # Completes the hcase statement.
             unless statement.is_a?(Case) then
                 raise "Error: hwhen statement without hcase (#{statement.class})."
@@ -2254,6 +2254,25 @@ module HDLRuby::High
         end
     end
 
+    
+    ##
+    # Describes a high-level when for a case statement.
+    class When < Low::When
+        High = HDLRuby::High
+
+        # Creates a new when for a casde statement that executes +statement+
+        # on +match+.
+        def initialize(match,statement)
+            super(match,statement)
+        end
+
+        # Converts the if to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::When.new(self.match.to_low,
+                                          self.statement.to_low)
+        end
+    end
+
 
     ## 
     # Describes a high-level case statement.
@@ -2278,7 +2297,7 @@ module HDLRuby::High
             # when_block = High.make_block(:par,&ruby_block)
             when_block = High.make_block(mode,&ruby_block)
             # Adds the case.
-            self.add_when(match.to_expr,when_block)
+            self.add_when(When.new(match.to_expr,when_block))
         end
 
         # Sets the block executed in +mode+ when there were no match to
@@ -2297,9 +2316,12 @@ module HDLRuby::High
         def to_low
             # Create the low level case.
             caseL = HDLRuby::Low::Case.new(@value.to_low)
-            # Add each case.
-            self.each_when do |match,statement|
-                caseL.add_when(match.to_low, statement.to_low)
+            # Add each when case.
+            # self.each_when do |match,statement|
+            #     caseL.add_when(When.new(match.to_low, statement.to_low))
+            # end
+            self.each_when do |w|
+                caseL.add_when(w.to_low)
             end
             # Add the default if any.
             if self.default then

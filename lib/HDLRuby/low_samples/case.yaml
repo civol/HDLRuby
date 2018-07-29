@@ -1,0 +1,327 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: void
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: decoderI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 3
+          - 0
+  outputs:
+  - SignalI:
+      name: s
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 7
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      name: ''
+      scopes: []
+      inners: []
+      systemIs: []
+      connections: []
+      behaviors:
+      - Behavior:
+          events: []
+          block:
+            Block:
+              mode: par
+              name: ''
+              inners: []
+              statements:
+              - Case:
+                  value:
+                    RefName:
+                      type:
+                        TypeVector:
+                          name: ''
+                          base: bit
+                          range:
+                          - 3
+                          - 0
+                      ref:
+                        RefThis:
+                          type: void
+                      name: x
+                  whens:
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 0
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 1
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 1
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 2
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 2
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 4
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 3
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 8
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 4
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 16
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 5
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 32
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 6
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 64
+                  - When:
+                      match:
+                        Value:
+                          type: integer
+                          content: 7
+                      statement:
+                        Block:
+                          mode: par
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 7
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: s
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 128
+                  default:
+                    Block:
+                      mode: par
+                      name: ''
+                      inners: []
+                      statements:
+                      - Transmit:
+                          left:
+                            RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 7
+                                  - 0
+                              ref:
+                                RefThis:
+                                  type: void
+                              name: s
+                          right:
+                            Value:
+                              type: integer
+                              content: 0
