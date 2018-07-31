@@ -4,16 +4,13 @@ configure_high
 
 # Tests the inclusion of other files.
 
-require "adder.rb"
+require "./adder.rb"
 
 
 # Two parallel adders
 system :adder16_2 do
     [15..0].input :x0,:y0,:x1,:y1
     [16..0].output :s0,:s1
-
-    inner[15..0] :temp
-    inner :carry
 
     adder(:adder0).(x0,y0,s0)
     
