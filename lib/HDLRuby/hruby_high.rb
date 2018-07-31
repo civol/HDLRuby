@@ -4453,8 +4453,17 @@ module HDLRuby::High
 
 end
 
+# Tell if already configured.
+$HDLRuby_configure = false
+
 # Enters in HDLRuby::High mode.
 def self.configure_high
+    if $HDLRuby_configure then
+        # Already configured.
+        return
+    end
+    # Now HDLRuby will be configured.
+    $HDLRuby_configure = true
     include HDLRuby::High
     class << self
         # For main, missing methods are looked for in the namespaces.
