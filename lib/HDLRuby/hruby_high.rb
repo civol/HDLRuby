@@ -534,7 +534,9 @@ module HDLRuby::High
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            eigen = self.class.new(:"")
+            # eigen = self.class.new(:"")
+            eigen = self.class.new(High.names_create(i_name.to_s+ "::T"))
+
             # # Extends eigen with self.
             # eigen.extend(self)
             # High.space_push(eigen.namespace)
@@ -2169,7 +2171,8 @@ module HDLRuby::High
         def to_low(name = self.name)
             # puts "to_low with #{self} (#{self.name}) #{self.systemT}"
             # Converts the system of the instance to HDLRuby::Low
-            systemTlow = self.systemT.to_low(High.names_create(name.to_s+ "::T"))
+            # systemTlow = self.systemT.to_low(High.names_create(name.to_s+ "::T"))
+            systemTlow = self.systemT.to_low
             # Creates the resulting HDLRuby::Low instance
             return HDLRuby::Low::SystemI.new(High.names_create(name),
                                              systemTlow)
