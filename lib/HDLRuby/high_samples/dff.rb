@@ -17,7 +17,7 @@ end
 dff :dffI
 
 # Generate the low level representation.
-low = dffI.to_low
+low = dffI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

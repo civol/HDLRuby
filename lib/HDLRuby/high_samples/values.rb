@@ -64,7 +64,7 @@ end
 values :valuesI
 
 # Generate the low level representation.
-low = valuesI.to_low
+low = valuesI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

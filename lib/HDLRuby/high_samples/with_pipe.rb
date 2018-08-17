@@ -48,7 +48,7 @@ end
 with_pipe :with_pipeI
 
 # Generate the low level representation.
-low = with_pipeI.to_low
+low = with_pipeI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

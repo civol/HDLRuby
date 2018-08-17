@@ -22,7 +22,7 @@ end
 with_each :with_eachI
 
 # Generate the low level representation.
-low = with_eachI.to_low
+low = with_eachI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

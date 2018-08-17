@@ -25,7 +25,7 @@ end
 shift16 :shift16I
 
 # Generate the low level representation.
-low = shift16I.to_low
+low = shift16I.systemT.to_low
 
 # Displays it
 puts low.to_yaml

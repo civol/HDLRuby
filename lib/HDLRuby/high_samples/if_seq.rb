@@ -20,7 +20,7 @@ end
 if_seq :if_seqI
 
 # Generate the low level representation.
-low = if_seqI.to_low
+low = if_seqI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

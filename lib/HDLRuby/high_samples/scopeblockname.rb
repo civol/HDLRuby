@@ -31,7 +31,7 @@ end
 with_names :with_namesI
 
 # Generate the low level representation.
-low = with_namesI.to_low
+low = with_namesI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

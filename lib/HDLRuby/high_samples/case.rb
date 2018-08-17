@@ -26,7 +26,7 @@ end
 decoder :decoderI
 
 # Generate the low level representation.
-low = decoderI.to_low
+low = decoderI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

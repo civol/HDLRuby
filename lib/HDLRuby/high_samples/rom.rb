@@ -19,7 +19,7 @@ rom8_8 :rom8_8I
 
 
 # Generate the low level representation.
-low = rom8_8I.to_low
+low = rom8_8I.systemT.to_low
 
 # Displays it
 puts low.to_yaml

@@ -22,7 +22,7 @@ end
 with_after :with_afterI
 
 # Generate the low level representation.
-low = with_afterI.to_low
+low = with_afterI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

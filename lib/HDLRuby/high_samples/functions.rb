@@ -54,7 +54,7 @@ hello_out
 functions :functionsI
 
 # Generate the low level representation.
-low = functionsI.to_low
+low = functionsI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

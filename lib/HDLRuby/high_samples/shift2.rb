@@ -34,7 +34,7 @@ end
 shifter :shifterI, 16
 
 # Generate the low level representation.
-low = shifterI.to_low
+low = shifterI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

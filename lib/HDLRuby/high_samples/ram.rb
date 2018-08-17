@@ -21,7 +21,7 @@ ram8_16 :ram8_16I
 
 
 # Generate the low level representation.
-low = ram8_16I.to_low
+low = ram8_16I.systemT.to_low
 
 # Displays it
 puts low.to_yaml

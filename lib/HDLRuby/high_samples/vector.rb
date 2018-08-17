@@ -16,7 +16,7 @@ end
 vectors :vectorsI
 
 # Generate the low level representation.
-low = vectorsI.to_low
+low = vectorsI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

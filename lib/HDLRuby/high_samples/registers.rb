@@ -133,7 +133,7 @@ regn_make :regn_makeI, 8
 reg_make  :reg_makeI, bit[7..0]
 
 # Generate the low level representation.
-low = reg_makeI.to_low
+low = reg_makeI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

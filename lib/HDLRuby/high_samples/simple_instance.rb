@@ -25,7 +25,7 @@ end
 with_io :with_ioI
 
 # Generate the low level representation.
-low = with_ioI.to_low
+low = with_ioI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

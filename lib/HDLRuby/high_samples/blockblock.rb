@@ -20,7 +20,7 @@ end
 blockblock :blockblockI
 
 # Generate the low level representation.
-low = blockblockI.to_low
+low = blockblockI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

@@ -15,7 +15,7 @@ end
 adder :adderI
 
 # Generate the low level representation.
-low = adderI.to_low
+low = adderI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

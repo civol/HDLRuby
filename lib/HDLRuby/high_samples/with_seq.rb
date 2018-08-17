@@ -19,7 +19,7 @@ end
 with_seq :with_seqI
 
 # Generate the low level representation.
-low = with_seqI.to_low
+low = with_seqI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

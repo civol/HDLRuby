@@ -29,7 +29,7 @@ end
 with_clocks :with_clocksI
 
 # Generate the low level representation.
-low = with_clocksI.to_low
+low = with_clocksI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

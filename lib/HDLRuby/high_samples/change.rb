@@ -17,7 +17,7 @@ end
 with_change :with_changeI
 
 # Generate the low level representation.
-low = with_changeI.to_low
+low = with_changeI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

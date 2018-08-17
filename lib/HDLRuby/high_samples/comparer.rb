@@ -15,7 +15,7 @@ end
 comparer :comparerI
 
 # Generate the low level representation.
-low = comparerI.to_low
+low = comparerI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

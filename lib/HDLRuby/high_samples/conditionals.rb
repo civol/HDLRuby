@@ -23,7 +23,7 @@ end
 conditionals :conditionalsI
 
 # Generate the low level representation.
-low = conditionalsI.to_low
+low = conditionalsI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

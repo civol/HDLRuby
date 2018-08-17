@@ -43,7 +43,7 @@ end
 
 test_after0 :test_after0I
 
-low  = test_after0I.to_low
+low  = test_after0I.systemT.to_low
 
 # Displays it
 puts low.to_yaml

@@ -20,7 +20,7 @@ end
 scopescope :scopescopeI
 
 # Generate the low level representation.
-low = scopescopeI.to_low
+low = scopescopeI.systemT.to_low
 
 # Displays it
 puts low.to_yaml

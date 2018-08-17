@@ -32,7 +32,7 @@ end
 or32 :or32I
 
 # Generate the low level representation.
-low = or32I.to_low
+low = or32I.systemT.to_low
 
 # Displays it
 puts low.to_yaml

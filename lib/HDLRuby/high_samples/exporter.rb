@@ -36,7 +36,7 @@ end
 importer :importerI
 
 # Generate the low level representation.
-low = importerI.to_low
+low = importerI.systemT.to_low
 
 # Displays it
 puts low.to_yaml
