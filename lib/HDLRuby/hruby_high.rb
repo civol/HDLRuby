@@ -2448,7 +2448,7 @@ module HDLRuby::High
                 #     self.to_expr.type.send(operator,right.to_expr.type),
                 #     operator, self.to_expr,right.to_expr)
                 expr = self.to_expr
-                return expr.type.binary(operator,expr,expr)
+                return expr.type.binary(operator,expr,right.to_expr)
             end
             # Defines the operator method.
             define_method(operator,&meth) 
