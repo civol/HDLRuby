@@ -1,4 +1,3 @@
-"HDLRuby/hruby_base"
 require "HDLRuby/hruby_low"
 require "HDLRuby/hruby_types"
 require "HDLRuby/hruby_values"
