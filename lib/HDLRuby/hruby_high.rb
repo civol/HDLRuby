@@ -1558,6 +1558,18 @@ module HDLRuby::High
             # High.top_user.make_inners(self.instantiate,*names)
             High.top_user.make_inners(self,*names)
         end
+
+        # Performs unary operation +operator+ on expression +expr+.
+        def unary(operator,expr)
+            return Unary.new(self.send(operator),operator,expr)
+        end
+
+        # Performs binary operation +operator+ on expressions +expr0+
+        # and +expr1+.
+        def binary(operator, expr0, expr1)
+            return Binary.new(self.send(operator,expr1.type),operator,
+                              expr0,expr1)
+        end
     end
 
 
@@ -2415,14 +2427,11 @@ module HDLRuby::High
         # Adds the unary operations generation.
         [:"-@",:"@+",:"~", :abs,
          :boolean, :bit, :signed, :unsigned].each do |operator|
-            # define_method(operator) do
-            #     # return Unary.new(operator,self.to_expr)
-            #     return Unary.new(self.to_expr.type.send(operator),operator,
-            #                      self.to_expr)
-            # end
             meth = proc do
-                return Unary.new(self.to_expr.type.send(operator),operator,
-                                 self.to_expr)
+                # return Unary.new(self.to_expr.type.send(operator),operator,
+                #                  self.to_expr)
+                expr = self.to_expr
+                return expr.type.unary(operator,expr)
             end
             # Defines the operator method.
             define_method(operator,&meth) 
@@ -2434,16 +2443,12 @@ module HDLRuby::High
         [:"+",:"-",:"*",:"/",:"%",:"**",
          :"&",:"|",:"^",:"<<",:">>",
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
-            # define_method(operator) do |right|
-            #     # return Binary.new(operator,self.to_expr,right.to_expr)
-            #     return Binary.new(
-            #         self.to_expr.type.send(operator,right.to_expr.type),
-            #         operator, self.to_expr,right.to_expr)
-            # end
             meth = proc do |right|
-                return Binary.new(
-                    self.to_expr.type.send(operator,right.to_expr.type),
-                    operator, self.to_expr,right.to_expr)
+                # return Binary.new(
+                #     self.to_expr.type.send(operator,right.to_expr.type),
+                #     operator, self.to_expr,right.to_expr)
+                expr = self.to_expr
+                return expr.type.binary(operator,expr,expr)
             end
             # Defines the operator method.
             define_method(operator,&meth) 
