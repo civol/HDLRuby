@@ -1559,16 +1559,51 @@ module HDLRuby::High
             High.top_user.make_inners(self,*names)
         end
 
+        # Computations of expressions
+        
+        # Gets the computation method for +operator+.
+        def comp_operator(op)
+            return (op.to_s + "::C").to_sym
+        end
+
         # Performs unary operation +operator+ on expression +expr+.
         def unary(operator,expr)
-            return Unary.new(self.send(operator),operator,expr)
+            # Look for a specific computation method.
+            comp = comp_operator(operator)
+            if self.respond_to?(comp) then
+                # Found, use it.
+                self.send(comp,expr)
+            else
+                # Not found, back to default generation of unary expression.
+                return Unary.new(self.send(operator),operator,expr)
+            end
         end
 
         # Performs binary operation +operator+ on expressions +expr0+
         # and +expr1+.
         def binary(operator, expr0, expr1)
-            return Binary.new(self.send(operator,expr1.type),operator,
-                              expr0,expr1)
+            # Look for a specific computation method.
+            comp = comp_operator(operator)
+            if self.respond_to?(comp) then
+                # Found, use it.
+                self.send(comp,expr0,expr1)
+            else
+                # Not found, back to default generation of binary expression.
+                return Binary.new(self.send(operator,expr1.type),operator,
+                                  expr0,expr1)
+            end
+        end
+
+        # Redefinition of +operator+.
+        def define_operator(operator,&ruby_block)
+            self.define_singleton_method(comp_operator(operator)) do |*args|
+                # puts "Top user=#{HDLRuby::High.top_user}"
+                HDLRuby::High.top_user.instance_exec do
+                   sub do
+                        HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
+                   end
+                end
+            end
         end
     end
 
