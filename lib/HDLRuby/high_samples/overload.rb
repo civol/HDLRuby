@@ -7,10 +7,8 @@ configure_high
 [15..0].typedef(:sat16)
 sat16.define_operator(:+) do |left,right|
     [16..0].inner :res
-    [15..0].inner :tmp
     seq do
-        tmp <= left
-        res <= tmp + right
+        res <= left.as([15..0]) + right
         hif (res[16]) { res <= 0xFFFF }
     end
     res

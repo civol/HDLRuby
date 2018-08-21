@@ -2450,6 +2450,11 @@ module HDLRuby::High
             raise "Internal error: to_expr not defined yet for class: #{self.class}"
         end
 
+        # Casts as +type+.
+        def as(type)
+            return Cast.new(type.to_type,self)
+        end
+
         # Gets the origin method for operation +op+.
         def self.orig_operator(op)
             return (op.to_s + "_orig").to_sym
@@ -2637,6 +2642,22 @@ module HDLRuby::High
     end
 
 
+    ##
+    # Describes a high-level cast expression
+    class Cast < Low::Cast
+        include HExpression
+
+        # Converts to a new expression.
+        def to_expr
+            return Cast.new(self.type,self.child.to_expr)
+        end
+
+        # Converts the unary expression to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Cast.new(self.type.to_low,self.child.to_low)
+        end
+    end
+
 
     ##
     # Describes a high-level unary expression
@@ -2645,13 +2666,11 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            # return Unary.new(self.operator,self.child.to_expr)
             return Unary.new(self.type,self.operator,self.child.to_expr)
         end
 
         # Converts the unary expression to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::Unary.new(self.operator,self.child.to_low)
             return HDLRuby::Low::Unary.new(self.type.to_low, self.operator,
                                            self.child.to_low)
         end

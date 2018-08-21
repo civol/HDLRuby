@@ -2384,6 +2384,46 @@ module HDLRuby::Low
         end
     end
 
+    ##
+    # Describes a cast.
+    class Cast < Expression
+        # The child
+        attr_reader :child
+
+        # Creates a new cast of +child+ to +type+.
+        def initialize(type,child)
+            # Create the expression and set the type
+            super(type)
+            # Check and set the child.
+            unless child.is_a?(Expression)
+                raise "Invalid class for an expression: #{child.class}"
+            end
+            @child = child
+            # And set its parent.
+            child.parent = self
+        end
+
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the child.
+            ruby_block.call(@child)
+        end
+
+        # Iterates over all the references encountered in the expression.
+        #
+        # NOTE: do not iterate *inside* the references.
+        def each_ref_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_ref_deep) unless ruby_block
+            # puts "each_ref_deep for Unary"
+            # A block?
+            # Recurse on the child.
+            @child.each_ref_deep(&ruby_block)
+        end
+    end
+
 
     ##
     # Describes an operation.
@@ -2415,13 +2455,11 @@ module HDLRuby::Low
         # def initialize(operator,child)
         def initialize(type,operator,child)
             # Initialize as a general operation.
-            # super(operator)
             super(type,operator)
             # Check and set the child.
             unless child.is_a?(Expression)
                 raise "Invalid class for an expression: #{child.class}"
             end
-            # @children = [ child ]
             @child = child
             # And set its parent.
             child.parent = self

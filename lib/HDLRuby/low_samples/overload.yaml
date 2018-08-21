@@ -1,0 +1,226 @@
+---
+Type:
+  name: signed
+---
+TypeVector:
+  name: integer
+  base: signed
+  range:
+  - 31
+  - 0
+---
+Type:
+  name: void
+---
+Type:
+  name: bit
+---
+SystemT:
+  name: adderI::T_
+  inputs:
+  - SignalI:
+      name: x
+      type:
+        TypeDef:
+          name: sat16
+          def:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 15
+              - 0
+  - SignalI:
+      name: y
+      type:
+        TypeDef:
+          name: sat16
+          def:
+            TypeVector:
+              name: ''
+              base: bit
+              range:
+              - 15
+              - 0
+  outputs:
+  - SignalI:
+      name: s
+      type:
+        TypeVector:
+          name: ''
+          base: bit
+          range:
+          - 15
+          - 0
+  inouts: []
+  scope:
+    Scope:
+      name: ''
+      scopes:
+      - Scope:
+          name: ''
+          scopes: []
+          inners:
+          - SignalI:
+              name: res
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 16
+                  - 0
+          systemIs: []
+          connections: []
+          behaviors:
+          - Behavior:
+              events: []
+              block:
+                Block:
+                  mode: seq
+                  name: ''
+                  inners: []
+                  statements:
+                  - Transmit:
+                      left:
+                        RefName:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 16
+                              - 0
+                          ref:
+                            RefThis:
+                              type: void
+                          name: res
+                      right:
+                        Binary:
+                          type:
+                            TypeVector:
+                              name: ''
+                              base: bit
+                              range:
+                              - 16
+                              - 0
+                          operator: "+"
+                          left:
+                            Cast:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 15
+                                  - 0
+                              child:
+                                RefName:
+                                  type:
+                                    TypeDef:
+                                      name: sat16
+                                      def:
+                                        TypeVector:
+                                          name: ''
+                                          base: bit
+                                          range:
+                                          - 15
+                                          - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: x
+                          right:
+                            RefName:
+                              type:
+                                TypeDef:
+                                  name: sat16
+                                  def:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 15
+                                      - 0
+                              ref:
+                                RefThis:
+                                  type: void
+                              name: y
+                  - If:
+                      condition:
+                        RefIndex:
+                          type: bit
+                          ref:
+                            RefName:
+                              type:
+                                TypeVector:
+                                  name: ''
+                                  base: bit
+                                  range:
+                                  - 16
+                                  - 0
+                              ref:
+                                RefThis:
+                                  type: void
+                              name: res
+                          index:
+                            Value:
+                              type: integer
+                              content: 16
+                      'yes':
+                        Block:
+                          mode: seq
+                          name: ''
+                          inners: []
+                          statements:
+                          - Transmit:
+                              left:
+                                RefName:
+                                  type:
+                                    TypeVector:
+                                      name: ''
+                                      base: bit
+                                      range:
+                                      - 16
+                                      - 0
+                                  ref:
+                                    RefThis:
+                                      type: void
+                                  name: res
+                              right:
+                                Value:
+                                  type: integer
+                                  content: 65535
+                      'no': 
+                      noifs: []
+      inners: []
+      systemIs: []
+      connections:
+      - Connection:
+          left:
+            RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 15
+                  - 0
+              ref:
+                RefThis:
+                  type: void
+              name: s
+          right:
+            RefName:
+              type:
+                TypeVector:
+                  name: ''
+                  base: bit
+                  range:
+                  - 16
+                  - 0
+              ref:
+                RefThis:
+                  type: void
+              name: res
+      behaviors: []
