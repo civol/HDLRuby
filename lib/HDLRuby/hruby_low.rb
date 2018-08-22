@@ -1701,6 +1701,11 @@ module HDLRuby::Low
     # NOTE: this is an abstract class which is not to be used directly.
     class Statement
         include Hparent
+        
+        # Clones (deeply)
+        def clone
+            raise "Internal error: clone not defined for class: #{self.class}"
+        end
     end
 
 
@@ -1757,6 +1762,11 @@ module HDLRuby::Low
             # A block? Apply it on the children.
             ruby_block.call(@left)
             ruby_block.call(@right)
+        end
+
+        # Clones the transmit (deeply)
+        def clone
+            return Transmit.new(@left.clone, @right.clone)
         end
     end
 
@@ -2328,6 +2338,11 @@ module HDLRuby::Low
             # If the expression is a reference, applies ruby_block on it.
             ruby_block.call(self) if self.is_a?(Ref)
         end
+
+        # Clones the expression (deeply)
+        def clone
+            raise "Internal error: clone not defined for class: #{self.class}"
+        end
     end
 
     
@@ -2382,6 +2397,11 @@ module HDLRuby::Low
         def odd?
             return @content.odd?
         end
+
+        # Clones the value (deeply)
+        def clone
+            return Value.new(@type.clone,@content.clone)
+        end
     end
 
     ##
@@ -2421,6 +2441,11 @@ module HDLRuby::Low
             # A block?
             # Recurse on the child.
             @child.each_ref_deep(&ruby_block)
+        end
+
+        # Clones the value (deeply)
+        def clone
+            return Cast.new(@type.clone,@child.clone)
         end
     end
 
@@ -2484,6 +2509,11 @@ module HDLRuby::Low
             # Recurse on the child.
             @child.each_ref_deep(&ruby_block)
         end
+
+        # Clones the unary operator (deeply)
+        def clone
+            return Unary.new(@type.clone,self.operator,@child.clone)
+        end
     end
 
 
@@ -2536,6 +2566,12 @@ module HDLRuby::Low
             # Recurse on the children.
             @left.each_ref_deep(&ruby_block)
             @right.each_ref_deep(&ruby_block)
+        end
+
+        # Clones the binary operator (deeply)
+        def clone
+            return Binary.new(@type.clone,self.operator,
+                              @left.clone,@right.clone)
         end
     end
 
@@ -2626,6 +2662,12 @@ module HDLRuby::Low
                 choice.each_ref_deep(&ruby_block)
             end
         end
+
+        # Clones the select (deeply)
+        def clone
+            return Select.new(@type.clone, self.operator, @select.clone,
+                              *@choices.map {|choice| choice.clone } )
+        end
     end
 
 
@@ -2666,6 +2708,12 @@ module HDLRuby::Low
             @expressions.each(&ruby_block)
         end
         alias :each_child :each_expression
+
+        # Clones the concatenated expression (deeply)
+        def clone
+            return Concat.new(@type.clone,
+                              *@expressions.map {|expr| expr.clone } )
+        end
     end
 
 
@@ -2727,6 +2775,12 @@ module HDLRuby::Low
             @refs.each(&ruby_block)
         end
         alias :each_child :each_ref
+
+        # Clones the concatenated references (deeply)
+        def clone
+            return RefConcat.new(@type.clone,
+                                 @ref.map { |ref| ref.clone } )
+        end
     end
 
 
@@ -2773,6 +2827,11 @@ module HDLRuby::Low
             return to_enum(:each_child) unless ruby_block
             # A block? Apply it on the child.
             ruby_block.call(@ref)
+        end
+
+        # Clones the indexed references (deeply)
+        def clone
+            return RefIndex.new(@type.clone, @ref.clone, @index.clone)
         end
     end
 
@@ -2826,6 +2885,12 @@ module HDLRuby::Low
             # A block? Apply it on the child.
             ruby_block.call(@ref)
         end
+
+        # Clones the range references (deeply)
+        def clone
+            return RefRange.new(@type.clone, @ref.clone,
+                                (@range.first.clone)..(@range.last.clone) )
+        end
     end
 
 
@@ -2872,6 +2937,11 @@ module HDLRuby::Low
             # A block? Apply it on the child.
             ruby_block.call(@ref)
         end
+
+        # Clones the name references (deeply)
+        def clone
+            return RefName.new(@type.clone, @ref.clone, @name)
+        end
     end
 
 
@@ -2880,5 +2950,9 @@ module HDLRuby::Low
     #
     # This is the current system.
     class RefThis < Ref 
+        # Clones this.
+        def clone
+            return RefThis.new
+        end
     end
 end
