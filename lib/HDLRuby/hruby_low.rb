@@ -2400,7 +2400,7 @@ module HDLRuby::Low
 
         # Clones the value (deeply)
         def clone
-            return Value.new(@type.clone,@content.clone)
+            return Value.new(@type,@content)
         end
     end
 
@@ -2445,7 +2445,7 @@ module HDLRuby::Low
 
         # Clones the value (deeply)
         def clone
-            return Cast.new(@type.clone,@child.clone)
+            return Cast.new(@type,@child.clone)
         end
     end
 
@@ -2512,7 +2512,7 @@ module HDLRuby::Low
 
         # Clones the unary operator (deeply)
         def clone
-            return Unary.new(@type.clone,self.operator,@child.clone)
+            return Unary.new(@type,self.operator,@child.clone)
         end
     end
 
@@ -2570,8 +2570,8 @@ module HDLRuby::Low
 
         # Clones the binary operator (deeply)
         def clone
-            return Binary.new(@type.clone,self.operator,
-                              @left.clone,@right.clone)
+            return Binary.new(@type, self.operator,
+                              @left.clone, @right.clone)
         end
     end
 
@@ -2665,7 +2665,7 @@ module HDLRuby::Low
 
         # Clones the select (deeply)
         def clone
-            return Select.new(@type.clone, self.operator, @select.clone,
+            return Select.new(@type, self.operator, @select.clone,
                               *@choices.map {|choice| choice.clone } )
         end
     end
@@ -2711,7 +2711,7 @@ module HDLRuby::Low
 
         # Clones the concatenated expression (deeply)
         def clone
-            return Concat.new(@type.clone,
+            return Concat.new(@type,
                               *@expressions.map {|expr| expr.clone } )
         end
     end
@@ -2778,8 +2778,7 @@ module HDLRuby::Low
 
         # Clones the concatenated references (deeply)
         def clone
-            return RefConcat.new(@type.clone,
-                                 @ref.map { |ref| ref.clone } )
+            return RefConcat.new(@type, @ref.map { |ref| ref.clone } )
         end
     end
 
@@ -2831,7 +2830,7 @@ module HDLRuby::Low
 
         # Clones the indexed references (deeply)
         def clone
-            return RefIndex.new(@type.clone, @ref.clone, @index.clone)
+            return RefIndex.new(@type, @ref.clone, @index.clone)
         end
     end
 
@@ -2888,7 +2887,7 @@ module HDLRuby::Low
 
         # Clones the range references (deeply)
         def clone
-            return RefRange.new(@type.clone, @ref.clone,
+            return RefRange.new(@type, @ref.clone,
                                 (@range.first.clone)..(@range.last.clone) )
         end
     end
@@ -2940,7 +2939,7 @@ module HDLRuby::Low
 
         # Clones the name references (deeply)
         def clone
-            return RefName.new(@type.clone, @ref.clone, @name)
+            return RefName.new(@type, @ref.clone, @name)
         end
     end
 
