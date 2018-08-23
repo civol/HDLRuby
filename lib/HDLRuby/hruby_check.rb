@@ -22,6 +22,29 @@ module HDLRuby
             # puts "@code=#{@code}"
         end
 
+        # Displays the full syntax tree.
+        def show
+            pp @code
+        end
+
+        # Tells if +code+ is a require description.
+        def is_require?(code)
+            return code[0] && (code[0][0] == :command) &&
+                   (code[0][1][1] == "require")
+        end
+
+        # Gets the required file from +code+.
+        def get_require(code)
+            return (code[0][2][1][0][1][1][1])
+        end
+
+        # Gets all the required files of  +code+.
+        def get_all_requires(code = @code)
+            return (code.select { |sub| is_require?(sub) }).map! do |sub|
+                get_require(sub)
+            end
+        end
+
         # Tells if +code+ is a system description.
         def is_system?(code)
             return (code[0] == :command) && (code[1][1] == "system")
@@ -93,8 +116,20 @@ if __FILE__ == $0 then
     # Used standalone, check the files given in the standard input.
     include HDLRuby
 
+    show = false # Tell if in show mode
+
+    if $*[0] == "-s" || $*[0] == "--show" then
+        $*.shift
+        # Only shows the syntax tree.
+        show = true
+    end
+
     $*.each do |filename|
         checker = Checker.new(File.read(filename),filename)
-        checker.assign_check
+        if show then
+            checker.show
+        else
+            checker.assign_check
+        end
     end
 end
