@@ -74,7 +74,7 @@ module HDLRuby
         def assign_check_in_system(code)
             if (self.is_variable_assign?(code)) then
                 var = self.get_assign_variable(code)
-                warn("In file '#{@filename}': ") if @filename
+                warn("*WARNING* In file '#{@filename}': ") if @filename
                 warn("Potential invalid assignment for '#{self.get_name(var)}' at line #{self.get_line(var)}")
             else
                 # Go on checking recursively.
@@ -91,7 +91,7 @@ end
 
 if __FILE__ == $0 then
     # Used standalone, check the files given in the standard input.
-    include HDLRuby::Check
+    include HDLRuby
 
     $*.each do |filename|
         checker = Checker.new(File.read(filename),filename)
