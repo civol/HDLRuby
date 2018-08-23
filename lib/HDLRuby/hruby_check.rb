@@ -1,6 +1,6 @@
-# require "method_source"
-require "ripper"
-require "pp"
+# require 'method_source'
+require 'ripper'
+require 'pp'
 
 # code.source
 # method.source_location
@@ -8,7 +8,7 @@ require "pp"
 ##
 #  High-level libraries for describing digital hardware.        
 ########################################################
-module HDLRuby::Check
+module HDLRuby
 
     ##
     # Describes a HDLRuby code checker.
