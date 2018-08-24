@@ -358,6 +358,8 @@ module HDLRuby::High
             # Initialize the system type structure.
             # super(name,Scope.new())
             super(name,Scope.new(name,self))
+            # # Save the Location for debugging information
+            # @location = caller_locations
 
             # Initialize the set of extensions to transmit to the instances'
             # eigen class
@@ -908,6 +910,8 @@ module HDLRuby::High
         def initialize(name = :"", systemT = nil, &ruby_block)
             # Initialize the scope structure
             super(name)
+            # # Save the Location for debugging information
+            # @location = caller_locations
 
             # Initialize the set of grouped system instances.
             @groupIs = {}
@@ -1622,6 +1626,8 @@ module HDLRuby::High
         def initialize(name)
             # Initialize the type structure.
             super(name)
+            # # Save the Location for debugging information
+            # @location = caller_locations
         end
 
         # Converts the type to HDLRuby::Low and set its +name+.
@@ -2125,6 +2131,8 @@ module HDLRuby::High
         def initialize(name, systemT)
             # Initialize the system instance structure.
             super(name,systemT)
+            # # Save the Location for debugging information
+            # @location = caller_locations
             # puts "New systemI with scope=#{self.systemT.scope}"
 
             # Sets the hdl-like access to the system instance.
@@ -2262,6 +2270,8 @@ module HDLRuby::High
             yes_block = High.make_block(mode,&ruby_block)
             # Creates the if statement.
             super(condition.to_expr,yes_block)
+            # # Save the Location for debugging information
+            # @location = caller_locations
         end
 
         # Sets the block executed in +mode+ when the condition is not met to
@@ -2313,6 +2323,8 @@ module HDLRuby::High
         # on +match+.
         def initialize(match,statement)
             super(match,statement)
+            # # Save the Location for debugging information
+            # @location = caller_locations
         end
 
         # Converts the if to HDLRuby::Low.
@@ -2335,6 +2347,8 @@ module HDLRuby::High
         def initialize(value)
             # Create the yes block.
             super(value.to_expr)
+            # # Save the Location for debugging information
+            # @location = caller_locations
         end
 
         # Sets the block executed in +mode+ when the value matches +match+.
@@ -2893,6 +2907,8 @@ module HDLRuby::High
                 # Untyped object, so untyped reference.
                 super(void)
             end
+            # # Save the Location for debugging information
+            # @location = caller_locations
             # Check and set the base (it must be convertible to a reference).
             unless base.respond_to?(:to_ref)
                 raise "Invalid base for a RefObject: #{base}"
@@ -3235,6 +3251,8 @@ module HDLRuby::High
         def initialize(name,type,dir)
             # Initialize the type structure.
             super(name,type)
+            # # Save the Location for debugging information
+            # @location = caller_locations
 
             unless name.empty? then
                 # Named signal, set the hdl-like access to the signal.
@@ -3554,6 +3572,8 @@ module HDLRuby::High
         def initialize(mode, name=:"", &ruby_block)
             # Initialize the block.
             super(mode,name)
+            # # Save the Location for debugging information
+            # @location = caller_locations
 
             unless name.empty? then
                 # Named block, set the hdl-like access to the block.
@@ -3608,6 +3628,8 @@ module HDLRuby::High
         def initialize(type, name = :"", &ruby_block)
             # Initialize the block.
             super(type,name)
+            # # Save the Location for debugging information
+            # @location = caller_locations
 
             unless name.empty? then
                 # Named block, set the hdl-like access to the block.
@@ -3733,6 +3755,8 @@ module HDLRuby::High
             # end
             # Initialize the behavior with it.
             super(nil)
+            # # Save the Location for debugging information
+            # @location = caller_locations
             # Sets the current behavior
             @@cur_behavior = self
             # Add the events.
@@ -3784,6 +3808,8 @@ module HDLRuby::High
             block = High.make_time_block(mode,&ruby_block)
             # Initialize the behavior with it.
             super(block)
+            # # Save the Location for debugging information
+            # @location = caller_locations
         end
 
         # Converts the time behavior to HDLRuby::Low.

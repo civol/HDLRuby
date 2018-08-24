@@ -3,16 +3,14 @@ require 'HDLRuby'
 configure_high
 
 
-# A simple 16-bit adder
+# A simple 16-bit adder with an error
 system :adder do
     [15..0].input :x,:y
     [16..0].output :s
 
-    s <= x + y
-
-    s = "tot"
-
-    S = "TT"
+    seq do
+       s = x + y
+    end
 end
 
 # Instantiate it for checking.
