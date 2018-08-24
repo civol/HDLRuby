@@ -42,7 +42,7 @@ module HDLRuby
         # Loads a single +file+.
         def read(file)
             @texts << File.read(File.join(@dir,file) )
-            @checks << Checker.new(@texts[-1])
+            @checks << Checker.new(@texts[-1],file)
         end
 
         # Loads all the files from +file+.
@@ -64,12 +64,13 @@ module HDLRuby
 
         # Load the hdlruby structure from an instance of the top module.
         def parse
-            # Generates the text to process.
-            toparse = "require 'HDLRuby'\n\nconfigure_high\n\n" + @texts[0] +
-                "\n\n#{@top_system} :#{@top_name}\n#{@top_name}"
+            # Initialize the environment for processing the hdr file.
+            bind = TOPLEVEL_BINDING.clone
+            eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
             # Process it.
-            # puts "toparse=\n#{toparse}"
-            @top_instance = eval(toparse,TOPLEVEL_BINDING)
+            eval(@texts[0],bind)
+            # Get the resulting instance
+            @top_instance = eval("#{@top_system} :#{@top_name}\n#{@top_name}",bind)
         end
     end
 end
@@ -118,14 +119,16 @@ if __FILE__ == $0 then
     # Get the top system name, and the input and output files.
     top,input,output = $*
 
-    if top == nil then
-        warn("Please provide a top system name.")
+    if top == nil || !(/^[_[[:alpha:]]][_\w]*$/ =~ top) then
+        warn("Please provide a valid top system name.")
         puts optparse.help()
+        exit
     end
 
     if input == nil then
         warn("Please provide an input hdr file.")
-        puts optparsea.help()
+        puts optparse.help()
+        exit
     end
 
     # Load and process the hdr files.

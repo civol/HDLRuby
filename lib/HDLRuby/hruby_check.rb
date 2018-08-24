@@ -18,6 +18,7 @@ module HDLRuby
         # Returns a list of error and the related object and method.
         def initialize(code,filename = nil)
             @code = Ripper.sexp(code.to_s)
+            @code ||= [] # In case the parse failed
             @filename = filename
             # puts "@code=#{@code}"
         end
@@ -97,7 +98,11 @@ module HDLRuby
         def assign_check_in_system(code)
             if (self.is_variable_assign?(code)) then
                 var = self.get_assign_variable(code)
-                warn("*WARNING* In file '#{@filename}': ") if @filename
+                if @filename then
+                    warn("*WARNING* In file '#{@filename}': ")
+                else
+                    warn("*WARNING*")
+                end
                 warn("Potential invalid assignment for '#{self.get_name(var)}' at line #{self.get_line(var)}")
             else
                 # Go on checking recursively.
