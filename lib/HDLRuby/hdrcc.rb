@@ -90,7 +90,7 @@ module HDLRuby
             bind = TOPLEVEL_BINDING.clone
             eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
             # Process it.
-            eval(@texts[0],bind)
+            eval(@texts[0],bind,@top_file,1)
             # Get the resulting instance
             if @params.empty? then
                 # There is no generic parameter
