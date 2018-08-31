@@ -61,9 +61,30 @@ module HDLRuby
             @checks.each { |check| check.assign_check }
         end
 
+        # Gets the (first) top system.
+        def get_top
+            # Get all the systems.
+            systems = @checks.reduce([]) {|ar,check| ar + check.get_all_systems}
+            # Remove the systems that are instantiated (they cannot be tops)
+            @checks.each do |check|
+                check.get_all_instances(systems).each do |instante|
+                    systems.delete(@check.instance_system(instance))
+                end
+            end
+            # Return the first top of the list.
+            return systems[-1]
+        end
+
 
         # Load the hdlruby structure from an instance of the top module.
         def parse
+            # Is there a top system specified yet?
+            if @top_system == "" then
+                # No, look for it.
+                @top_system = get_top
+                # Not found? Error.
+                raise "Cannot find a top system." unless @top_system
+            end
             # Initialize the environment for processing the hdr file.
             bind = TOPLEVEL_BINDING.clone
             eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
@@ -85,12 +106,13 @@ if __FILE__ == $0 then
     # Process the command line options
     options = {}
     optparse = OptionParser.new do |opts|
-        opts.banner = "Usage: hdrcc.rb [options] <top system> <input hdr file> [<output file>]"
+        opts.banner = "Usage: hdrcc.rb [options] <input hdr file> [<output file>]"
  
         opts.separator ""
-        opts.separator "Notice:"
-        opts.separator "* If no option is given, simply checks the input file."
-        opts.separator "* If no output file is given, the result is given through the standard output."
+        opts.separator "Where:"
+        opts.separator "* `options` is a list of options"
+        opts.separator "* `<input hdr file>` is the initial file to compile (mandatory)"
+        opts.separator "* `<output file>` is the output file"
         opts.separator ""
         opts.separator "Options:"
 
@@ -100,34 +122,59 @@ if __FILE__ == $0 then
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             options[:verilog] = v
         end
-        opts.on("-d", "--directory","Specify the base directory for loading the hdr files.") do |d|
+        opts.on("-d", "--directory","Specify the base directory for loading the hdr files") do |d|
             options[:directory] = d
+        end
+        opts.on("-t", "--top system", "Specify the top system to process") do|t|
+            options[:top] = t
+        end
+        opts.on("-p", "--param x,y,z", "Specify the generic parameters") do |p|
+            options[:param] = p
         end
         opts.on_tail("-h", "--help", "Show this message") do
             puts opts
             exit
         end
+        opts.separator ""
+        opts.separator "Notice:"
+        opts.separator "* If no output option is given, simply checks the input file"
+        opts.separator "* If no output file is given, the result is given through the standard output."
+        opts.separator "* If no top system is given, it will be automatically searched in the input file."
+        opts.separator ""
+        opts.separator "Examples:"
+        opts.separator "* Compile system named `adder` from `adder.hdr` input file and generate `adder.yaml` low-level YAML description:"
+        opts.separator "   hdrcc.rb --yaml --top adder adder.hdr adder.yaml"
+        opts.separator "* Compile `adder.hdr` input file and generate `adder.v` low-level Verilog HDL description:"
+        opts.separator "   hdrcc.rb --verilog adder.hdr adder.v"
+        opts.separator "* Check the validity of `adder.hrd` input file:"
+        opts.separator "   hdrcc.rb adder.hdr"
+        opts.separator "* Compile system `adder` whose bit width is generic from `adder_gen.hdr` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:"
+        opts.separator "   hdrcc -v -t adder --param 16 adder_gen.hdr"
+        opts.separator "* Compile system `multer` with inputs and output bit width is generic from `multer_gen.hdr` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`"
+        opts.separator "hdrcc -y -t multer -p 16,16,32 multer_gen.hdr multer_gen.yaml"
+
     end
     optparse.parse!
 
+    # puts "options=#{options}"
+
     # Check the compatibility of the options
     if options[:yaml] && options[:verilog] then
-        warn("Please choose EITHER yaml OR verilog output.")
+        warn("Please choose EITHER YAML OR Verilog HDL output.")
         puts optparse.help()
     end
-        
-    # Get the top system name, and the input and output files.
-    top,input,output = $*
 
-    if top == nil || !(/^[_[[:alpha:]]][_\w]*$/ =~ top) then
+    # Get the top system name, the input and the output files.
+    input,output = $*
+    top = options[:top].to_s
+
+    unless top == "" || (/^[_[[:alpha:]]][_\w]*$/ =~ top) then
         warn("Please provide a valid top system name.")
-        puts optparse.help()
         exit
     end
 
     if input == nil then
-        warn("Please provide an input hdr file.")
-        puts optparse.help()
+        warn("Please provide an input hdr file (or consult the help using the --help option.)")
         exit
     end
 

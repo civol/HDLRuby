@@ -48,7 +48,47 @@ module HDLRuby
 
         # Tells if +code+ is a system description.
         def is_system?(code)
-            return (code[0] == :command) && (code[1][1] == "system")
+            return code.is_a?(Array) && (code[0] == :command) &&
+                                        (code[1][1] == "system")
+        end
+
+        # Gets the system name in +code+.
+        def get_system(code)
+            return code[2][1][0][1][1][1]
+        end
+
+        # Gets all the required files of  +code+.
+        def get_all_systems(code = @code)
+            return [] unless code.is_a?(Array)
+            return code.reduce([]) {|ar,sub| ar + get_all_systems(sub) } +
+                (code.select { |sub| is_system?(sub) }).map! do |sub|
+                    get_system(sub)
+                end
+        end
+
+        # Tells is +code+ is an instance of one of +systems+.
+        def is_instance?(code,systems)
+            # Ensures systems is an array.
+            systems = [*systems]
+            # Check for each system.
+            return systems.any? do |system|
+                code.is_a?(Array) && (code[0] == :command) &&
+                                     (code[1][1] == system)
+            end
+        end
+
+        # Get the system of an instance in +code+.
+        def get_instance_system(code)
+            return code[1][1]
+        end
+
+        # Get all the instances in +code+ of +systems+.
+        # NOTE: return the sub code describing the instantiation.
+        def get_all_instances(systems,code = @code)
+            return [] unless code.is_a?(Array)
+            return code.reduce([]) do |ar,sub|
+                ar + get_all_instances(systems,sub)
+            end + (code.select { |sub| is_instance?(sub,systems) }).to_a
         end
 
         # Tells if +code+ is a variable assignment.
@@ -133,6 +173,9 @@ if __FILE__ == $0 then
         checker = Checker.new(File.read(filename),filename)
         if show then
             checker.show
+            # systems = checker.get_all_systems
+            # puts "All systems are: #{systems}"
+            # puts "All instances of all systems are: #{checker.get_all_instances(systems)}"
         else
             checker.assign_check
         end
