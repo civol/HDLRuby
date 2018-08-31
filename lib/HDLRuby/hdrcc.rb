@@ -21,12 +21,13 @@ module HDLRuby
         attr_reader :top_instance
 
         # Creates a new loader for a +top_system+ system in file +top_file+
-        # from directory +dir+.
-        def initialize(top_system,top_file,dir)
+        # from directory +dir+ with generic parameters +params+.
+        def initialize(top_system,top_file,dir,*params)
             # Sets the top and the looking directory.
             @top_system = top_system.to_s
             @top_file = top_file.to_s
             @dir = dir.to_s
+            @params = params
 
             # The list of the code texts (the first one should be the one
             # containing the top system).
@@ -91,7 +92,15 @@ module HDLRuby
             # Process it.
             eval(@texts[0],bind)
             # Get the resulting instance
-            @top_instance = eval("#{@top_system} :#{@top_name}\n#{@top_name}",bind)
+            if @params.empty? then
+                # There is no generic parameter
+                @top_instance = 
+                    eval("#{@top_system} :#{@top_name}\n#{@top_name}",bind)
+            else
+                # There are generic parameters
+                @top_instance = 
+                    eval("#{@top_system} :#{@top_name},#{@params.join(",")}\n#{@top_name}",bind)
+            end
         end
     end
 end
@@ -164,14 +173,17 @@ if __FILE__ == $0 then
         puts optparse.help()
     end
 
-    # Get the top system name, the input and the output files.
+    # Get the the input and the output files.
     input,output = $*
+    # Get the top system name if name.
     top = options[:top].to_s
-
     unless top == "" || (/^[_[[:alpha:]]][_\w]*$/ =~ top) then
         warn("Please provide a valid top system name.")
         exit
     end
+    # Get the generic parameters if any.
+    params = options[:param].to_s.split(",")
+
 
     if input == nil then
         warn("Please provide an input hdr file (or consult the help using the --help option.)")
@@ -180,7 +192,7 @@ if __FILE__ == $0 then
 
     # Load and process the hdr files.
     options[:directory] ||= "./"
-    loader = HDRLoad.new(top,input,options[:directory].to_s)
+    loader = HDRLoad.new(top,input,options[:directory].to_s,*params)
     loader.read_all
     loader.check_all
     top_instance = loader.parse
