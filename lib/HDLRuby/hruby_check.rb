@@ -17,7 +17,7 @@ module HDLRuby
         # Create a new checker on +code+ string, from +filename+ file.
         # Returns a list of error and the related object and method.
         def initialize(code,filename = nil)
-            @code = Ripper.sexp(code.to_s)
+            @code = Ripper.sexp(code.to_s,filename ? filename : "-", 1)
             @code ||= [] # In case the parse failed
             @filename = filename
             # puts "@code=#{@code}"

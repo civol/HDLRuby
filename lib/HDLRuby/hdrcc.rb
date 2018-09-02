@@ -83,8 +83,15 @@ module HDLRuby
             if @top_system == "" then
                 # No, look for it.
                 @top_system = get_top
-                # Not found? Error.
-                raise "Cannot find a top system." unless @top_system
+                unless @top_system then
+                    # Not found? Error.
+                    # Maybe it is a parse error, look for it.
+                    bind = TOPLEVEL_BINDING.clone
+                    eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
+                    eval(@texts[0],bind,@top_file,1)
+                    # No parse error found.
+                    raise "Cannot find a top system." unless @top_system
+                end
             end
             # Initialize the environment for processing the hdr file.
             bind = TOPLEVEL_BINDING.clone
