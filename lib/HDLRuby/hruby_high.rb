@@ -113,45 +113,6 @@ module HDLRuby::High
     end
 
 
-    # ##
-    # # Module providing mixin properties to hardware types.
-    # module HMix
-    #     # Tells this is a hardware type supporting mixins.
-    #     #
-    #     # NOTE: only there for being checked through respond_to?
-    #     def hmix?
-    #         return true
-    #     end
-
-    #     # Mixins hardware types +htypes+.
-    #     def include(*htypes)
-    #         # Initialize the list of mixins hardware types if required.
-    #         @includes ||= []
-    #         # Check and add the hardware types.
-    #         htypes.each do |htype|
-    #             unless htype.respond_to?(:hmix?) then
-    #                 raise "Invalid class for mixin: #{htype.class}"
-    #             end
-    #             @includes << htype
-    #         end
-    #     end
-
-    #     # # Mixins hardware types +htypes+ by extension.
-    #     # def extend(htypes)
-    #     #     # Initialize the list of mixins hardware types if required.
-    #     #     @extends ||= []
-    #     #     # Check and add the hardware types.
-    #     #     htypes.each do |htype|
-    #     #         unless htype.respond_to?(:hmix?) then
-    #     #             raise "Invalid class for mixin: #{htype.class}"
-    #     #         end
-    #     #         @includes << htype
-    #     #     end
-    #     # end
-    # end
-
-
-
     ##
     # Module providing handling of unknown methods for hardware constructs.
     module Hmissing
@@ -173,7 +134,15 @@ module HDLRuby::High
                   High.space_index(self.namespace) then
                 # Yes, the private namespace is in it, can try the methods in
                 # the space.
-                High.space_call(m,*args,&ruby_block)
+                begin
+                    High.space_call(m,*args,&ruby_block)
+                rescue
+                    # Not in the private namespace, maybe in the public one.
+                    if self.respond_to?(:public_namespace) and
+                    High.space_index(self.public_namespace) then
+                        High.space_call(m,*args,&ruby_block)
+                    end
+                end
             elsif self.respond_to?(:public_namespace) and
                   High.space_index(self.public_namespace) then
                 # Yes, the private namespace is in it, can try the methods in
@@ -506,17 +475,22 @@ module HDLRuby::High
         # NOTE: actually executes +ruby_block+ in the context of the scope
         #       of the system.
         def open(&ruby_block)
-            # # No push since should not merge the current environment into
-            # # the system's.
-            # High.space_insert(-1,@namespace)
-            # High.top_user.instance_eval(&ruby_block)
-            # # High.top_user.postprocess
-            # High.space_pop
-            self.scope.open(&ruby_block)
+            # self.scope.open(&ruby_block)
+            #
+            # Are we instantiating current system?
+            if (High.space_include?(self.scope.namespace)) then
+                # Yes, execute the ruby block in the top context of the
+                # system.
+                self.scope.open(&ruby_block)
+            else
+                # No, add the ruby block to the list of block to execute
+                # when instantiating.
+                @instance_procs << ruby_block
+            end
         end
 
-        # The proc used for instantiating the system type.
-        attr_reader :instance_proc
+        # # The proc used for instantiating the system type.
+        # attr_reader :instance_proc
         
         # The instantiation target class.
         attr_reader :instance_class
@@ -531,25 +505,22 @@ module HDLRuby::High
             @owner = owner
         end
 
+        # Iterates over the instance procedures.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_instance_proc(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_instance_proc) unless ruby_block
+            # A block? Apply it on each input signal instance.
+            @instance_procs.each(&ruby_block)
+        end
+
         # Instantiate the system type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
             # eigen = self.class.new(:"")
             eigen = self.class.new(High.names_create(i_name.to_s+ "::T"))
-
-            # # Extends eigen with self.
-            # eigen.extend(self)
-            # High.space_push(eigen.namespace)
-            # # Fills its namespace with the content of the current system type
-            # # (this latter may already contains access points if it has been
-            # #  opended for extension previously).
-            # eigen.namespace.concat_namespace(@namespace)
-            # # Include the mixin systems given when declaring the system.
-            # @to_includes.each { |system| eigen.include(system) }
-            # # Execute the instantiation block
-            # High.top_user.instance_exec(*args,&@instance_proc) if @instance_proc
-            # High.space_pop
 
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| eigen.scope.include(system) }
@@ -598,7 +569,7 @@ module HDLRuby::High
         def make_instantiater(name,klass,add_instance,&ruby_block)
             # puts "make_instantiater with name=#{name}"
             # Set the instanciater.
-            @instance_proc = ruby_block
+            @instance_procs = [ ruby_block ]
             # Set the target instantiation class.
             @instance_class = klass
 
@@ -1058,9 +1029,10 @@ module HDLRuby::High
         #
         # NOTE: actually executes +ruby_block+ in the context.
         def open(&ruby_block)
-            # No push since should not merge the current environment into
-            # the system's.
-            High.space_insert(-1,@namespace)
+            # # No push since should not merge the current environment into
+            # # the system's.
+            # High.space_insert(-1,@namespace)
+            High.space_push(@namespace)
             High.top_user.instance_eval(&ruby_block)
             High.space_pop
         end
@@ -1088,11 +1060,12 @@ module HDLRuby::High
             # (this latter may already contains access points if it has been
             #  opended for extension previously).
             @namespace.concat_namespace(base.namespace)
-            # # Include the mixin systems given when declaring the system.
-            # @to_includes.each { |system| eigen.include(system) }
             # Execute the instantiation block
-            instance_proc = base.parent.instance_proc if base.parent.respond_to?(:instance_proc)
-            @return_value = High.top_user.instance_exec(*args,&instance_proc) if instance_proc
+            # instance_proc = base.parent.instance_proc if base.parent.respond_to?(:instance_proc)
+            # @return_value = High.top_user.instance_exec(*args,&instance_proc) if instance_proc
+            base.parent.each_instance_proc do |instance_proc|
+                @return_value = High.top_user.instance_exec(*args,&instance_proc)
+            end
             High.space_pop
         end
 
@@ -3884,6 +3857,11 @@ module HDLRuby::High
             raise "Internal error: cannot pop further namespaces."
         end
         Namespaces.pop
+    end
+
+    # Tells if +namespace+ in included within the stack.
+    def self.space_include?(namespace)
+        return Namespaces.include?(namespace)
     end
 
     # Gets the index of a +namespace+ within the stack.
