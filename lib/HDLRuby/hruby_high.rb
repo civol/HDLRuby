@@ -3246,7 +3246,7 @@ module HDLRuby::High
                 type.each_name do |name|
                     self.define_singleton_method(name) do
                         RefObject.new(self.to_ref,
-                                    SignalI.new(name,type.get_type(name)))
+                                    SignalI.new(name,type.get_type(name),dir))
                     end
                 end
             end
