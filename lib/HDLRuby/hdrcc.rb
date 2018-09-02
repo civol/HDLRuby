@@ -68,8 +68,8 @@ module HDLRuby
             systems = @checks.reduce([]) {|ar,check| ar + check.get_all_systems}
             # Remove the systems that are instantiated (they cannot be tops)
             @checks.each do |check|
-                check.get_all_instances(systems).each do |instante|
-                    systems.delete(@check.instance_system(instance))
+                check.get_all_instances(systems).each do |instance|
+                    systems.delete(check.get_instance_system(instance))
                 end
             end
             # Return the first top of the list.
