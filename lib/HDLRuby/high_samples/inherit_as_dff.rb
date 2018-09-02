@@ -13,8 +13,6 @@ system :dff do
     db <= ~d
 
     par(clk.posedge) { q <= d & ~rst }
-
-    export :db
 end
 
 # A D-FF with inverted ouput inheriting from dff

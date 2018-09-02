@@ -776,9 +776,8 @@ module HDLRuby::High
         #
         # NOTE: use the includes of the scope.
         def as(system)
-            # system = system.name if system.respond_to?(:name)
-            # return @includeIs[system].public_namespace
-            return self.scope.as(system.scope)
+            # return self.scope.as(system.scope)
+            return self.scope.as(system)
         end
 
         include Hmux
@@ -1359,7 +1358,8 @@ module HDLRuby::High
         # Casts as an included +system+.
         def as(system)
             system = system.name if system.respond_to?(:name)
-            return @includeIs[system].public_namespace
+            # return @includeIs[system].public_namespace
+            return @includeIs[system].private_namespace
         end
 
         include Hmux
@@ -2197,6 +2197,11 @@ module HDLRuby::High
         # Gets the public namespace.
         def public_namespace
             self.systemT.public_namespace
+        end
+
+        # Gets the private namespace.
+        def private_namespace
+            self.systemT.scope.namespace
         end
 
 
