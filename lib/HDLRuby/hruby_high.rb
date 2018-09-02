@@ -141,6 +141,9 @@ module HDLRuby::High
                     if self.respond_to?(:public_namespace) and
                     High.space_index(self.public_namespace) then
                         High.space_call(m,*args,&ruby_block)
+                    else
+                        # No, this is a true error.
+                        raise NoMethodError.new("undefined local variable or method `#{m}'.")
                     end
                 end
             elsif self.respond_to?(:public_namespace) and
@@ -364,6 +367,11 @@ module HDLRuby::High
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_inputs(type, *names)
+            # Check if called within the top scope of the block.
+            if High.top_user != @scope then
+                # No, cannot make an input from here.
+                raise "Input signals can only be declared in the top scope of a system."
+            end
             res = nil
             names.each do |name|
                 if name.respond_to?(:to_sym) then
@@ -1359,7 +1367,7 @@ module HDLRuby::High
         def as(system)
             system = system.name if system.respond_to?(:name)
             # return @includeIs[system].public_namespace
-            return @includeIs[system].private_namespace
+            return @includeIs[system].namespace
         end
 
         include Hmux
@@ -2200,7 +2208,7 @@ module HDLRuby::High
         end
 
         # Gets the private namespace.
-        def private_namespace
+        def namespace
             self.systemT.scope.namespace
         end
 
