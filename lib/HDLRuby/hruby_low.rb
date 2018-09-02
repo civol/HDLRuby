@@ -45,7 +45,7 @@ module HDLRuby::Low
             if @parent and parent and !@parent.equal?(parent) then
                 # The parent is already defined,it is not to be removed,
                 # and the new parent is different, error.
-                raise "Parent already defined."
+                raise AnyError, "Parent already defined."
             else
                 @parent = parent
             end
@@ -79,7 +79,8 @@ module HDLRuby::Low
 
             # Check the scope
             unless scope.is_a?(Scope)
-                raise "Invalid class for a system instance: #{scope.class}"
+                raise AnyError,
+                      "Invalid class for a system instance: #{scope.class}"
             end
             # Set the parent of the scope
             scope.parent = self
@@ -108,10 +109,11 @@ module HDLRuby::Low
             # print "add_input with signal: #{signal.name}\n"
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signal.class}"
+                raise AnyError,
+                      "Invalid class for a signal instance: #{signal.class}"
             end
             if @inputs.include?(signal) then
-                raise "SignalI #{signal.name} already present."
+                raise AnyError, "SignalI #{signal.name} already present."
             end
             # Set the parent of the signal.
             signal.parent = self
@@ -124,10 +126,11 @@ module HDLRuby::Low
         def add_output(signal)
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signal.class}"
+                raise AnyError,
+                      "Invalid class for a signal instance: #{signal.class}"
             end
             if @outputs.include?(signal) then
-                raise "SignalI #{signal.name} already present."
+                raise AnyError, "SignalI #{signal.name} already present."
             end
             # Set the parent of the signal.
             signal.parent = self
@@ -140,10 +143,11 @@ module HDLRuby::Low
         def add_inout(signal)
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signal.class}"
+                raise AnyError,
+                      "Invalid class for a signal instance: #{signal.class}"
             end
             if @inouts.include?(signal) then
-                raise "SignalI #{signal.name} already present."
+                raise AnyError, "SignalI #{signal.name} already present."
             end
             # Set the parent of the signal.
             signal.parent = self
@@ -350,10 +354,11 @@ module HDLRuby::Low
         def add_scope(scope)
             # Checks and add the scope.
             unless scope.is_a?(Scope)
-                raise "Invalid class for a system instance: #{scope.class}"
+                raise AnyError,
+                      "Invalid class for a system instance: #{scope.class}"
             end
             if @scopes.include?(scope) then
-                raise "Scope #{scope} already present."
+                raise AnyError, "Scope #{scope} already present."
             end
             # Set the parent of the scope
             scope.parent = self
@@ -393,10 +398,11 @@ module HDLRuby::Low
             # puts "add_systemI with name #{systemI.name}"
             # Checks and add the systemI.
             unless systemI.is_a?(SystemI)
-                raise "Invalid class for a system instance: #{systemI.class}"
+                raise AnyError,
+                      "Invalid class for a system instance: #{systemI.class}"
             end
             if @systemIs.include?(systemI) then
-                raise "SystemI #{systemI.name} already present."
+                raise AnyError, "SystemI #{systemI.name} already present."
             end
             # Set the parent of the instance
             systemI.parent = self
@@ -443,11 +449,12 @@ module HDLRuby::Low
         def add_inner(signal)
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signal.class}"
+                raise AnyError,
+                      "Invalid class for a signal instance: #{signal.class}"
             end
             # if @inners.has_key?(signal.name) then
             if @inners.include?(signal) then
-                raise "SignalI #{signal.name} already present."
+                raise AnyError, "SignalI #{signal.name} already present."
             end
             # @inners[signal.name] = signal
             # Set the parent of the signal.
@@ -576,7 +583,8 @@ module HDLRuby::Low
         # Adds a +connection+.
         def add_connection(connection)
             unless connection.is_a?(Connection)
-                raise "Invalid class for a connection: #{connection.class}"
+                raise AnyError,
+                      "Invalid class for a connection: #{connection.class}"
             end
             # Set the parent of the connection.
             connection.parent = self
@@ -630,7 +638,7 @@ module HDLRuby::Low
         # Adds a +behavior+.
         def add_behavior(behavior)
             unless behavior.is_a?(Behavior)
-                raise "Invalid class for a behavior: #{behavior.class}"
+                raise AnyError,"Invalid class for a behavior: #{behavior.class}"
             end
             # Set its parent
             behavior.parent = self
@@ -817,7 +825,7 @@ module HDLRuby::Low
 
         # Gets the range of the type, by default range is not defined.
         def range
-            raise "No range for type #{self}"
+            raise AnyError, "No range for type #{self}"
         end
 
         # Tells if the type has a base.
@@ -827,7 +835,7 @@ module HDLRuby::Low
 
         # Gets the base type, by default base type is not defined.
         def base
-            raise "No base type for type #{self}"
+            raise AnyError, "No base type for type #{self}"
         end
 
         # Tells if the type has sub types.
@@ -1035,7 +1043,8 @@ module HDLRuby::Low
 
             # Check and set the base
             unless base.is_a?(Type)
-                raise "Invalid class for VectorType base: #{base.class}."
+                raise AnyError,
+                      "Invalid class for VectorType base: #{base.class}."
             end
             @base = base
 
@@ -1163,7 +1172,7 @@ module HDLRuby::Low
             # Check and set the content.
             content.each do |sub|
                 unless sub.is_a?(Type) then
-                    raise "Invalid class for a type: #{sub.class}"
+                    raise AnyError, "Invalid class for a type: #{sub.class}"
                 end
             end
             @types = content
@@ -1187,7 +1196,8 @@ module HDLRuby::Low
         # Adds a sub +type+.
         def add_type(type)
             unless type.is_a?(Type) then
-                raise "Invalid class for a type: #{type.class} (#{type})"
+                raise AnyError, 
+                      "Invalid class for a type: #{type.class} (#{type})"
             end
             @types << type
         end
@@ -1238,7 +1248,7 @@ module HDLRuby::Low
                 # Regular tuple, return its range as if it was an array.
                 return 0..@types.size-1
             else
-                raise "No range for type #{self}"
+                raise AnyError, "No range for type #{self}"
             end
         end
 
@@ -1259,7 +1269,7 @@ module HDLRuby::Low
                 # Regular tuple, return the type of its first element.
                 return @types[0]
             else
-                raise "No base type for type #{self}"
+                raise AnyError, "No base type for type #{self}"
             end
         end
 
@@ -1287,7 +1297,7 @@ module HDLRuby::Low
             content = Hash[content]
             @types = content.map do |k,v|
                 unless v.is_a?(Type) then
-                    raise "Invalid class for a type: #{v.class}"
+                    raise AnyError, "Invalid class for a type: #{v.class}"
                 end
                 [ k.to_sym, v ]
             end.to_h
@@ -1370,11 +1380,11 @@ module HDLRuby::Low
         #     # return self if type.name == :void
         #     # Not compatible if different types.
         #     unless type.is_a?(TypeStruct) then
-        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
         #     end
         #     # Not compatibe unless each entry has the same name and same order.
         #     unless self.each_name == type.each_name then
-        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
         #     end
         #     # Creates the new type content
         #     content = {}
@@ -1424,11 +1434,11 @@ module HDLRuby::Low
             # There is a block
             self.block = block
             # unless block.is_a?(Block)
-            #     raise "Invalid class for a block: #{block.class}."
+            #     raise AnyError, "Invalid class for a block: #{block.class}."
             # end
             # # Time blocks are only supported in Time Behaviors.
             # if block.is_a?(TimeBlock)
-            #     raise "Timed blocks are not supported in common behaviors."
+            #     raise AnyError, "Timed blocks are not supported in common behaviors."
             # end
             # # Set the block's parent.
             # block.parent = self
@@ -1440,11 +1450,11 @@ module HDLRuby::Low
         def block=(block)
             # Check the block.
             unless block.is_a?(Block)
-                raise "Invalid class for a block: #{block.class}."
+                raise AnyError, "Invalid class for a block: #{block.class}."
             end
             # Time blocks are only supported in Time Behaviors.
             if block.is_a?(TimeBlock)
-                raise "Timed blocks are not supported in common behaviors."
+                raise AnyError, "Timed blocks are not supported in common behaviors."
             end
             # Set the block's parent.
             block.parent = self
@@ -1457,7 +1467,7 @@ module HDLRuby::Low
         # Adds an +event+ to the sensitivity list.
         def add_event(event)
             unless event.is_a?(Event)
-                raise "Invalid class for a event: #{event.class}"
+                raise AnyError, "Invalid class for a event: #{event.class}"
             end
             # Set the event's parent.
             event.parent = self
@@ -1526,7 +1536,7 @@ module HDLRuby::Low
             @events = []
             # Check and set the block.
             unless block.is_a?(Block)
-                raise "Invalid class for a block: #{block.class}."
+                raise AnyError, "Invalid class for a block: #{block.class}."
             end
             # Time blocks are supported here.
             @block = block
@@ -1535,7 +1545,7 @@ module HDLRuby::Low
         # Time behavior do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)
-            raise "Time behaviors do not have any sensitivity list."
+            raise AnyError, "Time behaviors do not have any sensitivity list."
         end
     end
 
@@ -1558,7 +1568,7 @@ module HDLRuby::Low
             @type = type.to_sym
             # Check and set the reference.
             unless ref.is_a?(Ref)
-                raise "Invalid class for a reference: #{ref.class}"
+                raise AnyError, "Invalid class for a reference: #{ref.class}"
             end
             @ref = ref
         end
@@ -1592,7 +1602,7 @@ module HDLRuby::Low
             if type.is_a?(Type) then
                 @type = type
             else
-                raise "Invalid class for a type: #{type.class}."
+                raise AnyError, "Invalid class for a type: #{type.class}."
             end
         end
 
@@ -1621,7 +1631,7 @@ module HDLRuby::Low
             @name = name.to_sym
             # Check and set the systemT.
             if !systemT.is_a?(SystemT) then
-                raise "Invalid class for a system type: #{systemT.class}"
+                raise AnyError, "Invalid class for a system type: #{systemT.class}"
             end
             @systemT = systemT
         end
@@ -1704,7 +1714,8 @@ module HDLRuby::Low
         
         # Clones (deeply)
         def clone
-            raise "Internal error: clone not defined for class: #{self.class}"
+            raise AnyError,
+                  "Internal error: clone not defined for class: #{self.class}"
         end
     end
 
@@ -1719,7 +1730,7 @@ module HDLRuby::Low
     #     def initialize(signal)
     #         # Check and set the declared signal instance.
     #         unless signal.is_a?(SignalI)
-    #             raise "Invalid class for declaring a signal: #{signal.class}"
+    #             raise AnyError, "Invalid class for declaring a signal: #{signal.class}"
     #         end
     #         @signal = signal
     #     end
@@ -1741,14 +1752,15 @@ module HDLRuby::Low
         def initialize(left,right)
             # Check and set the left reference.
             unless left.is_a?(Ref)
-                raise "Invalid class for a reference (left value): #{left.class}"
+                raise AnyError,
+                     "Invalid class for a reference (left value): #{left.class}"
             end
             @left = left
             # and set its parent.
             left.parent = self
             # Check and set the right expression.
             unless right.is_a?(Expression)
-                raise "Invalid class for an expression (right value): #{right.class}"
+                raise AnyError, "Invalid class for an expression (right value): #{right.class}"
             end
             @right = right
             # and set its parent.
@@ -1785,21 +1797,22 @@ module HDLRuby::Low
         def initialize(condition, yes, no = nil)
             # Check and set the condition.
             unless condition.is_a?(Expression)
-                raise "Invalid class for a condition: #{condition.class}"
+                raise AnyError,
+                      "Invalid class for a condition: #{condition.class}"
             end
             @condition = condition
             # And set its parent.
             condition.parent = self
             # Check and set the yes statement.
             unless yes.is_a?(Statement)
-                raise "Invalid class for a statement: #{yes.class}"
+                raise AnyError, "Invalid class for a statement: #{yes.class}"
             end
             @yes = yes
             # And set its parent.
             yes.parent = self
             # Check and set the yes statement.
             if no and !no.is_a?(Statement)
-                raise "Invalid class for a statement: #{no.class}"
+                raise AnyError, "Invalid class for a statement: #{no.class}"
             end
             @no = no
             # And set its parent.
@@ -1815,11 +1828,11 @@ module HDLRuby::Low
         # sake of flexibility.
         def no=(no)
             # if @no != nil then
-            #     raise "No already set in if statement."
+            #     raise AnyError, "No already set in if statement."
             # end # Actually better not lock no here.
             # Check and set the yes statement.
             unless no.is_a?(Statement)
-                raise "Invalid class for a statement: #{no.class}"
+                raise AnyError, "Invalid class for a statement: #{no.class}"
             end
             @no = no
             # And set its parent.
@@ -1831,13 +1844,15 @@ module HDLRuby::Low
         def add_noif(next_cond, next_yes)
             # Check the condition.
             unless next_cond.is_a?(Expression)
-                raise "Invalid class for a condition: #{next_cond.class}"
+                raise AnyError, 
+                      "Invalid class for a condition: #{next_cond.class}"
             end
             # And set its parent.
             next_cond.parent = self
             # Check yes statement.
             unless next_yes.is_a?(Statement)
-                raise "Invalid class for a statement: #{next_yes.class}"
+                raise AnyError, 
+                      "Invalid class for a statement: #{next_yes.class}"
             end
             # And set its parent.
             yes.parent = self
@@ -1888,11 +1903,12 @@ module HDLRuby::Low
         def initialize(match,statement)
             # Checks the match.
             unless match.is_a?(Expression)
-                raise "Invalid class for a case match: #{match.class}"
+                raise AnyError, "Invalid class for a case match: #{match.class}"
             end
             # Checks statement.
             unless statement.is_a?(Statement)
-                raise "Invalid class for a statement: #{statement.class}"
+                raise AnyError,
+                      "Invalid class for a statement: #{statement.class}"
             end
             # Set the match.
             @match = match
@@ -1919,7 +1935,7 @@ module HDLRuby::Low
         def initialize(value, default = nil, whens = [])
             # Check and set the value.
             unless value.is_a?(Expression)
-                raise "Invalid class for a value: #{value.class}"
+                raise AnyError, "Invalid class for a value: #{value.class}"
             end
             @value = value
             # And set its parent.
@@ -1932,11 +1948,11 @@ module HDLRuby::Low
             # @whens.each do |match,statement|
             #     # Checks the match.
             #     unless match.is_a?(Expression)
-            #         raise "Invalid class for a case match: #{match.class}"
+            #         raise AnyError, "Invalid class for a case match: #{match.class}"
             #     end
             #     # Checks statement.
             #     unless statement.is_a?(Statement)
-            #         raise "Invalid class for a statement: #{statement.class}"
+            #         raise AnyError, "Invalid class for a statement: #{statement.class}"
             #     end
             # end
             @whens = []
@@ -1949,11 +1965,11 @@ module HDLRuby::Low
         # def add_when(match,statement)
         #     # Checks the match.
         #     unless match.is_a?(Expression)
-        #         raise "Invalid class for a case match: #{match.class}"
+        #         raise AnyError, "Invalid class for a case match: #{match.class}"
         #     end
         #     # Checks statement.
         #     unless statement.is_a?(Statement)
-        #         raise "Invalid class for a statement: #{statement.class}"
+        #         raise AnyError, "Invalid class for a statement: #{statement.class}"
         #     end
         #     # Add the case.
         #     @whens << [match,statement]
@@ -1966,7 +1982,7 @@ module HDLRuby::Low
         def add_when(w)
             # Check +w+.
             unless w.is_a?(When)
-                raise "Invalid class for a when: #{w.class}"
+                raise AnyError, "Invalid class for a when: #{w.class}"
             end
             # Add it.
             @whens << w
@@ -1979,11 +1995,11 @@ module HDLRuby::Low
         # No can only be set once.
         def default=(default)
             if @default != nil then
-                raise "Default already set in if statement."
+                raise AnyError, "Default already set in if statement."
             end
             # Check and set the yes statement.
             unless default.is_a?(Statement)
-                raise "Invalid class for a statement: #{default.class}"
+                raise AnyError,"Invalid class for a statement: #{default.class}"
             end
             @default = default
             # And set its parent.
@@ -2032,7 +2048,8 @@ module HDLRuby::Low
         def initialize(value,unit)
             # Check and set the value.
             unless value.is_a?(Numeric)
-                raise "Invalid class for a delay value: #{value.class}."
+                raise AnyError,
+                      "Invalid class for a delay value: #{value.class}."
             end
             @value = value
             # Check and set the unit.
@@ -2051,7 +2068,7 @@ module HDLRuby::Low
         def initialize(delay)
             # Check and set the delay.
             unless delay.is_a?(Delay)
-                raise "Invalid class for a delay: #{delay.class}."
+                raise AnyError, "Invalid class for a delay: #{delay.class}."
             end
             @delay = delay
             # And set its parent.
@@ -2075,7 +2092,8 @@ module HDLRuby::Low
         def initialize(statement,delay)
             # Check and set the statement.
             unless statement.is_a?(Statement)
-                raise "Invalid class for a statement: #{statement.class}."
+                raise AnyError,
+                      "Invalid class for a statement: #{statement.class}."
             end
             @statement = statement
             # And set its parent.
@@ -2083,7 +2101,7 @@ module HDLRuby::Low
 
             # Check and set the delay.
             unless delay.is_a?(Delay)
-                raise "Invalid class for a delay: #{delay.class}."
+                raise AnyError, "Invalid class for a delay: #{delay.class}."
             end
             @delay = delay
             # And set its parent.
@@ -2119,11 +2137,12 @@ module HDLRuby::Low
         def add_inner(signal)
             # Checks and add the signal.
             unless signal.is_a?(SignalI)
-                raise "Invalid class for a signal instance: #{signal.class}"
+                raise AnyError,
+                      "Invalid class for a signal instance: #{signal.class}"
             end
             # if @inners.has_key?(signal.name) then
             if @inners.include?(signal) then
-                raise "SignalI #{signal.name} already present."
+                raise AnyError, "SignalI #{signal.name} already present."
             end
             # @inners[signal.name] = signal
             # Set its parent.
@@ -2168,10 +2187,12 @@ module HDLRuby::Low
         # NOTE: TimeWait is not supported unless for TimeBlock objects.
         def add_statement(statement)
             unless statement.is_a?(Statement) then
-                raise "Invalid class for a statement: #{statement.class}"
+                raise AnyError,
+                      "Invalid class for a statement: #{statement.class}"
             end
             if statement.is_a?(TimeWait) then
-                raise "Timed statements are not supported in common blocks."
+                raise AnyError,
+                      "Timed statements are not supported in common blocks."
             end
             @statements << statement
             # And set its parent.
@@ -2254,7 +2275,8 @@ module HDLRuby::Low
         # NOTE: TimeBlock is supported.
         def add_statement(statement)
             unless statement.is_a?(Statement) then
-                raise "Invalid class for a statement: #{statement.class}"
+                raise AnyError, 
+                      "Invalid class for a statement: #{statement.class}"
             end
             @statements << statement
             # And set its parent.
@@ -2318,7 +2340,7 @@ module HDLRuby::Low
             if type.is_a?(Type) then
                 @type = type
             else
-                raise "Invalid class for a type: #{type.class}."
+                raise AnyError, "Invalid class for a type: #{type.class}."
             end
         end
 
@@ -2341,7 +2363,8 @@ module HDLRuby::Low
 
         # Clones the expression (deeply)
         def clone
-            raise "Internal error: clone not defined for class: #{self.class}"
+            raise AnyError,
+                  "Internal error: clone not defined for class: #{self.class}"
         end
     end
 
@@ -2364,7 +2387,7 @@ module HDLRuby::Low
             # if type.is_a?(Type) then
             #     @type = type
             # else
-            #     raise "Invalid class for a type: #{type.class}."
+            #     raise AnyError, "Invalid class for a type: #{type.class}."
             # end
             super(type)
             # Checks and set the content: Ruby Numeric and HDLRuby BitString 
@@ -2416,7 +2439,7 @@ module HDLRuby::Low
             super(type)
             # Check and set the child.
             unless child.is_a?(Expression)
-                raise "Invalid class for an expression: #{child.class}"
+                raise AnyError,"Invalid class for an expression: #{child.class}"
             end
             @child = child
             # And set its parent.
@@ -2483,7 +2506,8 @@ module HDLRuby::Low
             super(type,operator)
             # Check and set the child.
             unless child.is_a?(Expression)
-                raise "Invalid class for an expression: #{child.class}"
+                raise AnyError,
+                      "Invalid class for an expression: #{child.class}"
             end
             @child = child
             # And set its parent.
@@ -2535,10 +2559,10 @@ module HDLRuby::Low
             super(type,operator)
             # Check and set the children.
             unless left.is_a?(Expression)
-                raise "Invalid class for an expression: #{left.class}"
+                raise AnyError, "Invalid class for an expression: #{left.class}"
             end
             unless right.is_a?(Expression)
-                raise "Invalid class for an expression: #{right.class}"
+                raise AnyError,"Invalid class for an expression: #{right.class}"
             end
             @left = left
             @right = right
@@ -2594,7 +2618,8 @@ module HDLRuby::Low
             # Check and set the selection.
             # puts "select = #{select}"
             unless select.is_a?(Expression)
-                raise "Invalid class for an expression: #{select.class}"
+                raise AnyError,
+                      "Invalid class for an expression: #{select.class}"
             end
             @select = select
             # And set its parent.
@@ -2603,7 +2628,7 @@ module HDLRuby::Low
             @choices = []
             choices.each do |choice|
                 # unless choice.is_a?(Expression)
-                #     raise "Invalid class for an expression: #{choice.class}"
+                #     raise AnyError, "Invalid class for an expression: #{choice.class}"
                 # end
                 # @choices << choice
                 # # And set its parent.
@@ -2624,7 +2649,8 @@ module HDLRuby::Low
         # Adds a +choice+.
         def add_choice(choice)
             unless choice.is_a?(Expression)
-                raise "Invalid class for an expression: #{choice.class}"
+                raise AnyError,
+                      "Invalid class for an expression: #{choice.class}"
             end
             # Set the parent of the choice.
             choice.parent = self
@@ -2689,7 +2715,8 @@ module HDLRuby::Low
         def add_expression(expression)
             # Check expression.
             unless expression.is_a?(Expression) then
-                raise "Invalid class for an expression: #{expression.class}"
+                raise AnyError,
+                      "Invalid class for an expression: #{expression.class}"
             end
             # Add it.
             @expressions << expression
@@ -2757,7 +2784,8 @@ module HDLRuby::Low
             # Check and set the refs.
             refs.each do |ref|
                 unless ref.is_a?(Expression) then
-                    raise "Invalid class for an reference: #{ref.class}"
+                    raise AnyError,
+                          "Invalid class for an reference: #{ref.class}"
                 end
             end
             @refs = refs
@@ -2798,14 +2826,15 @@ module HDLRuby::Low
             super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then
-                raise "Invalid class for a reference: #{ref.class}."
+                raise AnyError, "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
             # And set its parent.
             ref.parent = self
             # Check and set the index.
             unless index.is_a?(Expression) then
-                raise "Invalid class for an index reference: #{index.class}."
+                raise AnyError,
+                      "Invalid class for an index reference: #{index.class}."
             end
             @index = index
             # And set its parent.
@@ -2850,7 +2879,7 @@ module HDLRuby::Low
             super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then
-                raise "Invalid class for a reference: #{ref.class}."
+                raise AnyError, "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
             # And set its parent.
@@ -2858,11 +2887,12 @@ module HDLRuby::Low
             # Check and set the range.
             first = range.first
             unless first.is_a?(Expression) then
-                raise "Invalid class for a range first: #{first.class}."
+                raise AnyError,
+                      "Invalid class for a range first: #{first.class}."
             end
             last = range.last
             unless last.is_a?(Expression) then
-                raise "Invalid class for a range last: #{last.class}."
+                raise AnyError, "Invalid class for a range last: #{last.class}."
             end
             @range = first..last
             # And set their parents.
@@ -2908,7 +2938,7 @@ module HDLRuby::Low
             super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then
-                raise "Invalid class for a reference: #{ref.class}."
+                raise AnyError, "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
             # And set its parent.

@@ -71,10 +71,12 @@ module HDLRuby::High
             # puts "add_method with name=#{name}"
             unless name.empty? then
                 if RESERVED.include?(name.to_sym) then
-                    raise "Resevered name #{name} cannot be overridden."
+                    raise AnyError, 
+                          "Resevered name #{name} cannot be overridden."
                 end
                 if self.respond_to?(name) then
-                    raise "Symbol #{name} is already defined."
+                    raise AnyError,
+                          "Symbol #{name} is already defined."
                 end
                 define_singleton_method(name,&ruby_block) 
             end
@@ -143,7 +145,7 @@ module HDLRuby::High
                         High.space_call(m,*args,&ruby_block)
                     else
                         # No, this is a true error.
-                        raise NoMethodError.new("undefined local variable or method `#{m}'.")
+                        raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
                     end
                 end
             elsif self.respond_to?(:public_namespace) and
@@ -153,7 +155,7 @@ module HDLRuby::High
                 High.space_call(m,*args,&ruby_block)
             else
                 # No, this is a true error.
-                raise NoMethodError.new("undefined local variable or method `#{m}'.")
+                raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
             end
         end
     end
@@ -230,10 +232,12 @@ module HDLRuby::High
                 #     def add_inner(signal)
                 #         # Checks and add the signal.
                 #         unless signal.is_a?(SignalI)
-                #             raise "Invalid class for a signal instance: #{signal.class}"
+                #             raise AnyError,
+                #                   "Invalid class for a signal instance: #{signal.class}"
                 #         end
                 #         if @inners.has_key?(signal.name) then
-                #             raise "SignalI #{signal.name} already present."
+                #             raise AnyError,
+                #                   "SignalI #{signal.name} already present."
                 #         end
                 #         @inners[signal.name] = signal
                 #     end
@@ -284,7 +288,8 @@ module HDLRuby::High
                                 # signal = name.clone
                                 # signal.dir = :inner
                                 # self.add_inner(signal)
-                                raise "Invalid class for a name: #{name.class}"
+                                raise AnyError,
+                                      "Invalid class for a name: #{name.class}"
                             end
                         end
                         return res
@@ -343,7 +348,8 @@ module HDLRuby::High
             # Check and set the mixins.
             mixins.each do |mixin|
                 unless mixin.is_a?(SystemT) then
-                    raise "Invalid class for inheriting: #{mixin.class}."
+                    raise AnyError,
+                          "Invalid class for inheriting: #{mixin.class}."
                 end
             end
             @to_includes = mixins
@@ -370,14 +376,15 @@ module HDLRuby::High
             # Check if called within the top scope of the block.
             if High.top_user != @scope then
                 # No, cannot make an input from here.
-                raise "Input signals can only be declared in the top scope of a system."
+                raise AnyError,
+                      "Input signals can only be declared in the top scope of a system."
             end
             res = nil
             names.each do |name|
                 if name.respond_to?(:to_sym) then
                     res = self.add_input(SignalI.new(name,type,:input))
                 else
-                    raise "Invalid class for a name: #{name.class}"
+                    raise AnyError, "Invalid class for a name: #{name.class}"
                 end
             end
             return res
@@ -394,7 +401,7 @@ module HDLRuby::High
                 if name.respond_to?(:to_sym) then
                     res = self.add_output(SignalI.new(name,type,:output))
                 else
-                    raise "Invalid class for a name: #{name.class}"
+                    raise AnyError, "Invalid class for a name: #{name.class}"
                 end
             end
             return res
@@ -409,7 +416,7 @@ module HDLRuby::High
                 if name.respond_to?(:to_sym) then
                     res = self.add_inout(SignalI.new(name,type,:inout))
                 else
-                    raise "Invalid class for a name: #{name.class}"
+                    raise AnyError, "Invalid class for a name: #{name.class}"
                 end
             end
             return res
@@ -424,7 +431,7 @@ module HDLRuby::High
         #         if name.respond_to?(:to_sym) then
         #             res = self.add_inner(SignalI.new(name,type,:inner))
         #         else
-        #             raise "Invalid class for a name: #{name.class}"
+        #             raise AnyError, "Invalid class for a name: #{name.class}"
         #         end
         #     end
         #     return res
@@ -453,7 +460,7 @@ module HDLRuby::High
         #         return
         #     end
         #     # No, error.
-        #     raise NameError.new("Invalid name for export: #{name}")
+        #     raise AnyError, NameError.new("Invalid name for export: #{name}")
         # end
 
         # # Iterates over the exported constructs.
@@ -704,7 +711,7 @@ module HDLRuby::High
         #     statement = self.last_behavior.last_statement
         #     # Completes the hif or the hcase statement.
         #     unless statement.is_a?(If) or statement.is_a?(Case) then
-        #         raise "Error: helse statement without hif nor hcase (#{statement.class})."
+        #         raise AnyError, "Error: helse statement without hif nor hcase (#{statement.class})."
         #     end
         #     statement.helse(mode, &ruby_block)
         # end
@@ -718,7 +725,7 @@ module HDLRuby::High
         #     statement = @statements.last
         #     # Completes the hif statement.
         #     unless statement.is_a?(If) then
-        #         raise "Error: helsif statement without hif (#{statement.class})."
+        #         raise AnyError, "Error: helsif statement without hif (#{statement.class})."
         #     end
         #     statement.helsif(condition, mode, &ruby_block)
         # end
@@ -745,7 +752,7 @@ module HDLRuby::High
         #     statement = @statements.last
         #     # Completes the hcase statement.
         #     unless statement.is_a?(Case) then
-        #         raise "Error: hwhen statement without hcase (#{statement.class})."
+        #         raise AnyError, "Error: hwhen statement without hcase (#{statement.class})."
         #     end
         #     statement.hwhen(match, mode, &ruby_block)
         # end
@@ -768,7 +775,7 @@ module HDLRuby::High
         # # arguments.
         # def include(system,*args)
         #     if @includeIs.key?(system.name) then
-        #         raise "Cannot include twice the same system."
+        #         raise AnyError, "Cannot include twice the same system."
         #     end
         #     # Extends with system.
         #     self.extend(system)
@@ -833,7 +840,8 @@ module HDLRuby::High
         def to_low(name = self.name)
             name = name.to_s
             if name.empty? then
-                raise "Cannot convert a system without a name to HDLRuby::Low."
+                raise AnyError, 
+                      "Cannot convert a system without a name to HDLRuby::Low."
             end
             # Create the resulting low system type.
             systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name),
@@ -947,7 +955,8 @@ module HDLRuby::High
             # group.
             name = name.to_sym
             if @groupIs.key?(name)
-                raise "Group of system instances named #{name} already exist."
+                raise AnyError,
+                      "Group of system instances named #{name} already exist."
             end
             # Add the group.
             @groupIs[name.to_sym] = instances
@@ -983,7 +992,7 @@ module HDLRuby::High
         #             res = self.add_inner(SignalI.new(name,type,:inner))
         #         else
         #             # Deactivated because conflict with parent.
-        #             raise "Invalid class for a name: #{name.class}"
+        #             raise AnyError, "Invalid class for a name: #{name.class}"
         #         end
         #     end
         #     return res
@@ -1012,7 +1021,7 @@ module HDLRuby::High
                 return
             end
             # No, error.
-            raise NameError.new("Invalid name for export: #{name}")
+            raise AnyError, "Invalid name for export: #{name}"
         end
 
         # Iterates over the exported constructs.
@@ -1286,7 +1295,7 @@ module HDLRuby::High
             statement = self.last_behavior.last_statement
             # Completes the hif or the hcase statement.
             unless statement.is_a?(If) or statement.is_a?(Case) then
-                raise "Error: helse statement without hif nor hcase (#{statement.class})."
+                raise AnyError, "Error: helse statement without hif nor hcase (#{statement.class})."
             end
             statement.helse(mode, &ruby_block)
         end
@@ -1301,7 +1310,7 @@ module HDLRuby::High
             statement = self.last_behavior.last_statement
             # Completes the hif statement.
             unless statement.is_a?(If) then
-                raise "Error: helsif statement without hif (#{statement.class})."
+                raise AnyError, "Error: helsif statement without hif (#{statement.class})."
             end
             statement.helsif(condition, mode, &ruby_block)
         end
@@ -1328,7 +1337,7 @@ module HDLRuby::High
             statement = @behaviors.last.last_statement
             # Completes the hcase statement.
             unless statement.is_a?(Case) then
-                raise "Error: hwhen statement without hcase (#{statement.class})."
+                raise AnyError, "Error: hwhen statement without hcase (#{statement.class})."
             end
             statement.hwhen(match, mode, &ruby_block)
         end
@@ -1350,7 +1359,7 @@ module HDLRuby::High
         # arguments.
         def include(system,*args)
             if @includeIs.key?(system.name) then
-                raise "Cannot include twice the same system."
+                raise AnyError, "Cannot include twice the same system."
             end
             # Extends with system.
             self.eigen_extend(system)
@@ -1462,12 +1471,12 @@ module HDLRuby::High
         # NOTE: can only be done if the name is not already set.
         def name=(name)
             unless @name.empty? then
-                raise "Name of type already set to: #{@name}."
+                raise AnyError, "Name of type already set to: #{@name}."
             end
             # Checks and sets the name.
             name = name.to_sym
             if name.empty? then
-                raise "Cannot set an empty name."
+                raise AnyError, "Cannot set an empty name."
             end
             @name = name
             # Registers the name.
@@ -1477,7 +1486,7 @@ module HDLRuby::High
         # Register the +name+ of the type.
         def register(name)
             if self.name.empty? then
-                raise "Cannot register with empty name."
+                raise AnyError, "Cannot register with empty name."
             else
                 # Sets the hdl-like access to the type.
                 obj = self # For using the right self within the proc
@@ -1892,10 +1901,10 @@ module HDLRuby::High
         # #     # return self if type.name == :void
         # #     # Compatible if same width and compatible base.
         # #     unless type.respond_to?(:dir) and type.respond_to?(:base) then
-        # #         raise "Incompatible types for merging: #{self}, #{type}."
+        # #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
         # #     end
         # #     unless self.dir == type.dir then
-        # #         raise "Incompatible types for merging: #{self}, #{type}."
+        # #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
         # #     end
         # #     return TypeVector.new(@name,@range,@base.merge(type.base))
         # # end
@@ -2009,11 +2018,11 @@ module HDLRuby::High
         #     # return self if type.name == :void
         #     # Not compatible if different types.
         #     unless type.is_a?(TypeStruct) then
-        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
         #     end
         #     # Not compatibe unless each entry has the same name and same order.
         #     unless self.each_name == type.each_name then
-        #         raise "Incompatible types for merging: #{self}, #{type}."
+        #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
         #     end
         #     # Creates the new type content
         #     content = {}
@@ -2053,7 +2062,7 @@ module HDLRuby::High
     #     # Ensures type is really a type.
     #     # unless type.is_a?(Type) then
     #     unless type.respond_to?(:htype?) then
-    #         raise "Invalid class for a type: #{type.class}."
+    #         raise AnyError, "Invalid class for a type: #{type.class}."
     #     end
     #     # Name it.
     #     type.name = name
@@ -2272,7 +2281,7 @@ module HDLRuby::High
         # Can only be used once.
         def helse(mode = nil, &ruby_block)
             # If there is a no block, it is an error.
-            raise "Cannot have two helse for a single if statement." if self.no
+            raise AnyError, "Cannot have two helse for a single if statement." if self.no
             # Create the no block if required
             no_block = High.make_block(mode,&ruby_block)
             # Sets the no block.
@@ -2286,7 +2295,7 @@ module HDLRuby::High
         # Can only be used if the no-block is not set yet.
         def helsif(next_cond, mode = nil, &ruby_block)
             # If there is a no block, it is an error.
-            raise "Cannot have an helsif after an helse." if self.no
+            raise AnyError, "Cannot have an helsif after an helse." if self.no
             # Create the noif block if required
             noif_block = High.make_block(mode,&ruby_block)
             # Adds the noif block.
@@ -2446,14 +2455,15 @@ module HDLRuby::High
         #
         # NOTE: to be redefined.
         def to_value
-            raise "Expression cannot be converted to a value: #{self.class}"
+            raise AnyError,
+                  "Expression cannot be converted to a value: #{self.class}"
         end
 
         # Converts to a new expression.
         #
         # NOTE: to be redefined in case of non-expression class.
         def to_expr
-            raise "Internal error: to_expr not defined yet for class: #{self.class}"
+            raise AnyError, "Internal error: to_expr not defined yet for class: #{self.class}"
         end
 
         # Casts as +type+.
@@ -2527,7 +2537,7 @@ module HDLRuby::High
             # Check and set the type.
             # unless type.is_a?(Type) then
             unless type.respond_to?(:htype?) then
-                raise "Invalid class for a type: #{type.class}."
+                raise AnyError, "Invalid class for a type: #{type.class}."
             end
             @type = type
         end
@@ -2555,7 +2565,7 @@ module HDLRuby::High
         #              parent.is_a?(Low::Transmit) or
         #              parent.is_a?(Low::If) or
         #              parent.is_a?(Low::Case) ) then
-        #         raise "Invalid class for a type: #{type.class}."
+        #         raise AnyError, "Invalid class for a type: #{type.class}."
         #     end
         #     @parent = parent
         # end
@@ -2592,13 +2602,13 @@ module HDLRuby::High
         # def resolve_types(systemT)
         #     # Only typed expression can be used for resolving types.
         #     unless @type then
-        #         raise "Cannot resolve type: nil type."
+        #         raise AnyError, "Cannot resolve type: nil type."
         #     end
         #     # Resolve the children.
         #     self.each_child do |child|
         #         if child.type == nil then
         #             # The child's type is unknown, should not happen.
-        #             raise "Cannot resolve type: child's type is nil."
+        #             raise AnyError, "Cannot resolve type: child's type is nil."
         #         end
         #         # Check if the type is compatible with the child's.
         #         if @type.compatible?(child.type) then
@@ -2606,7 +2616,7 @@ module HDLRuby::High
         #             @type = child.type = type.merge(child.type)
         #         else
         #             # Incombatible types, cannot resolve type.
-        #             raise "Cannot resolve type: #{@type} and child's #{child.type} are incompatible."
+        #             raise AnyError, "Cannot resolve type: #{@type} and child's #{child.type} are incompatible."
         #         end
         #     end
         #     # Resolve the parents.
@@ -2619,7 +2629,7 @@ module HDLRuby::High
         #             @type = parent.type = type.merge(parent.type)
         #         else
         #             # Incombatible types, cannot resolve type.
-        #             raise "Cannot resolve type: #{@type} and #{parent.type} are incompatible."
+        #             raise AnyError, "Cannot resolve type: #{@type} and #{parent.type} are incompatible."
         #         end
         #     end
         # end
@@ -2830,7 +2840,7 @@ module HDLRuby::High
         #
         # NOTE: to be redefined in case of non-reference class.
         def to_ref
-            raise "Internal error: to_ref not defined yet for class: #{self.class}"
+            raise AnyError, "Internal error: to_ref not defined yet for class: #{self.class}"
         end
 
         # Converts to a new event.
@@ -2903,12 +2913,12 @@ module HDLRuby::High
             # @location = caller_locations
             # Check and set the base (it must be convertible to a reference).
             unless base.respond_to?(:to_ref)
-                raise "Invalid base for a RefObject: #{base}"
+                raise AnyError, "Invalid base for a RefObject: #{base}"
             end
             @base = base
             # Check and set the object (it must have a name).
             unless object.respond_to?(:name)
-                raise "Invalid object for a RefObject: #{object}"
+                raise AnyError, "Invalid object for a RefObject: #{object}"
             end
             @object = object
         end
@@ -3109,7 +3119,7 @@ module HDLRuby::High
             elsif self.type == :negedge then
                 return Event.new(:posedge,self.ref.to_ref)
             else
-                raise "Event cannot be inverted: #{self.type}"
+                raise AnyError, "Event cannot be inverted: #{self.type}"
             end
         end
 
@@ -3290,10 +3300,10 @@ module HDLRuby::High
         # Sets the direction to +dir+.
         def dir=(dir)
             # if self.bounded? then
-            #     raise "Error: signal #{self.name} already bounded."
+            #     raise AnyError, "Error: signal #{self.name} already bounded."
             # end
             unless DIRS.include?(dir) then
-                raise "Invalid bounding for signal #{self.name} direction: #{dir}."
+                raise AnyError, "Invalid bounding for signal #{self.name} direction: #{dir}."
             end
             @dir = dir
         end
@@ -3386,10 +3396,10 @@ module HDLRuby::High
         # def add_inner(signal)
         #     # Checks and add the signal.
         #     unless signal.is_a?(SignalI)
-        #         raise "Invalid class for a signal instance: #{signal.class}"
+        #         raise AnyError, "Invalid class for a signal instance: #{signal.class}"
         #     end
         #     if @inners.has_key?(signal.name) then
-        #         raise "SignalI #{signal.name} already present."
+        #         raise AnyError, "SignalI #{signal.name} already present."
         #     end
         #     @inners[signal.name] = signal
         # end
@@ -3504,7 +3514,7 @@ module HDLRuby::High
             # Completes the hif or the hcase statement.
             statement = @statements.last
             unless statement.is_a?(If) or statement.is_a?(Case) then
-                raise "Error: helse statement without hif nor hcase (#{statement.class})."
+                raise AnyError, "Error: helse statement without hif nor hcase (#{statement.class})."
             end
             statement.helse(mode, &ruby_block)
         end
@@ -3518,7 +3528,8 @@ module HDLRuby::High
             # Completes the hif statement.
             statement = @statements.last
             unless statement.is_a?(If) then
-                raise "Error: helsif statement without hif (#{statement.class})."
+                raise AnyError,
+                     "Error: helsif statement without hif (#{statement.class})."
             end
             statement.helsif(condition, mode, &ruby_block)
         end
@@ -3544,7 +3555,8 @@ module HDLRuby::High
             # Completes the hcase statement.
             statement = @statements.last
             unless statement.is_a?(Case) then
-                raise "Error: hwhen statement without hcase (#{statement.class})."
+                raise AnyError,
+                    "Error: hwhen statement without hcase (#{statement.class})."
             end
             statement.hwhen(match, mode, &ruby_block)
         end
@@ -3873,7 +3885,7 @@ module HDLRuby::High
     # Pops a namespace.
     def self.space_pop
         if Namespaces.size <= 1 then
-            raise "Internal error: cannot pop further namespaces."
+            raise AnyError, "Internal error: cannot pop further namespaces."
         end
         Namespaces.pop
     end
@@ -3927,7 +3939,7 @@ module HDLRuby::High
     # Gets the enclosing system type if any.
     def self.cur_system
         if Namespaces.size <= 1 then
-            raise "Not within a system type."
+            raise AnyError, "Not within a system type."
         else
             return Namespaces.reverse_each.find do |space|
                 # space.user.is_a?(SystemT)
@@ -3946,7 +3958,7 @@ module HDLRuby::High
         # systemT = self.cur_system
         # # Gets the current behavior from it.
         # unless systemT.each_behavior.any? then
-        #     raise "Not within a behavior."
+        #     raise AnyError, "Not within a behavior."
         # end
         # # return systemT.each.reverse_each.first
         # return systemT.last_behavior
@@ -3966,7 +3978,8 @@ module HDLRuby::High
         if Namespaces[-1-level].user.is_a?(Block)
             return Namespaces[-1-level].user
         else
-            raise "Not within a block: #{Namespaces[-1-level].user.class}"
+            raise AnyError, 
+                  "Not within a block: #{Namespaces[-1-level].user.class}"
         end
     end
 
@@ -4007,7 +4020,8 @@ module HDLRuby::High
             return HDLRuby::High.send(name,*args,&ruby_block)
         end
         # Not found.
-        raise NoMethodError.new("undefined local variable or method `#{name}'.")
+        raise NotDefinedError,
+              "undefined HDLRuby construct, local variable or method `#{m}'."
     end
 
 
@@ -4228,7 +4242,7 @@ module HDLRuby::High
         # If +obj+ is nil, +ruby_block+ is used instead for filling the array.
         def call(obj = nil, &ruby_block)
             unless self.size == 1 then
-                raise "Invalid array for call opertor."
+                raise AnyError, "Invalid array for call opertor."
             end
             number = self[0].to_i
             if obj then
@@ -4261,7 +4275,8 @@ module HDLRuby::High
             # Check the array and get the number of elements.
             size = self[0]
             unless self.size == 1 and size.is_a?(::Integer)
-                raise "Invalid array for declaring a list of instances."
+                raise AnyError,
+                      "Invalid array for declaring a list of instances."
             end
             # Get the system to instantiate.
             systemT = High.space_call(name)
@@ -4563,7 +4578,7 @@ def self.configure_high
                 Namespaces[-1].send(m,*args,&ruby_block)
             else
                 # No, true error
-                raise NoMethodError.new("undefined local variable or method `#{m}'.")
+                raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
             end
         end
     end

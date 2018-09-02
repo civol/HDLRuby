@@ -126,7 +126,7 @@ module HDLRuby
             # For the other cases, only HDLRuby classes supporting to_basic
             # are supported.
             unless TO_BASICS.include?(value.class) then
-                raise "Invalid class for converting to basic structure: #{value.class}"
+                raise AnyError, "Invalid class for converting to basic structure: #{value.class}"
             end
             return value.to_basic(false,types)
         end
@@ -229,7 +229,7 @@ module HDLRuby
             end
         else
             # Other cases should happen.
-            raise "Invalid class for a basic object: #{basic.class}."
+            raise AnyError, "Invalid class for a basic object: #{basic.class}."
         end
     end
 
