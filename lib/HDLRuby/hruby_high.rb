@@ -470,6 +470,11 @@ module HDLRuby::High
             @singleton_instanceO.singleton_class
         end
 
+        # Execute +ruby_block+ in the context of the system.
+        def run(&ruby_block)
+            self.scope.open(&ruby_block)
+        end
+
         # Opens for extension.
         #
         # NOTE: actually executes +ruby_block+ in the context of the scope
@@ -481,7 +486,8 @@ module HDLRuby::High
             if (High.space_include?(self.scope.namespace)) then
                 # Yes, execute the ruby block in the top context of the
                 # system.
-                self.scope.open(&ruby_block)
+                # self.scope.open(&ruby_block)
+                self.run(&ruby_block)
             else
                 # No, add the ruby block to the list of block to execute
                 # when instantiating.
@@ -2173,7 +2179,7 @@ module HDLRuby::High
         # NOTE: actually executes +ruby_block+ in the context of the
         #       systemT.
         def open(&ruby_block)
-            return @systemT.open(&ruby_block)
+            return @systemT.run(&ruby_block)
         end
 
         # include Hmissing
