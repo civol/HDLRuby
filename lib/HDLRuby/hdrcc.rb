@@ -202,7 +202,8 @@ if __FILE__ == $0 then
     $loader = HDRLoad.new($top,$input,$options[:directory].to_s,*$params)
     $loader.read_all
     $loader.check_all
-    $top_instance = $loader.parse
+
+    error_manager([$input]) { $top_instance = $loader.parse }
 
     # Open the output.
     if $output then

@@ -20,4 +20,23 @@ module HDLRuby
         class AnyError < HDLRuby::AnyError
         end
     end
+
+    ## Execution context for processing error messages in +code+.
+    #  The relevant error message to are assumed to be the ones whose file
+    #  name is one given in +files+.
+    def error_manager(files,&code)
+        begin
+            code.call
+        rescue ::StandardError => e
+            # pp e.backtrace
+            # Keep the relevant 
+            e.backtrace.select! do |mess|
+                files.find {|file| mess.include?(file)}
+            end
+            puts "#{e.backtrace[0]}: #{e.message}"
+            e.backtrace[1..-1].each { |mess| puts "   from #{mess}"}
+            exit
+        end
+    end
+    
 end
