@@ -53,7 +53,7 @@ module HDLRuby
             # Get its required files.
             requires = @checks[-1].get_all_requires
             requires.each do |file|
-                read_all(require) if file != "HDLRuby"
+                read_all(file) if file != "HDLRuby"
             end
         end
 
@@ -138,7 +138,7 @@ if __FILE__ == $0 then
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             $options[:verilog] = v
         end
-        opts.on("-d", "--directory","Specify the base directory for loading the hdr files") do |d|
+        opts.on("-d", "--directory dir","Specify the base directory for loading the hdr files") do |d|
             $options[:directory] = d
         end
         opts.on("-t", "--top system", "Specify the top system to process") do|t|
