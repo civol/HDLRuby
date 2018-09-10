@@ -602,7 +602,12 @@ module HDLRuby::High
             # Create and register the general instantiater.
             High.space_reg(name) do |*args|
                 # If no name it is actually an access to the system type.
-                return obj if args.empty?
+                if args.size <= ruby_block.arity then
+                    # If no arguments, return the system as is
+                    return obj if args.empty?
+                    # If arguments, create a new system specialized with them
+                    return SystemT.new(:"") { include(obj,*args) }
+                end
                 # Get the names from the arguments.
                 i_names = args.shift
                 # puts "i_names=#{i_names}(#{i_names.class})"
@@ -1055,8 +1060,11 @@ module HDLRuby::High
             # # the system's.
             # High.space_insert(-1,@namespace)
             High.space_push(@namespace)
-            High.top_user.instance_eval(&ruby_block)
+            res = High.top_user.instance_eval(&ruby_block)
             High.space_pop
+            # Return the result of the execution so that it can be used
+            # as an expression
+            res
         end
 
 
@@ -1069,6 +1077,7 @@ module HDLRuby::High
             # Build the scope.
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
+            @return_value
         end
 
 
@@ -3368,6 +3377,7 @@ module HDLRuby::High
             High.space_push(@namespace)
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
+            @return_value
         end
 
         # Converts to a new reference.
