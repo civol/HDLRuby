@@ -122,12 +122,12 @@ if __FILE__ == $0 then
     # Process the command line options
     $options = {}
     $optparse = OptionParser.new do |opts|
-        opts.banner = "Usage: hdrcc.rb [options] <input hdr file> [<output file>]"
+        opts.banner = "Usage: hdrcc.rb [options] <input file> [<output file>]"
  
         opts.separator ""
         opts.separator "Where:"
         opts.separator "* `options` is a list of options"
-        opts.separator "* `<input hdr file>` is the initial file to compile (mandatory)"
+        opts.separator "* `<input file>` is the initial file to compile (mandatory)"
         opts.separator "* `<output file>` is the output file"
         opts.separator ""
         opts.separator "Options:"
@@ -193,7 +193,7 @@ if __FILE__ == $0 then
 
 
     if $input == nil then
-        warn("Please provide an input hdr file (or consult the help using the --help option.)")
+        warn("Please provide an input file (or consult the help using the --help option.)")
         exit
     end
 
@@ -207,7 +207,7 @@ if __FILE__ == $0 then
 
     # Open the output.
     if $output then
-        $output = File.open(output,"w")
+        $output = File.open($output,"w")
     else
         $output = $stdout
     end
