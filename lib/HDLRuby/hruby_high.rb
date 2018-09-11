@@ -606,7 +606,11 @@ module HDLRuby::High
                     # If no arguments, return the system as is
                     return obj if args.empty?
                     # If arguments, create a new system specialized with them
-                    return SystemT.new(:"") { include(obj,*args) }
+                    # return SystemT.new(:"") { include(obj,*args) }
+                    ICIICI
+                    return High.system :"" do
+                        include(obj,*args)
+                    end
                 end
                 # Get the names from the arguments.
                 i_names = args.shift
@@ -806,6 +810,10 @@ module HDLRuby::High
         #
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(systemTlow)
+            # Adds the content of its included systems.
+            self.scope.each_included do |included| 
+                included.systemT.fill_low(systemTlow)
+            end
             # puts "fill_low with systemTlow=#{systemTlow}"
             # Adds its input signals.
             self.each_input { |input|  systemTlow.add_input(input.to_low) }
@@ -854,9 +862,10 @@ module HDLRuby::High
             # Fills the interface of the new system from the included
             # systems, must look into the scope since it it the scope
             # that contains the included systems.
-            self.scope.each_included do |included| 
-                included.systemT.fill_low(systemTlow)
-            end
+            # Moved to fill_low
+            # self.scope.each_included do |included| 
+            #     included.systemT.fill_low(systemTlow)
+            # end
             # # Push the private namespace for the low generation.
             # High.space_push(@namespace)
             # # Pushes on the name stack for converting the internals of
@@ -1370,13 +1379,22 @@ module HDLRuby::High
             if @includeIs.key?(system.name) then
                 raise AnyError, "Cannot include twice the same system."
             end
-            # Extends with system.
-            self.eigen_extend(system)
+            # puts "Include system=#{system.name}"
+            # # Extends with system.
+            # self.eigen_extend(system)
             # Create the instance to include
             instance = system.instantiate(:"",*args)
             # puts "instance=#{instance}"
-            # Concat its public namespace to the current one.
+            # Concat its public namespace to the current one and current's
+            # public one.
             self.namespace.concat_namespace(instance.public_namespace)
+            if self.parent.is_a?(SystemT) then
+                # Include concats namespace of system only if it is a
+                # direct parent of the scope.
+                # Using include within a scope which is not one of a system
+                # does not change the interface!
+                self.parent.public_namespace.concat_namespace(instance.public_namespace)
+            end
             # Adds it the list of includeds
             @includeIs[system.name] = instance
         end
@@ -1394,6 +1412,8 @@ module HDLRuby::High
         #
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(scopeLow)
+            # Adds the content of its included systems.
+            @includeIs.each_value {|instance| instance.user.fill_low(scopeLow) }
             # Adds the inner scopes.
             self.each_scope { |scope| scopeLow.add_scope(scope.to_low) }
             # Adds the inner signals.
@@ -1434,8 +1454,9 @@ module HDLRuby::High
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
-            # Adds the content of its included systems.
-            @includeIs.each_value {|instance| instance.user.fill_low(scopeLow) }
+            # Moved to fill_low
+            # # Adds the content of its included systems.
+            # @includeIs.each_value {|instance| instance.user.fill_low(scopeLow) }
             # Adds the content of the actual system.
             self.fill_low(scopeLow)
             # Restores the name stack.
