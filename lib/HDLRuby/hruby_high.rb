@@ -606,11 +606,7 @@ module HDLRuby::High
                     # If no arguments, return the system as is
                     return obj if args.empty?
                     # If arguments, create a new system specialized with them
-                    # return SystemT.new(:"") { include(obj,*args) }
-                    ICIICI
-                    return High.system :"" do
-                        include(obj,*args)
-                    end
+                    return SystemT.new(:"") { include(obj,*args) }
                 end
                 # Get the names from the arguments.
                 i_names = args.shift
