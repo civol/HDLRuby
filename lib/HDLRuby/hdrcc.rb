@@ -141,6 +141,9 @@ if __FILE__ == $0 then
         opts.on("-d", "--directory dir","Specify the base directory for loading the hdr files") do |d|
             $options[:directory] = d
         end
+        opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
+            $options[:debug] = d
+        end
         opts.on("-t", "--top system", "Specify the top system to process") do|t|
             $options[:top] = t
         end
@@ -203,7 +206,13 @@ if __FILE__ == $0 then
     $loader.read_all
     $loader.check_all
 
-    error_manager([$input]) { $top_instance = $loader.parse }
+    if $options[:debug] then
+        # Debug mode, no error management.
+        $top_instance = $loader.parse
+    else
+        # Not debug mode, use the error management.
+        error_manager([$input]) { $top_instance = $loader.parse }
+    end
 
     # Open the output.
     if $output then
