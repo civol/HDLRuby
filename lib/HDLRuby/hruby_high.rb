@@ -556,7 +556,7 @@ module HDLRuby::High
             eigen.each_signal do |signal|
                 # space.send(:define_singleton_method,signal.name) { signal }
                 space.send(:define_singleton_method,signal.name) do
-                    RefObject.new(eigen.owner.to_ref,signal)
+                    refobject.new(eigen.owner.to_ref,signal)
                 end
             end
             # Exported objects
@@ -1621,6 +1621,10 @@ module HDLRuby::High
 
         # Redefinition of +operator+.
         def define_operator(operator,&ruby_block)
+            # Register the operator as overloaded.
+            @overloads ||= {}
+            @overloads[operator] = ruby_block
+            # Set the new method for the operator.
             self.define_singleton_method(comp_operator(operator)) do |*args|
                 # puts "Top user=#{HDLRuby::High.top_user}"
                 HDLRuby::High.top_user.instance_exec do
@@ -1629,6 +1633,14 @@ module HDLRuby::High
                    end
                 end
             end
+        end
+
+        # Interates over the overloaded operators.
+        def each_overload(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_overload) unless ruby_block
+            # A block? Apply it on each overload if any.
+            @overloads.each(&ruby_block) if @overloads
         end
     end
 
@@ -1838,6 +1850,52 @@ module HDLRuby::High
         end
     end
 
+
+    ##
+    # Describes a high-level generic type definition.
+    #
+    # NOTE: this type does not correspond to any low-level type
+    class TypeGen< Type
+        High = HDLRuby::High
+
+        # Type creation.
+
+        # Creates a new generic type definition producing a new type by
+        # executing +ruby_block+.
+        def initialize(name,&ruby_block)
+            # Initialize the type structure.
+            super(name)
+
+            # Sets the block to execute when instantiating the type.
+            @instance_proc = ruby_block
+        end
+
+        # Generates the type with +args+ generic parameters.
+        def generate(*args)
+            # Generate the resulting type.
+            gtype = High.top_user.instance_exec(*args,&@instance_proc)
+            # Ensures a type has been produced.
+            unless gtype.is_a?(HDLRuby::Low::Type) then
+                raise AnyError, "Generic type #{self.name} did not produce a valid type: #{gtype.class}"
+            end
+            # Create a new type definition from it.
+            gtype = TypeDef.new(self.name.to_s + "_#{args.join(":")}",
+                                   gtype)
+            # Adds the possible overloaded operators.
+            self.each_overload do |op,ruby_block|
+                gtype.define_operator(op,&(ruby_block.curry[*args]))
+            end
+            # Returns the resulting type
+            return gtype
+        end
+
+        # Converts the type to HDLRuby::Low and set its +name+.
+        #
+        # NOTE: should be overridden by other type classes.
+        def to_low(name = self.name)
+            return HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+        end
+    end
 
 
 
@@ -2081,6 +2139,35 @@ module HDLRuby::High
     #     return TypeUnion.new(:"",content)
     # end
 
+    # Methods for declaring types
+
+    # Declares a high-level generic type named +name+, and using +ruby_block+
+    # for construction.
+    def typedef(name, &ruby_block)
+        type = TypeGen.new(name,&ruby_block)
+        if HDLRuby::High.in_system? then
+            define_singleton_method(name.to_sym) do |*args|
+                if (args.empty?) then
+                    # No arguments, get generic type as is.
+                    type
+                else
+                    # There are arguments, specialize the type.
+                    type.generate(*args)
+                end
+            end
+        else
+            define_method(name.to_sym) do |*args|
+                if (args.empty?) then
+                    # No arguments, get generic type as is.
+                    type
+                else
+                    # There are arguments, specialize the type.
+                    type.generate(*args)
+                end
+            end
+        end
+    end
+
     # # Creates type named +name+ and using +ruby_block+ for building it.
     # def type(name,&ruby_block)
     #     # Builds the type.
@@ -2105,7 +2192,7 @@ module HDLRuby::High
         return SystemT.new(name,*includes,&ruby_block)
     end
 
-    # Methods for declaring function
+    # Methods for declaring functions
 
     # Declares a function named +name+ using +ruby_block+ as body.
     #
