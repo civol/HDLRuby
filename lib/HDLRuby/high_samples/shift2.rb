@@ -31,7 +31,7 @@ system :shifter do |n|
 end
 
 # Instantiate it for checking.
-shifter :shifterI, 16
+shifter(16).(:shifterI)
 
 # Generate the low level representation.
 low = shifterI.systemT.to_low

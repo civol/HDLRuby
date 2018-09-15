@@ -556,7 +556,7 @@ module HDLRuby::High
             eigen.each_signal do |signal|
                 # space.send(:define_singleton_method,signal.name) { signal }
                 space.send(:define_singleton_method,signal.name) do
-                    refobject.new(eigen.owner.to_ref,signal)
+                    RefObject.new(eigen.owner.to_ref,signal)
                 end
             end
             # Exported objects
@@ -578,6 +578,9 @@ module HDLRuby::High
             # Return the resulting instance
             return instance
         end
+
+        # Instantiation can also be done throw the call operator.
+        alias :call :instantiate
 
         # Generates the instantiation capabilities including an instantiation
         # method +name+ for hdl-like instantiation, target instantiation as
@@ -601,13 +604,15 @@ module HDLRuby::High
 
             # Create and register the general instantiater.
             High.space_reg(name) do |*args|
-                # If no name it is actually an access to the system type.
-                if args.size <= ruby_block.arity then
-                    # If no arguments, return the system as is
-                    return obj if args.empty?
+                # If no arguments, return the system as is
+                return obj if args.empty?
+                # Are there any generic arguments?
+                if ruby_block.arity > 0 then
+                    # Yes, must specialize the system with the arguments.
                     # If arguments, create a new system specialized with them
                     return SystemT.new(:"") { include(obj,*args) }
                 end
+                # It is the case where it is an instantiation
                 # Get the names from the arguments.
                 i_names = args.shift
                 # puts "i_names=#{i_names}(#{i_names.class})"
