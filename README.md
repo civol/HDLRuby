@@ -135,18 +135,14 @@ adder = HDLRuby::from_yaml(File.read("#{$:[0]}/HDLRuby/low_samples/adder.yaml"))
 
 __Note__:
 
-- A `HDLRuby::Low` description of hardware can only be built through standard
-  Ruby class constructors, and does not include any validity check of the
-  resulting hardware.
+- A `HDLRuby::Low` description of hardware can only be built through standard Ruby class constructors, and does not include any validity check of the resulting hardware.
 
 
 
 ## HDLRuby programming guide
 
 HDLRuby has been designed to bring the high flexibility of the Ruby language to hardware descriptions while ensuring that they remain synthesizable. In this
-context, all the abstractions provided by HDLRuby are in the way of describing
-hardware, but not in its execution model, this latter being RTL by
-construction.
+context, all the abstractions provided by HDLRuby are in the way of describing hardware, but not in its execution model, this latter being RTL by construction.
 
 The second specificity of HDLRuby is that it supports natively all the features of the Ruby language.
 
@@ -158,8 +154,7 @@ __Notes__:
 ### Introduction
 
 This introduction gives a glimpse of the possibilities of the language.
-However, we do recommend to consult the section about the [high-level
-programming features](#highfeat) to have a more complete view of the advanced possibilities of this language.
+However, we do recommend to consult the section about the [high-level programming features](#highfeat) to have a more complete view of the advanced possibilities of this language.
 
 At first glance, HDLRuby is similar to any other HDL languages (like Verilog HDL or VHDL), for instance the following code describes a simple D-FF:
 
@@ -229,56 +224,57 @@ system :reg do |typ|
 end
 ```
 
-Now, one might think it is painful to write almost the same code for each example. If that is the case, he can wrap up everything as follows:
-
-```ruby
-# Function generating the body of a register description.
-def reg_body(typ)
-   input :clk, :rst
-   typ.input :d
-   typ.output :q
-
-   (q <= d & [~rst]*typ.width).at(clk.posedge)
-end
-
-# Now declare the systems describing the registers.
-system :dff do
-   reg_body(bit)
-end
-
-system :reg8 do
-   reg_body([7..0].bit)
-end
-
-system :regn do |n|
-   reg_body([n-1..0].bit)
-end
-
-system :reg do |typ|
-   reg_body(typ)
-end
-```
-
-It also possible to go further and write a method for generating examples of register descriptions as follows (such an example, somewhat unreasonable, will be explained little by little in this document):
-
-```ruby
-# Function generating a register declaration.
-def make_reg(name,&blk)
-   system name do |*arg|
-      input :clk, :rst
-      blk.(*arg).input :d
-      blk.(*arg).output :q
-
-      (q <= d & [~rst]*blk.(*arg).width).at(clk.posedge)
-   end
-end
-
-# Now let's generate the register declarations.
-make_reg(:dff) { bit }
-make_reg(:reg8){ bit[7..0] }
-make_reg(:regn){ |n| bit[n-1..0] }
-make_reg(:reg) { |typ| typ }
-```
+[//]: # (Now, one might think it is painful to write almost the same code for each example. If that is the case, he can wrap up everything as follows:)
+[//]: # ( )
+[//]: # (```ruby)
+[//]: # (# Method generating the body of a register description.)
+[//]: # (def reg_body(typ))
+[//]: # (   input :clk, :rst)
+[//]: # (   typ.input :d)
+[//]: # (   typ.output :q)
+[//]: # ( )
+[//]: # (   (q <= d & [~rst]*typ.width).at(clk.posedge))
+[//]: # (end)
+[//]: # ( )
+[//]: # (# Now declare the systems describing the registers.)
+[//]: # (system :dff do)
+[//]: # (   reg_body(bit))
+[//]: # (end)
+[//]: # ( )
+[//]: # (system :reg8 do)
+[//]: # (   reg_body([7..0].bit))
+[//]: # (end)
+[//]: # ( )
+[//]: # (system :regn do |n|)
+[//]: # (   reg_body([n-1..0].bit))
+[//]: # (end)
+[//]: # ( )
+[//]: # (system :reg do |typ|)
+[//]: # (   reg_body(typ))
+[//]: # (end)
+[//]: # (```)
+[//]: # ( )
+[//]: # (It also possible to go further and write a method for generating examples of register descriptions as follows (such an example, somewhat unreasonable, will be explained little by little in this document):)
+[//]: # ( )
+[//]: # (```ruby)
+[//]: # (# Method generating a register declaration.)
+[//]: # (def make_reg(name,&blk))
+[//]: # (   system name do |*arg|)
+[//]: # (      input :clk, :rst)
+[//]: # (      blk.(*arg).input :d)
+[//]: # (      blk.(*arg).output :q)
+[//]: # ( )
+[//]: # (      (q <= d & [~rst]*blk.[//]: # ((*arg).width).at(clk.posedge))
+[//]: # (   end)
+[//]: # (end)
+[//]: # ( )
+[//]: # (# Now let's generate the register [//]: #) (declarations.)
+[//]: # (make_reg(:dff) { bit })
+[//]: # (make_reg(:reg8){ bit[7..0] })
+[//]: # (make_reg(:regn){ |n| bit[n-1..0] })
+[//]: # (make_reg(:reg) { |typ| typ })
+[//]: # (```)
+[//]: # ( )
 
 Wait... I have just realized: a D-FF without any inverted output does not look very serious. So let us extend the existing `dff` to provide an inverted output. There are basically three ways for doing this. First, inheritance can be used: a new system is built inheriting from `dff` as it is done in the following code.
 
@@ -318,11 +314,15 @@ described as follows making use of the native Ruby method `each_cons` for connec
 
 ```ruby
 system :shifter do |n|
+   input :clk, :rst
    input :i0
    output :o0, :o0b
 
    # Instantiating n D-FF
    [n].dff_full :dffIs
+   
+   # Connect the clock and the reset.
+   dffIs.each { |ff| ff.clk <= clk ; ff.rst <= rst }
 
    # Interconnect them as a shift register
    dffIs[0..-1].each_cons(2) { |ff0,ff1| ff1.d <= ff0.q }
@@ -334,11 +334,199 @@ system :shifter do |n|
 end
 ```
 
-
 As it can be seen in the above examples, in HDLRuby, any construct is an object and therefore include methods. For instance, declaring a signal of a given `type` and direction (input, output or inout) is done as follows, so that `direction` is actually a method of the type, and the signal names are actually the arguments of this method (symbols or string are supported.)
 
 ```ruby
 <type>.<direction> <list of symbols representing the signal>
+```
+
+Of course, if you do not need to use the specific component `dff_full` you can describe a shift register more simply as follows:
+
+```ruby
+system :shifter do |n|
+   input :clk, :rst
+   input :i0
+   output :o0
+   [n].inner :sh
+   
+   par (clk.posedge) do
+      hif(rst) { sh <= 0 }
+      helse { sh <= [sh[n-2..0], i0] }
+   end
+   
+   o0 <= sh[n-1]
+end
+```
+
+Now, let us assume you what to design a circuit that performs a sum of products of several inputs with constant coefficients. For the case of 4 16-bit signed inputs and given coefficient as 3, 4, 5 and 6. The corresponding basic code could be as follows:
+
+```ruby
+system :sumprod_16_3456 do
+   signed[16].input :i0, :i1, :i2, :i3
+   signed[16].output :o
+   
+   o <= i0*3 + i1*4 + i2*5 + i3*6
+end
+```
+
+The description above is straight forward, but it would be necessary to rewrite it if another circuit with different bit width or coefficients is to be designed. Moreover, if the number of coefficient is large an error in the expression will be easy to make and hard to find. A better approach would be to use a generic description of such a circuit as follows:
+
+```ruby
+system :sumprod do |typ,coefs|
+   typ[coefs.size].input ins
+   typ.output :o
+   
+   o <= coefs.each_with_index.reduce(_0) do 
+   |sum,(coef,i)|
+      sum + ins[i]*coef
+   end
+end
+```
+
+In the code above, there are two generic parameters,
+`typ` that indicates the data type of the circuit and `coefs` that is assumed to be an array of coefficients. Since the number of inputs depends on the number of provided coefficients, it is declared as an array of `width` bit signed whose size is equal to the number of coefficients.
+
+The description of the sum of product maybe more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` simply performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_0` initializes the sum to `0`.
+
+While slightly longer than the previous description, this description allows to declare a circuit implementing a sum of product with any bit width and any number of coefficients. For instance, the following code describes a signed 32-bit sum of product with  16 coefficients (actually just random numbers here).
+
+```ruby
+sumprod [:my_circuit],
+        signed[32], 
+        [3,78,43,246, 3,67,1,8,
+         47,82,99,13, 5,77,2,4]
+```
+
+As seen in the code above, when passing generic argument for instantiating a generic system, the name of the instance is put between brackets for avoiding confusion.
+
+While description `sumprod` is already usable in a wide range of cases, it still uses the standard addition and multiplication. However, there are cases where specific components are to be used for these operations, either for sake of performance,  compliance with constraints, or because functionally different operations are required (e.g., saturated computations). This can be solved by using functions implementing such computation in place of operators, for example as follows:
+
+```ruby
+system :sumprod_func do |typ,coefs|
+   typ[coefs.size].input ins
+   typ.output :o
+   
+   o <= coefs.each_with_index.reduce(_0) do 
+   |sum,(coef,i)|
+      add(sum, mult(ins[i]*coef))
+   end
+end
+```
+
+Where `add` and `mult` are functions implementing the required specific operations. HDLRuby functions are similar to Verilog HDL ones. In our example, an addition that saturates at 1000 could be described as follows:
+
+```ruby
+function :add do |x,y|
+   inner :res
+   seq do
+      res <= x + y
+      (res <= 1000).hif(res > 1000)
+   end
+end
+```
+
+With HDLRuby functions, the result of the last statement in the return value, in this case that will be the value of res. The code above is also an example of the usage of the postfixed if statement, it an equivalent of the following code:
+
+```ruby
+      hif(res>1000) { res <= 1000 }
+```
+
+With functions, it is enough to change their content to obtained a new kind of circuit without change the main code. This approach suffers for two drawbacks though: first, the level of saturation is hardcoded in the function, second, it would be preferable to be able to select the function to execute instead of modifying its code. For the first problem a simple approach is to add an argument to the function given the saturation level. Such an add function would therefore be as follows:
+
+```ruby
+function :add do |max, x, y|
+function :add do |x,y|
+   inner :res
+   seq do
+      res <= x + y
+      (res <= max).hif(res > max)
+   end
+end
+```
+
+It would however be necessary to add this argument when invoking the function, e.g., `add(1000,sum,mult(...))`. While this argument is relevant for addition with saturation, it is not for the other kind of addition operations, and hence, the code of `sumprod` is not general any longer.
+
+HDLRuby provides two ways to address such issues. First, it is possible to pass code as argument. In the case of `sumprod` it would then be enough to add two arguments that perform the required addition and multipliction. The example is bellow:
+
+```ruby
+system :sumprod_proc do |add,mult,typ,coefs|
+   typ[coefs.size].input ins
+   typ.output :o
+   
+   o <= coefs.each_with_index.reduce(_0) do 
+   |sum,(coef,i)|
+      add.(sum, mult.(ins[i]*coef))
+   end
+end
+```
+
+__Note__: 
+ 
+- With HDLRuby, when some code is passed as argument, it is invoked using the `.()` operator, and not simple parenthesis like functions.
+
+Assuming the addition with saturation is now implemented by a function named `add_sat` and a multiplication with saturation is implemented by a function named `mult_sat` (with similar arguments), a circuit implementing a signed 16-bit sum of product saturating at 1000 with 16 coefficients could be described as follows:
+
+```ruby
+sumprod_proc( 
+        proc { |x,y| add_sat(1000,x,y) },
+        proc { |x,y| mult_sat(1000,x,y) },
+        signed[64], 
+        [3,78,43,246, 3,67,1,8,
+         47,82,99,13, 5,77,2,4]).(:my_circuit)
+```
+
+As seen in the example above, a piece of code is passed as argument using the proc keyword.
+
+A second possible approach provided by HDLRuby is to declare a new data type with redefined addition and multiplication operators. For the case of a 16-bit saturated addition and multiplication the following generic data type can be defined (for signed computations):
+
+```
+signed[16].typedef(:sat16_1000)
+
+sat16_1000.define_operator(:+) do |x,y|
+   [16].inner :res
+   seq do
+      res <= x + y
+      ( res <= 1000 ).hif(res > 1000)
+   end
+end
+```
+
+In the code above, the first line define the new type `sat16_1000` to be 16-bit signed and the remaining overloads (redefines) the `+` operator for this type (the same should be done for the `*` operator).
+Then, the initial version of `sumprod` can be used with this type to achieve saturated computations as follows:
+
+```ruby
+sumprod(sat16_1000, 
+        [3,78,43,246, 3,67,1,8,
+        47,82,99,13, 5,77,2,4]).(:my_circuit)
+```
+
+It is also possible to declare a generic type. For instance a generic signed type with saturation can be declared as follows:
+
+```ruby
+typedef :sat do |width, max|
+   signed[width]
+end
+
+
+sat.define_operator(:+) do |width,max, x,y|
+   [width].inner :res
+   seq do
+      res <= x + y
+      ( res <= max ).hif(res > max)
+   end
+end
+```
+
+__Note:__
+
+- The generic parameters have also to be declared for the operator redefinitions.
+
+With this generic type, the circuit can be declared as follows:
+
+```ruby
+sumprod(sat(16,1000), 
+        [3,78,43,246, 3,67,1,8,
+         47,82,99,13, 5,77,2,4]).(:my_circuit)
 ```
 
 
@@ -451,7 +639,7 @@ mem8_16 :mem8_16I
 It is also possible to declare multiple instances of a same system at time as follows:
 
 ```ruby
-<system name> [list of colon-speparated instance names]
+<system name> [list of colon-separated instance names]
 ```
 
 For example, the following code declares two instances of system `mem8_16`:
@@ -557,6 +745,94 @@ system :mem16_16 do
 end
 ```
 
+#### Scope in a system
+
+##### General scopes
+
+The signals of the interface of signals are accessible from anywhere in a HDLRuby description. This is not the case for inner signals and instances: they are accessible only within the scope they are declared in.
+
+A scope is a region of the code where locally declared objects are accessible. Each system has its own scope that cannot be accessible from other part of an HDLRuby description. For example in the following code, signals `d` and `qb` as well as instance `dffI` cannot be accessed from outside system `div2`:
+
+```ruby
+system :div2 do
+   input :clk
+   output :q
+   
+   inner :d, :qb
+   d <= qb
+   
+   dff_full(:dffI).(clk: clk, d: d, q: q, qb: qb)
+   
+```
+
+For robustness or, readability purpose, it is possible to add inner scope inside existing scope using the `sub` keyword as follows:
+
+```ruby
+sub do
+   <code>
+end
+```
+
+For example, in the code bellow, signal `sig` is not accessible from outside the additional inner scope of system `sys`
+
+```ruby
+system :sys do
+   ...
+   sub
+      inner :sig
+      <sig is accessible here>
+   end
+   <sig is not accessible from here>
+end
+```
+
+It is also possible to add an inner scope within another inner scope as follows:
+
+```ruby
+system :sys do
+   ...
+   sub
+      inner :sig0
+      <sig0 is accessible here>
+      sub
+         inner :sig1
+         <sig0 and sig1 are accessible here>
+      end
+      <sig1 is not accessible here>
+   end
+   <neither sig0 nor sig1 are accessible here>
+end
+```
+
+Within a same scope it is not possible to declared multiple signals or instances with a same name. However, it is possible to declare a signal or an instance with a name identical to one previously declared outside the scope: the inner-most declaration will be used. 
+
+
+##### Named scopes
+
+It is possible to declare a scope with a name as follows:
+
+```ruby
+sub :<name> do
+   <code>
+end
+```
+
+Where:
+
+- `<name>` is the name of the scope.
+- `<code>` is the code within the scope.
+
+Contrary to the case of scopes without name, signals and instances declared within a named scope can be accessed outside using this name as reference. For example in the code bellow signal `sig` declared within scope named `scop` is accessed outside it using `scop.sig`:
+
+```ruby
+sub :scop do
+   inner :sig
+   ...
+end
+...
+scop.sig <= ...
+```
+
 
 #### Behavioral description in a system.
 
@@ -571,8 +847,7 @@ end
 ```
 
 In addition, it is possible to declare inner signals within an execution block.
-While such signals will be physically linked to the system, they are only accessible within the block they are declared into. This permits a tighter scope
-for signals, which improves the readability of the code and make it possible to declare several signals with identical names provided their respective scopes are different.
+While such signals will be physically linked to the system, they are only accessible within the block they are declared into. This permits a tighter scope for signals, which improves the readability of the code and make it possible to declare several signals with identical names provided their respective scopes are different.
 
 An event represents a specific change of state of a signal. 
 For example, a rising edge of a clock signal named `clk` will be represented by event `clk.posedge`. In HDLRuby, events are obtained directly from
@@ -628,7 +903,7 @@ system :with_sequential_behavior do
 end
 ```
 
-Sub blocks have their own scope so that it is possible to declare signals signals without colliding with existing ones. For example it is possible to
+Sub blocks have their own scope so that it is possible to declare signals without colliding with existing ones. For example it is possible to
 declare three different inner signals all called `sig` as follows:
 
 ```ruby
@@ -860,7 +1135,6 @@ __Notes__:
       end
    end
    ```
-
 
 ### Types
 <a name="types"></a>
@@ -1349,6 +1623,117 @@ __Multiplicative operators:__
 | signed         | unsigned       | signed      | L.zext(L.width+1).to_signed |
 | signed         | signed         | signed      |                             |
 
+
+### Functions
+
+#### HDLRuby functions
+
+Similarly to Verilog HDL, HDLRuby provides function constructs for reusing code. HDLRuby functions are declared as follows:
+
+   ```ruby
+      function :<function name> do |<arguments>|
+      <code>
+      end
+   ```
+
+Where:
+
+- `function name` is the name of the function.
+- `arguments` is the list of arguments of the function.
+- `code` is the code of the function.
+
+__Notes__:
+
+- Functions have their own scope, so that any declaration within a function is local. It is also forbidden to declare interface signals (input, output or inout) within a function.
+
+- Similarly to Ruby proc objects, the last statement of a function's code serves as return value. For instance the following function returns `1` (in this example the function does not have any argument):
+
+   ```ruby
+   function :one { 1 }
+   ```
+   
+- Functions can accept any kind of object as argument, including variadic arguments or blocks of code as shown bellow with a function which apply the code passed as argument to all the variadic arguments of `args`:
+
+   ```ruby
+   function :apply do |*args, &code|
+      args.each { |arg| code.call(args) }
+   end
+   ```
+   
+   Such a function can be used for example for connecting a signal to a set of other signals as follows (where `sig` is connected to `x`, `y` and `z`):
+   ```ruby
+    apply(x,y,z) { |v| v <= sig }
+   ```
+
+A function can be invoked anywhere in the code using its name and passing its argument between parentheses as follows:
+
+```ruby
+<function name>(<list of values>)
+```
+
+
+
+##### Ruby functions
+
+HDLRuby functions are useful for reusing code, but they cannot interact with the code they are called in. For example, it is not possible to add interface signals through a function nor to modify a control statement (e.g., `hif`) with them. These high-level generic operations can however be performed using the functions of the Ruby language declared as follows:
+
+```ruby
+def <function name>(<arguments>)
+   <code>
+end
+```
+Where:
+
+- <function name> is the name of the function.
+- <arguments> is the list of arguments of the function.
+- <code> is the code of the function.
+ 
+These functions are called the same way HDLRuby functions are called, but this operation actually pastes the code of the function as is within the code.
+Moreover, these function do not have any scope so that any inner signal or instance declared within them will actually added to the object they are invoked in.
+
+For example, the following function will add input `in0` to any system where it is invoked:
+
+```ruby
+def add_in0
+   input :in0
+end
+```
+
+This function can be used as follows:
+
+```ruby
+system :sys do
+   ...
+   add_in0
+   ...
+end
+```
+
+As another example, following function will add an alternative code that generates a reset to a condition statement (`hif` or `hcase`):
+
+```ruby
+def too_bad
+   helse { $rst <= 1 }
+end
+```
+
+This function can be used as follows:
+
+```ruby
+system :sys do
+   ...
+   par do
+      hif(sig == 1) do
+         ...
+      end
+      too_bad
+   end
+end
+```
+
+Ruby functions can be compared to the macros of the C languages: they have more flexible since they actually edit the code they are invoked in, but are also dangerous to use. In general, it is not recommended to use them, unless when designing a library of generic code for HDLRuby.
+
+
 ### Time
 <a name="time"></a>
 
@@ -1472,18 +1857,43 @@ It is also possible to use a variable number of generic parameters using the var
 system(:variadic) { |*args| }
 ```
 
-Finally, it is possible to pass a Ruby block as generic parameter using the block operator `&` like in the following example.
+##### Specializing
+
+A generic system is specialized by invoking its name and passing as argument the values corresponding to the generic arguments as follows:
 
 ```ruby
-system(:with_block) { |&blk| }
+<system name>(<generic argument value's list>)
 ```
+
+If less values are provided than the number of generic arguments, the system is partially specialized.
+
+A specialized system can be used for inheritance. For example, assuming system `sys` has 2 generic arguments, it can be specialized and used for building system `subsys` as follows:
+
+```ruby
+system :subsys, sys(1,2) do
+   ...
+end
+```
+
+This way of inheriting can only be done with fully specialized systems though. For partially specialized systems, `include` must be used instead. For example, if `sys` specialized with only one value, can be used in generic `subsys_gen` as follows:
+
+```ruby
+system :subsys_gen do |param|
+   include sys(1,param)
+   ...
+end
+```
+
+__Note:__
+
+- In the example above, generic parameter `param` of `sybsys_gen` is used for specializing system `sys`.
 
 ##### Instantiating
 
 When instantiating a system, the values of its generic parameters must be provided after the name of the new instance as follows:
 
 ```ruby
-<system name> :<instance name>, <generic argument value 0>, ...
+<system name>(<generic argument value's list>).(:<instance name>)
 ```
 
 If some arguments are omitted, an exception will be raised even if the arguments are not actually used in the system's body.
@@ -1491,13 +1901,13 @@ If some arguments are omitted, an exception will be raised even if the arguments
 For example, in the previous section, system `nothing` did not used the generic arguments, but the following instantiation is invalid:
 
 ```ruby
-nothing :nothingI
+nothing(1).(:nothingI)
 ```
 
 However the following is valid since a value is provided for each generic argument.
 
 ```ruby
-nothing :nothingI, 1,2
+nothing(1,2).(:nothingI)
 ```
 
 The validity of the generic value itself is checked when the body of the system is executed for generating the content of the instance.
@@ -1505,13 +1915,13 @@ For the user's point of view, this happens at instantiation time, just like the 
 For example, the following instantiation of previous system `something` will raise an exception since the first generic value is not a type:
 
 ```ruby
-something :somethingI, 1,7..0
+something(1,7..0).(:somethingI)
 ```
 
 However, the following is valid:
 
 ```ruby
-something :somethingI, bit,7..0
+something(bit,7..0).(:somethingI)
 ```
 
 
