@@ -64,7 +64,7 @@ module HDLRuby
 
         # Displays the syntax tree of all the files.
         def show_all(output = $stdout)
-            puts "@checks.size=#{@checks.size}"
+            # puts "@checks.size=#{@checks.size}"
             @checks.each { |check| check.show(output) }
         end
 
