@@ -112,7 +112,8 @@ module HDLRuby
             else
                 # There are generic parameters
                 @top_instance = 
-                    eval("#{@top_system} :#{@top_name},#{@params.join(",")}\n#{@top_name}",bind)
+                    # eval("#{@top_system} :#{@top_name},#{@params.join(",")}\n#{@top_name}",bind)
+                    eval("#{@top_system}(#{@params.join(",")}).(:#{@top_name})\n#{@top_name}",bind)
             end
         end
     end
