@@ -62,6 +62,12 @@ module HDLRuby
             @checks.each { |check| check.assign_check }
         end
 
+        # Displays the syntax tree of all the files.
+        def show_all(output = $stdout)
+            puts "@checks.size=#{@checks.size}"
+            @checks.each { |check| check.show(output) }
+        end
+
         # Gets the (first) top system.
         def get_top
             # Get all the systems.
@@ -138,6 +144,9 @@ if __FILE__ == $0 then
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             $options[:verilog] = v
         end
+        opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
+            $options[:syntax] = s
+        end
         opts.on("-d", "--directory dir","Specify the base directory for loading the hdr files") do |d|
             $options[:directory] = d
         end
@@ -200,11 +209,23 @@ if __FILE__ == $0 then
         exit
     end
 
+    # Open the output.
+    if $output then
+        $output = File.open($output,"w")
+    else
+        $output = $stdout
+    end
+
     # Load and process the hdr files.
     $options[:directory] ||= "./"
     $loader = HDRLoad.new($top,$input,$options[:directory].to_s,*$params)
     $loader.read_all
     $loader.check_all
+
+    if $options[:syntax] then
+        $output << $loader.show_all
+        exit
+    end
 
     if $options[:debug] then
         # Debug mode, no error management.
@@ -212,13 +233,6 @@ if __FILE__ == $0 then
     else
         # Not debug mode, use the error management.
         error_manager([$input]) { $top_instance = $loader.parse }
-    end
-
-    # Open the output.
-    if $output then
-        $output = File.open($output,"w")
-    else
-        $output = $stdout
     end
 
     # Generate the result.

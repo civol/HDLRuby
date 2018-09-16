@@ -24,8 +24,8 @@ module HDLRuby
         end
 
         # Displays the full syntax tree.
-        def show
-            pp @code
+        def show(output = $stout)
+            pp(@code,output)
         end
 
         # Tells if +code+ is a require description.
