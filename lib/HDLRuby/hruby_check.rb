@@ -28,6 +28,15 @@ module HDLRuby
             pp(@code,output)
         end
 
+        # Tells if +name+ is included in one of the field or subfield of
+        # +code+.
+        def has_name_all?(code, name)
+            # Checks recursively.
+            return code.find do |field|
+                field.is_a?(Array) ? has_name_all?(field,name) : field == name
+            end
+        end
+
         # Tells if +code+ is a require description.
         def is_require?(code)
             return code[0] && (code[0][0] == :command) &&
@@ -89,6 +98,66 @@ module HDLRuby
             return code.reduce([]) do |ar,sub|
                 ar + get_all_instances(systems,sub)
             end + (code.select { |sub| is_instance?(sub,systems) }).to_a
+        end
+
+        # Tells is +code+ is an include of one of +systems+.
+        def is_include?(code,systems)
+            # Ensures systems is an array.
+            systems = [*systems]
+            # Check for each system.
+            return systems.any? do |system|
+                code.is_a?(Array) && (code[0] == :command) &&
+                                     (code[1][1] == "include") &&
+                                     (code[2][1][1] == system)
+            end
+        end
+
+        # Get the system of an include in +code+.
+        def get_include_system(code)
+            return code[2][1][1]
+        end
+
+        # Get all the include in +code+ of +systems+.
+        # NOTE: return the sub code describing the include.
+        def get_all_includes(systems,code = @code)
+            return [] unless code.is_a?(Array)
+            return code.reduce([]) do |ar,sub|
+                ar + get_all_includes(systems,sub)
+            end + (code.select { |sub| is_include?(sub,systems) }).to_a
+        end
+
+        # Tells is +code+ is an inheritance of one of +systems+.
+        def is_inherit?(code,systems)
+            # Ensures systems is an array.
+            systems = [*systems]
+            # Check for each system.
+            return systems.any? do |system|
+                code.is_a?(Array) && (code[0] == :command) &&
+                                     (code[1][1] == "system") &&
+                                     (has_name_all?(code[2][1][1..-1],system))
+            end
+        end
+
+        # Get the inherted systems of an inheritance in +code+.
+        def get_inherit_systems(code)
+            res = []
+            code[2][1][1..-1].each do |field|
+                if (field[0] == :command) then
+                    res << field[1][1]
+                elsif (field[0] == :method_add_arg) then
+                    res << field[1][1][1]
+                end
+            end
+            return res
+        end
+
+        # Get all the inherited system in +code+ of +systems+.
+        # NOTE: return the sub code describing the include.
+        def get_all_inherits(systems,code = @code)
+            return [] unless code.is_a?(Array)
+            return code.reduce([]) do |ar,sub|
+                ar + get_all_inherits(systems,sub)
+            end + (code.select { |sub| is_inherit?(sub,systems) }).to_a
         end
 
         # Tells if +code+ is a variable assignment.

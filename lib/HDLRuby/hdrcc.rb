@@ -72,12 +72,24 @@ module HDLRuby
         def get_top
             # Get all the systems.
             systems = @checks.reduce([]) {|ar,check| ar + check.get_all_systems}
-            # Remove the systems that are instantiated (they cannot be tops)
+            # puts "First systems=#{systems}"
+            # Remove the systems that are instantiated or included
+            # (they cannot be tops)
             @checks.each do |check|
+                # The instances
                 check.get_all_instances(systems).each do |instance|
                     systems.delete(check.get_instance_system(instance))
                 end
+                # The explicitly included systems
+                check.get_all_includes(systems).each do |included|
+                    systems.delete(check.get_include_system(included))
+                end
+                # The system included when declaring (inheritance)
+                check.get_all_inherits(systems).each do |inherit|
+                    systems -= check.get_inherit_systems(inherit)
+                end
             end
+            # puts "Now systems=#{systems}"
             # Return the first top of the list.
             return systems[-1]
         end
