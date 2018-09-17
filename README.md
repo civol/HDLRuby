@@ -437,7 +437,6 @@ With functions, it is enough to change their content to obtained a new kind of c
 
 ```ruby
 function :add do |max, x, y|
-function :add do |x,y|
    inner :res
    seq do
       res <= x + y
