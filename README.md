@@ -32,7 +32,9 @@ Where:
 |:------------------|:-----------------------------------------------------|
 | `-y, --yaml`      | Output in YAML format                                |
 | `-v, --verilog`   | Output in Verlog HDL format                          |
+| `-s, --syntax`    | Output the Ruby syntax tree |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
+| `-D, --debug`     | Set the HDLRuby debug mode |
 | `-t, --top system`| Specify the top system describing the circuit to compile |
 | `-p, --param x,y,z`     | Specify the generic parameters
 | `-h, --help`      | Show the help message                                    |
