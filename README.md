@@ -1,4 +1,4 @@
-# HDLRuby
+# About HDLRuby
 
 HDLRuby is a library for describing and simulating digital electronic
 systems.
@@ -9,9 +9,9 @@ __Warning__:
  - It is highly recommended to have both basic knowledge of the Ruby language and hardware description languages before using HDLRuby.
 
 
-## Compiling HDLRuby descriptions
+# Compiling HDLRuby descriptions
 
-### Using the HDLRuby compiler
+## Using the HDLRuby compiler
 
 'hdrcc.rb' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL or a YAML low-level descriptions of a HW components.
 
@@ -77,7 +77,7 @@ hdrcc -v -t adder --param 16 adder_gen.hdr
 hdrcc -y -t multer -p 16,16,32 multer_gen.hdr multer_gen.yaml 
 ```
 
-### Using HDLRuby within Ruby
+## Using HDLRuby within Ruby
 
 You can also use HDLRuby in a Ruby program by loading `HDLRuby.rb` in your Ruby file:
 
@@ -115,7 +115,7 @@ circuitV = circuitL.to_verilog
 In the above examples, 'cricuitY' and 'cricuitV' are Ruby variables referring to the strings containing the respective YAML and Verilog HDL code.
 
 
-### Handling the low-level HDLRuby representation
+## Handling the low-level HDLRuby representation
 
 You can include `HDLRuby::Low` for gaining access to the classes used for low-level description of hardware components.
 
@@ -141,7 +141,7 @@ __Note__:
 
 
 
-## HDLRuby programming guide
+# HDLRuby programming guide
 
 HDLRuby has been designed to bring the high flexibility of the Ruby language to hardware descriptions while ensuring that they remain synthesizable. In this
 context, all the abstractions provided by HDLRuby are in the way of describing hardware, but not in its execution model, this latter being RTL by construction.
@@ -153,7 +153,7 @@ __Notes__:
 - It is still possible to extend HDLRuby to support hardware descriptions of higher level than RTL, please refer to section [Extending HDLRuby](#extend) for more details.
 - In this document, HDLRuby constructs will often be compared to their Verilog HDL or VHDL equivalents for simpler explanations.
 
-### Introduction
+## Introduction
 
 This introduction gives a glimpse of the possibilities of the language.
 However, we do recommend to consult the section about the [high-level programming features](#highfeat) to have a more complete view of the advanced possibilities of this language.
@@ -531,7 +531,7 @@ sumprod(sat(16,1000),
 ```
 
 
-### How does HDLRuby work
+## How does HDLRuby work
 
 Contrary to descriptions in high-level HDL like SystemVerilog, VHDL or SystemC, HDLRuby descriptions are not software-like description of hardware, but are programs meant to produce hardware descriptions. In other words, while the execution of a common HDL code will result in some simulation of the described hardware, the execution of HDLRuby code will result in some low-level hardware description. This low-level description is synthesizable, and can also be simulated like any standard hardware description.
 This decoupling of the representation of the hardware from the point of view of the user (HDLRuby), and the actual hardware description (HDLRuby::Low) makes it possible to provide the user with any advanced software features without jeopardizing the synthesizability of the actual hardware description.
@@ -548,7 +548,7 @@ Its execution will produce the actual hardware description of this connection as
 
 From there, we will describe into more details each construct of HDLRuby.
 
-### Naming rules
+## Naming rules
 <a name="names"></a>
 
 Several constructs in HDLRuby are referred to by name, e.g., systems and signals.  When such constructs are declared, their names are to be specified by Ruby symbols starting with a lower case. For example, `:hello` is a valid name declaration, but `:Hello` is not.
@@ -556,13 +556,13 @@ Several constructs in HDLRuby are referred to by name, e.g., systems and signals
 After being declared, the construct can be referred to by using the name directly (i.e., without the `:` of Ruby symbols). For example, if a construct
 has been declared with `:hello` as name, it will be afterward referred by `hello`.
 
-### Systems and signals
+## Systems and signals
 
 A system represents a digital system and corresponds to a Verilog HDL module. A system has an interface comprising input, output, and inout signals, and includes of structural and behavioral descriptions.
 
 A signal represents a state in a system. It has a data type and a value, the latter varying with time.  Similarly to VHDL, HDLRuby signals can be viewed as abstractions of both wires and registers in a digital circuit.  As a general rule, a signal whose value is explicitly set all the time models a wire, otherwise it models a register.
 
-#### Declaring an empty system
+### Declaring an empty system
 
 A system is declared using the keyword `system`. It must be given a Ruby symbol for name and a block that describe its content. For instance, the following code describes an empty system named `box`:
 
@@ -583,7 +583,7 @@ end
 - Names in HDLRuby are natively stored as Ruby symbols, but strings can
   also be used, e.g., `system("box") {}` is also valid.
 
-#### Declaring a system with an interface
+### Declaring a system with an interface
 
 The interface of a system can be described anywhere in its body, but it is recommended to do it at its beginning. This is done by declaring input, output or inout signals of given data types as follows:
 
@@ -621,7 +621,7 @@ system :mem8_16 do
 end
 ```
 
-#### Structural description in a system
+### Structural description in a system
 
 In a system, structural descriptions consist of subsystems and interconnections among them.
 
@@ -746,9 +746,9 @@ system :mem16_16 do
 end
 ```
 
-#### Scope in a system
+### Scope in a system
 
-##### General scopes
+#### General scopes
 
 The signals of the interface of signals are accessible from anywhere in a HDLRuby description. This is not the case for inner signals and instances: they are accessible only within the scope they are declared in.
 
@@ -808,7 +808,7 @@ end
 Within a same scope it is not possible to declared multiple signals or instances with a same name. However, it is possible to declare a signal or an instance with a name identical to one previously declared outside the scope: the inner-most declaration will be used. 
 
 
-##### Named scopes
+#### Named scopes
 
 It is possible to declare a scope with a name as follows:
 
@@ -835,7 +835,7 @@ scop.sig <= ...
 ```
 
 
-#### Behavioral description in a system.
+### Behavioral description in a system.
 
 In a system, parallel behavioral descriptions are declared using the `par` keyword, and sequential behavioral descriptions are declared using the `seq` keyword.  They are the equivalent of the Verilog HDL `always` blocks.
 
@@ -1007,7 +1007,7 @@ For sake of consistency, this operator can also be applied on block statements a
 ```
 
 
-### Events
+## Events
 <a name="events"></a>
 
 Each behavior of a system is associated with a list of events, called sensibility list, that specifies when the behavior is to be executed. An event is associated with a signal and represents the instants when the signal reaches a given state.
@@ -1035,7 +1035,7 @@ end
 __Note:__
  - The `change` keyword can be omitted.
 
-### Statements
+## Statements
 <a name="statements"></a>
 
 Statements are the basic elements of a behavioral description. They are regrouped in blocks that specify their execution mode (parallel or sequential).
@@ -1047,7 +1047,7 @@ __Note__:
  - There is actually a fifth type of statement, the time statement. It will be discussed in section [Time](#time).
 
 
-#### Transmit statement
+### Transmit statement
 
 A transmit statement is declared using the arrow operator `<=` within a behavior. Its right value is the expression to compute and its left value is a reference to the target signals (or parts of signals), i.e., the signals (or part of signals) that receive the computation result.
 
@@ -1064,11 +1064,11 @@ The comportment of a transmit statement depends on the execution mode of the enc
  - If the mode is sequential, the target signals are updated immediately after the right value of the statement is computed.
 
 
-#### Control statements
+### Control statements
 
 There are only two possible control statements: the hardware if `hif` and the hardware case `hcase`. 
 
-##### hif
+#### hif
 
 The `hif` construct is made of a condition and a block that is executed if and only if the condition is met. It is declared as follows, where the condition can be any expression:
 
@@ -1078,7 +1078,7 @@ hif <condition> do
 end
 ```
 
-##### hcase
+#### hcase
 
 The `hcase` construct is made of an expression and a list of value-block pairs.
 A block is executed when the corresponding value is equal to the value of the expression of the `hcase`. This construct is declared as follows:
@@ -1094,7 +1094,7 @@ end
 ...
 ```
 
-##### helse
+#### helse
 
 It is possible to add a block that is executed when the condition of an `hif` is not met, or when no case matches the expression of a `hcase`, using the `helse` keyword as follows:
 
@@ -1105,7 +1105,7 @@ helse do
 end
 ```
 
-#### helsif
+### helsif
 
 In addition to `helse` it is possible to set additional conditions to an `hif` using the `helsif` keyword as follows:
 
@@ -1119,7 +1119,7 @@ end
 ...
 ```
 
-##### About loops
+#### About loops
 
 HDLRuby does not include any hardware construct for describing loops. This might look poor compared to the other HDL, but it is important to understand
 that the current synthesis tools do not really synthesize hardware from such loops but instead preprocess them (e.g., unroll them) to synthesizable loopless hardware. In HDLRuby, such features are natively supported by the Ruby loop constructs (`for`, `while`, and so on), but also by advanced Ruby constructs like the enumerators (`each`, `times`, and so on).
@@ -1137,13 +1137,13 @@ __Notes__:
    end
    ```
 
-### Types
+## Types
 <a name="types"></a>
 
 Each signal and expression is associated with a data type which describes the kind of value it can represent.  In HDLRuby, the data types represent
 basically bit vectors associated with the way they should be interpreted, i.e., as bit strings, unsigned values, signed values, or hierarchical contents.
 
-#### Type construction
+### Type construction
 
 There are five basic types, `bit`, `signed`, `unsigned`, `integer` and `float` that represent respectively single bit logical values, single bit unsigned values, single bit signed values, Ruby integer values and Ruby floating point values (double precision). The first three types are HW and support four-valued logic, whereas the two last ones are SW (but are compatible with HW) and only support boolean logic.  Ruby integers can represent any element of **Z** (the mathematical integers), and have for that purpose a variable bit-width.
 
@@ -1197,7 +1197,7 @@ For instance, the following code declares a hierarchical type with an 8-bit sub 
 ```
 
 
-#### Type definition
+### Type definition
 
 It is possible to give names to type constructs using the `typedef` keywords as follows:
 
@@ -1218,7 +1218,7 @@ char.input :sig
 ```
 
 
-#### Type compatibility and conversion
+### Type compatibility and conversion
 
 HDLRuby is strongly typed which means that when two types are not compatible together, operations, connection or transmission between two expressions of these types are not permitted. The compatibility rules between two types are the followings:
 
@@ -1237,7 +1237,7 @@ __Note__:
 
 
 
-### Expressions
+## Expressions
 <a name="expressions"></a>
 
 Expressions are any construct that represents a value associated with a type.
@@ -1625,9 +1625,9 @@ __Multiplicative operators:__
 | signed         | signed         | signed      |                             |
 
 
-### Functions
+## Functions
 
-#### HDLRuby functions
+### HDLRuby functions
 
 Similarly to Verilog HDL, HDLRuby provides function constructs for reusing code. HDLRuby functions are declared as follows:
 
@@ -1674,7 +1674,7 @@ A function can be invoked anywhere in the code using its name and passing its ar
 
 
 
-##### Ruby functions
+### Ruby functions
 
 HDLRuby functions are useful for reusing code, but they cannot interact with the code they are called in. For example, it is not possible to add interface signals through a function nor to modify a control statement (e.g., `hif`) with them. These high-level generic operations can however be performed using the functions of the Ruby language declared as follows:
 
@@ -1735,10 +1735,10 @@ end
 Ruby functions can be compared to the macros of the C languages: they have more flexible since they actually edit the code they are invoked in, but are also dangerous to use. In general, it is not recommended to use them, unless when designing a library of generic code for HDLRuby.
 
 
-### Time
+## Time
 <a name="time"></a>
 
-#### Time values
+### Time values
 <a name="time_val"></a>
 
 In HDLRuby, time values can be created using the time operators: `s` for seconds, `ms` for millisecond, `us` for microsecond, `ns` for nano second, `ps` for pico second and `fs` for femto second. For example, the followings are all indicating one second of time:
@@ -1753,7 +1753,7 @@ In HDLRuby, time values can be created using the time operators: `s` for seconds
 ```
 
 
-#### Time behaviors and time statements
+### Time behaviors and time statements
 <a name="time_beh"></a>
 
 Similarly to the other HDL, HDLRuby provides specific statements that models the advance of time. These statements are not synthesizable and are used for simulating the environment of a hardware component.  For sake of clarity, such statements are only allowed in explicitly non-synthesizable behavior declared using the `timed` keyword as follows.
@@ -1790,7 +1790,7 @@ There are two kinds of such statements:
       end
    ```
 
-#### Parallel and sequential execution
+### Parallel and sequential execution
 
 Time behaviors are by default sequential but they can include both parallel and
 sequential blocks. The execution semantic is the following:
@@ -1809,18 +1809,18 @@ sequential blocks. The execution semantic is the following:
 
 
 
-### High-level programming features
+## High-level programming features
 <a name="highfeat"></a>
 
-#### Using Ruby in HDLRuby
+### Using Ruby in HDLRuby
 
 Since HDLRuby is pure Ruby code, the constructs of Ruby can be freely used without any compatibility issue. Moreover, this Ruby code will not interfere with the synthesizability of the design. It is then possible to define Ruby classes, methods or modules whose execution generates constructs of
 HDLRuby.
 
 
-#### Generic programming
+### Generic programming
 
-##### Declaring
+#### Declaring
 
 Systems can be declared with generic parameters. For that purpose, the parameters must be given as follows:
 
@@ -1858,7 +1858,7 @@ It is also possible to use a variable number of generic parameters using the var
 system(:variadic) { |*args| }
 ```
 
-##### Specializing
+#### Specializing
 
 A generic system is specialized by invoking its name and passing as argument the values corresponding to the generic arguments as follows:
 
@@ -1889,7 +1889,7 @@ __Note:__
 
 - In the example above, generic parameter `param` of `sybsys_gen` is used for specializing system `sys`.
 
-##### Instantiating
+#### Instantiating
 
 When instantiating a system, the values of its generic parameters must be provided after the name of the new instance as follows:
 
@@ -1927,10 +1927,10 @@ something(bit,7..0).(:somethingI)
 
 
 
-#### Inheritance
+### Inheritance
 <a name="inherit"></a>
 
-##### Basics
+#### Basics
 
 In HDLRuby, a system can inherit from the content of one or several other parent systems using the `include` command as follows: `include <list of
 systems>`.  Such an include can be put anywhere in the body of a system, but the resulting content will be accessible only after this command.
@@ -1977,7 +1977,7 @@ __Note__:
  - As a matter of implementation, HDLRuby systems can be seen as set of methods used for accessing various constructs (signals, instances).  Hence inheritance in HDLRuby is actually closer the Ruby mixin mechanism than to a true software inheritance.
 
 
-##### About inner signals and system instances
+#### About inner signals and system instances
 
 By default, inner signals and instances of a parent system are not accessible by its child systems.  They can be made accessible using the `export` keyword as follows: `export <symbol 0>, <symbol 1>, ...` . For example the following
 code exports signals `clk` and `rst` and instance `dff0` of system `exporter` so that they can be accessed in child system `importer`.
@@ -2016,7 +2016,7 @@ __Note__:
    end
    ```
 
-##### Conflicts when inheriting
+#### Conflicts when inheriting
 
 Signals and instances cannot be overridden, this is also the case for signals and instances accessible through inheritance. For example the following code is invalid since `rst` has already been defined in `dff`:
 
@@ -2058,7 +2058,7 @@ end
 
 
 
-#### Opening a system
+### Opening a system
 <a name="system_open"></a>
 
 It is possible to pursue the definition of a system after it has been declared using the `open` methods as follows:
@@ -2080,7 +2080,7 @@ end
 ```
 
 
-#### Opening an instance
+### Opening an instance
 <a name="instance_open"></a>
 
 When there is a modification to apply to an instance, it is sometimes preferable to modify this sole instance rather than declaring a all new system to derivate the instance from. For that purpose it is possible to open an instance for modification as follows:
@@ -2104,7 +2104,7 @@ system :some_system do
 end
 ```
 
-#### Opening a single signal, or the totality of the signals
+### Opening a single signal, or the totality of the signals
 
 Contrary to systems and instances, signals dot not have any inner structure. Its however sometimes useful to add features to them (cf.
 [hooks](#hooks)). Again, this is done using the `open` method as follows where signal `sig` is opened:
@@ -2127,7 +2127,7 @@ end
 
 
 
-#### Predicate and access methods
+### Predicate and access methods
 
 In order to get information about the current state of the hardware description HDLRuby provides the following predicates:
 
@@ -2156,7 +2156,7 @@ Several enumerators are also provided for accessing the internals of the current
 | `each_statement`  | statements of the current block      |
 | `each_inner`      | inner signals of the current block (or system if not within a block) |
 
-#### Global signals
+### Global signals
 
 HDLRuby allows to declare global signals the same way system's signals are declared, but outside the scope of any system.  After being declared, these signals are accessible directly from within any hardware construct.
 
@@ -2176,7 +2176,7 @@ __Note__:
 
 
 
-#### Defining and executing Ruby methods within HDLRuby constructs
+### Defining and executing Ruby methods within HDLRuby constructs
 <a name="method"></a>
 
 Like with any Ruby program it is possible to define and execute methods anywhere in HDLRuby using the standard Ruby syntax. When defined, a method is attached to the enclosing HDLRuby construct. For instance, when defining a method when declaring a system, it will be usable within this system, while when defining a method outside any construct, it will
@@ -2300,17 +2300,17 @@ __Note__:
  - Ruby's closure still applies in HDLRuby, hence, the block sent to `after` can use the signals and instances of the current block. Moreover, the signal declared in this method will not collide with them.
 
 
-#### Dynamic description
+### Dynamic description
 
 When describing a system, it is possible to disconnect or to completely undefine a signal or an instance.
 
 
-### Extending HDLRuby
+## Extending HDLRuby
 <a name="extend"></a>
 
 Like any Ruby classes, the constructs of HDLRuby can be dynamically extended. If it is not recommended to change their internal structure, it is possible to add methods to them for extension.
 
-#### Extending HDLRuby constructs globally
+### Extending HDLRuby constructs globally
 
 By gobal extension of hardware constructs we actually mean the classical extension of Ruby classes by monkey patching the corresponding class. For example, it is possible to add a methods giving the number of signals in the interface of a system instance as follows:
 
@@ -2343,7 +2343,7 @@ The following table gives the class of each construct of HDLRuby.
 | hcase           | Case         |
 
 
-#### Extending HDLRuby constructs locally
+### Extending HDLRuby constructs locally
 
 By local extension of a hardware construct, we mean that while the construct will be changed, all the other constructs will remain unchanged. This is achieved like in Ruby by accessing the eigen class using the `singleton_class` method, and extending it using the `class_eval` method.  For example, with the following code, only system `dff` will respond to method `interface_size`:
 
@@ -2379,7 +2379,7 @@ dff.singleton_instance.class_eval do
 end
 ```
 
-#### Modifying the generation behavior
+### Modifying the generation behavior
 
 The main purpose of allowing global and local extensions for hardware constructs is to give the user the possibility implements its own synthesis methods. For example, one may want to implement some algorithm for a given kind of system. For that purpose, the user can define an abstract system (without any hardware content), that holds the specific algorithm as follows:
 
@@ -2434,7 +2434,7 @@ This way, calling directly `to_low` will automatically use `my_generation`.
 
 
 
-## Standard library
+# Standard library
 <a name="library"></a>
 
 The standard libraries are included into the module `Std`.
@@ -2451,7 +2451,7 @@ After the libraries are loaded, the module `Std` must be included as follows:
 include HDLRuby::High::Std
 ```
 
-### Channel
+## Channel
 <a name="channel"></a>
 
 This library provides a unified interface to complex communication protocols.
@@ -2459,17 +2459,17 @@ The interface consists of channel objects that can be written or read for transm
 
 
 
-### Clocks
+## Clocks
 <a name="clocks"></a>
 
 This library provides utilities for an easier handling of clock synchronizations.
 
-### Counters
+## Counters
 <a name="counters"></a>
 
 This library provides various construct with implicit counters for implementing synthesizable wait statements.
 
-### Pipeline
+## Pipeline
 <a name="pipeline"></a>
 
 This library provides a construct for an easy description of pipeline architectures.
@@ -2477,18 +2477,18 @@ This library provides a construct for an easy description of pipeline architectu
 
 
 
-## Development
+# Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
-## Contributing
+# Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/Lovic Gauthier/HDLRuby.
 
 
-## License
+# License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
