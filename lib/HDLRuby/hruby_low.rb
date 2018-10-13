@@ -2262,6 +2262,17 @@ module HDLRuby::Low
                 ruby_block.call(statement)
             end
         end
+
+        # Clones (deeply)
+        def clone
+            # Creates the new block.
+            nblock = Block.new(self.mode,self.name)
+            # Duplicate its content.
+            dself.each_statement do |statement|
+                nblock.add_statement(statement.clone)
+            end
+            return nblock
+        end
     end
 
     # Describes a timed block.
