@@ -1205,10 +1205,10 @@ It is possible to give names to type constructs using the `typedef` keywords as 
 <type construct>.typedef :<name>
 ```
 
-For example the followings gives the name `char` to a 8-bit vector:
+For example the followings gives the name `char` to a signed 8-bit vector:
 
 ```ruby
-[7..0].typedef :char
+signed[7..0].typedef :char
 ```
 
 After this statement, `char` can be used like any other type.  For example, the following code sample declares a new input signal `sig` whose type is `char`:
@@ -1217,6 +1217,27 @@ After this statement, `char` can be used like any other type.  For example, the 
 char.input :sig
 ```
 
+Alternatively, a new type can also be defined using the following syntax:
+
+```ruby
+typedef :<type name> do
+   <code>
+end
+```
+
+Where:
+
+- `type name` is the name of the type
+
+- `code` is a description of the content of the type
+
+For example, the previous `char` could have been declared as follows:
+
+```ruby
+typedef :char do
+   signed[7..0]
+end 
+```
 
 ### Type compatibility and conversion
 
@@ -1232,7 +1253,7 @@ The type an expression can be converted to one with another type using a convers
 
 __Note__:
 
-- For the unambiguous cases, conversion operators will be implicitly added, please refer to section [Implicit conversions](#implicit) for more details.
+- For the unambiguous cases, conversion operators will be implicitly added, please refer to section about [implicit conversions](#implicit) for more details.
 
 
 
@@ -1822,7 +1843,9 @@ HDLRuby.
 
 #### Declaring
 
-Systems can be declared with generic parameters. For that purpose, the parameters must be given as follows:
+##### Declaring generic systems
+
+Systems can be declared with generic parameters as follows:
 
 ```ruby
 system :<system name> do |<list of generic parameters>|
@@ -1830,8 +1853,7 @@ system :<system name> do |<list of generic parameters>|
 end
 ```
 
-For example, the following code describes an empty system with two generic
-parameters named respectively `a` and `b`:
+For example, the following code describes an empty system with two generic parameters named respectively `a` and `b`:
 
 ```ruby
 system(:nothing) { |a,b| }
@@ -1858,7 +1880,29 @@ It is also possible to use a variable number of generic parameters using the var
 system(:variadic) { |*args| }
 ```
 
+##### Declaring generic types
+
+Data types can be declared with generic parameters as follows:
+
+```ruby
+typedef :<type name> do |<list of generic parameters>|
+   ...
+end
+```
+
+For example, the following code describes a bit-vector type with generic number of bits `width`:
+
+```ruby
+type(:bitvec) { |width| bit[width] }
+```
+
+Like with the systems, the generic parameters of types can be any kind of objects, and it is also possible to use variadic arguments.
+
+
+
 #### Specializing
+
+##### Specializing generic systems
 
 A generic system is specialized by invoking its name and passing as argument the values corresponding to the generic arguments as follows:
 
@@ -1866,9 +1910,9 @@ A generic system is specialized by invoking its name and passing as argument the
 <system name>(<generic argument value's list>)
 ```
 
-If less values are provided than the number of generic arguments, the system is partially specialized.
+If less values are provided than the number of generic arguments, the system is partially specialized. However, only a fully specialized system can be instantiated.
 
-A specialized system can be used for inheritance. For example, assuming system `sys` has 2 generic arguments, it can be specialized and used for building system `subsys` as follows:
+A specialized system can also be used for inheritance. For example, assuming system `sys` has 2 generic arguments, it can be specialized and used for building system `subsys` as follows:
 
 ```ruby
 system :subsys, sys(1,2) do
@@ -1889,42 +1933,16 @@ __Note:__
 
 - In the example above, generic parameter `param` of `sybsys_gen` is used for specializing system `sys`.
 
-#### Instantiating
 
-When instantiating a system, the values of its generic parameters must be provided after the name of the new instance as follows:
+##### Specializing generic types
 
-```ruby
-<system name>(<generic argument value's list>).(:<instance name>)
-```
-
-If some arguments are omitted, an exception will be raised even if the arguments are not actually used in the system's body.
-
-For example, in the previous section, system `nothing` did not used the generic arguments, but the following instantiation is invalid:
+A generic type is specialized by invoking its name and passing as argument the values corresponding to the generic arguments as follows:
 
 ```ruby
-nothing(1).(:nothingI)
+<type name>(<generic argument value's list>)
 ```
 
-However the following is valid since a value is provided for each generic argument.
-
-```ruby
-nothing(1,2).(:nothingI)
-```
-
-The validity of the generic value itself is checked when the body of the system is executed for generating the content of the instance.
-For the user's point of view, this happens at instantiation time, just like the check of the number of generic parameters' values.
-For example, the following instantiation of previous system `something` will raise an exception since the first generic value is not a type:
-
-```ruby
-something(1,7..0).(:somethingI)
-```
-
-However, the following is valid:
-
-```ruby
-something(bit,7..0).(:somethingI)
-```
-
+If less values are provided than the number of generic arguments, the type is partially specialized. However, only a fully specialized type can be used for declaring signals.
 
 
 ### Inheritance
@@ -2104,27 +2122,29 @@ system :some_system do
 end
 ```
 
-### Opening a single signal, or the totality of the signals
 
-Contrary to systems and instances, signals dot not have any inner structure. Its however sometimes useful to add features to them (cf.
-[hooks](#hooks)). Again, this is done using the `open` method as follows where signal `sig` is opened:
+[//]: # ### Opening a single signal, or the totality of the signals
+[//]: # 
+[//]: # Contrary to systems and instances, signals dot not have any inner structure. Its however sometimes useful to add features to them (cf. [hooks](#hooks)). Again, this is done using the `open` method as follows where signal `sig` is opened:
+[//]: # 
+[//]: # ```ruby
+[//]: # sig.open do
+[//]: #    <some code>
+[//]: # end
+[//]: # ```
+[//]: # 
+[//]: # It is also possible to modify the totality of the signals of the design as follows:
+[//]: # 
+[//]: # ```ruby
+[//]: # signal.open do
+[//]: #    <some code>
+[//]: # end
+[//]: # ```
+[//]: # 
 
-```ruby
-sig.open do
-   <some code>
-end
-```
+### Overloading of operators
 
-It is also possible to modify the totality of the signals of the design as follows:
-
-```ruby
-signal.open do
-   <some code>
-end
-```
-
-
-
+ICIICI
 
 
 ### Predicate and access methods
