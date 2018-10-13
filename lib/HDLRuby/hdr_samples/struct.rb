@@ -7,8 +7,8 @@ end
 
 system :my_system do
    input :clk, :rst
-   [bit, bit].inner :sig
+   { sub0: bit, sub1: bit}.inner :sig
    
    dff(:dff0).(clk: clk, rst: rst)
-   dff0.d <= sig[0]
+   dff0.d <= sig.sub0
 end
