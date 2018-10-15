@@ -2268,7 +2268,7 @@ module HDLRuby::Low
             # Creates the new block.
             nblock = Block.new(self.mode,self.name)
             # Duplicate its content.
-            dself.each_statement do |statement|
+            self.each_statement do |statement|
                 nblock.add_statement(statement.clone)
             end
             return nblock
