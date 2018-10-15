@@ -1560,11 +1560,6 @@ module HDLRuby::High
             return TypeVector.new(:"",self,rng)
         end
 
-        # Creates a new tuple type with n times current type.
-        def *(num)
-            return TypeTuple.new(:"", *([self]*num))
-        end
-
         # SignalI creation through the type.
 
         # Declares high-level input signals named +names+ of the current type.
