@@ -1890,6 +1890,16 @@ module HDLRuby::Low
             end
             @no.each_block_deep(&ruby_block)
         end
+
+        # Clones the If (deeply)
+        def clone
+            # Duplicate the if.
+            res = new If.new(@yes.clone, @no.clone)
+            # Duplicate the alternate ifs
+            @noifs.each_block do |next_cond,next_yes|
+                self.add_noif(next_cond.clone,next_yes.clone)
+            end
+        end
     end
 
     ##
@@ -1921,6 +1931,11 @@ module HDLRuby::Low
             @statement = statement
             # And set their parents.
             match.parent = statement.parent = self
+        end
+
+        # Clones the When (deeply)
+        def clone
+            return When.new(@match.clone,@statement.clone)
         end
     end
 
@@ -2034,6 +2049,13 @@ module HDLRuby::Low
             # And apply it on the default if any.
             @default.each_block_deep(&ruby_block) if @default
         end
+
+        # Clones the Case (deeply)
+        def clone
+            return Case.new(@value.clone,@default.clone,*(@whens.map do |w|
+                w.clone
+            end) )
+        end
     end
 
 
@@ -2060,6 +2082,11 @@ module HDLRuby::Low
             # Check and set the unit.
             @unit = unit.to_sym
         end
+
+        # Clones the Delay (deeply)
+        def clone
+            return Delay.new(@value.clone,@unit.clone)
+        end
     end
 
 
@@ -2078,6 +2105,11 @@ module HDLRuby::Low
             @delay = delay
             # And set its parent.
             delay.parent = self
+        end
+
+        # Clones the TimeWait (deeply)
+        def clone
+            return TimeWait.new(@delay.clone)
         end
 
     end
@@ -2111,6 +2143,11 @@ module HDLRuby::Low
             @delay = delay
             # And set its parent.
             delay.parent = self
+        end
+
+        # Clones the TimeRepeat (deeply)
+        def clone
+            return TimeRepeat(@value.clone,@statement.clone)
         end
     end
 
