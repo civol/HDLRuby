@@ -1610,6 +1610,11 @@ module HDLRuby::Low
         def width
             return @type.width
         end
+
+        # Clones (deeply)
+        def clone
+            return SignalI.new(self.name,self.type)
+        end
     end
 
 
