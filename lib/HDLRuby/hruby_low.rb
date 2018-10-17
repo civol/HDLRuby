@@ -1897,7 +1897,7 @@ module HDLRuby::Low
             res = If.new(@condition.clone, @yes.clone, @no ? @no.clone : nil)
             # Duplicate the alternate ifs
             @noifs.each do |next_cond,next_yes|
-                self.add_noif(next_cond.clone,next_yes.clone)
+                res.add_noif(next_cond.clone,next_yes.clone)
             end
             return res
         end

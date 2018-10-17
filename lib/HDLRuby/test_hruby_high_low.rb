@@ -8,13 +8,15 @@ configure_high
 print "Checking creation of an HDLRuby::High system... "
 # Create a HDLRuby::High testing system
 system :high_test do
-    input :clk, :cond
+    input :clk, :cond0, :cond1
     [15..0].input :x,:y,:z
-    [16..0].output :s,:u
+    [16..0].output :s,:u,:v
 
     seq(clk.posedge) do
-        hif(cond) { s <= x+y }
-        u <= x+y+z
+        hif(cond0) { s <= x+y }
+        helsif(cond1) { u <= x+y+z }
+        helse { s <= z }
+        v <= x*y*z
     end
 end
 
