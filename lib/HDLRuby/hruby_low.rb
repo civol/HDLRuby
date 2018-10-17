@@ -1860,7 +1860,7 @@ module HDLRuby::Low
                       "Invalid class for a statement: #{next_yes.class}"
             end
             # And set its parent.
-            yes.parent = self
+            next_yes.parent = self
             # Add the statement.
             @noifs << [next_cond,next_yes]
         end
