@@ -1894,9 +1894,9 @@ module HDLRuby::Low
         # Clones the If (deeply)
         def clone
             # Duplicate the if.
-            res = new If.new(@yes.clone, @no.clone)
+            res = If.new(@condition.clone, @yes.clone, @no ? @no.clone : nil)
             # Duplicate the alternate ifs
-            @noifs.each_block do |next_cond,next_yes|
+            @noifs.each do |next_cond,next_yes|
                 self.add_noif(next_cond.clone,next_yes.clone)
             end
         end
