@@ -41,8 +41,12 @@ puts "Checking clone."
 low.each_behavior do |beh|
     beh.each_statement do |statement|
         print "Cloning statement: #{statement}... "
-        statement.clone
-        puts "Ok."
+        copy = statement.clone
+        if copy.class == statement.class then
+            puts "Ok."
+        else
+            puts "Invalid clone result: #{statement.class}"
+        end
     end
 end
 

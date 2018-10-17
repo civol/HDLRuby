@@ -1899,6 +1899,7 @@ module HDLRuby::Low
             @noifs.each do |next_cond,next_yes|
                 self.add_noif(next_cond.clone,next_yes.clone)
             end
+            return res
         end
     end
 
