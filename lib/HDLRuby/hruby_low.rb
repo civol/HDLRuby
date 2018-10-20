@@ -1,5 +1,7 @@
 require "HDLRuby/hruby_bstr"
+require "HDLRuby/hruby_error"
 require 'forwardable'
+
 
 
 module HDLRuby
