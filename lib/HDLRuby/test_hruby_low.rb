@@ -47,7 +47,8 @@ begin
 end
 
 puts "\nCreating signals..."
-$sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "clk",
+$sNames = ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8", "i9", "i10",
+           "clk",
            "o0", "o1", "o2", "o3", "o4", "o5", "io", "s0", "s1", "s2",
            ]
 $signals = []
@@ -179,7 +180,10 @@ end
 
 puts "\nCreating references for further connection of the signals..."
 $pNames = ["p0i0", "p0i1", "p0i2", "p0i3", "p0i4", "p0i5", "p0i6", "p0i7",
-           "p0o0", "p0o1", "p0o2", "p0o3", "p0o4", "p0o5", "p0io",
+           "p0i8", "p0i9", "p0i10",
+           "p0o0", "p0o1", "p0o2", "p0o3", "p0o4", "p0o5", "p0o6", "p0o7",
+           "p0o8", "p0o9",
+           "p0io",
            "p0s0", "p0s1", "p0s2", "p0clk",
            "p1i0", "p1i1", "p1i2", "p1o0", "p1o1", "p1io",
            "p1s0", "p1s1", "p1s2",
@@ -247,7 +251,8 @@ end
 
 
 puts "\nCreating expressions... "
-eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7"]
+eNames = [ "i4+i5", "i4&i5", "i6-i7", "i6|i7", "i4+2", "i5&7",
+           "i8*i9", "i8+i9", "i9-i10"]
 
 # Generate an expression from a signal or constant name
 def eName2Exp(name)
@@ -361,8 +366,12 @@ begin
 end
 
 
-puts "\nCreating statements..."
-$stNames = [ ["p0o3", $expressions[1]], ["p0o4", $expressions[2]] ]
+puts "\nCreating transmit statements..."
+$stNames = [ ["p0o3", $expressions[1]], ["p0o4", $expressions[2]],
+             ["p0o5", $expressions[3]], ["p0o6", $expressions[4]],
+             ["p0o7", $expressions[5]], ["p0o8", $expressions[6]],
+             ["p0o9", $expressions[7]] 
+           ]
 $statements = []
 $stNames.each do |pName,expression|
     print "  Transmission to #{pName}... "
@@ -390,6 +399,56 @@ $stNames.each do |pName,expression|
     end
 end
 
+puts "\nCreating an if statement..."
+$yes = $statements.pop
+$no = $statements.pop
+$cond = $expressions[0].clone
+$if = If.new($cond,$yes,$no)
+unless $if.condition == $cond then
+    raise "Error: invalid condition for if, got #{$if.condition} but expecting #{$cond}."
+    $success = false
+end
+unless $if.yes == $yes then
+    raise "Error: invalid yes for if, got #{$if.yes} but expecting #{$yes}."
+    $success = false
+end
+unless $if.no == $no then
+    raise "Error: invalid no for if, got #{$if.no} but expecting #{$no}."
+    $success = false
+end
+
+
+puts "\nCreating case statement..."
+$value = $expressions[0].clone
+$default = $statements.pop
+$whens = []
+$whens << When.new($expressions[0].clone,$statements.pop)
+$whens << When.new($expressions[1].clone,$statements.pop)
+$case = Case.new($value,$default)
+$case.add_when($whens[0])
+$case.add_when($whens[1])
+unless $case.value == $value then
+    raise "Error: invalid value for case, got #{$case.value} but expecting #{$value}."
+    $success = false
+end
+unless $case.default == $default then
+    raise "Error: invalid default for case, got #{$case.default} but expecting #{$default}."
+    $success = false
+end
+$case.each_when.with_index do |w,i|
+    unless w.match == $whens[i].match then
+        raise "Error: invalid match for when, got #{w.match} but expecting #{$whens[i].match}."
+        $success = false
+    end
+    unless w.statement == $whens[i].statement then
+        raise "Error: invalid statement for when, got #{w.statement} but expecting #{$whens[i].statement}."
+        $success = false
+    end
+end
+
+# Adds the conditional statements
+$statements << $if
+$statements << $case
 
 print "\nCreating a clock event... "
 begin
