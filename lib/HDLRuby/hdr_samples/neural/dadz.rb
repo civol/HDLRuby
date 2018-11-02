@@ -1,4 +1,9 @@
-require "./dadz_gen.rb"
+system :dadz_gen do |width,derivate|
+    input :clk,:res
+    signed[width].input :a
+    signed[width].output :dadz
 
-system :dadz, dadz_gen(32, proc {|a| (_sh01000000-a)*a }) do
+    par(clk.posedge) do
+        dadz <= mux(res == 1, 0, derivate.(a))
+    end
 end

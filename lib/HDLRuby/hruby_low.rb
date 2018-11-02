@@ -2795,7 +2795,7 @@ module HDLRuby::Low
         # Clones the concatenated expression (deeply)
         def clone
             return Concat.new(@type,
-                              *@expressions.map {|expr| expr.clone } )
+                              @expressions.map {|expr| expr.clone } )
         end
     end
 
