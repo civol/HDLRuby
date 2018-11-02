@@ -14,9 +14,15 @@ system :high_test do
 
     seq(clk.posedge) do
         hif(cond0) { s <= x+y }
-        helsif(cond1) { u <= x+y+z }
+        helsif(cond1) { u <= x+y+2 }
         helse { s <= z }
-        v <= x*y*z
+        v <= x*y*_011
+    end
+
+    [3..0].output :sig
+    timed do
+        !1.us
+        sig <= _1010
     end
 end
 
@@ -28,7 +34,7 @@ high_test :high
 
 puts "Ok."
 
-print "Checking its converion to low... "
+print "Checking its conversion to low... "
 # Generate the low level representation.
 low = high.systemT.to_low
 

@@ -4,7 +4,7 @@ configure_high
 
 # Describes a system including several value.
 system :values do
-    output :sig
+    [3..0].output :sig
 
     timed do
         !1.us

@@ -2088,7 +2088,7 @@ module HDLRuby::Low
 
         # Clones the Delay (deeply)
         def clone
-            return Delay.new(@value.clone,@unit.clone)
+            return Delay.new(@value,@unit)
         end
     end
 
@@ -2150,7 +2150,7 @@ module HDLRuby::Low
 
         # Clones the TimeRepeat (deeply)
         def clone
-            return TimeRepeat(@value.clone,@statement.clone)
+            return TimeRepeat(@statement.clone,@delay.clone)
         end
     end
 
