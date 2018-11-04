@@ -31,11 +31,13 @@ module HDLRuby
             # pp e.backtrace
             # Keep the relevant 
             e.backtrace.select! do |mess|
-                files.find {|file| mess.include?(file)}
+                files.find {|file| mess.include?(File.basename(file))}
             end
             puts "#{e.backtrace[0]}: #{e.message}"
             e.backtrace[1..-1].each { |mess| puts "   from #{mess}"}
             exit
+        rescue 
+            raise "Big Bad Bug"
         end
     end
     

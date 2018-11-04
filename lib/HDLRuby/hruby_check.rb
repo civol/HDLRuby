@@ -39,19 +39,30 @@ module HDLRuby
 
         # Tells if +code+ is a require description.
         def is_require?(code)
-            return code[0] && (code[0][0] == :command) &&
-                   (code[0][1][1] == "require")
+            # return code[0] && (code[0][0] == :command) &&
+            #        (code[0][1][1] == "require")
+            return code && (code[0] == :command) &&
+                   (code[1][1] == "require")
         end
 
         # Gets the required file from +code+.
         def get_require(code)
-            return (code[0][2][1][0][1][1][1])
+            # return (code[0][2][1][0][1][1][1])
+            return (code[2][1][0][1][1][1])
         end
 
         # Gets all the required files of  +code+.
         def get_all_requires(code = @code)
-            return (code.select { |sub| is_require?(sub) }).map! do |sub|
-                get_require(sub)
+            if code.is_a?(Array) then
+                requires = (code.select { |sub| is_require?(sub) }).map! do |sub|
+                    get_require(sub)
+                end
+                code.each do |sub|
+                    requires += get_all_requires(sub)
+                end
+                return requires
+            else
+                return []
             end
         end
 
@@ -77,12 +88,14 @@ module HDLRuby
 
         # Tells is +code+ is an instance of one of +systems+.
         def is_instance?(code,systems)
+            # puts "is_instance? with #{code}"
             # Ensures systems is an array.
             systems = [*systems]
             # Check for each system.
             return systems.any? do |system|
-                code.is_a?(Array) && (code[0] == :command) &&
-                                     (code[1][1] == system)
+                code.is_a?(Array) && 
+                    ( (code[0] == :command) || (code[0] == :fcall) ) &&
+                    (code[1][1] == system)
             end
         end
 

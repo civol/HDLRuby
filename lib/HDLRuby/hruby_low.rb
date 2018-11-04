@@ -282,6 +282,7 @@ module HDLRuby::Low
 
         # Gets an interface signal by order of declaration +i+.
         def get_interface(i)
+            # puts "interface=#{@interface}"
             return @interface[i]
         end
 

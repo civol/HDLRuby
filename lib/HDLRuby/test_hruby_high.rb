@@ -13,7 +13,7 @@ $success = true
 
 print "Creating an empty system type... "
 begin
-    $systemT0 = system :systemT0 
+    $systemT0 = system(:systemT0) {}
     unless $systemT0 then
         raise "Error: created system type not found."
         $success =false
@@ -39,7 +39,7 @@ end
 
 print "Creating the unsigned char type (bit[8])... "
 begin
-    $uchar = type(:uchar) { bit[8] }
+    $uchar = typedef(:uchar) { bit[8] }
     puts "Ok."
 # rescue Exception => e
 #     puts "Error: unexpected exception raised #{e.inspect}\n"
@@ -74,7 +74,7 @@ begin
        o0 <= i0 + i1       # Standard connection
        # x <= mux(o0, y, z)  # Connection of generic parameters with a mux
 
-       behavior(i0.posedge) do
+       par(i0.posedge) do
            (o1 <= i0 * i1).hif(i0 != 0)
            seq do
                value.int[7..0] <= i2 + i3
@@ -163,8 +163,8 @@ begin
     elsif systemI1Ins[3].name != :i2 then
         puts "Error: invalid input signal, got #{systemI1Ins[2].name} but expecting i2."
         success = false
-    elsif !systemI1Ins[3].type.is_a?(TypeVector) then
-        puts "Error: invalid type for i2, got #{systemI1Ins[0].type.class} but expecting TypeVector."
+    elsif !systemI1Ins[3].type.is_a?(TypeDef) then
+        puts "Error: invalid type for i2, got #{systemI1Ins[3].type.class} but expecting TypeVector."
         success = false
     elsif systemI1Ins[3].type.base.name != :bit then
         puts "Error: invalid base type for i2, got #{systemI1Ins[2].type.base.name} but expecting bit."
@@ -309,7 +309,7 @@ begin
     elsif systemI1Statements[3].each_when.to_a.size != 2 then
         puts "Error: invalid number of when for fourth statement, got #{systemI1Statements[3].each_when.to_a.size} but expecting 2."
         success = false
-    elsif systemI1Statements[3].each_when.first[0].content != 5 then
+    elsif systemI1Statements[3].each_when.first.match.content != 5 then
         puts "Error: invalid match of first when for fourth statement, got #{systemI1Statements[3].each_when.first[0].content} but expecting 5."
         success = false
     elsif !systemI1Statements[3].default then
@@ -343,14 +343,14 @@ begin
     elsif systemI1SeqStatements[0].left.range.last.content != 0 then
         puts "Error: invalid first statement left reference range, got #{systemI1SeqStatements[0].left.range} but expecting 7..0."
         success = false
-    elsif !systemI1SeqStatements[0].left.ref.is_a?(RefName) then
+    elsif !systemI1SeqStatements[0].left.ref.is_a?(RefObject) then
         puts "Error: invalid first statement left left reference, got #{systemI1SeqStatements[0].left.ref.class} but expecting RefName."
         success = false
     elsif systemI1SeqStatements[0].left.ref.name != :int then
         puts "Error: invalid first statement left left reference name, got #{systemI1SeqStatements[0].left.ref.name} but expecting int."
         success = false
-    elsif systemI1SeqStatements[0].left.ref.ref.object.name != :value then
-        puts "Error: invalid first statement left left left reference name, got #{systemI1SeqStatements[0].left.ref.ref.object.name} but expecting value."
+    elsif systemI1SeqStatements[0].left.ref.base.object.name != :value then
+        puts "Error: invalid first statement left left left reference name, got #{systemI1SeqStatements[0].left.ref.base.object.name} but expecting value."
         success = false
     end
 
@@ -541,20 +541,21 @@ begin
         puts "Change of the block classes had no effect."
         success = false
     end
-    begin
-        system :fake do
-            par do
-                hello("no one.")
-            end
-        end.instantiate(:faker)
-        puts "The hello method should not be in a general block class."
-        success = false
-    rescue Exception => e
-        unless ( e.is_a?(NoMethodError) and e.message.include?("hello") ) then
-            puts "Error: unexpected exception #{e.inspect}."
-            success = false
-        end
-    end
+    # Not valid any longer.
+    # begin
+    #     system :fake do
+    #         par do
+    #             hello("no one.")
+    #         end
+    #     end.instantiate(:faker)
+    #     puts "The hello method should not be in a general block class."
+    #     success = false
+    # rescue Exception => e
+    #     unless ( e.is_a?(NoMethodError) and e.message.include?("hello") ) then
+    #         puts "Error: unexpected exception #{e.inspect}."
+    #         success = false
+    #     end
+    # end
     $systemI3Connections = $systemI3.each_connection.to_a
     unless $systemI3Connections.size == 1 then
         puts "Invalid number of connection: got #{$systemI3Connections.size} but expecting 1."

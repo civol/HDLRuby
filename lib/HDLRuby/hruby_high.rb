@@ -540,7 +540,6 @@ module HDLRuby::High
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            # eigen = self.class.new(:"")
             eigen = self.class.new(High.names_create(i_name.to_s+ "::T"))
 
             # Include the mixin systems given when declaring the system.
@@ -553,7 +552,10 @@ module HDLRuby::High
             # Fill the public namespace
             space = eigen.public_namespace
             # Interface signals
+            # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
+            # puts "eigen interface=#{eigen.each_signal.to_a.size}"
             eigen.each_signal do |signal|
+                # puts "eigen signal=#{signal.name}"    
                 # space.send(:define_singleton_method,signal.name) { signal }
                 space.send(:define_singleton_method,signal.name) do
                     RefObject.new(eigen.owner.to_ref,signal)
@@ -569,6 +571,8 @@ module HDLRuby::High
 
             # Create the instance.
             instance = @instance_class.new(i_name,eigen)
+            # puts "instance interface=#{instance.each_signal.to_a.size}"
+            # puts "eigen interface=#{eigen.each_signal.to_a.size}"
             # Link it to its eigen system
             eigen.owner = instance
 
@@ -604,6 +608,7 @@ module HDLRuby::High
 
             # Create and register the general instantiater.
             High.space_reg(name) do |*args|
+                # puts "Instantiating #{name} with args=#{args}"
                 # If no arguments, return the system as is
                 return obj if args.empty?
                 # Are there any generic arguments?
@@ -1880,6 +1885,7 @@ module HDLRuby::High
             # Generate the resulting type.
             gtype = High.top_user.instance_exec(*args,&@instance_proc)
             # Ensures a type has been produced.
+            gtype = gtype.to_type if gtype.respond_to?(:to_type)
             unless gtype.is_a?(HDLRuby::Low::Type) then
                 raise AnyError, "Generic type #{self.name} did not produce a valid type: #{gtype.class}"
             end
@@ -2152,8 +2158,8 @@ module HDLRuby::High
         type = TypeGen.new(name,&ruby_block)
         if HDLRuby::High.in_system? then
             define_singleton_method(name.to_sym) do |*args|
-                if (args.empty?) then
-                    # No arguments, get generic type as is.
+                if (args.size < ruby_block.arity) then
+                    # Not enough arguments get generic type as is.
                     type
                 else
                     # There are arguments, specialize the type.
@@ -2162,8 +2168,8 @@ module HDLRuby::High
             end
         else
             define_method(name.to_sym) do |*args|
-                if (args.empty?) then
-                    # No arguments, get generic type as is.
+                if (args.size < ruby_block.arity) then
+                    # Not enough arguments, get generic type as is.
                     type
                 else
                     # There are arguments, specialize the type.
@@ -4444,13 +4450,12 @@ module HDLRuby::High
         # Returns nil if no value can be obtained from it.
         def to_value
             str = self.to_s
-            # puts "str=#{str}"
             return nil if str[0] != "_" # Bit string are prefixed by "_"
             # Remove the "_" not needed any longer.
             str = str[1..-1]
             # Get and check the type
             type = str[0]
-            if type == "0" or type == "1" then
+            if type == "0" or type == "1" or type == "z" or type == "Z" then
                 # Default binary
                 type = "b"
             else
@@ -4570,6 +4575,8 @@ module HDLRuby::High
             # return Value.new(type,HDLRuby::BitString.new(value))
             return Value.new(type,value)
         end
+
+        alias to_expr to_value
     end
 
     # Extends the range class to support to_low
@@ -4696,6 +4703,7 @@ def self.configure_high
                 # Yes use it.
                 Namespaces[-1].send(m,*args,&ruby_block)
             else
+                # puts "here: #{m}"
                 # No, true error
                 raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
             end

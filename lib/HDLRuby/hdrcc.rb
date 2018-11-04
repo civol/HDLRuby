@@ -20,6 +20,9 @@ module HDLRuby
         # The top instance, only accessible after parsing the files.
         attr_reader :top_instance
 
+        # The required files.
+        attr_reader :requires
+
         # Creates a new loader for a +top_system+ system in file +top_file+
         # from directory +dir+ with generic parameters +params+.
         def initialize(top_system,top_file,dir,*params)
@@ -28,6 +31,9 @@ module HDLRuby
             @top_file = top_file.to_s
             @dir = dir.to_s
             @params = params
+
+            # The list of required files.
+            @requires = []
 
             # The list of the code texts (the first one should be the one
             # containing the top system).
@@ -48,6 +54,7 @@ module HDLRuby
 
         # Loads all the files from +file+.
         def read_all(file = @top_file)
+            # puts "read_all with file=#{file}"
             # Read the file
             read(file)
             # Get its required files.
@@ -55,6 +62,8 @@ module HDLRuby
             requires.each do |file|
                 read_all(file) if file != "HDLRuby"
             end
+            @requires += requires
+            @requires.uniq!
         end
 
         # Checks the read files.
@@ -101,6 +110,7 @@ module HDLRuby
             if @top_system == "" then
                 # No, look for it.
                 @top_system = get_top
+                # puts "@top_system=#{@top_system}"
                 unless @top_system then
                     # Not found? Error.
                     # Maybe it is a parse error, look for it.
@@ -245,7 +255,7 @@ if __FILE__ == $0 then
         $top_instance = $loader.parse
     else
         # Not debug mode, use the error management.
-        error_manager([$input]) { $top_instance = $loader.parse }
+        error_manager($loader.requires + [$input]) { $top_instance = $loader.parse }
     end
 
     # Generate the result.
