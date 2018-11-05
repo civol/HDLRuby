@@ -122,6 +122,7 @@ module HDLRuby::Low
             # And add the signal.
             @inputs.add(signal)
             @interface << signal
+            return signal
         end
 
         # Adds output +signal+.
@@ -139,6 +140,7 @@ module HDLRuby::Low
             # And add the signal.
             @outputs.add(signal)
             @interface << signal
+            return signal
         end
 
         # Adds inout +signal+.
@@ -156,6 +158,7 @@ module HDLRuby::Low
             # And add the signal.
             @inouts.add(signal)
             @interface << signal
+            return signal
         end
 
         # Iterates over the input signals.
@@ -282,7 +285,6 @@ module HDLRuby::Low
 
         # Gets an interface signal by order of declaration +i+.
         def get_interface(i)
-            # puts "interface=#{@interface}"
             return @interface[i]
         end
 
@@ -464,6 +466,7 @@ module HDLRuby::Low
             signal.parent = self
             # And add the signal.
             @inners.add(signal)
+            return signal
         end
 
         # Iterates over the inner signals.
@@ -2934,8 +2937,9 @@ module HDLRuby::Low
         # def initialize(ref,range)
         def initialize(type,ref,range)
             super(type)
-            # Check and set the accessed reference.
-            unless ref.is_a?(Ref) then
+            # Check and set the refered object.
+            # unless ref.is_a?(Ref) then
+            unless ref.is_a?(Expression) then
                 raise AnyError, "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref

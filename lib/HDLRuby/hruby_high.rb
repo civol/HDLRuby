@@ -354,7 +354,8 @@ module HDLRuby::High
             end
             @to_includes = mixins
             # Prepare the instantiation methods
-            make_instantiater(name,SystemI,:add_systemI,&ruby_block)
+            # make_instantiater(name,SystemI,:add_systemI,&ruby_block)
+            make_instantiater(name,SystemI,&ruby_block)
         end
 
         # Converts to a namespace user.
@@ -480,6 +481,12 @@ module HDLRuby::High
             self.scope.each_included do |included|
                 included.each_signal_with_included(&ruby_block)
             end
+        end
+
+        # Get one of all the interface signal by index, i.e., also the ones
+        # of the included systems.
+        def get_interface_with_included(i)
+            return each_signal_with_included.to_a[i]
         end
 
         # Iterates over the exported constructs
@@ -647,6 +654,8 @@ module HDLRuby::High
             # Extend the instance.
             instance.eigen_extend(@singleton_instanceO)
             # puts "instance scope= #{instance.systemT.scope}"
+            # Add the instance.
+            High.top_user.send(:add_systemI,instance)
             # Return the resulting instance
             return instance
         end
@@ -656,13 +665,13 @@ module HDLRuby::High
 
         # Generates the instantiation capabilities including an instantiation
         # method +name+ for hdl-like instantiation, target instantiation as
-        # +klass+, added to the calling object with +add_instance+, and
+        # +klass+, added to the calling object, and
         # whose eigen type is initialized by +ruby_block+.
         #
         # NOTE: actually creates two instantiater, a general one, being
         #       registered in the namespace stack, and one for creating an
         #       array of instances being registered in the Array class.
-        def make_instantiater(name,klass,add_instance,&ruby_block)
+        def make_instantiater(name,klass,&ruby_block)
             # puts "make_instantiater with name=#{name}"
             # Set the instanciater.
             @instance_procs = [ ruby_block ]
@@ -676,7 +685,7 @@ module HDLRuby::High
 
             # Create and register the general instantiater.
             High.space_reg(name) do |*args|
-                # puts "Instantiating #{name} with args=#{args}"
+                # puts "Instantiating #{name} with args=#{args.size}"
                 # If no arguments, return the system as is
                 return obj if args.empty?
                 # Are there any generic arguments?
@@ -694,8 +703,9 @@ module HDLRuby::High
                 i_names.each do |i_name|
                     # Instantiate.
                     instance = obj.instantiate(i_name,*args)
-                    # Add the instance.
-                    High.top_user.send(add_instance,instance)
+                    # Moved to instantiate
+                    # # Add the instance.
+                    # High.top_user.send(add_instance,instance)
                 end
                 # # Return the last instance.
                 instance
@@ -713,16 +723,22 @@ module HDLRuby::High
         # Methods used for describing a system in HDLRuby::High
 
         # Declares high-level bit input signals named +names+.
+        #
+        # Retuns the last declared input.
         def input(*names)
             self.make_inputs(bit,*names)
         end
 
         # Declares high-level bit output signals named +names+.
+        #
+        # Retuns the last declared input.
         def output(*names)
             self.make_outputs(bit,*names)
         end
 
         # Declares high-level bit inout signals named +names+.
+        #
+        # Retuns the last declared input.
         def inout(*names)
             self.make_inouts(bit,*names)
         end
@@ -1528,6 +1544,7 @@ module HDLRuby::High
             # Adds the instances.
             # Single ones.
             self.each_systemI { |systemI|
+                # puts "Filling with systemI=#{systemI.name}"
                 scopeLow.add_systemI(systemI.to_low) 
             }
             # Grouped ones.
@@ -2398,7 +2415,7 @@ module HDLRuby::High
                 # No, perform a connection is order of declaration
                 connects.each.with_index do |csig,i|
                     # Gets i-est signal to connect
-                    ssig = self.get_interface(i)
+                    ssig = self.systemT.get_interface_with_included(i)
                     # Convert it to a reference.
                     ssig = RefObject.new(self.to_ref,ssig)
                     # Make the connection.
@@ -2689,6 +2706,11 @@ module HDLRuby::High
             raise AnyError, "Internal error: to_expr not defined yet for class: #{self.class}"
         end
 
+        # # Converts to a new ref.
+        # def to_ref
+        #     return RefObject.new(this,self)
+        # end
+
         # Casts as +type+.
         def as(type)
             return Cast.new(type.to_type,self)
@@ -2717,22 +2739,55 @@ module HDLRuby::High
             define_method(orig_operator(operator),&meth)
         end
 
+        # Coerce by forcing convertion of a number to expression.
+        def coerce(number)
+            if number.respond_to?(:to_expr) then
+                return [number.to_expr, self]
+            else
+                return [number,self]
+            end
+        end
+
         # Adds the binary operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
          :"&",:"|",:"^",:"<<",:">>",
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
-            meth = proc do |right|
-                # return Binary.new(
-                #     self.to_expr.type.send(operator,right.to_expr.type),
-                #     operator, self.to_expr,right.to_expr)
-                expr = self.to_expr
-                return expr.type.binary(operator,expr,right.to_expr)
+             meth = proc do |right|
+                 # return Binary.new(
+                 #     self.to_expr.type.send(operator,right.to_expr.type),
+                 #     operator, self.to_expr,right.to_expr)
+                 expr = self.to_expr
+                 return expr.type.binary(operator,expr,right.to_expr)
+             end
+             # Defines the operator method.
+             define_method(operator,&meth) 
+             # And save it so that it can still be accessed if overidden.
+             define_method(orig_operator(operator),&meth)
+         end
+
+        # Creates an access to elements of range +rng+ of the signal.
+        #
+        # NOTE: +rng+ can be a single expression in which case it is an index.
+        def [](rng)
+            if rng.respond_to?(:to_expr) then
+                # Number range: convert it to an expression.
+                rng = rng.to_expr
+            end 
+            if rng.is_a?(HDLRuby::Low::Expression) then
+                # Index case
+                # return RefIndex.new(self.to_ref,rng)
+                return RefIndex.new(self.type.base,self.to_expr,rng)
+            else
+                # Range case, ensure it is made among expression.
+                first = rng.first.to_expr
+                last = rng.last.to_expr
+                # Abd create the reference.
+                # return RefRange.new(self.to_ref,first..last)
+                return RefRange.new(self.type.slice(first..last),
+                                    self.to_expr,first..last)
             end
-            # Defines the operator method.
-            define_method(operator,&meth) 
-            # And save it so that it can still be accessed if overidden.
-            define_method(orig_operator(operator),&meth)
         end
+
 
         # Converts to a select operator using current expression as
         # condition for one of the +choices+.
@@ -3071,28 +3126,29 @@ module HDLRuby::High
             return Event.new(:change,self.to_ref)
         end
 
-        # Creates an access to elements of range +rng+ of the signal.
-        #
-        # NOTE: +rng+ can be a single expression in which case it is an index.
-        def [](rng)
-            if rng.respond_to?(:to_expr) then
-                # Number range: convert it to an expression.
-                rng = rng.to_expr
-            end 
-            if rng.is_a?(HDLRuby::Low::Expression) then
-                # Index case
-                # return RefIndex.new(self.to_ref,rng)
-                return RefIndex.new(self.type.base,self.to_ref,rng)
-            else
-                # Range case, ensure it is made among expression.
-                first = rng.first.to_expr
-                last = rng.last.to_expr
-                # Abd create the reference.
-                # return RefRange.new(self.to_ref,first..last)
-                return RefRange.new(self.type.slice(first..last),
-                                    self.to_ref,first..last)
-            end
-        end
+        # Moved to HExpression
+        # # Creates an access to elements of range +rng+ of the signal.
+        # #
+        # # NOTE: +rng+ can be a single expression in which case it is an index.
+        # def [](rng)
+        #     if rng.respond_to?(:to_expr) then
+        #         # Number range: convert it to an expression.
+        #         rng = rng.to_expr
+        #     end 
+        #     if rng.is_a?(HDLRuby::Low::Expression) then
+        #         # Index case
+        #         # return RefIndex.new(self.to_ref,rng)
+        #         return RefIndex.new(self.type.base,self.to_ref,rng)
+        #     else
+        #         # Range case, ensure it is made among expression.
+        #         first = rng.first.to_expr
+        #         last = rng.last.to_expr
+        #         # Abd create the reference.
+        #         # return RefRange.new(self.to_ref,first..last)
+        #         return RefRange.new(self.type.slice(first..last),
+        #                             self.to_ref,first..last)
+        #     end
+        # end
 
         # Iterate over the elements.
         #
@@ -3139,10 +3195,11 @@ module HDLRuby::High
                 raise AnyError, "Invalid base for a RefObject: #{base}"
             end
             @base = base
-            # Check and set the object (it must have a name).
-            unless object.respond_to?(:name)
-                raise AnyError, "Invalid object for a RefObject: #{object}"
-            end
+            # # Check and set the object (it must have a name).
+            # unless object.respond_to?(:name)
+            #     raise AnyError, "Invalid object for a RefObject: #{object}"
+            # end
+            # Set the object
             @object = object
         end
 
@@ -3250,7 +3307,7 @@ module HDLRuby::High
         def to_ref
             # return RefRange.new(self.ref.to_ref,
             #                   self.range.first.to_expr..self.range.last.to_expr)
-            return RefRange.new(self.type,self.ref.to_ref,
+            return RefRange.new(self.type,self.ref.to_expr,
                               self.range.first.to_expr..self.range.last.to_expr)
         end
 
@@ -3559,6 +3616,11 @@ module HDLRuby::High
         # Converts to a new expression.
         def to_expr
             return self.to_ref
+        end
+
+        # Coerce by converting signal to an expression.
+        def coerce(obj)
+            return [obj,self.to_expr]
         end
 
         # Converts the system to HDLRuby::Low and set its +name+.
@@ -4357,38 +4419,54 @@ module HDLRuby::High
         end
 
         # Declares high-level input signals named +names+ of the current type.
+        #
+        # Retuns the last declared input.
         def input(*names)
+            res = nil
             names.each do |name|
-                HDLRuby::High.top_user.
+                res = HDLRuby::High.top_user.
                     add_input(SignalI.new(name,TypeStruct.new(:"",self),:input))
             end
+            return res
         end
 
         # Declares high-level untyped output signals named +names+ of the
         # current type.
+        #
+        # Retuns the last declared output.
         def output(*names)
+            res = nil
             names.each do |name|
-                HDLRuby::High.top_user.
+                res = HDLRuby::High.top_user.
                     add_output(SignalI.new(name,TypeStruct.new(:"",self),:output))
             end
+            return res
         end
 
         # Declares high-level untyped inout signals named +names+ of the
         # current type.
+        #
+        # Retuns the last declared inout.
         def inout(*names)
+            res = nil
             names.each do |name|
-                HDLRuby::High.top_user.
+                res = HDLRuby::High.top_user.
                     add_inout(SignalI.new(name,TypeStruct.new(:"",self),:inout))
             end
+            return res
         end
 
         # Declares high-level untyped inner signals named +names+ of the
         # current type.
+        #
+        # Retuns the last declared inner.
         def inner(*names)
+            res = nil
             names.each do |name|
-                HDLRuby::High.top_user.
+                res = HDLRuby::High.top_user.
                     add_inner(SignalI.new(name,TypeStruct.new(:"",self),:inner))
             end
+            return res
         end
     end
 
