@@ -1,4 +1,4 @@
-def sigmoid_gen(a_width, a_point, d_width, d_point, addr)
+def sigmoid(a_width, a_point, d_width, d_point, addr)
    # Initialize the result to force it as a ruby variable.
     High.cur_system.open do
       sub do
@@ -14,7 +14,7 @@ def sigmoid_gen(a_width, a_point, d_width, d_point, addr)
          end
 
          # Use it for the access
-         contents[d_width]
+         contents[addr[(a_point+d_width-1-d_point)..a_point-d_point]]
       end
    end
 end

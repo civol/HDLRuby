@@ -1,4 +1,4 @@
-require "./dadz_gen.rb"
+require "./dadz.rb"
 
-system :dadz, dadz_gen(32, proc {|a| (_sh01000000-a)*a }) do
+system :dadz_sub, dadz(32, proc {|a| (_sh01000000-a)*a }) do
 end

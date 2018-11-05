@@ -1,9 +1,9 @@
-system :a_gen do |a_width, d_width, activate|
+system :a do |typ, activate|
    input :clk, :din
-   [a_width].input :vin # Former addr
-   signed[d_width].output :dout
-   
+   typ.input :vin # Former addr
+   typ.output :dout
+
    par(clk.posedge) do
-       dout <= mux(din == 1, activate.(vin), _s32hzzzz)
+       dout <= mux(din == 1, activate.(vin), :"_#{"z"*typ.width}")
    end
 end

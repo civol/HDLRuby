@@ -1,5 +1,5 @@
-require "./a_gen.rb"
-require "./sigmoid_gen.rb"
+require "./a.rb"
+require "./sigmoid.rb"
 
-system :a, a_gen(8,32,proc{|addr| sigmoid_gen(8,4,32,24,addr)}) do
+system :a_sub, a([32].to_type,proc{|addr| sigmoid(8,4,32,24,addr)}) do
 end

@@ -1,4 +1,4 @@
-system :dadz_gen do |width,derivate|
+system :dadz do |width,derivate|
     input :clk,:res
     signed[width].input :a
     signed[width].output :dadz
