@@ -355,12 +355,6 @@ module HDLRuby::High
             @to_includes = mixins
             # Prepare the instantiation methods
             make_instantiater(name,SystemI,:add_systemI,&ruby_block)
-
-            # # Initialize the set of exported inner signals and instances
-            # @exports = {}
-
-            # # Initialize the set of included system instances.
-            # @includeIs = {}
         end
 
         # Converts to a namespace user.
@@ -472,6 +466,21 @@ module HDLRuby::High
         #     # A block? Apply it on each input signal instance.
         #     @exports.each_value(&ruby_block)
         # end
+        
+        # Iterates over the all interface signals, i.e, also the ones of
+        # the included systems.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal_with_included(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_with_included) unless ruby_block
+            # Iterate on the signals of the current system.
+            self.each_signal(&ruby_block)
+            # Recurse on the included systems.
+            self.scope.each_included do |included|
+                included.each_signal_with_included(&ruby_block)
+            end
+        end
 
         # Iterates over the exported constructs
         #
@@ -483,6 +492,11 @@ module HDLRuby::High
         # Gets class containing the extension for the instances.
         def singleton_instance
             @singleton_instanceO.singleton_class
+        end
+
+        # Gets the private namespace of the system.
+        def namespace
+            return self.scope.namespace
         end
 
         # Execute +ruby_block+ in the context of the system.
@@ -516,15 +530,20 @@ module HDLRuby::High
         # The instantiation target class.
         attr_reader :instance_class
 
-        # The instance owning the system if it is an eigen system
-        attr_reader :owner
+        # # The instance owning the system if it is an eigen system
+        # attr_reader :owner
 
-        # Sets the +owner+.
-        #
-        # Note: will make the system eigen
-        def owner=(owner)
-            @owner = owner
-        end
+        # # Sets the +owner+ deeply.
+        # #
+        # # Note: 
+        # # - will make the system eigen
+        # # - sets the includes owner too
+        # def owner=(owner)
+        #     @owner = owner
+        #     puts "set owner to #{self} with #{owner}"
+        #     self.scope.each_included {|included| included.owner = owner }
+        #     return owner
+        # end
 
         # Iterates over the instance procedures.
         #
@@ -536,45 +555,94 @@ module HDLRuby::High
             @instance_procs.each(&ruby_block)
         end
 
+        # Expands the system with possible arugments +agrs+ to a new system
+        # named +name+.
+        def expand(name, *args)
+            # puts "expand #{self.name} to #{name}"
+            # Create the new system.
+            expanded = self.class.new(name.to_s) {}
+
+            # Include the mixin systems given when declaring the system.
+            @to_includes.each { |system| expanded.scope.include(system) }
+
+            # Fills the scope of the expanded class.
+            # puts "Build top with #{self.name} for #{name}"
+            expanded.scope.build_top(self.scope,*args)
+            # puts "Top built with #{self.name} for #{name}"
+            return expanded
+        end
+
+        # Make a system eigen of a given +instance+.
+        def eigenize(instance)
+            unless instance.systemT == self then
+                raise "Cannot eigenize system #{self.name} to instance #{instance.name}"
+            end
+            # The instance becames the owner.
+            @owner = instance
+            # Fill the public namespace
+            space = self.public_namespace
+            # Interface signals
+            # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
+            self.each_signal do |signal|
+                # puts "signal=#{signal.name}"
+                space.send(:define_singleton_method,signal.name) do
+                    RefObject.new(instance.to_ref,signal)
+                end
+            end
+            # Exported objects
+            self.each_export do |export|
+                # puts "export=#{export.name}"
+                space.send(:define_singleton_method,export.name) do
+                    RefObject.new(instance.to_ref,export)
+                end
+            end
+
+            return self
+        end
+
         # Instantiate the system type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            eigen = self.class.new(High.names_create(i_name.to_s+ "::T"))
+            eigen = self.expand(High.names_create(i_name.to_s + "::T"), *args)
+            # Moved to expand
+            # eigen = self.class.new(High.names_create(i_name.to_s + "::T"))
 
-            # Include the mixin systems given when declaring the system.
-            @to_includes.each { |system| eigen.scope.include(system) }
+            # # Include the mixin systems given when declaring the system.
+            # @to_includes.each { |system| eigen.scope.include(system) }
 
-            # Fills the scope of the eigen class.
-            eigen.scope.build_top(self.scope,*args)
-            # puts "eigen scope=#{eigen.scope}"
+            # # Fills the scope of the eigen class.
+            # eigen.scope.build_top(self.scope,*args)
+            # # puts "eigen scope=#{eigen.scope}"
 
-            # Fill the public namespace
-            space = eigen.public_namespace
-            # Interface signals
-            # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
-            # puts "eigen interface=#{eigen.each_signal.to_a.size}"
-            eigen.each_signal do |signal|
-                # puts "eigen signal=#{signal.name}"    
-                # space.send(:define_singleton_method,signal.name) { signal }
-                space.send(:define_singleton_method,signal.name) do
-                    RefObject.new(eigen.owner.to_ref,signal)
-                end
-            end
-            # Exported objects
-            eigen.each_export do |export|
-                # space.send(:define_singleton_method,export.name) { export }
-                space.send(:define_singleton_method,export.name) do
-                    RefObject.new(eigen.owner.to_ref,export)
-                end
-            end
+            # Moved after the instance creation
+            # # Fill the public namespace
+            # space = eigen.public_namespace
+            # # Interface signals
+            # # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
+            # # puts "eigen interface=#{eigen.each_signal.to_a.size}"
+            # eigen.each_signal do |signal|
+            #     # puts "eigen signal=#{signal.name}"    
+            #     # space.send(:define_singleton_method,signal.name) { signal }
+            #     space.send(:define_singleton_method,signal.name) do
+            #         RefObject.new(eigen.owner.to_ref,signal)
+            #     end
+            # end
+            # # Exported objects
+            # eigen.each_export do |export|
+            #     # space.send(:define_singleton_method,export.name) { export }
+            #     space.send(:define_singleton_method,export.name) do
+            #         RefObject.new(eigen.owner.to_ref,export)
+            #     end
+            # end
 
-            # Create the instance.
+            # Create the instance and sets its eigen system to +eigen+.
             instance = @instance_class.new(i_name,eigen)
+            eigen.eigenize(instance)
             # puts "instance interface=#{instance.each_signal.to_a.size}"
             # puts "eigen interface=#{eigen.each_signal.to_a.size}"
             # Link it to its eigen system
-            eigen.owner = instance
+            # eigen.owner = instance
 
             # Extend the instance.
             instance.eigen_extend(@singleton_instanceO)
@@ -786,22 +854,6 @@ module HDLRuby::High
             @singleton_instanceO.eigen_extend(system.singleton_instance)
         end
 
-        # # Include another +system+ type with possible +args+ instanciation
-        # # arguments.
-        # def include(system,*args)
-        #     if @includeIs.key?(system.name) then
-        #         raise AnyError, "Cannot include twice the same system."
-        #     end
-        #     # Extends with system.
-        #     self.extend(system)
-        #     # Create the instance to include
-        #     instance = system.instantiate(:"",*args)
-        #     # Concat its public namespace to the current one.
-        #     self.namespace.concat_namespace(instance.public_namespace)
-        #     # Adds it the list of includeds
-        #     @includeIs[system.name] = instance
-        # end
-
         # Casts as an included +system+.
         #
         # NOTE: use the includes of the scope.
@@ -812,47 +864,66 @@ module HDLRuby::High
 
         include Hmux
 
-        # Fills a low level system with self's contents.
-        #
-        # NOTE: name conflicts are treated in the current NameStack state.
-        def fill_low(systemTlow)
-            # Adds the content of its included systems.
-            self.scope.each_included do |included| 
-                included.systemT.fill_low(systemTlow)
-            end
-            # puts "fill_low with systemTlow=#{systemTlow}"
+        # Fills the interface of a low level system.
+        def fill_interface(systemTlow)
             # Adds its input signals.
             self.each_input { |input|  systemTlow.add_input(input.to_low) }
             # Adds its output signals.
             self.each_output { |output| systemTlow.add_output(output.to_low) }
             # Adds its inout signals.
             self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
-            # # Adds the inner signals.
-            # self.each_inner { |inner|  systemTlow.add_inner(inner.to_low) }
-            # # Adds the instances.
-            # # Single ones.
-            # self.each_systemI { |systemI|
-            #     systemTlow.add_systemI(systemI.to_low) 
-            # }
-            # # Grouped ones.
-            # self.each_groupI do |name,systemIs|
-            #     systemIs.each.with_index { |systemI,i|
-            #         # Sets the name of the system instance
-            #         # (required for conversion of further accesses).
-            #         # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
-            #         systemI.name = name.to_s + "[#{i}]"
-            #         # And convert it to low
-            #         systemTlow.add_systemI(systemI.to_low())
-            #     }
+            # Adds the interface of its included systems.
+            self.scope.each_included do |included|
+                included.fill_interface(systemTlow)
+            end
+        end
+
+        # Fills a low level system with self's contents.
+        #
+        # NOTE: name conflicts are treated in the current NameStack state.
+        def fill_low(systemTlow)
+            # No needed any more, since use expand and fill_interface
+            # # Adds the content of its included systems.
+            # self.scope.each_included do |included| 
+            #     # included.systemT.fill_low(systemTlow)
+            #     included.fill_low(systemTlow)
             # end
-            # # Adds the connections.
-            # self.each_connection { |connection|
-            #     systemTlow.add_connection(connection.to_low)
-            # }
-            # # Adds the behaviors.
-            # self.each_behavior { |behavior|
-            #     systemTlow.add_behavior(behavior.to_low)
-            # }
+            # puts "fill_low with systemTlow=#{systemTlow.name} (#{systemTlow.class})"
+            # Fills the interface
+            self.fill_interface(systemTlow)
+            # Moved to fill_interface
+            # # Adds its input signals.
+            # self.each_input { |input|  systemTlow.add_input(input.to_low) }
+            # # Adds its output signals.
+            # self.each_output { |output| systemTlow.add_output(output.to_low) }
+            # # Adds its inout signals.
+            # self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
+            # # # Adds the inner signals.
+            # # self.each_inner { |inner|  systemTlow.add_inner(inner.to_low) }
+            # # # Adds the instances.
+            # # # Single ones.
+            # # self.each_systemI { |systemI|
+            # #     systemTlow.add_systemI(systemI.to_low) 
+            # # }
+            # # # Grouped ones.
+            # # self.each_groupI do |name,systemIs|
+            # #     systemIs.each.with_index { |systemI,i|
+            # #         # Sets the name of the system instance
+            # #         # (required for conversion of further accesses).
+            # #         # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
+            # #         systemI.name = name.to_s + "[#{i}]"
+            # #         # And convert it to low
+            # #         systemTlow.add_systemI(systemI.to_low())
+            # #     }
+            # # end
+            # # # Adds the connections.
+            # # self.each_connection { |connection|
+            # #     systemTlow.add_connection(connection.to_low)
+            # # }
+            # # # Adds the behaviors.
+            # # self.each_behavior { |behavior|
+            # #     systemTlow.add_behavior(behavior.to_low)
+            # # }
         end
 
         # Converts the system to HDLRuby::Low and set its +name+.
@@ -865,27 +936,10 @@ module HDLRuby::High
             # Create the resulting low system type.
             systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name),
                                                    self.scope.to_low)
-            # Fills the interface of the new system from the included
-            # systems, must look into the scope since it it the scope
-            # that contains the included systems.
-            # Moved to fill_low
-            # self.scope.each_included do |included| 
-            #     included.systemT.fill_low(systemTlow)
-            # end
-            # # Push the private namespace for the low generation.
-            # High.space_push(@namespace)
-            # # Pushes on the name stack for converting the internals of
-            # # the system.
-            # High.names_push
-            # # Adds the content of its included systems.
-            # @includeIs.each_value { |space| space.user.fill_low(systemTlow) }
-            # Adds the content of the actual system.
+            # Fills the interface of the new system 
+            # from the included systems.
             self.fill_low(systemTlow)
-            # # Restores the name stack.
-            # High.names_pop
-            # # Restores the namespace stack.
-            # High.space_pop
-            # # Return theresulting system.
+            # Return theresulting system.
             return systemTlow
         end
     end
@@ -942,8 +996,8 @@ module HDLRuby::High
 
             # Initialize the set of exported inner signals and instances
             @exports = {}
-            # Initialize the set of included system instances.
-            @includeIs = {}
+            # Initialize the set of included systems.
+            @includes = {}
 
             # Builds the scope if a ruby block is provided
             # (which means the scope is not the top of a system).
@@ -1060,8 +1114,8 @@ module HDLRuby::High
         def each_included(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_included) unless ruby_block
-            # A block? Apply it on each input signal instance.
-            @includeIs.each_value(&ruby_block)
+            # A block? Apply it on each included system.
+            @includes.each_value(&ruby_block)
             # And apply on the sub scopes if any.
             @scopes.each {|scope| scope.each_included(&ruby_block) }
         end
@@ -1101,11 +1155,11 @@ module HDLRuby::High
         #
         # NOTE: Used by the instantiation procedure of a system.
         def build_top(base,*args)
-            High.space_push(@namespace)
             # Fills its namespace with the content of the base scope
             # (this latter may already contains access points if it has been
             #  opended for extension previously).
             @namespace.concat_namespace(base.namespace)
+            High.space_push(@namespace)
             # Execute the instantiation block
             # instance_proc = base.parent.instance_proc if base.parent.respond_to?(:instance_proc)
             # @return_value = High.top_user.instance_exec(*args,&instance_proc) if instance_proc
@@ -1379,37 +1433,83 @@ module HDLRuby::High
         #     @singleton_instanceO.eigen_extend(system.singleton_instance)
         # end
 
+        # # Include a +system+ type with possible +args+ instanciation
+        # # arguments.
+        # def include(system,*args)
+        #     if @includes.key?(system.name) then
+        #         raise AnyError, "Cannot include twice the same system."
+        #     end
+        #     # puts "Include system=#{system.name}"
+        #     # Create the instance to include
+        #     instance = system.instantiate(:"",*args)
+        #     # puts "instance=#{instance}"
+        #     # Concat its public namespace to the current one and current's
+        #     # public one.
+        #     self.namespace.concat_namespace(instance.public_namespace)
+        #     if self.parent.is_a?(SystemT) then
+        #         # Include concats namespace of system only if it is a
+        #         # direct parent of the scope.
+        #         # Using include within a scope which is not one of a system
+        #         # does not change the interface!
+        #         self.parent.public_namespace.concat_namespace(instance.public_namespace)
+        #     end
+        #     # Adds it the list of includeds
+        #     @includes[system.name] = instance
+        # end
+
         # Include a +system+ type with possible +args+ instanciation
         # arguments.
         def include(system,*args)
-            if @includeIs.key?(system.name) then
+            if @includes.key?(system.name) then
                 raise AnyError, "Cannot include twice the same system."
             end
             # puts "Include system=#{system.name}"
-            # # Extends with system.
-            # self.eigen_extend(system)
-            # Create the instance to include
-            instance = system.instantiate(:"",*args)
-            # puts "instance=#{instance}"
-            # Concat its public namespace to the current one and current's
-            # public one.
-            self.namespace.concat_namespace(instance.public_namespace)
+            # Save the name of the included system, it will serve as key
+            # for looking for the included expanded version.
+            include_name = system.name
+            # Expand the system to include
+            system = system.expand(:"",*args)
+            # # Concat its public namespace to the current one and current's
+            # # public one.
+            # self.namespace.concat_namespace(system.public_namespace)
+            # if self.parent.is_a?(SystemT) then
+            #     # Include concats namespace of system only if it is a
+            #     # direct parent of the scope.
+            #     # Using include within a scope which is not one of a system
+            #     # does not change the interface!
+            #     self.parent.public_namespace.concat_namespace(system.public_namespace)
+            # end
+            # Add the included system interface to the current one.
             if self.parent.is_a?(SystemT) then
-                # Include concats namespace of system only if it is a
-                # direct parent of the scope.
-                # Using include within a scope which is not one of a system
-                # does not change the interface!
-                self.parent.public_namespace.concat_namespace(instance.public_namespace)
+                space = self.namespace
+                # Interface signals
+                # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
+                system.each_signal_with_included do |signal|
+                    # puts "signal=#{signal.name}"
+                    space.send(:define_singleton_method,signal.name) do
+                        signal
+                    end
+                end
+                # Exported objects
+                system.each_export do |export|
+                    # puts "export=#{export.name}"
+                    space.send(:define_singleton_method,export.name) do
+                        export
+                    end
+                end
             end
             # Adds it the list of includeds
-            @includeIs[system.name] = instance
+            # @includes[system.name] = system
+            @includes[include_name] = system
         end
 
         # Casts as an included +system+.
         def as(system)
+            # puts "as with name: #{system.name}"
             system = system.name if system.respond_to?(:name)
-            # return @includeIs[system].public_namespace
-            return @includeIs[system].namespace
+            # puts "includes are: #{@includes.keys}"
+            # return @includes[system].public_namespace
+            return @includes[system].namespace
         end
 
         include Hmux
@@ -1419,7 +1519,8 @@ module HDLRuby::High
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(scopeLow)
             # Adds the content of its included systems.
-            @includeIs.each_value {|instance| instance.user.fill_low(scopeLow) }
+            #@includes.each_value {|instance| instance.user.fill_low(scopeLow) }
+            @includes.each_value {|system| system.scope.fill_low(scopeLow) }
             # Adds the inner scopes.
             self.each_scope { |scope| scopeLow.add_scope(scope.to_low) }
             # Adds the inner signals.
@@ -1460,9 +1561,6 @@ module HDLRuby::High
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
-            # Moved to fill_low
-            # # Adds the content of its included systems.
-            # @includeIs.each_value {|instance| instance.user.fill_low(scopeLow) }
             # Adds the content of the actual system.
             self.fill_low(scopeLow)
             # Restores the name stack.
@@ -2342,7 +2440,8 @@ module HDLRuby::High
 
         # Gets the private namespace.
         def namespace
-            self.systemT.scope.namespace
+            # self.systemT.scope.namespace
+            self.systemT.namespace
         end
 
 
@@ -3996,7 +4095,6 @@ module HDLRuby::High
         namespace = namespace.to_namespace
         # # Concat the current top to namespace so that it has access to the
         # # existing hardware constructs.
-        # LALALA
         # # namespace.concat_namespace(Namespaces[-1])
         # Adds the namespace to the top.
         Namespaces.push(namespace)
@@ -4128,6 +4226,7 @@ module HDLRuby::High
         name = name.to_sym
         # Look from the top of the namespace stack.
         Namespaces.reverse_each do |space|
+            # puts "space=#{space.singleton_methods}"
             if space.respond_to?(name) then
                 # print "Found is space user with class=#{space.user.class}\n"
                 # The method is found, call it.
