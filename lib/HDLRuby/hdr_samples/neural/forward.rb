@@ -49,7 +49,7 @@ system :forward do |typ,arch,samps,b_init,w_init,
         col.times do |j0|
             cap_ws[-1] << []
             ws[-1] << []
-            arch[i-1].times do |j1|
+            arch[i].times do |j1|
                 cap_ws[-1][-1] << typ.input(:"cap_w#{i+1}_#{j0+1}#{j1+1}")
                 ws[-1][-1] << typ.output(:"w#{i+1}_#{j0+1}#{j1+1}")
             end
@@ -122,7 +122,7 @@ system :forward do |typ,arch,samps,b_init,w_init,
         end
         # Weights
         col.times do |j0|
-            arch[i-1].times do |j1|
+            arch[i].times do |j1|
             # puts "i=#{i} j0=#{j0} j1=#{j1}"
             # puts "w_init[i][j1][j0]=#{w_init[i][j0][j1]}"
             # puts "cap_ws[i][j0][j1]=#{cap_ws[i][j0][j1]}"
@@ -142,8 +142,8 @@ system :forward do |typ,arch,samps,b_init,w_init,
     # Other columns
     arch[2..-1].each.with_index do |col,i|
         col.times do |j|
-            z(typ,as[i-1].size,sopP).(:"z#{i+1}_#{j+1}I").
-                (clk, reset, *as[i-1], *ws[i][j], bs[i][j], zs[i][j])
+            z(typ,as[i].size,sopP).(:"z#{i+3}_#{j+1}I").
+                (clk, reset, *as[i], *ws[i+1][j], bs[i+1][j], zs[i+1][j])
         end
     end
     # Activations.

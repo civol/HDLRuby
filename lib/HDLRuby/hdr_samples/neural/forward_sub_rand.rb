@@ -9,7 +9,7 @@ require "./random.rb"
 
 system :forward_sub, forward(
     signed[31..0],   # Data type
-    [2,3,2], # NN structure
+    [2,4,3,2], # NN structure
     [
         # Input samples.
           # First input.
@@ -27,9 +27,9 @@ system :forward_sub, forward(
           *([_sh00000000]*28)]]
     ],
     # Biases initial values
-    rand_array([3,2],32),
+    rand_array([4,3,2],32),
     # Weights initial values
-    rand_array([[2,2,2],[3,3]],32),
+    rand_array([[2,2,2,2],[4,4,4],[3,3]],32),
     # The activation function.
     proc{|addr| sigmoid(8,4,32,24,addr)},
     # The sum of production function.
