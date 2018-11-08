@@ -30,10 +30,10 @@ module HDLRuby
 
         # Tells if +name+ is included in one of the field or subfield of
         # +code+.
-        def has_name_all?(code, name)
+        def has_name_deep?(code, name)
             # Checks recursively.
             return code.find do |field|
-                field.is_a?(Array) ? has_name_all?(field,name) : field == name
+                field.is_a?(Array) ? has_name_deep?(field,name) : field == name
             end
         end
 
@@ -147,7 +147,7 @@ module HDLRuby
             return systems.any? do |system|
                 code.is_a?(Array) && (code[0] == :command) &&
                                      (code[1][1] == "system") &&
-                                     (has_name_all?(code[2][1][1..-1],system))
+                                     (has_name_deep?(code[2][1][1..-1],system))
             end
         end
 
@@ -183,6 +183,43 @@ module HDLRuby
             return code[1][1]
         end
 
+        # Tells if +code+ is a signal declaration.
+        def is_signal_declare?(code)
+            return [:command,:command_call].include?(code[0]) &&
+                ( has_name_deep?(code,"input") ||
+                  has_name_deep?(code,"output") ||
+                  has_name_deep?(code,"inout") ||
+                  has_name_deep?(code,"inner") )
+        end
+
+        # Tells if +code+ is an instance declaration of one of +systems+.
+        def is_instance_declare?(code,systems)
+            return code[0] == :command &&
+                systems.find {|sys| has_name_deep?(code,sys) }
+        end
+
+        # Tells if +code+ is an HDLRuby declaration of a signal or an
+        # instance of one of +systems+.
+        def is_hdr_declare?(code, systems)
+            return is_system?(code) || is_signal_declare?(code) ||
+                is_instance_declare?(code, systems)
+        end
+
+        # Gets the HDLRuby names declared from +code+.
+        #
+        # Note: assumes code is indeed a declaration.
+        def get_hdr_declares(code)
+            if code.is_a?(Array) then
+                if code[0] == :@ident then
+                    return [ code[1] ]
+                else
+                    return code.map {|elem| get_hdr_declares(elem) }.flatten
+                end
+            else
+                return []
+            end
+        end
+
         # Gets the line of a code.
         def get_line(code)
             return code[2][0]
@@ -197,12 +234,18 @@ module HDLRuby
         def assign_check(code = @code)
             system_check = false # Flag telling if the internal of a system
                                  # is reached.
+            hdr_names = []       # The existing HDLRuby names, they cannot be
+                                 # used as Ruby variables.
             code.each do |subcode|
                 if system_check then
                     # Internal of a system, do a specific check.
-                    assign_check_in_system(subcode)
+                    assign_check_in_system(subcode,hdr_names.clone)
                     system_check = false
                 elsif subcode.is_a?(Array) then
+                    if (self.is_hdr_declare?(code,hdr_names)) then
+                        # New HDLRuby name, add them to the hdr names.
+                        hdr_names.concat(self.get_hdr_declares(code))
+                    end
                     if self.is_system?(subcode) then
                         # The current subcode is a system, the next one will
                         # be its internal.
@@ -215,22 +258,31 @@ module HDLRuby
             end
         end
 
-        # Check for invalkid assignments in +code+ assuming being within
-        # a system.
-        def assign_check_in_system(code)
-            if (self.is_variable_assign?(code)) then
+        # Check for invalid assignments in +code+ assuming being within
+        # a system. For that purpose assigned names are look for in
+        # +hdr_names+ that includes the current HDLRuby names.
+        def assign_check_in_system(code, hdr_names)
+            # puts "hdr_names=#{hdr_names}"
+            if (self.is_hdr_declare?(code,hdr_names)) then
+                # New HDLRuby names, add them to the hdr names.
+                hdr_names.concat(self.get_hdr_declares(code))
+            elsif (self.is_variable_assign?(code)) then
                 var = self.get_assign_variable(code)
-                if @filename then
-                    warn("*WARNING* In file '#{@filename}': ")
-                else
-                    warn("*WARNING*")
+                # puts "var=#{var} and hdr_names=#{hdr_names}"
+                if hdr_names.include?(var[1]) then
+                    # An HDLRuby name is overwritten.
+                    if @filename then
+                        warn("*WARNING* In file '#{@filename}': ")
+                    else
+                        warn("*WARNING*")
+                    end
+                    warn("Potential invalid assignment for '#{self.get_name(var)}' at line #{self.get_line(var)}")
                 end
-                warn("Potential invalid assignment for '#{self.get_name(var)}' at line #{self.get_line(var)}")
             else
                 # Go on checking recursively.
                 code.each do |subcode|
                     if subcode.is_a?(Array) then
-                        self.assign_check_in_system(subcode)
+                        self.assign_check_in_system(subcode,hdr_names)
                     end
                 end
             end
