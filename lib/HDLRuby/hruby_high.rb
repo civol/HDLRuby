@@ -2739,12 +2739,16 @@ module HDLRuby::High
             define_method(orig_operator(operator),&meth)
         end
 
-        # Coerce by forcing convertion of a number to expression.
-        def coerce(number)
-            if number.respond_to?(:to_expr) then
-                return [number.to_expr, self]
+        # Coerce by forcing convertion of obj to expression.
+        def coerce(obj)
+            if obj.is_a?(HDLRuby::Low::Expression) then
+                # Already an expression, nothing to do.
+                return [obj,self]
+            elsif obj.respond_to?(:to_expr) then
+                # Can be converted to an expression, do it.
+                return [obj.to_expr, self]
             else
-                return [number,self]
+                return [obj,self]
             end
         end
 
