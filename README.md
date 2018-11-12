@@ -326,8 +326,7 @@ system :sumprod do |typ,coefs|
    typ[coefs.size].input ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_0) do 
-   |sum,(coef,i)|
+   o <= coefs.each_with_index.reduce(_0) do |sum,(coef,i)|
       sum + ins[i]*coef
    end
 end
@@ -341,10 +340,7 @@ The description of the sum of product maybe more difficult to understand for peo
 While slightly longer than the previous description, this description allows to declare a circuit implementing a sum of product with any bit width and any number of coefficients. For instance, the following code describes a signed 32-bit sum of product with  16 coefficients (actually just random numbers here).
 
 ```ruby
-sumprod [:my_circuit],
-        signed[32], 
-        [3,78,43,246, 3,67,1,8,
-         47,82,99,13, 5,77,2,4]
+sumprod(signed[32], [3,78,43,246, 3,67,1,8, 47,82,99,13, 5,77,2,4]).(:my_circuit)  
 ```
 
 As seen in the code above, when passing generic argument for instantiating a generic system, the name of the instance is put between brackets for avoiding confusion.
