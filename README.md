@@ -308,7 +308,7 @@ system :shifter do |n|
 end
 ```
 
-Now, let us assume you what to design a circuit that performs a sum of products of several inputs with constant coefficients. For the case of 4 16-bit signed inputs and given coefficient as 3, 4, 5 and 6. The corresponding basic code could be as follows:
+Now, let us assume you want to design a circuit that performs a sum of products of several inputs with constant coefficients. For the case of 4 16-bit signed inputs and given coefficient as 3, 4, 5 and 6. The corresponding basic code could be as follows:
 
 ```ruby
 system :sumprod_16_3456 do
