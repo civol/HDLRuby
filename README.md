@@ -226,58 +226,6 @@ system :reg do |typ|
 end
 ```
 
-[//]: # (Now, one might think it is painful to write almost the same code for each example. If that is the case, he can wrap up everything as follows:)
-[//]: # ( )
-[//]: # (```ruby)
-[//]: # (# Method generating the body of a register description.)
-[//]: # (def reg_body(typ))
-[//]: # (   input :clk, :rst)
-[//]: # (   typ.input :d)
-[//]: # (   typ.output :q)
-[//]: # ( )
-[//]: # (   (q <= d & [~rst]*typ.width).at(clk.posedge))
-[//]: # (end)
-[//]: # ( )
-[//]: # (# Now declare the systems describing the registers.)
-[//]: # (system :dff do)
-[//]: # (   reg_body(bit))
-[//]: # (end)
-[//]: # ( )
-[//]: # (system :reg8 do)
-[//]: # (   reg_body([7..0].bit))
-[//]: # (end)
-[//]: # ( )
-[//]: # (system :regn do |n|)
-[//]: # (   reg_body([n-1..0].bit))
-[//]: # (end)
-[//]: # ( )
-[//]: # (system :reg do |typ|)
-[//]: # (   reg_body(typ))
-[//]: # (end)
-[//]: # (```)
-[//]: # ( )
-[//]: # (It also possible to go further and write a method for generating examples of register descriptions as follows (such an example, somewhat unreasonable, will be explained little by little in this document):)
-[//]: # ( )
-[//]: # (```ruby)
-[//]: # (# Method generating a register declaration.)
-[//]: # (def make_reg(name,&blk))
-[//]: # (   system name do |*arg|)
-[//]: # (      input :clk, :rst)
-[//]: # (      blk.(*arg).input :d)
-[//]: # (      blk.(*arg).output :q)
-[//]: # ( )
-[//]: # (      (q <= d & [~rst]*blk.[//]: # ((*arg).width).at(clk.posedge))
-[//]: # (   end)
-[//]: # (end)
-[//]: # ( )
-[//]: # (# Now let's generate the register [//]: #) (declarations.)
-[//]: # (make_reg(:dff) { bit })
-[//]: # (make_reg(:reg8){ bit[7..0] })
-[//]: # (make_reg(:regn){ |n| bit[n-1..0] })
-[//]: # (make_reg(:reg) { |typ| typ })
-[//]: # (```)
-[//]: # ( )
-
 Wait... I have just realized: a D-FF without any inverted output does not look very serious. So let us extend the existing `dff` to provide an inverted output. There are basically three ways for doing this. First, inheritance can be used: a new system is built inheriting from `dff` as it is done in the following code.
 
 ```ruby
@@ -2123,29 +2071,10 @@ end
 ```
 
 
-[//]: # ### Opening a single signal, or the totality of the signals
-[//]: # 
-[//]: # Contrary to systems and instances, signals dot not have any inner structure. Its however sometimes useful to add features to them (cf. [hooks](#hooks)). Again, this is done using the `open` method as follows where signal `sig` is opened:
-[//]: # 
-[//]: # ```ruby
-[//]: # sig.open do
-[//]: #    <some code>
-[//]: # end
-[//]: # ```
-[//]: # 
-[//]: # It is also possible to modify the totality of the signals of the design as follows:
-[//]: # 
-[//]: # ```ruby
-[//]: # signal.open do
-[//]: #    <some code>
-[//]: # end
-[//]: # ```
-[//]: # 
 
 ### Overloading of operators
 
-ICIICI
-
+Please wait for explanations.
 
 ### Predicate and access methods
 
