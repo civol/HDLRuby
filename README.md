@@ -1650,9 +1650,9 @@ end
 ```
 Where:
 
-- <function name> is the name of the function.
-- <arguments> is the list of arguments of the function.
-- <code> is the code of the function.
+- `function name` is the name of the function.
+- `arguments` is the list of arguments of the function.
+- `code` is the code of the function.
  
 These functions are called the same way HDLRuby functions are called, but this operation actually pastes the code of the function as is within the code.
 Moreover, these function do not have any scope so that any inner signal or instance declared within them will actually added to the object they are invoked in.
