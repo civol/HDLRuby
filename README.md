@@ -2070,7 +2070,55 @@ end
 
 ### Overloading of operators
 
-Please wait for explanations.
+Operators can be overloaded for specific types. This allows for instance to support seamlessly fixed-point computations without requiring explicit readjustment of the position of the decimal point.
+
+An operator is redefined as follows:
+
+```ruby
+<type>.define_operaot(:<op>) do |<args>|
+   <operation description>
+end
+```
+
+Where:
+
+- `type` is the type from which the operation is overloaded.
+- `op` is the operator that is overloaded (e.g., `+`)
+- `args` are the arguments of the operation.
+- `operation description` is an HDLRuby description of the new operation.
+
+For example, for `fix32` a 32-bit (decimal point at 16-bit) fixed point type defined as follows:
+
+```ruby
+signed[31..0].typedef(:fix32)
+```
+
+The multiplication operator can be overloaded as follows to ensure the decimal point have always the right position:
+
+```ruby
+fix32.define_operator(:*) do |left,right|
+   (left.as(signed[31..0]) * right) >> 16
+end
+```
+
+Please notice, that in the code above, the left value has been casted to a plain bit-vector in order to avoid infinite recursive call of the `*` operator.
+
+Operator can also be overloaded for generic types. However, is such a case, the generic argument must also be present in the list of arguments of the overloaded operators.
+For instance, let us consider the following fixed point type of variable width (and whose decimal point is set at the half of its bit range):
+
+```ruby
+typedef(:fixed) do |width|
+   signed[(width-1)..0]
+end
+```
+
+The multiplication operator would be overloaded as follows:
+
+```ruby
+fixed.define_operator do |width,left,right|
+   (left.as(signed[(width-1)..0]) * right) >> width/2
+end
+```
 
 ### Predicate and access methods
 
