@@ -2,9 +2,9 @@ require "./forward.rb"
 require "./sigmoid.rb"
 require "./random.rb"
 
-proc do |xs,ws|
-    (xs.zip(ws).map { |x,w| x*w }.reduce(:+))[27..20]
-end
+# proc do |xs,ws|
+#     (xs.zip(ws).map { |x,w| x*w }.reduce(:+))[27..20]
+# end
 
 # 16:16 Fixed-point type.
 [31..0].signed.typedef(:fix32)

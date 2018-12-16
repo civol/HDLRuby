@@ -3,7 +3,7 @@ def sigmoid(a_width, a_point, d_width, d_point, addr)
     High.cur_system.open do
       sub do
          # Generates the rom
-         [d_width].inner :contents
+         [d_width][2**a_width].inner :contents
          contents <= (2**a_width).times.map do |i|
             # Converts i to a float
             i = i.to_f * 2**(-a_point)
