@@ -65,10 +65,21 @@ module HDLRuby::High
             @concats = []
         end
 
+        # Clones (safely) the namespace.
+        def clone
+            # Create the new namespace.
+            res = Namespace.new(@user)
+            # Adds the concats.
+            @concats.each do |concat|
+                res.concat_namespace(concat)
+            end
+            return res
+        end
+
         # Adds method +name+ provided the name is not empty and the method
         # is not already defined in the current namespace.
         def add_method(name,&ruby_block)
-            # puts "add_method with name=#{name}"
+            # puts "add_method with name=#{name} and parameters=#{ruby_block.parameters}"
             unless name.empty? then
                 if RESERVED.include?(name.to_sym) then
                     raise AnyError, 
@@ -123,7 +134,7 @@ module HDLRuby::High
         # Missing methods may be immediate values, if not, they are looked up
         # in the upper level of the namespace if any.
         def method_missing(m, *args, &ruby_block)
-            # print "method_missing in class=#{self.class} with m=#{m}\n"
+            # puts "method_missing in class=#{self.class} with m=#{m}"
             # Is the missing method an immediate value?
             value = m.to_value
             return value if value and args.empty?
@@ -138,15 +149,16 @@ module HDLRuby::High
                 # the space.
                 begin
                     High.space_call(m,*args,&ruby_block)
-                rescue
-                    # Not in the private namespace, maybe in the public one.
-                    if self.respond_to?(:public_namespace) and
-                    High.space_index(self.public_namespace) then
-                        High.space_call(m,*args,&ruby_block)
-                    else
-                        # No, this is a true error.
-                        raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
-                    end
+                # Not required any longer and messes with the error messages.
+                # rescue
+                #     # Not in the private namespace, maybe in the public one.
+                #     if self.respond_to?(:public_namespace) and
+                #     High.space_index(self.public_namespace) then
+                #         High.space_call(m,*args,&ruby_block)
+                #     else
+                #         # No, this is a true error.
+                #         raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
+                #     end
                 end
             elsif self.respond_to?(:public_namespace) and
                   High.space_index(self.public_namespace) then
@@ -173,7 +185,8 @@ module HDLRuby::High
         def method_missing(m, *args, &ruby_block)
             # Is the scope currently opened?
             # puts "self.class=#{self.class}"
-            if High.space_top.user_deep?(self) then
+            # if High.space_top.user_deep?(self) then
+            if High.space_index(self.namespace) then
                 # Yes, use the stack of namespaces.
                 h_missing(m,*args,&ruby_block)
             else
@@ -4194,6 +4207,15 @@ module HDLRuby::High
         Namespaces[-1]
     end
 
+    # sets the top namespace.
+    def self.space_top=(top)
+        unless top.is_a?(Namespace) then
+            raise "Invalid class for a Namspace: #{top.class}"
+        end
+        Namespaces[-1] = top
+    end
+
+
     # Gets construct whose namespace is the top of the namespaces stack.
     def self.top_user
         self.space_top.user
@@ -4296,7 +4318,10 @@ module HDLRuby::High
             if space.respond_to?(name) then
                 # print "Found is space user with class=#{space.user.class}\n"
                 # The method is found, call it.
-                return space.send(name,*args)
+                return space.send(name,*args,&ruby_block)
+            elsif space.user.respond_to?(name) then
+                # The method is found in the user, call it.
+                return space.user.send(name,*args,&ruby_block)
             end
         end
         # Look in the top namespace.
@@ -4311,7 +4336,7 @@ module HDLRuby::High
         end
         # Not found.
         raise NotDefinedError,
-              "undefined HDLRuby construct, local variable or method `#{m}'."
+              "undefined HDLRuby construct, local variable or method `#{name}'."
     end
 
 
