@@ -81,10 +81,8 @@ module HDLRuby::High::Std
 
             return_value = nil
 
-
             # Enters the current system
             HDLRuby::High.cur_system.open do
-
                 sub do
                     HDLRuby::High.space_push(namespace)
                     # Execute the instantiation block
