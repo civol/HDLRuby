@@ -55,7 +55,7 @@ module HDLRuby::High::Std
             # Creates the namespace to execute the fsm block in.
             @namespace = Namespace.new(self)
 
-            # Generates the function for setting up the pipeline.
+            # Generates the function for setting up the fsm.
             obj = self # For using the right self within the proc
             HDLRuby::High.space_reg(@name) do |&ruby_block|
                 if ruby_block then
