@@ -113,8 +113,6 @@ module HDLRuby::High::Std
                         end
                     end
                 end
-
-
             end
 
             return return_value
