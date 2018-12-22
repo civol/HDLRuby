@@ -1,237 +1,220 @@
+
 module HDLRuby::High::Std
 
-##
-# Standard HDLRuby::High library: pipeline generator
-# 
-########################################################################
-
-
     ##
-    #  Factory for a pipeline architecture.
-    class Pipeline
-        High = HDLRuby::High
+    # Standard HDLRuby::High library: pipeline
+    # 
+    ########################################################################
 
-        # Creates a delay systemI for a signal with +type+.
-        def self.make_delay(type)
-            systemT = High::SystemT.new(High.uniq_name) do
-                type.input :i
-                type.output :o
-                o <= i
-            end
-            # return High::SystemI.new(High.uniq_name,systemT)
-            res = systemT.instantiate(High.uniq_name)
-            High.cur_system.add_systemI(res)
-            res
+
+    ## 
+    # Describes a high-level pipeline type.
+    class PipelineT
+        include HDLRuby::High::HScope_missing
+
+        # The stage class
+        class Stage < Array
+            attr_accessor :code
         end
 
-        ## Class describing a wrapper for inserting a component in the
-        # pipeline.
-        class Wrapper
-            # The wrapped component
-            attr_reader :component
+        # The pipeline signal generator class
+        class PipeSignal
+            include HDLRuby::High::HExpression
 
-            # The stage number
-            attr_reader :stage
+            attr_reader :name   # The name of the signal to generate
+            attr_reader :type   # The type of the signal to generate
+            attr_reader :signal # The generated signal
 
-            # Creates a new wrapper for +component+ in pipeline +pipe+ at
-            # stage number +n+.
-            def initialize(pipe,component,n)
-                # Sets the pipeline factory.
-                @pipeline = pipe
-                # Sets the component.
-                @component = component
-                # Sets the stage
-                @stage = n
-                # Initialize the pipeline register as an empty array.
-                @register = []
+            # Create a new pipeline signal generator with +name+ whose
+            # resulting signal is to be added to +scope+.
+            def initialize(name,scope)
+                @name  = name.to_sym
+                @scope = scope
+                @type = nil
+                @signal = nil
             end
 
-            # Connects +src+ signal to +dst+ signal through the pipeline.
-            def connect(src,dst)
-                # Ensure dst is valid.
-                # puts "@component=#{@component}"
-                # puts "#src=#{src}, dst=#{dst}"
-                # unless @component.each_input.include?(dst) then
-                #     raise "#{dst} is not an input signal of #{@component}"
-                # end
-                unless dst.parent == @component or
-                       # dst.object.parent == @component then
-                        dst.base.object == @component then
-                    # puts "dst.parent = #{dst.parent}"
-                    # puts "dst.base = #{dst.base}"
-                    raise "#{dst} is not a signal of #{@component}"
-                end
-                # Allocates the signal in the pipeline register.
-                @register << @pipeline.block.add_inner(
-                               SignalI.new(High.uniq_name,src.type,:inner))
-                # Connect src to it
-                @pipeline.block.add_statement(
-                    Transmit.new(@register.last.to_ref,src.to_expr) )
-                # Connect it to dst
-                @pipeline.block.add_statement(
-                    Transmit.new(dst.to_ref,@register.last.to_expr) )
-            end 
+            # Assigns +expr+ to the signal. Is the signal is not generated
+            # yet, generate it.
+            def <=(expr)
+                # Ensures expr is an expression
+                expr = expr.to_expr
+                # Generate the signal if not existant
+                # puts "@scope=#{@scope}"
+                puts "For @name=#{@name} @signal=#{@signal}"
+                @signal = @scope.make_inners(expr.type,@name) unless @signal
+                # Performs the assignment.
+                @signal <= expr
+            end
+
+            # Converts to an expression.
+            def to_expr
+                return @signal.to_expr
+            end
+
+            # Converts to a reference.
+            def to_ref
+                return @signal.to_ref
+            end
+
+            # # The HDLRuby operators on expressions.
+            # HDLRuby::High::Operators.each do |op|
+            #     define_method(op) do |val|
+            #         self.to_expr.send(op,val)
+            #     end
+            # end
         end
 
-
-        # The name of the pipeline factory
+        # The name of the pipeline type.
         attr_reader :name
 
-        # Creates a new pipeline factory named +name+ synchronized on +clk+
-        # and reset on +rst+.
-        def initialize(name,clk,rst)
-            # Set the name as a symbol.
+        # The namespace associated with the pipeline
+        attr_reader :namespace
+
+        # Creates a new pipeline type with +name+.
+        #
+        # The proc +ruby_block+ is executed when instantiating the fsm.
+        def initialize(name)
+            # Check and set the name
             @name = name.to_sym
 
-            # Check and set the synchornization event.
-            @clk = clk.to_event
-            # Check and set the reset event.
-            @rst = rst.to_event
+            # Initialize the internals of the pipeline.
 
-            # Create the behavior controlling the pipeline.
-            @behavior = High::Behavior.new(:par,@clk,@rst) {}
-            # Add it to the current scope.
-            High.cur_system.add_behavior(@behavior)
 
-            # Initialize the stages of the pipeline.
+            # Initialize the environment for building the pipeline
+
+            # The stages
             @stages = []
+
+            # The event synchronizing the pipeline
+            @mk_ev = proc { $clk.posedge }
+
+            # The reset
+            @mk_rst = proc { $rst }
+
+            # Creates the namespace to execute the pipeline block in.
+            @namespace = Namespace.new(self)
 
             # Generates the function for setting up the pipeline.
             obj = self # For using the right self within the proc
-            High.space_reg(@name) do |*args|
-                # If no name it is actually an access to the system type.
-                return obj if args.empty?
-                # Otherwise use the call method for setting the pipeline.
-                obj.call(*args)
-            end
-        end
-
-        # Gets the depths of the pipeline.
-        def depth
-            return @stages.size
-        end
-
-        # Gets the block containing the control of the pipeline.
-        def block
-            return @behavior.block
-        end
-
-        # Adds components in the pipeline.
-        # There are two possible format (number is the stage number):
-        #
-        # - component, number
-        # - { component => number, ... }
-        def add(*args)
-            # Process the arguments
-            if args.size > 1 then
-                # Format 0, convert to format 1
-                args = { args[0] => args[1] }
-            else
-                args = args[0]
-            end
-
-            # Add the components.
-            args.each do |component, number|
-                # puts "Adding #{component} at #{number}"
-                # Adjust the depth of the pipeline if required.
-                if self.depth <= number then
-                    @stages.fill(self.depth..number) { Array.new }
-                end
-                # Wraps and adds the component.
-                @stages[number] << Wrapper.new(self,component,number)
-            end
-        end
-
-        # Get a wrapper by component if any.
-        def get_wrapper(obj)
-            # Get the wrapper if any.
-            @stages.each do |stage|
-                found = stage.detect { |wrp| wrp.component == obj }
-                return found if found
-            end
-            # No wrapper found
-            return nil
-        end
-
-        # Connect signals +dst+ and +src+ among the pipeline.
-        #
-        # There are two possible format (number is the stage number):
-        #
-        # - src, dst
-        # - { src => dst, ... }
-        #
-        # NOTE: performs dst <= src while ensuring the pipeline
-        # synchronization is valid.
-        def connect(*args)
-            # Process the arguments
-            if args.size > 1 then
-                # Format 0, convert to format 1
-                args = { args[0] => args[1] }
-            else
-                args = args[0]
-            end
-
-            # Add the connections.
-            args.each do |src,dst|
-                # Get the real source and destination.
-                # Ensure to get the real source and destination.
-                src_obj = src.is_a?(RefObject) ? src.object : src
-                dst_obj = dst.is_a?(RefObject) ? dst.object : dst
-                # puts "src_obj=#{src_obj.name}, src_obj.parent=#{src_obj.parent}"
-                # puts "dst_obj=#{dst_obj.name}, dst_obj.parent=#{dst_obj.parent}"
-                # Get the wrapper containing the source signal if any
-                src_wrp = self.get_wrapper(src_obj.parent)
-                # Get the wrapper containing the destination signal if any
-                dst_wrp = self.get_wrapper(dst_obj.parent)
-
-                # Get the stages of the signals if any (within the pipeline).
-                dst_stg = dst_wrp && dst_wrp.stage
-                src_stg = src_wrp && src_wrp.stage
-
-                # Inner connection?
-                # if dst_stg and src_stg then
-                if dst_stg then
-                    src_stg = -1 unless src_stg # Extern connection to inner stage
-                    # Yes, connect after inserting delays if dst_stg > src_stg+1
-                    while dst_stg > src_stg+1 do
-                        # Creates the delay systemI
-                        delay = Pipeline.make_delay(src.type)
-                        # Add it to the pipeline
-                        # wrp = self.add_delay(delay,src_stg+1)
-                        self.add(delay,src_stg+1)
-                        wrp = self.get_wrapper(delay)
-                        # Connect it
-                        wrp.connect(src,delay.i)
-                        # Prepare the connect to the next stage
-                        src_stg += 1
-                        src = delay.o
-                    end
-                    dst_wrp.connect(src,dst)
-                # elsif dst_stg then
-                #     # No, but it is a connection to one component of the
-                #     # pipeline, insert delay until its stage is reached.
-                #     dst_wrp.connect(src,dst)
-                elsif src_stg then
-                    # No, but it is a connection from one component of the
-                    # pipeline.
-                    # puts "self.block=#{self.block}"
-                    self.block.add_statement(
-                        Transmit.new(dst.to_ref,src.to_ref) )
+            HDLRuby::High.space_reg(@name) do |&ruby_block|
+                if ruby_block then
+                    # Builds the pipeline.
+                    obj.build(&ruby_block)
                 else
-                    # No and the pipeline is not related to the signals, error.
-                    raise "Signals #{dst} and #{src} are not related to pipeline #{self}"
+                    # Return the pipeline as is.
+                    return obj
                 end
             end
+
         end
+
+        ## builds the pipeline by executing +ruby_block+.
+        def build(&ruby_block)
+            # Use local variable for accessing the attribute since they will
+            # be hidden when opening the sytem.
+            name      = @name
+            stages    = @stages
+            namespace = @namespace
+            this      = self
+            mk_ev     = @mk_ev
+            mk_rst    = @mk_rst
+            scope     = HDLRuby::High.cur_system.scope
+
+            return_value = nil
+
+            # Enters the current system
+            HDLRuby::High.cur_system.open do
+                sub do
+                    HDLRuby::High.space_push(namespace)
+                    # Execute the instantiation block
+                    return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
+                    HDLRuby::High.space_pop
+
+                    # Create the pipeline code.
+                    
+                    # Declare and register the pipeline registers generators.
+                    prs = []
+                    stages.each do |st|
+                        st.each do |rn|
+                            r = PipeSignal.new(name.to_s+"::"+rn.to_s,scope)
+                            prs << r
+                            namespace.add_method(rn) { r }
+                        end
+                    end
+
+                    # Build the pipeline structure.
+                    return_value = par(mk_ev.call) do
+                        hif(mk_rst.call == 0) do
+                            # No reset, pipeline handling.
+                            stages.each do |st|
+                                # Generate the code for the stage.
+                                HDLRuby::High.space_push(namespace)
+                                HDLRuby::High.top_user.instance_exec(&st.code)
+                                HDLRuby::High.space_pop
+                            end
+                        end
+                        helse do
+                            prs.each { |r| r <= 0 }
+                        end
+                    end
+                end
+            end
+
+            return return_value
+        end
+
+        ## The interface for building the pipeline
+
+        # Sets the event synchronizing the pipeline.
+        def for_event(event = nil,&ruby_block)
+            if event then
+                # An event is passed as argument, use it.
+                @mk_ev = proc { event.to_event }
+            else
+                # No event given, use the ruby_block as event generator.
+                @mk_ev = ruby_block
+            end
+        end
+
+        # Sets the reset.
+        def for_reset(reset = nil,&ruby_block)
+            if reset then
+                # An reset is passed as argument, use it.
+                @mk_rst = proc { reset.to_expr }
+            else
+                # No reset given, use the ruby_block as event generator.
+                @mk_rst = ruby_block
+            end
+        end
+
+
+        # Declare a new stage synchronized on registers declared in +regs+
+        # and executing +ruby_block+.
+        def stage(*regs, &ruby_block)
+            # Create the resulting state
+            result = Stage.new
+            # Test and set the registers.
+            regs.each do |reg|
+                # Ensure it is a symbol.
+                reg = reg.to_sym
+                # Add it.
+                result << reg
+            end
+            # Sets the generation code.
+            result.code = ruby_block
+            # Add it to the list of states.
+            @stages << result
+            # Return it.
+            return result
+        end
+
     end
 
 
-
-    # Declares a pipeline factory named +name+ synchronised on +clk+ and 
-    # reset on +rst+.
-    def pipeline(name = :"", clk, rst)
-        # Creates the resulting factory.
-        result = Pipeline.new(name,clk,rst)
+    ## Declare a new pipeline with +name+.
+    def pipeline(name)
+        return PipelineT.new(name)
     end
 
 end
