@@ -104,6 +104,33 @@ module HDLRuby::Low
             end
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(SystemT)
+            return false unless @name.eql?(obj.name)
+            return false unless @scope.eql?(obj.scope)
+            idx = 0
+            obj.each_input do |input|
+                return false unless @inputs[input.name].eql?(input)
+                idx += 1
+            end
+            return false unless idx == @inputs.size
+            idx = 0
+            obj.each_output do |output|
+                return false unless @outputs[output.name].eql?(output)
+                idx += 1
+            end
+            return false unless idx == @outputs.size
+            idx = 0
+            obj.each_inout do |inout|
+                return false unless @inouts[inout.name].eql?(inout)
+                idx += 1
+            end
+            return false unless idx == @inouts.size
+            return true
+        end
+
+
         # Handling the signals.
 
         # Adds input +signal+.
@@ -351,6 +378,42 @@ module HDLRuby::Low
             @connections = []
             # Initialize the behaviors lists.
             @behaviors = []
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Scope)
+            idx = 0
+            obj.each_scope do |scope|
+                return false unless @scopes[idx].eql?(scope)
+                idx += 1
+            end
+            return false unless idx == @scopes.size
+            idx = 0
+            obj.each_inner do |inner|
+                return false unless @inners[inner.name].eql?(inner)
+                idx += 1
+            end
+            return false unless idx == @inners.size
+            idx = 0
+            obj.each_systemI do |systemI|
+                return false unless @systemIs[systemI.name].eql?(systemI)
+                idx += 1
+            end
+            return false unless idx == @systemIs.size
+            idx = 0
+            obj.each_connection do |connection|
+                return false unless @connections[idx].eql?(connection)
+                idx += 1
+            end
+            return false unless idx == @connections.size
+            idx = 0
+            obj.each_behavior do |behavior|
+                return false unless @behaviors[idx].eql?(behavior)
+                idx += 1
+            end
+            return false unless idx == @behaviors.size
+            return true
         end
 
         # Handling the scopes
@@ -794,6 +857,13 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Type)
+            return false unless @name.eql?(obj.name)
+            return true
+        end
+
         # Tells if the type signed.
         def signed?
             return false
@@ -1015,6 +1085,16 @@ module HDLRuby::Low
             @def = type
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General type comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(TypeDef)
+            return false unless @def.eql?(obj.def)
+            return true
+        end
+
         # Delegate the type methods to the ref.
         def_delegators :@def,
                        :signed?, :unsigned?, :fixed?, :float?, :leaf?,
@@ -1064,6 +1144,16 @@ module HDLRuby::Low
                 range = range.first..range.last
             end
             @range = range
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General type comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless @base.eql?(obj.base)
+            return false unless @range.eql?(obj.range)
+            return true
         end
 
         # Gets the bitwidth of the type, nil for undefined.
@@ -1182,6 +1272,21 @@ module HDLRuby::Low
                 end
             end
             @types = content
+        end
+
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General type comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            idx = 0
+            obj.each_type do |type|
+                return false unless @types[idx].eql?(type)
+                idx += 1
+            end
+            return false unless idx == @types.size
+            return true
         end
 
         # Tells if the type has sub types.
@@ -1307,6 +1412,20 @@ module HDLRuby::Low
                 end
                 [ k.to_sym, v ]
             end.to_h
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General type comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            idx = 0
+            obj.each_key do |name|
+                return false unless @types[name].eql?(obj.get_type(name))
+                idx += 1
+            end
+            return false unless idx == @types.size
+            return true
         end
 
         # Tells if the type has named sub types.
@@ -1468,6 +1587,19 @@ module HDLRuby::Low
             @block = block
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Behavior)
+            idx = 0
+            obj.each_event do |event|
+                return false unless @events[idx].eql?(event)
+                idx += 1
+            end
+            return false unless idx == @events.size
+            return false unless @block.eql?(obj.block)
+            return true
+        end
+
         # Handle the sensitivity list.
 
         # Adds an +event+ to the sensitivity list.
@@ -1548,6 +1680,14 @@ module HDLRuby::Low
             @block = block
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(TimeBehavior)
+            # General comparison.
+            return super(obj)
+        end
+
         # Time behavior do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)
@@ -1577,6 +1717,14 @@ module HDLRuby::Low
                 raise AnyError, "Invalid class for a reference: #{ref.class}"
             end
             @ref = ref
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Event)
+            return false unless @type.eql?(obj.type)
+            return false unless @ref.eql?(obj.ref)
+            return true
         end
 
         # Tells if there is a positive or negative edge event.
@@ -1612,6 +1760,14 @@ module HDLRuby::Low
             end
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(SignalI)
+            return false unless @name.eql?(obj.name)
+            return false unless @type.eql?(obj.type)
+            return true
+        end
+
         # Gets the bit width.
         def width
             return @type.width
@@ -1645,6 +1801,14 @@ module HDLRuby::Low
                 raise AnyError, "Invalid class for a system type: #{systemT.class}"
             end
             @systemT = systemT
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(SystemI)
+            return false unless @name.eql?(obj.name)
+            return false unless @systemT.eql?(obj.systemT)
+            return true
         end
 
         # Rename with +name+
@@ -1726,7 +1890,13 @@ module HDLRuby::Low
         # Clones (deeply)
         def clone
             raise AnyError,
-                  "Internal error: clone not defined for class: #{self.class}"
+                  "Internal error: clone is not defined for class: #{self.class}"
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            raise AnyError,
+                "Internal error: eql? is not defined for class: #{self.class}"
         end
     end
 
@@ -1776,6 +1946,14 @@ module HDLRuby::Low
             @right = right
             # and set its parent.
             right.parent = self
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Transmit)
+            return false unless @left.eql?(obj.left)
+            return false unless @right.eql?(obj.right)
+            return true
         end
 
         # Iterates over the expression children if any.
@@ -1831,6 +2009,15 @@ module HDLRuby::Low
 
             # Initialize the list of alternative if statements (elsif)
             @noifs = []
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(If)
+            return false unless @condition.eql?(obj.condition)
+            return false unless @yes.eql?(obj.yes)
+            return false unless @no.eql?(obj.no)
+            return true
         end
 
         # Sets the no block.
@@ -1940,6 +2127,14 @@ module HDLRuby::Low
             match.parent = statement.parent = self
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(When)
+            return false unless @match.eql?(obj.match)
+            return false unless @statement.eql?(obj.statement)
+            return true
+        end
+
         # Clones the When (deeply)
         def clone
             return When.new(@match.clone,@statement.clone)
@@ -1985,6 +2180,21 @@ module HDLRuby::Low
             @whens = []
             # Checks and add the whens.
             whens.each { |w| self.add_when(w) }
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Case)
+            return false unless @value.eql?(obj.value)
+            return false unless @whens.eql?(obj.instance_variable_get(:@whens))
+            idx = 0
+            obj.each_when do |w|
+                return false unless @whens[idx].eql?(w)
+                idx += 1
+            end
+            return false unless idx == @whens.size
+            return false unless @default.eql?(obj.default)
+            return true
         end
 
         # # Adds a possible +match+ for the case's value that lead to the 
@@ -2090,6 +2300,14 @@ module HDLRuby::Low
             @unit = unit.to_sym
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Delay)
+            return false unless @unit.eql?(obj.unit)
+            return false unless @value.eql?(obj.value)
+            return true
+        end
+
         # Clones the Delay (deeply)
         def clone
             return Delay.new(@value,@unit)
@@ -2112,6 +2330,13 @@ module HDLRuby::Low
             @delay = delay
             # And set its parent.
             delay.parent = self
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(TimeWait)
+            return false unless @delay.eql?(obj.delay)
+            return true
         end
 
         # Clones the TimeWait (deeply)
@@ -2152,6 +2377,14 @@ module HDLRuby::Low
             delay.parent = self
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(TimeRepeat)
+            return false unless @delay.eql?(obj.delay)
+            return false unless @statement.eql?(obj.statement)
+            return true
+        end
+
         # Clones the TimeRepeat (deeply)
         def clone
             return TimeRepeat(@statement.clone,@delay.clone)
@@ -2180,6 +2413,26 @@ module HDLRuby::Low
             @inners = HashName.new
             # Initializes the list of statements.
             @statements = []
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Block)
+            return false unless @mode.eql?(obj.mode)
+            return false unless @name.eql?(obj.name)
+            idx = 0
+            obj.each_inner do |inner|
+                return false unless @inners[inner.name].eql?(inner)
+                idx += 1
+            end
+            return false unless idx == @inners.size
+            idx = 0
+            obj.each_statement do |statement|
+                return false unless @statements[idx].eql?(statement)
+                idx += 1
+            end
+            return false unless idx == @statements.size
+            return true
         end
 
         # Adds inner signal +signal+.
@@ -2343,6 +2596,12 @@ module HDLRuby::Low
             statement.parent = self
             statement
         end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(TimeBlock)
+            return super(obj)
+        end
     end
 
 
@@ -2355,6 +2614,9 @@ module HDLRuby::Low
         ## The type of code.
         attr_reader :type
 
+        ## The content of the code.
+        attr_reader :content
+
         # Creates a new piece of +type+ code from +content+.
         def initialize(type,&content)
             # Check and set type.
@@ -2363,6 +2625,14 @@ module HDLRuby::Low
             @content = content
             # Freeze it to avoid dynamic tempering of the hardware.
             content.freeze
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Code)
+            return false unless @type.eql?(obj.type)
+            return false unless @content.eql?(obj.content)
+            return true
         end
     end
 
@@ -2374,6 +2644,12 @@ module HDLRuby::Low
     # transmission, it has a common structure. Therefore, it is described
     # as a subclass of a transmit.
     class Connection < Transmit
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Connection)
+            return super(obj)
+        end
     end
 
 
@@ -2402,6 +2678,13 @@ module HDLRuby::Low
             else
                 raise AnyError, "Invalid class for a type: #{type.class}."
             end
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Expression)
+            return false unless @type.eql?(obj.type)
+            return true
         end
 
         # Iterates over the expression children if any.
@@ -2458,6 +2741,17 @@ module HDLRuby::Low
             @content = content 
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Value)
+            return false unless @content.eql?(obj.content)
+            return true
+        end
+
+
         # Compare values.
         #
         # NOTE: mainly used for being supported by ranges.
@@ -2506,6 +2800,16 @@ module HDLRuby::Low
             child.parent = self
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Cast)
+            return false unless @child.eql?(obj.child)
+            return true
+        end
+
         # Iterates over the expression children if any.
         def each_child(&ruby_block)
             # No ruby block? Return an enumerator.
@@ -2549,6 +2853,16 @@ module HDLRuby::Low
             # Check and set the operator.
             @operator = operator.to_sym
         end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Operation)
+            return false unless @operator.eql?(obj.operator)
+            return true
+        end
     end
 
 
@@ -2572,6 +2886,16 @@ module HDLRuby::Low
             @child = child
             # And set its parent.
             child.parent = self
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Unary)
+            return false unless @child.eql?(obj.child)
+            return true
         end
 
         # Iterates over the expression children if any.
@@ -2628,6 +2952,17 @@ module HDLRuby::Low
             @right = right
             # And set their parents.
             left.parent = right.parent = self
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Binary)
+            return false unless @left.eql?(obj.left)
+            return false unless @right.eql?(obj.right)
+            return true
         end
 
         # Iterates over the expression children if any.
@@ -2695,6 +3030,22 @@ module HDLRuby::Low
                 # choice.parent = self
                 self.add_choice(choice)
             end
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Select)
+            return false unless @select.eql?(obj.select)
+            idx = 0
+            obj.each_choice do |choice|
+                return false unless @choices[idx].eql?(choice)
+                idx += 1
+            end
+            return false unless idx == @choices.size
+            return true
         end
 
         # Iterates over the expression children if any.
@@ -2771,6 +3122,21 @@ module HDLRuby::Low
             expressions.each { |expression| self.add_expression(expression) }
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Concat)
+            idx = 0
+            obj.each_expression do |expression|
+                return false unless @expressions[idx].eql?(expression)
+                idx += 1
+            end
+            return false unless idx == @expressions.size
+            return true
+        end
+
         # Adds an +expression+ to concat.
         def add_expression(expression)
             # Check expression.
@@ -2809,6 +3175,16 @@ module HDLRuby::Low
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Ref < Expression
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(Ref)
+            return true
+        end
+
         # Iterates over the names of the path indicated by the reference.
         #
         # NOTE: this is not a method for iterating over all the names included
@@ -2851,6 +3227,22 @@ module HDLRuby::Low
             @refs = refs
             # And set their parents.
             refs.each { |ref| ref.parent = self }
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(RefConcat)
+            idx = 0
+            obj.each_ref do |ref|
+                return false unless @refs[idx].eql?(ref)
+                idx += 1
+            end
+            return false unless idx == @refs.size
+            return false unless @refs.eql?(obj.instance_variable_get(:@refs))
+            return true
         end
 
         # Iterates over the concatenated references.
@@ -2899,6 +3291,17 @@ module HDLRuby::Low
             @index = index
             # And set its parent.
             index.parent = self
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(RefIndex)
+            return false unless @index.eql?(obj.index)
+            return false unless @ref.eql?(obj.ref)
+            return true
         end
 
         # Iterates over the names of the path indicated by the reference.
@@ -2960,6 +3363,20 @@ module HDLRuby::Low
             first.parent = last.parent = self
         end
 
+        # Comparison for hash: structural comparison.
+        #
+        # NOTE: ranges are assumed to be flattened (a range of range is
+        # a range of same level).
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(RefRange)
+            return false unless @range.eql?(obj.index)
+            return false unless @ref.eql?(obj.ref)
+            return true
+        end
+
         # Iterates over the names of the path indicated by the reference.
         #
         # Returns an enumerator if no ruby block is given.
@@ -3008,6 +3425,17 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            # General comparison.
+            return false unless super(obj)
+            # Specific comparison.
+            return false unless obj.is_a?(RefName)
+            return false unless @name.eql?(obj.name)
+            return false unless @ref.eql?(obj.ref)
+            return true
+        end
+
         # Iterates over the names of the path indicated by the reference.
         #
         # Returns an enumerator if no ruby block is given.
@@ -3043,6 +3471,11 @@ module HDLRuby::Low
         # Clones this.
         def clone
             return RefThis.new
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return obj.is_a?(RefThis)
         end
     end
 end

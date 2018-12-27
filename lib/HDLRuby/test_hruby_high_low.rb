@@ -43,6 +43,7 @@ puts
 puts "##############################"
 puts "Checking HDLRuby::Low methods."
 puts "##############################"
+
 puts
 puts "Checking clone."
 # Try clone
@@ -58,3 +59,15 @@ low.each_behavior do |beh|
     end
 end
 
+puts
+puts "Checking eql?"
+puts "Cloning system: #{system}... "
+low_clone = low.clone
+print "Checking eql? with the copy and the original of #{system}... "
+# Try eql?
+res = low.eql?(low_clone)
+if res then
+    puts "Ok."
+else
+    puts "Invalid eql result: #{res}."
+end
