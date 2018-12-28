@@ -60,6 +60,7 @@ low.each_behavior do |beh|
     end
 end
 
+
 puts
 puts "Checking eql?."
 puts "Cloning system: #{system}... "
@@ -83,4 +84,16 @@ if low_hash == clone_hash then
     puts "Ok."
 else
     puts "Invalid hashbol expected #{low_hash} but got: #{clone_hash}."
+end
+
+
+puts
+puts "Checking to_sym."
+print "Checking to_sym with the copy and the original of #{system}... "
+low_to_sym = low.to_sym
+clone_to_sym = low_clone.to_sym
+if low_to_sym == clone_to_sym then
+    puts "Ok."
+else
+    puts "Invalid to_symbol expected #{low_to_sym} but got: #{clone_to_sym}."
 end
