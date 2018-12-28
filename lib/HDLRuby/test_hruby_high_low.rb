@@ -1,4 +1,5 @@
 require 'HDLRuby'
+require 'HDLRuby/hruby_low2sym'
 
 configure_high
 
@@ -60,7 +61,7 @@ low.each_behavior do |beh|
 end
 
 puts
-puts "Checking eql?"
+puts "Checking eql?."
 puts "Cloning system: #{system}... "
 low_clone = low.clone
 print "Checking eql? with the copy and the original of #{system}... "
@@ -70,4 +71,16 @@ if res then
     puts "Ok."
 else
     puts "Invalid eql result: #{res}."
+end
+
+
+puts
+puts "Checking hash."
+print "Checking hash with the copy and the original of #{system}... "
+low_hash = low.hash
+clone_hash = low_clone.hash
+if low_hash == clone_hash then
+    puts "Ok."
+else
+    puts "Invalid hashbol expected #{low_hash} but got: #{clone_hash}."
 end

@@ -130,6 +130,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [@name,@scope,@inputs,@outputs,@inouts].hash
+        end
+
 
         # Handling the signals.
 
@@ -414,6 +419,11 @@ module HDLRuby::Low
             end
             return false unless idx == @behaviors.size
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@scopes,@inners,@systemIs,@connections,@behaviors].hash
         end
 
         # Handling the scopes
@@ -864,6 +874,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [@name].hash
+        end
+
         # Tells if the type signed.
         def signed?
             return false
@@ -1095,6 +1110,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@def].hash
+        end
+
         # Delegate the type methods to the ref.
         def_delegators :@def,
                        :signed?, :unsigned?, :fixed?, :float?, :leaf?,
@@ -1154,6 +1174,11 @@ module HDLRuby::Low
             return false unless @base.eql?(obj.base)
             return false unless @range.eql?(obj.range)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@base,@range].hash
         end
 
         # Gets the bitwidth of the type, nil for undefined.
@@ -1287,6 +1312,11 @@ module HDLRuby::Low
             end
             return false unless idx == @types.size
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@types].hash
         end
 
         # Tells if the type has sub types.
@@ -1426,6 +1456,11 @@ module HDLRuby::Low
             end
             return false unless idx == @types.size
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@types].hash
         end
 
         # Tells if the type has named sub types.
@@ -1600,6 +1635,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [@events,@block].hash
+        end
+
         # Handle the sensitivity list.
 
         # Adds an +event+ to the sensitivity list.
@@ -1688,6 +1728,11 @@ module HDLRuby::Low
             return super(obj)
         end
 
+        # Hash function.
+        def hash
+            super
+        end
+
         # Time behavior do not have other event than time, so deactivate
         # the relevant methods.
         def add_event(event)
@@ -1725,6 +1770,11 @@ module HDLRuby::Low
             return false unless @type.eql?(obj.type)
             return false unless @ref.eql?(obj.ref)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@type,@ref].hash
         end
 
         # Tells if there is a positive or negative edge event.
@@ -1768,6 +1818,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [@name,@type].hash
+        end
+
         # Gets the bit width.
         def width
             return @type.width
@@ -1809,6 +1864,11 @@ module HDLRuby::Low
             return false unless @name.eql?(obj.name)
             return false unless @systemT.eql?(obj.systemT)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@name,@systemT].hash
         end
 
         # Rename with +name+
@@ -1898,6 +1958,12 @@ module HDLRuby::Low
             raise AnyError,
                 "Internal error: eql? is not defined for class: #{self.class}"
         end
+
+        # Hash function.
+        def hash
+            raise AnyError,
+                "Internal error: hash is not defined for class: #{self.class}"
+        end
     end
 
 
@@ -1954,6 +2020,11 @@ module HDLRuby::Low
             return false unless @left.eql?(obj.left)
             return false unless @right.eql?(obj.right)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@left,@right].hash
         end
 
         # Iterates over the expression children if any.
@@ -2018,6 +2089,11 @@ module HDLRuby::Low
             return false unless @yes.eql?(obj.yes)
             return false unless @no.eql?(obj.no)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@condition,@yes,@no].hash
         end
 
         # Sets the no block.
@@ -2135,6 +2211,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [@match,@statement].hash
+        end
+
         # Clones the When (deeply)
         def clone
             return When.new(@match.clone,@statement.clone)
@@ -2195,6 +2276,11 @@ module HDLRuby::Low
             return false unless idx == @whens.size
             return false unless @default.eql?(obj.default)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@value,@whens,@default].hash
         end
 
         # # Adds a possible +match+ for the case's value that lead to the 
@@ -2308,6 +2394,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [@unit,@value].hash
+        end
+
         # Clones the Delay (deeply)
         def clone
             return Delay.new(@value,@unit)
@@ -2337,6 +2428,11 @@ module HDLRuby::Low
             return false unless obj.is_a?(TimeWait)
             return false unless @delay.eql?(obj.delay)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@delay].hash
         end
 
         # Clones the TimeWait (deeply)
@@ -2383,6 +2479,11 @@ module HDLRuby::Low
             return false unless @delay.eql?(obj.delay)
             return false unless @statement.eql?(obj.statement)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@delay,@statement].hash
         end
 
         # Clones the TimeRepeat (deeply)
@@ -2433,6 +2534,11 @@ module HDLRuby::Low
             end
             return false unless idx == @statements.size
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@mode,@name,@inners,@statements].hash
         end
 
         # Adds inner signal +signal+.
@@ -2602,6 +2708,11 @@ module HDLRuby::Low
             return false unless obj.is_a?(TimeBlock)
             return super(obj)
         end
+
+        # Hash function.
+        def hash
+            return super
+        end
     end
 
 
@@ -2634,6 +2745,11 @@ module HDLRuby::Low
             return false unless @content.eql?(obj.content)
             return true
         end
+
+        # Hash function.
+        def hash
+            return [@type,@content].hash
+        end
     end
 
 
@@ -2649,6 +2765,11 @@ module HDLRuby::Low
         def eql?(obj)
             return false unless obj.is_a?(Connection)
             return super(obj)
+        end
+
+        # Hash function.
+        def hash
+            return super
         end
     end
 
@@ -2685,6 +2806,11 @@ module HDLRuby::Low
             return false unless obj.is_a?(Expression)
             return false unless @type.eql?(obj.type)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [@type].hash
         end
 
         # Iterates over the expression children if any.
@@ -2751,6 +2877,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@content].hash
+        end
+
 
         # Compare values.
         #
@@ -2810,6 +2941,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@child].hash
+        end
+
         # Iterates over the expression children if any.
         def each_child(&ruby_block)
             # No ruby block? Return an enumerator.
@@ -2863,6 +2999,11 @@ module HDLRuby::Low
             return false unless @operator.eql?(obj.operator)
             return true
         end
+
+        # Hash function.
+        def hash
+            return [super,@operator].hash
+        end
     end
 
 
@@ -2896,6 +3037,11 @@ module HDLRuby::Low
             return false unless obj.is_a?(Unary)
             return false unless @child.eql?(obj.child)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@child].hash
         end
 
         # Iterates over the expression children if any.
@@ -2963,6 +3109,11 @@ module HDLRuby::Low
             return false unless @left.eql?(obj.left)
             return false unless @right.eql?(obj.right)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@left,@right].hash
         end
 
         # Iterates over the expression children if any.
@@ -3046,6 +3197,11 @@ module HDLRuby::Low
             end
             return false unless idx == @choices.size
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@select,@choices].hash
         end
 
         # Iterates over the expression children if any.
@@ -3137,6 +3293,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@expressions].hash
+        end
+
         # Adds an +expression+ to concat.
         def add_expression(expression)
             # Check expression.
@@ -3183,6 +3344,11 @@ module HDLRuby::Low
             # Specific comparison.
             return false unless obj.is_a?(Ref)
             return true
+        end
+
+        # Hash function.
+        def hash
+            super
         end
 
         # Iterates over the names of the path indicated by the reference.
@@ -3245,6 +3411,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@refs].hash
+        end
+
         # Iterates over the concatenated references.
         #
         # Returns an enumerator if no ruby block is given.
@@ -3302,6 +3473,11 @@ module HDLRuby::Low
             return false unless @index.eql?(obj.index)
             return false unless @ref.eql?(obj.ref)
             return true
+        end
+
+        # Hash function.
+        def hash
+            return [super,@index,@ref].hash
         end
 
         # Iterates over the names of the path indicated by the reference.
@@ -3377,6 +3553,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@range,@ref].hash
+        end
+
         # Iterates over the names of the path indicated by the reference.
         #
         # Returns an enumerator if no ruby block is given.
@@ -3436,6 +3617,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Hash function.
+        def hash
+            return [super,@name,@ref].hash
+        end
+
         # Iterates over the names of the path indicated by the reference.
         #
         # Returns an enumerator if no ruby block is given.
@@ -3476,6 +3662,11 @@ module HDLRuby::Low
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return obj.is_a?(RefThis)
+        end
+
+        # Hash function.
+        def hash
+            return super
         end
     end
 end
