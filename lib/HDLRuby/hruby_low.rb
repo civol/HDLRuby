@@ -1096,6 +1096,10 @@ module HDLRuby::Low
         def initialize(name,type)
             # Initialize with name.
             super(name)
+            # Checks the referered type.
+            unless type.is_a?(Type) then
+                raise AnyError, "Invalid class for a type: #{type.class}"
+            end
             # Set the referened type.
             @def = type
         end
@@ -1621,6 +1625,7 @@ module HDLRuby::Low
             # And set the block
             @block = block
         end
+        private :block=
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -1718,6 +1723,7 @@ module HDLRuby::Low
             end
             # Time blocks are supported here.
             @block = block
+            block.parent = self
         end
 
         # Comparison for hash: structural comparison.
@@ -2144,6 +2150,18 @@ module HDLRuby::Low
                 yield(next_cond,next_yes)
             end
         end
+
+        # Interates over the children (including the condition).
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block?
+            # Appy it on the children.
+            ruby_block.call(@condition)
+            ruby_block.call(@yes)
+            ruby_block.call(@no) if @no
+            each_noif(&ruby_block)
+        end
             
 
         # Iterates over all the blocks contained in the current block.
@@ -2220,6 +2238,16 @@ module HDLRuby::Low
         def clone
             return When.new(@match.clone,@statement.clone)
         end
+
+        # Interates over the children.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block?
+            # Appy it on the children.
+            ruby_block.call(@match)
+            ruby_block.call(@statement)
+        end
     end
 
 
@@ -2245,21 +2273,8 @@ module HDLRuby::Low
             value.parent = self
             # Checks and set the default case if any.
             self.default = default if default
-            # # Initialize the match cases, and check them.
-            # @whens = whens
-            # # puts "whens=#{whens}"
-            # @whens.each do |match,statement|
-            #     # Checks the match.
-            #     unless match.is_a?(Expression)
-            #         raise AnyError, "Invalid class for a case match: #{match.class}"
-            #     end
-            #     # Checks statement.
-            #     unless statement.is_a?(Statement)
-            #         raise AnyError, "Invalid class for a statement: #{statement.class}"
-            #     end
-            # end
-            @whens = []
             # Checks and add the whens.
+            @whens = []
             whens.each { |w| self.add_when(w) }
         end
 
@@ -2339,6 +2354,20 @@ module HDLRuby::Low
             # A block? Apply it on each when case.
             @whens.each(&ruby_block)
         end
+
+        # Iterates over the children (including the value).
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_when) unless ruby_block
+            # A block? Apply it on each child.
+            ruby_block.call(@value)
+            @whens.each(&ruby_block)
+            ruby_block.call(@default)
+        end
+
+        
 
         # Iterates over all the blocks contained in the current block.
         def each_block_deep(&ruby_block)
@@ -2490,6 +2519,14 @@ module HDLRuby::Low
         def clone
             return TimeRepeat(@statement.clone,@delay.clone)
         end
+
+        # Iterates over the expression children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the child.
+            ruby_block.call(@statement)
+        end
     end
 
 
@@ -2617,6 +2654,8 @@ module HDLRuby::Low
             # A block? Apply it on each statement.
             @statements.each(&ruby_block)
         end
+
+        alias :each_child :each_statement
 
         # Reverse iterates over the statements.
         #
@@ -3162,7 +3201,6 @@ module HDLRuby::Low
             # super(operator)
             super(type,operator)
             # Check and set the selection.
-            # puts "select = #{select}"
             unless select.is_a?(Expression)
                 raise AnyError,
                       "Invalid class for an expression: #{select.class}"
@@ -3173,12 +3211,6 @@ module HDLRuby::Low
             # Check and set the choices.
             @choices = []
             choices.each do |choice|
-                # unless choice.is_a?(Expression)
-                #     raise AnyError, "Invalid class for an expression: #{choice.class}"
-                # end
-                # @choices << choice
-                # # And set its parent.
-                # choice.parent = self
                 self.add_choice(choice)
             end
         end
@@ -3239,6 +3271,18 @@ module HDLRuby::Low
         # Gets a choice by +index+.
         def get_choice(index)
             return @choices[index]
+        end
+
+        # Iterates over the children.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Apply it on the select.
+            ruby_block.call(@select)
+            # And on the choices.
+            self.each_choice(&ruby_block)
         end
 
         # Iterates over all the references encountered in the expression.
@@ -3492,7 +3536,8 @@ module HDLRuby::Low
         def each_child(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_child) unless ruby_block
-            # A block? Apply it on the child.
+            # A block? Apply it on the index and the ref.
+            ruby_block.call(@index)
             ruby_block.call(@ref)
         end
 
@@ -3570,7 +3615,9 @@ module HDLRuby::Low
         def each_child(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_child) unless ruby_block
-            # A block? Apply it on the child.
+            # A block? Apply it on the ranfe and the ref.
+            ruby_block.call(@range.first)
+            ruby_block.call(@range.last)
             ruby_block.call(@ref)
         end
 
@@ -3667,6 +3714,13 @@ module HDLRuby::Low
         # Hash function.
         def hash
             return super
+        end
+
+        # Iterates over the reference children if any.
+        def each_child(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_child) unless ruby_block
+            # A block? Nothing to do.
         end
     end
 end
