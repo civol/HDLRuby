@@ -49,17 +49,38 @@ module HDLRuby::Low
 
         # Deletes an input.
         def delete_input!(input)
-            @inputs.delete(input.name)
+            if @inputs.key?(signal) then
+                # The signal is present, delete it.
+                @inputs.delete(signal.name)
+                @interface.delete(signal)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Deletes an output.
         def delete_output!(output)
-            @outputs.delete(output.name)
+            if @outputs.key?(signal) then
+                # The signal is present, delete it.
+                @outputs.delete(signal.name)
+                @interface.delete(signal)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Deletes an inout.
         def delete_inout!(inout)
-            @inouts.delete(inout.name)
+            if @inouts.key?(signal) then
+                # The signal is present, delete it.
+                @inouts.delete(signal.name)
+                @interface.delete(signal)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
     end
 
@@ -95,27 +116,55 @@ module HDLRuby::Low
 
         # Deletes a scope.
         def delete_scope!(scope)
+            # Remove the scope from the list
             @scopes.delete(scope)
+            # And remove its parent.
+            scope.parent = nil
+            # Return the deleted scope
+            scope
         end
 
         # Deletes an inner.
         def delete_inner!(inner)
-            @inners.delete(inner.name)
+            if @inners.key?(signal) then
+                # The signal is present, delete it. 
+                @inners.delete(signal.name)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Deletes a systemI.
         def delete_systemI!(systemI)
-            @systemIs.delete(systemI.name)
+            if @systemIs.key?(systemI.name) then
+                # The instance is present, do remove it.
+                @systemIs.delete(systemI.name)
+                # And remove its parent.
+                systemI.parent = nil
+            end
+            systemI
         end
 
         # Deletes a connection.
         def delete_connection!(connection)
-            @connections.delete(connection)
+            if @connections.include?(connection) then
+                # The connection is present, delete it.
+                @connections.delete(connection)
+                # And remove its parent.
+                connection.parent = nil
+            end
+            connection
         end
 
         # Deletes a behavior.
         def delete_behavior!(behavior)
-            @behaviors.delete(behavior)
+            if @behaviors.include?(behavior) then
+                # The behavior is present, delete it.
+                @behaviors.delete(behavior)
+                # And remove its parent.
+                behavior.parent = nil
+            end
         end
     end
 
@@ -136,8 +185,8 @@ module HDLRuby::Low
     #
     # NOTE: type definition are actually type with a name refering to another
     #       type (and equivalent to it).
-    class TypeDef < Type
-            return [super,@def].hash
+    class TypeDef
+
         # Sets the type definition to +type+.
         def set_def!(type)
             # Checks the referered type.
@@ -153,7 +202,7 @@ module HDLRuby::Low
 
     ##
     # Describes a vector type.
-    class TypeVector < Type
+    class TypeVector
         
         # Sets the +base+ type.
         def set_base(type)
@@ -183,7 +232,7 @@ module HDLRuby::Low
 
     ##
     # Describes a tuple type.
-    class TypeTuple < Type
+    class TypeTuple
 
         # Maps on the sub types.
         def map_types!(&ruby_block)
@@ -192,14 +241,20 @@ module HDLRuby::Low
 
         # Deletes a type.
         def delete_type!(type)
-            @types.delete(type)
+            if @types.include?(type) then
+                # The type is present, delete it.
+                @types.delete(type)
+                # And remove its parent.
+                type.parent = nil
+            end
+            type
         end
     end
 
 
     ##
     # Describes a structure type.
-    class TypeStruct < Type
+    class TypeStruct
 
         # Maps on the sub types.
         def map_types!(&ruby_block)
@@ -208,7 +263,13 @@ module HDLRuby::Low
 
         # Deletes a sub type by +key+.
         def delete_type!(key)
-            @types.delete(key)
+            if @types.include?(key) then
+                # The type is present, delete it.
+                type = @types.delete(key)
+                # And remove its parent.
+                type.parent = nil
+            end
+            type
         end
     end
 
@@ -230,7 +291,13 @@ module HDLRuby::Low
 
         # Deletes a event.
         def delete_event!(event)
-            @events.delete(event)
+            if @events.include?(event) then
+                # The event is present, delete it.
+                @events.delete(event)
+                # And remove its parent.
+                event.parent = nil
+            end
+            event
         end
     end
 
@@ -241,7 +308,7 @@ module HDLRuby::Low
     # NOTE: 
     # * this is the only kind of behavior that can include time statements. 
     # * this kind of behavior is not synthesizable!
-    class TimeBehavior < Behavior
+    class TimeBehavior
 
         # Sets the block.
         def set_block!(block)
@@ -335,7 +402,7 @@ module HDLRuby::Low
 
     ## 
     # Decribes a transmission statement.
-    class Transmit < Statement
+    class Transmit
         # Sets the left.
         def set_left!(left)
             # Check and set the left reference.
@@ -360,7 +427,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @left = ruby_block.call(@left)
             left.parent = self
             @right = ruby_block.call(@right)
@@ -371,7 +438,7 @@ module HDLRuby::Low
 
     ## 
     # Describes an if statement.
-    class If < Statement
+    class If
 
         # Sets the condition.
         def set_condition!(condition)
@@ -414,15 +481,21 @@ module HDLRuby::Low
 
         # Deletes an alternate if.
         def delete_noif!(noif)
-            @noifs.delete(noif)
+            if @noifs.include?(noif) then
+                # The noif is present, delete it.
+                @noifs.delete(noif)
+                # And remove its parent.
+                noif.parent = nil
+            end
+            noif
         end
 
         # Maps on the children (including the condition).
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @condition = ruby_block.call(@condition)
             @yes = ruby_block.call(@yes)
             @no = ruby_block.call(@no) if @no
-            map_noif!(&ruby_block)
+            map_noifs!(&ruby_block)
         end
     end
 
@@ -455,7 +528,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children (including the condition).
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @match = ruby_block.call(@match)
             @statement = ruby_block.call(@statement)
         end
@@ -464,7 +537,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a case statement.
-    class Case < Statement
+    class Case
 
         # Sets the value.
         def set_value!(value)
@@ -484,7 +557,7 @@ module HDLRuby::Low
         end
 
         # Maps on the whens.
-        def map_when!(&ruby_block)
+        def map_whens!(&ruby_block)
             @whens.map(&ruby_block)
         end
 
@@ -494,10 +567,10 @@ module HDLRuby::Low
         end
 
         # Maps on the children (including the value).
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             # A block? Apply it on each child.
             @value = ruby_block.call(@value)
-            map_when!(&ruby_block)
+            map_whens!(&ruby_block)
             @default = ruby_block.call(@default) if @default
         end
     end
@@ -527,7 +600,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a wait statement: not synthesizable!
-    class TimeWait < Statement
+    class TimeWait
         
         # Sets the delay.
         def set_delay!(delay)
@@ -544,7 +617,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a timed loop statement: not synthesizable!
-    class TimeRepeat < Statement
+    class TimeRepeat
         
         # Sets the statement.
         def set_statement!(statement)
@@ -570,7 +643,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @statement = ruby_block.call(@statement)
         end
     end
@@ -578,7 +651,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a block.
-    class Block < Statement
+    class Block
 
         # Sets the mode.
         def set_mode!(mode)
@@ -602,11 +675,17 @@ module HDLRuby::Low
             @statements.map(&ruby_block)
         end
 
-        alias :map_chid! :map_statement!
+        alias :map_children! :map_statements!
 
         # Deletes a statement.
         def delete_statement!(statement)
-            @statement.delete(statement)
+            if @statements.include?(statement) then
+                # Statement is present, delete it.
+                @statements.delete(statement)
+                # And remove its parent.
+                statement.parent = nil
+            end
+            statement
         end
     end
 
@@ -615,7 +694,7 @@ module HDLRuby::Low
     # NOTE: 
     # * this is the only kind of block that can include time statements. 
     # * this kind of block is not synthesizable!
-    class TimeBlock < Block
+    class TimeBlock
     end
 
 
@@ -643,7 +722,7 @@ module HDLRuby::Low
     # NOTE: eventhough a connection is semantically different from a
     # transmission, it has a common structure. Therefore, it is described
     # as a subclass of a transmit.
-    class Connection < Transmit
+    class Connection
     end
 
 
@@ -668,7 +747,7 @@ module HDLRuby::Low
     
     ##
     # Describes a value.
-    class Value < Expression
+    class Value
 
         # Sets the content.
         def set_content!(content)
@@ -681,7 +760,7 @@ module HDLRuby::Low
 
     ##
     # Describes a cast.
-    class Cast < Expression
+    class Cast
 
         # Sets the child.
         def set_child!(child)
@@ -695,7 +774,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @child = ruby_block.call(@child)
         end
     end
@@ -705,7 +784,7 @@ module HDLRuby::Low
     # Describes an operation.
     #
     # NOTE: this is an abstract class which is not to be used directly.
-    class Operation < Expression
+    class Operation
 
         # Sets the operator.
         def set_operator!(operator)
@@ -717,7 +796,7 @@ module HDLRuby::Low
 
     ## 
     # Describes an unary operation.
-    class Unary < Operation
+    class Unary
 
         # Sets the child.
         def set_child!(child)
@@ -731,7 +810,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @child = ruby_block.call(@child)
         end
     end
@@ -739,7 +818,7 @@ module HDLRuby::Low
 
     ##
     # Describes an binary operation.
-    class Binary < Operation
+    class Binary
 
         # Sets the left.
         def set_left!(left)
@@ -764,7 +843,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @left  = ruby_block.call(@left)
             @right = ruby_block.call(@right)
         end
@@ -775,7 +854,7 @@ module HDLRuby::Low
     # Describes a section operation (generalization of the ternary operator).
     #
     # NOTE: choice is using the value of +select+ as an index.
-    class Select < Operationq
+    class Select
 
         # Sets the select.
         def set_select!(select)
@@ -790,36 +869,48 @@ module HDLRuby::Low
         end
 
         # Maps on the choices.
-        def map_choice(&ruby_block)
+        def map_choices!(&ruby_block)
             @choices.map(ruby_block)
         end
 
         # Deletes a choice.
         def delete_choice!(choice)
-            @choices.delete(choice)
+            if @choices.include?(choice) then
+                # The choice is present, delete it.
+                @choices.delete(choice)
+                # And remove its parent.
+                choice.parent = nil
+            end
+            choice
         end
 
         # Maps on the children.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @select = ruby_block.call(@select)
-            map_choice(&ruby_block)
+            map_choices!(&ruby_block)
         end
     end
 
 
     ## 
     # Describes a concatenation expression.
-    class Concat < Expression
+    class Concat
         # Maps on the expression.
-        def map_expression!(&ruby_block)
+        def map_expressions!(&ruby_block)
             @expressions.map(&ruby_block)
         end
 
-        alias :map_child :map_expression
+        alias :map_children! :map_expressions!
 
         # Delete an expression.
         def delete_expression!(expression)
-            @expressions.delete(expression)
+            if @expressions.include?(expression) then
+                # The expression is present, delete it.
+                @expressions.delete(expression)
+                # And remove its parent.
+                expression.parent = nil
+            end
+            expression
         end
     end
 
@@ -828,9 +919,9 @@ module HDLRuby::Low
     # Describes a reference expression.
     #
     # NOTE: this is an abstract class which is not to be used directly.
-    class Ref < Expression
+    class Ref
         # Maps on the children.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             # Nothing to do.
         end
     end
@@ -838,18 +929,24 @@ module HDLRuby::Low
 
     ##
     # Describes concatenation reference.
-    class RefConcat < Ref
+    class RefConcat
 
         # Maps on the references.
-        def map_ref!(&ruby_block)
+        def map_refs!(&ruby_block)
             @refs.map(&ruby_block)
         end
 
-        alias :map_child :map_ref
+        alias :map_children! :map_refs!
 
         # Delete a reference.
         def delete_ref!(ref)
-            @refs.delete(ref)
+            if @refs.include?(ref) then
+                # The ref is present, delete it.
+                @refs.delete(ref)
+                # And remove its parent.
+                ref.parent = nil
+            end
+            ref
         end
 
     end
@@ -857,7 +954,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a index reference.
-    class RefIndex < Ref
+    class RefIndex
         
         # Sets the base reference.
         def set_ref!(ref)
@@ -883,7 +980,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @index = ruby_block.call(@index)
             @ref   = ruby_block.call(@ref)
         end
@@ -892,7 +989,7 @@ module HDLRuby::Low
 
     ## 
     # Describes a range reference.
-    class RefRange < Ref
+    class RefRange
         
         # Sets the base reference.
         def set_ref!(ref)
@@ -924,7 +1021,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @range.first = ruby_block.call(@range.first)
             @range.last  = ruby_block.call(@range.last)
             @ref         = ruby_block.call(@ref)
@@ -934,7 +1031,7 @@ module HDLRuby::Low
 
     ##
     # Describes a name reference.
-    class RefName < Ref
+    class RefName
         # Sets the base reference.
         def set_ref!(ref)
             # Check and set the accessed reference.
@@ -953,7 +1050,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_child!(&ruby_block)
+        def map_children!(&ruby_block)
             @ref = ruby_block.call(@ref)
         end
     end
@@ -963,10 +1060,10 @@ module HDLRuby::Low
     # Describe a this reference.
     #
     # This is the current system.
-    class RefThis < Ref 
+    class RefThis
 
         # Maps on the children.
-        def map_child(&ruby_block)
+        def map_children!(&ruby_block)
             # Nothing to do.
         end
     end

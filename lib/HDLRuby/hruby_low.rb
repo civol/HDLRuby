@@ -93,11 +93,11 @@ module HDLRuby::Low
             # The methods delegated to the scope.
             # Do not use Delegator to keep hand on the attributes of the class.
 
-            [:add_scope,     :each_scope,                     :delete_scope,
-             :add_systemI,   :each_systemI,   :get_systemI,   :delete_systemI,
-             :add_inner,     :each_inner,     :get_inner,     :delete_inner,
-             :add_behavior,  :each_behavior,                  :delete_behavior,
-             :add_connection,:each_connection,                :delete_connection
+            [:add_scope,     :each_scope,                     # :delete_scope,
+             :add_systemI,   :each_systemI,   :get_systemI,   # :delete_systemI,
+             :add_inner,     :each_inner,     :get_inner,     # :delete_inner,
+             :add_behavior,  :each_behavior,                  # :delete_behavior,
+             :add_connection,:each_connection,                # :delete_connection
             ].each do |meth_sym|
                 define_singleton_method(meth_sym,
                                         &(@scope.method(meth_sym).to_proc))
@@ -320,41 +320,41 @@ module HDLRuby::Low
             return @interface[i]
         end
 
-        # Deletes input +signal+.
-        def delete_input(signal)
-            if @inputs.key?(signal) then
-                # The signal is present, delete it.
-                @inputs.delete(signal.name)
-                @interface.delete(signal)
-                # And remove its parent.
-                signal.parent = nil
-            end
-            signal
-        end
+        # # Deletes input +signal+.
+        # def delete_input(signal)
+        #     if @inputs.key?(signal) then
+        #         # The signal is present, delete it.
+        #         @inputs.delete(signal.name)
+        #         @interface.delete(signal)
+        #         # And remove its parent.
+        #         signal.parent = nil
+        #     end
+        #     signal
+        # end
 
-        # Deletes output +signal+.
-        def delete_output(signal)
-            if @outputs.key?(signal) then
-                # The signal is present, delete it.
-                @outputs.delete(signal.name)
-                @interface.delete(signal)
-                # And remove its parent.
-                signal.parent = nil
-            end
-            signal
-        end
+        # # Deletes output +signal+.
+        # def delete_output(signal)
+        #     if @outputs.key?(signal) then
+        #         # The signal is present, delete it.
+        #         @outputs.delete(signal.name)
+        #         @interface.delete(signal)
+        #         # And remove its parent.
+        #         signal.parent = nil
+        #     end
+        #     signal
+        # end
 
-        # Deletes inout +signal+.
-        def delete_inout(signal)
-            if @inouts.key?(signal) then
-                # The signal is present, delete it.
-                @inouts.delete(signal.name)
-                @interface.delete(signal)
-                # And remove its parent.
-                signal.parent = nil
-            end
-            signal
-        end
+        # # Deletes inout +signal+.
+        # def delete_inout(signal)
+        #     if @inouts.key?(signal) then
+        #         # The signal is present, delete it.
+        #         @inouts.delete(signal.name)
+        #         @interface.delete(signal)
+        #         # And remove its parent.
+        #         signal.parent = nil
+        #     end
+        #     signal
+        # end
 
     end
 
@@ -459,15 +459,15 @@ module HDLRuby::Low
             return !@scopes.empty?
         end
 
-        # Deletes a scope.
-        def delete_scope(scope)
-            # Remove the scope from the list
-            @scopes.delete(scope)
-            # And remove its parent.
-            scope.parent = nil
-            # Return the deleted scope
-            scope
-        end
+        # # Deletes a scope.
+        # def delete_scope(scope)
+        #     # Remove the scope from the list
+        #     @scopes.delete(scope)
+        #     # And remove its parent.
+        #     scope.parent = nil
+        #     # Return the deleted scope
+        #     scope
+        # end
 
         # Handling the system instances.
 
@@ -510,16 +510,16 @@ module HDLRuby::Low
             return @systemIs[name]
         end
 
-        # Deletes system instance systemI.
-        def delete_systemI(systemI)
-            if @systemIs.key?(systemI.name) then
-                # The instance is present, do remove it.
-                @systemIs.delete(systemI.name)
-                # And remove its parent.
-                systemI.parent = nil
-            end
-            systemI
-        end
+        # # Deletes system instance systemI.
+        # def delete_systemI(systemI)
+        #     if @systemIs.key?(systemI.name) then
+        #         # The instance is present, do remove it.
+        #         @systemIs.delete(systemI.name)
+        #         # And remove its parent.
+        #         systemI.parent = nil
+        #     end
+        #     systemI
+        # end
 
         # Handling the signals.
         
@@ -646,16 +646,16 @@ module HDLRuby::Low
             return @inners[name]
         end
 
-        # Deletes inner +signal+.
-        def delete_inner(signal)
-            if @inners.key?(signal) then
-                # The signal is present, delete it. 
-                @inners.delete(signal.name)
-                # And remove its parent.
-                signal.parent = nil
-            end
-            signal
-        end
+        # # Deletes inner +signal+.
+        # def delete_inner(signal)
+        #     if @inners.key?(signal) then
+        #         # The signal is present, delete it. 
+        #         @inners.delete(signal.name)
+        #         # And remove its parent.
+        #         signal.parent = nil
+        #     end
+        #     signal
+        # end
 
         # Handling the connections.
 
@@ -687,16 +687,16 @@ module HDLRuby::Low
             return !@connections.empty?
         end
 
-        # Deletes +connection+.
-        def delete_connection(connection)
-            if @connections.include?(connection) then
-                # The connection is present, delete it.
-                @connections.delete(connection)
-                # And remove its parent.
-                connection.parent = nil
-            end
-            connection
-        end
+        # # Deletes +connection+.
+        # def delete_connection(connection)
+        #     if @connections.include?(connection) then
+        #         # The connection is present, delete it.
+        #         @connections.delete(connection)
+        #         # And remove its parent.
+        #         connection.parent = nil
+        #     end
+        #     connection
+        # end
 
         # Iterates over all the connections of the system type and its system
         # instances.
@@ -770,15 +770,15 @@ module HDLRuby::Low
             return !@behaviors.empty?
         end
 
-        # Deletes +behavior+.
-        def delete_behavior(behavior)
-            if @behaviors.include?(behavior) then
-                # The behavior is present, delete it.
-                @behaviors.delete(behavior)
-                # And remove its parent.
-                behavior.parent = nil
-            end
-        end
+        # # Deletes +behavior+.
+        # def delete_behavior(behavior)
+        #     if @behaviors.include?(behavior) then
+        #         # The behavior is present, delete it.
+        #         @behaviors.delete(behavior)
+        #         # And remove its parent.
+        #         behavior.parent = nil
+        #     end
+        # end
 
         # Iterates over all the blocks of the system type and its system
         # instances.
@@ -2672,16 +2672,16 @@ module HDLRuby::Low
             return @statements[-1]
         end
 
-        # Deletes +statement+.
-        def delete_statement(statement)
-            if @statements.include?(statement) then
-                # Statement is present, delete it.
-                @statements.delete(statement)
-                # And remove its parent.
-                statement.parent = nil
-            end
-            statement
-        end
+        # # Deletes +statement+.
+        # def delete_statement(statement)
+        #     if @statements.include?(statement) then
+        #         # Statement is present, delete it.
+        #         @statements.delete(statement)
+        #         # And remove its parent.
+        #         statement.parent = nil
+        #     end
+        #     statement
+        # end
 
         # Iterates over all the blocks contained in the current block.
         def each_block_deep(&ruby_block)
@@ -3714,13 +3714,6 @@ module HDLRuby::Low
         # Hash function.
         def hash
             return super
-        end
-
-        # Iterates over the reference children if any.
-        def each_child(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_child) unless ruby_block
-            # A block? Nothing to do.
         end
     end
 end

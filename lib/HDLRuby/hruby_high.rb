@@ -2,6 +2,7 @@ require "HDLRuby/hruby_low"
 require "HDLRuby/hruby_types"
 require "HDLRuby/hruby_values"
 require "HDLRuby/hruby_bstr"
+require "HDLRuby/hruby_low_mutable"
 
 require 'set'
 require 'forwardable'
@@ -3440,7 +3441,7 @@ module HDLRuby::High
         # default produces a Transmit or a Connection.
         def to_expr
             # Remove the transission from the block.
-            High.top_user.delete_statement(self)
+            High.top_user.delete_statement!(self)
             # Generate an expression.
             # return Binary.new(:<=,self.left.to_expr,self.right.to_expr)
             return Binary.new(
@@ -3487,7 +3488,7 @@ module HDLRuby::High
             # Adds the behavior.
             High.top_user.add_behavior(behavior)
             # Remove the connection
-            High.top_user.delete_connection(self)
+            High.top_user.delete_connection!(self)
         end
 
         # Creates a new behavior with an if statement from +condition+
@@ -3510,7 +3511,7 @@ module HDLRuby::High
             # Adds the behavior.
             High.top_user.add_behavior(behavior)
             # Remove the connection
-            High.top_user.delete_connection(self)
+            High.top_user.delete_connection!(self)
         end
 
         # Converts the connection to HDLRuby::Low.
