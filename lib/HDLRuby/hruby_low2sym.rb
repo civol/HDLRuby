@@ -4,7 +4,7 @@ require 'HDLRuby'
 module HDLRuby
 
     # The new field symbol_equiv is not to be dumped.
-    FIELDS_TO_EXCLUDE.default << :@symbol_equiv
+    FIELDS_TO_EXCLUDE.default << :@_symbol_equiv
 end
 
 module HDLRuby::Low
@@ -29,17 +29,17 @@ module HDLRuby::Low
         # Converts to a symbol.
         def to_sym
             # Get the associated symbol if any.
-            @symbol_equiv ||= Low2SymbolTable[self]
-            unless @symbol_equiv then
+            @_symbol_equiv ||= Low2SymbolTable[self]
+            unless @_symbol_equiv then
                 # No symbol yet, create it.
-                @symbol_equiv =
+                @_symbol_equiv =
                     (Low2SymbolPrefix + Symbol2LowTable.size.to_s).to_sym
                 # And regiter it.
-                Symbol2LowTable[@symbol_equiv] = self
-                Low2SymbolTable[self] = @symbol_equiv
+                Symbol2LowTable[@_symbol_equiv] = self
+                Low2SymbolTable[self] = @_symbol_equiv
             end
             # Now there is a symbol, return it.
-            return @symbol_equiv
+            return @_symbol_equiv
         end
     end
 
