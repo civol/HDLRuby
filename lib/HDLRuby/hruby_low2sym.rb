@@ -47,7 +47,7 @@ module HDLRuby::Low
     class ::Symbol
         # Convert to the equivalent HDLRuby object if any, returns nil if not.
         def to_hdr
-            retrun Low2Symbol::Low2SymbolTable[self]
+            return Low2Symbol::Symbol2LowTable[self]
         end
     end
     
