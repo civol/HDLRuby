@@ -1,3 +1,12 @@
+require 'HDLRuby'
+
+
+module HDLRuby
+
+    # The new field symbol_equiv is not to be dumped.
+    FIELDS_TO_EXCLUDE.default << :@symbol_equiv
+end
+
 module HDLRuby::Low
 
 

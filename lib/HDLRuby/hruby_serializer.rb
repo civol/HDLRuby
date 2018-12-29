@@ -45,7 +45,8 @@ module HDLRuby
                        Low::TypeVector, Low::TypeTuple, Low::TypeStruct]
 
     # The list of fields to exclude from serialization.
-    FIELDS_TO_EXCLUDE = { Low::SystemT => [:@interface ] }
+    FIELDS_TO_EXCLUDE = { Low::SystemT => [:@interface,:@parent ] }
+    FIELDS_TO_EXCLUDE.default = [ :@parent ]
 
     # The name of the reference argument if any.
     REF_ARG_NAMES = { Low::SystemI    => "systemT",
@@ -288,7 +289,7 @@ module HDLRuby
             # Fills the contents with the instance variables value.
             self.instance_variables.each do |var_sym|
                 # Skip the fields that should not be serialized
-                next if var_sym == :@parent
+                # next if var_sym == :@parent # Now added to FIELDS_TO_EXCLUDE
                 next if (FIELDS_TO_EXCLUDE[self.class] and 
                          FIELDS_TO_EXCLUDE[self.class].include?(var_sym) )
                 # print "for instance variable #{var_sym}...\n"
