@@ -427,7 +427,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @left = ruby_block.call(@left)
             left.parent = self
             @right = ruby_block.call(@right)
@@ -491,7 +491,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children (including the condition).
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @condition = ruby_block.call(@condition)
             @yes = ruby_block.call(@yes)
             @no = ruby_block.call(@no) if @no
@@ -528,7 +528,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children (including the condition).
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @match = ruby_block.call(@match)
             @statement = ruby_block.call(@statement)
         end
@@ -567,7 +567,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children (including the value).
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             # A block? Apply it on each child.
             @value = ruby_block.call(@value)
             map_whens!(&ruby_block)
@@ -643,7 +643,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @statement = ruby_block.call(@statement)
         end
     end
@@ -675,7 +675,7 @@ module HDLRuby::Low
             @statements.map(&ruby_block)
         end
 
-        alias_method :map_children!, :map_statements!
+        alias_method :map_nodes!, :map_statements!
 
         # Deletes a statement.
         def delete_statement!(statement)
@@ -774,7 +774,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @child = ruby_block.call(@child)
         end
     end
@@ -810,7 +810,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @child = ruby_block.call(@child)
         end
     end
@@ -843,7 +843,7 @@ module HDLRuby::Low
         end
 
         # Maps on the child.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @left  = ruby_block.call(@left)
             @right = ruby_block.call(@right)
         end
@@ -885,7 +885,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @select = ruby_block.call(@select)
             map_choices!(&ruby_block)
         end
@@ -900,7 +900,7 @@ module HDLRuby::Low
             @expressions.map(&ruby_block)
         end
 
-        alias_method :map_children!, :map_expressions!
+        alias_method :map_nodes!, :map_expressions!
 
         # Delete an expression.
         def delete_expression!(expression)
@@ -921,7 +921,7 @@ module HDLRuby::Low
     # NOTE: this is an abstract class which is not to be used directly.
     class Ref
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             # Nothing to do.
         end
     end
@@ -936,7 +936,7 @@ module HDLRuby::Low
             @refs.map(&ruby_block)
         end
 
-        alias_method :map_children!, :map_refs!
+        alias_method :map_nodes!, :map_refs!
 
         # Delete a reference.
         def delete_ref!(ref)
@@ -980,7 +980,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @index = ruby_block.call(@index)
             @ref   = ruby_block.call(@ref)
         end
@@ -1021,7 +1021,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @range.first = ruby_block.call(@range.first)
             @range.last  = ruby_block.call(@range.last)
             @ref         = ruby_block.call(@ref)
@@ -1050,7 +1050,7 @@ module HDLRuby::Low
         end
 
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             @ref = ruby_block.call(@ref)
         end
     end
@@ -1063,7 +1063,7 @@ module HDLRuby::Low
     class RefThis
 
         # Maps on the children.
-        def map_children!(&ruby_block)
+        def map_nodes!(&ruby_block)
             # Nothing to do.
         end
     end
