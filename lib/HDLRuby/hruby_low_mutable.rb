@@ -675,7 +675,7 @@ module HDLRuby::Low
             @statements.map(&ruby_block)
         end
 
-        alias :map_children! :map_statements!
+        alias_method :map_children!, :map_statements!
 
         # Deletes a statement.
         def delete_statement!(statement)
@@ -900,7 +900,7 @@ module HDLRuby::Low
             @expressions.map(&ruby_block)
         end
 
-        alias :map_children! :map_expressions!
+        alias_method :map_children!, :map_expressions!
 
         # Delete an expression.
         def delete_expression!(expression)
@@ -936,7 +936,7 @@ module HDLRuby::Low
             @refs.map(&ruby_block)
         end
 
-        alias :map_children! :map_refs!
+        alias_method :map_children!, :map_refs!
 
         # Delete a reference.
         def delete_ref!(ref)

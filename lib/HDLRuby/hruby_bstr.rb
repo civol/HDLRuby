@@ -80,7 +80,7 @@ module HDLRuby
         def width
             return @str.size - 1
         end
-        alias size width
+        alias_method :size, :width
 
         # Tells if the bit string is strictly.
         #
@@ -118,7 +118,7 @@ module HDLRuby
         def to_s
             return @str.clone
         end
-        alias str to_s
+        alias_method :str, :to_s
 
         # Gets a bit by +index+.
         #

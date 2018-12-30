@@ -177,7 +177,7 @@ module HDLRuby::High
 
         include Hmissing
 
-        alias h_missing method_missing
+        alias_method :h_missing, :method_missing
 
         # Missing methods are looked for in the private namespace.
         # 
@@ -265,13 +265,13 @@ module HDLRuby::High
                 #         # A block? Apply it on each inner signal instance.
                 #         @inners.each_value(&ruby_block)
                 #     end
-                #     alias :each_signal :each_inner
+                #     alias_method :each_signal, :each_inner
 
                 #     ## Gets an inner signal by +name+.
                 #     def get_inner(name)
                 #         return @inners[name]
                 #     end
-                #     alias :get_signal :get_inner
+                #     alias_method :get_signal, :get_inner
 
                 #     # Iterates over all the signals of the block and its sub block's ones.
                 #     def each_signal_deep(&ruby_block)
@@ -675,7 +675,7 @@ module HDLRuby::High
         end
 
         # Instantiation can also be done throw the call operator.
-        alias :call :instantiate
+        alias_method :call, :instantiate
 
         # Generates the instantiation capabilities including an instantiation
         # method +name+ for hdl-like instantiation, target instantiation as
@@ -1250,7 +1250,7 @@ module HDLRuby::High
         include HScope_missing
         # Moved to Hscope_missing for sharing with block
         # include Hmissing
-        # alias h_missing method_missing
+        # alias_method :h_missing, :method_missing
 
         # # Missing methods are looked for in the private namespace.
         # # 
@@ -3681,7 +3681,7 @@ module HDLRuby::High
 
         include HScope_missing
         # include Hmissing
-        # alias h_missing method_missing
+        # alias_method :h_missing, :method_missing
 
         # # Missing methods are looked for in the private namespace.
         # # 
@@ -3732,13 +3732,13 @@ module HDLRuby::High
         #     # A block? Apply it on each inner signal instance.
         #     @inners.each_value(&ruby_block)
         # end
-        # alias :each_signal :each_inner
+        # alias_method :each_signal, :each_inner
 
         # ## Gets an inner signal by +name+.
         # def get_inner(name)
         #     return @inners[name]
         # end
-        # alias :get_signal :get_inner
+        # alias_method :get_signal, :get_inner
 
         # # Declares high-level bit inner signals named +names+.
         # def inner(*names)
@@ -4645,7 +4645,7 @@ module HDLRuby::High
         #     # Convert it to a reference and return the result.
         #     return signal.to_ref
         # end
-        # alias :+@ :to_ref
+        # alias_method :+@, :to_ref
 
         # Tell if the expression can be converted to a value.
         def to_value?
@@ -4783,7 +4783,7 @@ module HDLRuby::High
             return Value.new(type,value)
         end
 
-        alias to_expr to_value
+        alias_method :to_expr, :to_value
     end
 
     # Extends the range class to support to_low

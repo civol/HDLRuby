@@ -75,7 +75,7 @@ module HDLRuby
         end
 
         # Subtraction
-        alias :- :+
+        alias_method :-, :+
 
         # Multiplication
         def *(type)
@@ -112,7 +112,7 @@ module HDLRuby
         end
 
         # Modulo
-        alias :% :/
+        alias_method :%, :/
 
         # Positive
         def +@()
@@ -150,10 +150,10 @@ module HDLRuby
         end
 
         # Or
-        alias :| :&
+        alias_method :|, :&
 
         # Xor
-        alias :^ :&
+        alias_method :^, :&
 
         # Not
         def ~()
@@ -161,23 +161,23 @@ module HDLRuby
         end
 
         # Equals
-        alias :== :&
-        alias :!= :&
+        alias_method :==, :&
+        alias_method :!=, :&
 
         # Inferior
-        alias :< :&
+        alias_method :<, :&
 
         # Superior
-        alias :> :&
+        alias_method :>, :&
 
         # Inferior or equal
-        alias :<= :&
+        alias_method :<=, :&
 
         # Superior or equal
-        alias :>= :&
+        alias_method :>=, :&
 
         # Comparison
-        alias :<=> :&
+        alias_method :<=>, :&
 
 
         # Shifts
@@ -200,7 +200,7 @@ module HDLRuby
         end
 
         # Shift right
-        alias :>> :<<
+        alias_method :>>, :<<
         
 
     end

@@ -31,7 +31,7 @@ module HDLRuby::Low
         end
 
         # Iterate over the objects included in the hash.
-        alias :each :each_value
+        alias_method :each, :each_value
     end
 
     ##
@@ -2042,7 +2042,7 @@ module HDLRuby::Low
             ruby_block.call(@right)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -2761,13 +2761,13 @@ module HDLRuby::Low
             # @inners.each_value(&ruby_block)
             @inners.each(&ruby_block)
         end
-        alias :each_signal :each_inner
+        alias_method :each_signal, :each_inner
 
         ## Gets an inner signal by +name+.
         def get_inner(name)
             return @inners[name.to_sym]
         end
-        alias :get_signal :get_inner
+        alias_method :get_signal, :get_inner
 
         # Iterates over all the signals of the block and its sub block's ones.
         def each_signal_deep(&ruby_block)
@@ -2810,7 +2810,7 @@ module HDLRuby::Low
             @statements.each(&ruby_block)
         end
 
-        alias :each_node :each_statement
+        alias_method :each_node, :each_statement
 
         # Reverse iterates over the statements.
         #
@@ -3023,7 +3023,7 @@ module HDLRuby::Low
             # By default: no child.
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3170,7 +3170,7 @@ module HDLRuby::Low
             ruby_block.call(@child)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3280,7 +3280,7 @@ module HDLRuby::Low
             ruby_block.call(@child)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3365,7 +3365,7 @@ module HDLRuby::Low
             ruby_block.call(@right)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3487,7 +3487,7 @@ module HDLRuby::Low
             @choices.each(&ruby_block)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3580,7 +3580,7 @@ module HDLRuby::Low
             # A block? Apply it on each children.
             @expressions.each(&ruby_block)
         end
-        alias :each_node :each_expression
+        alias_method :each_node, :each_expression
 
         # Clones the concatenated expression (deeply)
         def clone
@@ -3631,7 +3631,7 @@ module HDLRuby::Low
             # A block? Apply it on the children: default none.
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3695,7 +3695,7 @@ module HDLRuby::Low
             # A block? Apply it on each children.
             @refs.each(&ruby_block)
         end
-        alias :each_node :each_ref
+        alias_method :each_node, :each_ref
 
         # Clones the concatenated references (deeply)
         def clone
@@ -3767,7 +3767,7 @@ module HDLRuby::Low
             ruby_block.call(@ref)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3860,7 +3860,7 @@ module HDLRuby::Low
             ruby_block.call(@ref)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
@@ -3942,7 +3942,7 @@ module HDLRuby::Low
             ruby_block.call(@ref)
         end
 
-        alias :each_expression :each_node
+        alias_method :each_expression, :each_node
 
         # Iterates over the nodes deeply if any.
         def each_node_deep(&ruby_block)
