@@ -43,7 +43,7 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Symbol class with retrival of equivalent HDLRuby object.
+    ## Extends the Symbol class with of equivalent HDLRuby object.
     class ::Symbol
         # Convert to the equivalent HDLRuby object if any, returns nil if not.
         def to_hdr
@@ -52,73 +52,73 @@ module HDLRuby::Low
     end
     
 
-    ## Extends the SystemT class with retrival conversion to symbol.
+    ## Extends the SystemT class with conversion to symbol.
     class SystemT
         include Low2Symbol
     end
 
 
-    ## Extends the Scope class with retrival conversion to symbol.
+    ## Extends the Scope class with conversion to symbol.
     class Scope
         include Low2Symbol
     end
 
     
-    ## Extends the Type class with retrival conversion to symbol.
+    ## Extends the Type class with conversion to symbol.
     class Type
         include Low2Symbol
     end
 
 
-    ## Extends the Behavior class with retrival conversion to symbol.
+    ## Extends the Behavior class with conversion to symbol.
     class Behavior
         include Low2Symbol
     end
 
 
-    ## Extends the Event class with retrival conversion to symbol.
+    ## Extends the Event class with conversion to symbol.
     class Event
         include Low2Symbol
     end
 
 
-    ## Extends the SignalI class with retrival conversion to symbol.
+    ## Extends the SignalI class with conversion to symbol.
     class SignalI
         include Low2Symbol
     end
 
 
-    ## Extends the SystemI class with retrival conversion to symbol.
+    ## Extends the SystemI class with conversion to symbol.
     class SystemI
         include Low2Symbol
     end
 
 
-    ## Extends the Statement class with retrival conversion to symbol.
+    ## Extends the Statement class with conversion to symbol.
     class Statement
         include Low2Symbol
     end
 
 
-    ## Extends the When class with retrival conversion to symbol.
+    ## Extends the When class with conversion to symbol.
     class When
         include Low2Symbol
     end
 
 
-    ## Extends the Delay class with retrival conversion to symbol.
+    ## Extends the Delay class with conversion to symbol.
     class Delay
         include Low2Symbol
     end
 
 
-    ## Extends the Code class with retrival conversion to symbol.
+    ## Extends the Code class with conversion to symbol.
     class Code
         include Low2Symbol
     end
 
 
-    ## Extends the Expression class with retrival conversion to symbol.
+    ## Extends the Expression class with conversion to symbol.
     class Expression
         include Low2Symbol
     end
