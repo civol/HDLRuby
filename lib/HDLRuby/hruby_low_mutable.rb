@@ -742,6 +742,11 @@ module HDLRuby::Low
                 raise AnyError, "Invalid class for a type: #{type.class}."
             end
         end
+
+        # Maps on the children.
+        def map_nodes!(&ruby_block)
+            # By default, nothing to do.
+        end
     end
 
     
@@ -870,7 +875,7 @@ module HDLRuby::Low
 
         # Maps on the choices.
         def map_choices!(&ruby_block)
-            @choices.map(ruby_block)
+            @choices.map(&ruby_block)
         end
 
         # Deletes a choice.
@@ -1022,9 +1027,8 @@ module HDLRuby::Low
 
         # Maps on the children.
         def map_nodes!(&ruby_block)
-            @range.first = ruby_block.call(@range.first)
-            @range.last  = ruby_block.call(@range.last)
-            @ref         = ruby_block.call(@ref)
+            @range = ruby_block.call(@range.first)..ruby_block.call(@range.last)
+            @ref   = ruby_block.call(@ref)
         end
     end
 
