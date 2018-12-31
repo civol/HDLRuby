@@ -96,7 +96,7 @@ module HDLRuby::Low
             [:add_scope,     :each_scope,                     # :delete_scope,
              :add_systemI,   :each_systemI,   :get_systemI,   # :delete_systemI,
              :add_inner,     :each_inner,     :get_inner,     # :delete_inner,
-             :add_behavior,  :each_behavior,                  # :delete_behavior,
+             :add_behavior,  :each_behavior,  :each_behavior_deep, # :delete_behavior,
              :add_connection,:each_connection,                # :delete_connection
             ].each do |meth_sym|
                 define_singleton_method(meth_sym,
@@ -761,7 +761,7 @@ module HDLRuby::Low
             self.each_behavior(&ruby_block)
             # Then recurse on the system instances.
             self.each_systemI do |systemI|
-                systemI.each_behavior_deep(&ruby_block)
+                systemI.systemT.each_behavior_deep(&ruby_block)
             end
         end
 
@@ -787,7 +787,7 @@ module HDLRuby::Low
             return to_enum(:each_block_deep) unless ruby_block
             # A block?
             # Then apply it on each behavior's block deeply.
-            self.each_behavior_deep do |behavior|
+            self.each_behavior do |behavior|
                 behavior.each_block_deep(&ruby_block)
             end
         end
@@ -3046,6 +3046,18 @@ module HDLRuby::Low
         # Hash function.
         def hash
             return [@type].hash
+        end
+
+        # Tells if the expression is a left value of an assignment.
+        def leftvalue?
+            # Maybe its the left of a left value.
+            if parent.respond_to?(:leftvalue?) && parent.leftvalue? then
+                # Yes so it is also a left value.
+                return parent.left == self
+            end
+            # No, therefore maybe it is directly a left value.
+            return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
+                    parent.left == self
         end
 
         # Iterates over the expression children if any.
