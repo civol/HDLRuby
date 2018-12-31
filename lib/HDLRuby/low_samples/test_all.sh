@@ -9,8 +9,11 @@ do
     # Load it.
     bundle exec ruby load_yaml.rb "$file" || exit 1
     # Convert it with variables.
-    # This conversion allows to check clone and several each methods.
+    # This conversion allows to check clone and each_node methods.
     bundle exec ruby variable_maker.rb "$file" || exit 1
+    # Convert with port wires.
+    # This conversion allows to check each_block_deep methods.
+    bundle exec ruby port_maker.rb "$file" || exit 1
 done
 
 # Tests the cloner.
