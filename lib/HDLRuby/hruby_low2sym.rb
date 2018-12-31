@@ -11,7 +11,7 @@ module HDLRuby::Low
 
 
 ##
-# Converts an HDLRuby::Low description to a uniq symbol and vice versa.
+# Converts a HDLRuby::Low description to a uniq symbol and vice versa.
 #
 ########################################################################
 
