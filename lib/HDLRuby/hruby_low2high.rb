@@ -65,7 +65,7 @@ module HDLRuby::Low
             if header then
                 res << (" " * level*3) << "sub "
                 unless self.name.empty? then
-                    res << ":" << self.name.to_s
+                    res << ":" << self.name.to_s << " "
                 end
                 res << "do\n"
             end
@@ -80,10 +80,9 @@ module HDLRuby::Low
             res << "\n" if self.each_inner.any?
             self.each_systemI do |systemI| 
                 res << " " * (level * 3)
-                res << systemI.to_high(level) 
+                res << systemI.to_high(level) << "\n"
             end
             # Generate the sub scopes.
-            res << "\n" if self.each_systemI.any?
             self.each_scope do |scope|
                 res << scope.to_high(level)
             end
@@ -415,7 +414,7 @@ module HDLRuby::Low
                     res << (" " * level*3) << "#{self.mode} "
                 end
                 unless self.name.empty? then
-                    res << ":" << self.name.to_s
+                    res << ":" << self.name.to_s << " "
                 end
                 res << "do\n"
             end
