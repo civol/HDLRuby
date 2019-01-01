@@ -48,8 +48,8 @@ module HDLRuby::Low
         end
 
         # Deletes an input.
-        def delete_input!(input)
-            if @inputs.key?(signal) then
+        def delete_input!(signal)
+            if @inputs.key?(signal.name) then
                 # The signal is present, delete it.
                 @inputs.delete(signal.name)
                 @interface.delete(signal)
@@ -60,8 +60,8 @@ module HDLRuby::Low
         end
 
         # Deletes an output.
-        def delete_output!(output)
-            if @outputs.key?(signal) then
+        def delete_output!(signal)
+            if @outputs.key?(signal.name) then
                 # The signal is present, delete it.
                 @outputs.delete(signal.name)
                 @interface.delete(signal)
@@ -72,8 +72,8 @@ module HDLRuby::Low
         end
 
         # Deletes an inout.
-        def delete_inout!(inout)
-            if @inouts.key?(signal) then
+        def delete_inout!(signal)
+            if @inouts.key?(signal.name) then
                 # The signal is present, delete it.
                 @inouts.delete(signal.name)
                 @interface.delete(signal)
@@ -125,8 +125,8 @@ module HDLRuby::Low
         end
 
         # Deletes an inner.
-        def delete_inner!(inner)
-            if @inners.key?(signal) then
+        def delete_inner!(signal)
+            if @inners.key?(signal.name) then
                 # The signal is present, delete it. 
                 @inners.delete(signal.name)
                 # And remove its parent.
@@ -668,6 +668,17 @@ module HDLRuby::Low
         # Maps on the inners.
         def map_inners!(&ruby_block)
             @inners.map(&ruby_block)
+        end
+
+        # Deletes an inner.
+        def delete_inner!(signal)
+            if @inners.key?(signal.name) then
+                # The signal is present, delete it. 
+                @inners.delete(signal.name)
+                # And remove its parent.
+                signal.parent = nil
+            end
+            signal
         end
 
         # Maps on the statements.
