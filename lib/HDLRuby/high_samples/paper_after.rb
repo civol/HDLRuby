@@ -4,7 +4,7 @@ configure_high
 
 def after(number, clk = $clk, rst = $rst, &code)
     if in_behavior? and cur_behavior.on_edge? then
-        counter = uniq_name
+        counter = HDLRuby.uniq_name
         counter = [Math::log2(number).to_i+1].inner counter
         hif(rst) { counter <= 0 }
         helsif(counter < number) do
@@ -13,7 +13,7 @@ def after(number, clk = $clk, rst = $rst, &code)
         # hif(counter >= number) { code.call }
         hif(counter >= number) { instance_eval(&code) }
     else
-        counter = uniq_name
+        counter = HDLRuby.uniq_name
         cur_system.open do
             counter = [Math::log2(number).to_i+1].inner counter
             par(clk.posedge,rst.posedge) do

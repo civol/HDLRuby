@@ -90,11 +90,11 @@ module HDLRuby::High::Std
                     HDLRuby::High.space_pop
 
                     # Create the state register.
-                    name = HDLRuby::High.uniq_name
+                    name = HDLRuby.uniq_name
                     # Declare the state register.
                     this.cur_state = [states.size].inner(name)
                     # Declare the next state wire.
-                    name = HDLRuby::High.uniq_name
+                    name = HDLRuby.uniq_name
                     this.next_state = [states.size].inner(name)
 
                     # Create the fsm code

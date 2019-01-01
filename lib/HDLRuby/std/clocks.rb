@@ -23,7 +23,7 @@ module HDLRuby::High::Std
 
             # Create the counter.
             # Create the name of the counter.
-            name = HDLRuby::High.uniq_name
+            name = HDLRuby.uniq_name
             # Declare the counter.
             [times.width].inner(name)
             # Get the signal of the counter.
@@ -31,7 +31,7 @@ module HDLRuby::High::Std
 
             # Create the clock.
             # Create the name of the clock.
-            name = HDLRuby::High.uniq_name
+            name = HDLRuby.uniq_name
             # Declares the clock.
             bit.inner(name)
             # Get the signal of the clock.
@@ -91,7 +91,7 @@ module HDLRuby::High::Std
 
             # Create the event counter.
             # Create the name of the counter.
-            name = HDLRuby::High.uniq_name
+            name = HDLRuby.uniq_name
             # Declare the counter.
             [times.width].inner(name)
             # Get the signal of the counter.
@@ -99,7 +99,7 @@ module HDLRuby::High::Std
 
             # Create the inverted event counter.
             # Create the name of the counter.
-            name = HDLRuby::High.uniq_name
+            name = HDLRuby.uniq_name
             # Declare the counter.
             [times.width].inner(name)
             # Get the signal of the counter.
@@ -107,7 +107,7 @@ module HDLRuby::High::Std
 
             # Create the clock.
             # Create the name of the clock.
-            name = HDLRuby::High.uniq_name
+            name = HDLRuby.uniq_name
             # Declare the clock.
             bit.inner(name)
             # Get the signal of the clock.

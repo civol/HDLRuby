@@ -21,11 +21,11 @@ module HDLRuby::High::Std
             # Ensure init is a value.
             init = init.to_value
             # Creates the counter
-            # counter = HDLRuby::High::SignalI.new(HDLRuby::High.uniq_name,
+            # counter = HDLRuby::High::SignalI.new(HDLRuby.uniq_name,
             #                           TypeVector.new(:"",bit,init.width),
             #                           :inner)
             # Create the name of the counter.
-            name = HDLRuby::High.uniq_name
+            name = HDLRuby.uniq_name
             # Declare the counter.
             [init.width].inner(name)
             # Get the signal of the counter.
