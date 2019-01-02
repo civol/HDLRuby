@@ -346,6 +346,14 @@ module HDLRuby::Low
             self.each_when do |w|
                 res << w.to_high(level)
             end
+            # Generatethe default.
+            if self.default then
+                res << " " * (level*3)
+                res << "helse do\n"
+                res << self.default.to_high(level+1)
+                res << " " * (level*3)
+                res << "end\n"
+            end
             # Return the resulting string.
             return res
         end

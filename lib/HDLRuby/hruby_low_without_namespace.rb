@@ -276,6 +276,8 @@ module HDLRuby::Low
         def to_upper_space!
             # Recurse on the whens.
             self.each_when(&:to_upper_space!)
+            # Recurse on the default if any.
+            self.default.to_upper_space! if self.default
         end
 
         # Extract the declares from the scope and returns them into an array.
@@ -284,6 +286,8 @@ module HDLRuby::Low
         def extract_declares!
             # Recurse on the whens.
             return self.each_when.map(&:extract_declares!)
+            # Recurse on the default if any.
+            self.default.extract_declares! if self.default
         end
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared.
@@ -292,6 +296,8 @@ module HDLRuby::Low
             self.value.replace_names!(former,nname)
             # Recurse on the whens.
             self.each_when {|w| w.replace_names!(former,nname) }
+            # Recurse on the default.
+            self.default.replace_names!(former,nnmame) if self.default
         end
     end
 
