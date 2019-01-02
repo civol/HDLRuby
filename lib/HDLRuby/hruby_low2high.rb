@@ -20,28 +20,29 @@ module HDLRuby::Low
             # The resulting string.
             res = ""
             # Generate the header.
-            res << " " * (level * 3)
+            res << " " * (level*3)
             res << "system :#{self.name} do\n"
             # Generate the interface.
             # Inputs.
             self.each_input do |input|
-                res << " " * ((level+1) * 3)
+                res << " " * ((level+1)*3)
                 res << input.type.to_high(level+1) 
                 res << ".input :" << input.name.to_s << "\n"
             end
             # Outputs.
             self.each_output do |output|
-                res << " " * ((level+1) * 3)
+                res << " " * ((level+1)*3)
                 res << output.type.to_high(level+1) 
                 res << ".output :" << output.name.to_s << "\n"
             end
             # Inouts.
             self.each_inout do |inout|
-                res << " " * ((level+1) * 3)
+                res << " " * ((level+1)*3)
                 res << inout.type.to_high(level+1) 
                 res << ".inout :" << inout.name.to_s << "\n"
             end
             # Generate the scope.
+            res << " " * (level*3)
             res << "\n"
             res << self.scope.to_high(level+1,false)
             # End of the system.
@@ -63,7 +64,7 @@ module HDLRuby::Low
             res = ""
             # Generate the header if required.
             if header then
-                res << (" " * level*3) << "sub "
+                res << (" " * (level*3)) << "sub "
                 unless self.name.empty? then
                     res << ":" << self.name.to_s << " "
                 end
@@ -72,14 +73,14 @@ module HDLRuby::Low
             level = level + 1 if header
             # Generate the inners declaration.
             self.each_inner do |inner|
-                res << " " * (level * 3)
+                res << " " * (level*3)
                 res << inner.type.to_high(level) 
                 res << ".inner :" << inner.name.to_s << "\n"
             end
             # Generate the instances.
             res << "\n" if self.each_inner.any?
             self.each_systemI do |systemI| 
-                res << " " * (level * 3)
+                res << " " * (level*3)
                 res << systemI.to_high(level) << "\n"
             end
             # Generate the sub scopes.
@@ -98,7 +99,7 @@ module HDLRuby::Low
             end
             # Close the scope if required.
             if header then
-                res << (" " * (level-1)*3) << "end\n"
+                res << " " * ((level-1)*3) << "end\n"
             end
             # Return the result.
             return res
@@ -275,7 +276,7 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_high(level = 0)
-            return " " * (level*3 ) + 
+            return " " * (level*3) + 
                    self.left.to_high(level) + " <= " +
                    self.right.to_high(level) + "\n"
         end
@@ -409,9 +410,9 @@ module HDLRuby::Low
             # Generate the header if required.
             if header then
                 if timed then
-                    res << (" " * level*3) << "timed "
+                    res << " " * (level*3) << "timed "
                 else
-                    res << (" " * level*3) << "#{self.mode} "
+                    res << " " * (level*3) << "#{self.mode} "
                 end
                 unless self.name.empty? then
                     res << ":" << self.name.to_s << " "
@@ -421,7 +422,7 @@ module HDLRuby::Low
             level = level + 1 if header
             # Generate the inners declaration.
             self.each_inner do |inner|
-                res << " " * (level * 3)
+                res << " " * (level*3)
                 res << inner.type.to_high(level) 
                 res << ".inner :" << inner.name.to_s << "\n"
             end
