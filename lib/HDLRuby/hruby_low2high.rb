@@ -175,7 +175,7 @@ module HDLRuby::Low
             res << self.each_type.map do |key,type|
                 "#{key}: " + type.to_high(level)
             end.join(", ")
-            # Close the tuple.
+            # Close the struct.
             res << " }"
             # Return the result.
             return res
