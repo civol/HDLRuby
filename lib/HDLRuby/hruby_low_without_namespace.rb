@@ -238,6 +238,8 @@ module HDLRuby::Low
                 cond.replace_names!(former,nname)
                 stmnt.replace_names!(former,nname)
             end
+            # Recurse on the no if any.
+            self.no.replace_names!(former,nname) if self.no
         end
     end
 
