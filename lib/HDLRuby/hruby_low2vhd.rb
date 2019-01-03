@@ -15,18 +15,31 @@ module HDLRuby::Low
     ## Provides tools for converting HDLRuby::Low objects to VHDL.
     module Low2VHDL
 
+        ## Tells if a +name+ is VHDL-compatible.
+        def self.vhdl_name?(name)
+            return name =~ /^[a-zA-Z][a-zA-Z_0-9]*$/
+        end
+
+        ## Converts a +name+ to a VHDL-compatible name.
+        def self.vhdl_name(name)
+            # Nothing to do if the name is VHDL-compatible.
+            return name.to_s if self.vhdl_name?(name)
+            # Put the name between //
+            return "\\#{name}\\".to_s
+        end
+
         ## Converts a +name+ to a VHDL entity name.
         #
         # NOTE: assume names have been converted to VHDL-compatible ones.
         def self.entity_name(name)
-            return (name.to_s + "_e").to_sym
+            return self.vhdl_name(name.to_s + "_e")
         end
 
         ## Converts a +name+ to a VHDL architecture name.
         #
         # NOTE: assume names have been converted to VHDL-compatible ones.
         def self.architecture_name(name)
-            return (name.to_s + "_a").to_sym
+            return self.vhdl_name(name.to_s + "_a")
         end
 
     end
@@ -50,19 +63,19 @@ module HDLRuby::Low
             # Inputs
             self.each_input do |input|
                 res << " " * ((level+2)*3)
-                res << input.name.to_s << ": in " 
+                res << Low2VHDL.vhdl_name(input.name) << ": in " 
                 res << input.type.to_vhdl << ";\n"
             end
             # Outputs
             self.each_output do |output|
                 res << " " * ((level+2)*3)
-                res << output.name.to_s << ": out " 
+                res << Low2VHDL.vhdl_name(output.name) << ": out " 
                 res << output.type.to_vhdl << ";\n"
             end
             # Inouts
             self.each_inout do |inout|
                 res << " " * ((level+2)*3)
-                res << inout.name.to_s << ": inout " 
+                res << Low2VHDL.vhdl_name(inout.name) << ": inout " 
                 res << inout.type.to_vhdl << ";\n"
             end
             res << " " * ((level+1)*3)
@@ -142,19 +155,19 @@ module HDLRuby::Low
                 # Inputs
                 systemT.each_input do |input|
                     res << " " * ((level+2)*3)
-                    res << input.name.to_s << ": in " 
+                    res << Low2VHDL.vhdl_name(input.name) << ": in " 
                     res << input.type.to_vhdl << ";\n"
                 end
                 # Outputs
                 systemT.each_output do |output|
                     res << " " * ((level+2)*3)
-                    res << output.name.to_s << ": out " 
+                    res << Low2VHDL.vhdl_name(output.name) << ": out " 
                     res << output.type.to_vhdl << ";\n"
                 end
                 # Inouts
                 systemT.each_inout do |inout|
                     res << " " * ((level+2)*3)
-                    res << inout.name.to_s << ": inout " 
+                    res << Low2VHDL.vhdl_name(inout.name) << ": inout " 
                     res << inout.type.to_vhdl << ";\n"
                 end
                 res << " " * ((level+1)*3)
@@ -163,7 +176,7 @@ module HDLRuby::Low
             # The inner signals declaration.
             self.each_inner do |inner|
                 res << " " * (level * 3)
-                res << "signal " << inner.name.to_s << ": "
+                res << "signal " << Low2VHDL.vhdl_name(inner.name) << ": "
                 res << inner.type.to_vhdl(level) 
                 res << ";\n"
             end
@@ -175,7 +188,7 @@ module HDLRuby::Low
             self.each_systemI do |systemI| 
                 # Its Declaration.
                 res << " " * (level*3)
-                res << systemI.name.to_s << ": "
+                res << Low2VHDL.vhdl_name(systemI.name) << ": "
                 systemT = systemI.systemT
                 res << Low2VHDL.entity_name(systemT.name).to_s << "\n"
                 res << " " * ((level+1)*3)
@@ -186,7 +199,7 @@ module HDLRuby::Low
                     ref = self.extract_port_assign!(systemI,input)
                     if ref then
                         res << " " * ((level+2)*3)
-                        res << input.name.to_s << " => " 
+                        res << Low2VHDL.vhdl_name(input.name) << " => " 
                         res << ref.to_vhdl(level) 
                         res << ";\n"
                     end
@@ -196,7 +209,7 @@ module HDLRuby::Low
                     ref = self.extract_port_assign!(systemI,output)
                     if ref then
                         res << " " * ((level+2)*3)
-                        res << output.name.to_s << " => " 
+                        res << Low2VHDL.vhdl_name(output.name) << " => " 
                         res << ref.to_vhdl(level) 
                         res << ";\n"
                     end
@@ -206,7 +219,7 @@ module HDLRuby::Low
                     ref = self.extract_port_assign!(systemI,inout)
                     if ref then
                         res << " " * ((level+2)*3)
-                        res << inout.name.to_s << " => " 
+                        res << Low2VHDL.vhdl_name(inout.name) << " => " 
                         res << ref.to_vhdl(level) 
                         res << ";\n"
                     end
@@ -290,7 +303,7 @@ module HDLRuby::Low
                 when :unsigned
                     res << "unsigned"
                 else
-                    res << self.base.name.to_s
+                    res << Low2VHDL.vhdl_name(self.base.name)
                 end
                 # Now the range
                 res << "("
@@ -349,7 +362,7 @@ module HDLRuby::Low
             res = " " * (level*3)
             # Generate the header.
             unless  self.block.name.empty? then
-                res << self.block.name.to_s << ": "
+                res << Low2VHDL.vhdl_name(self.block.name) << ": "
             end
             res << "process "
             # Generate the enitivity list if any.
@@ -368,7 +381,7 @@ module HDLRuby::Low
             self.block.each_inner do |inner|
                 res << " " * ((level+1)*3)
                 res << "variable "
-                res << inner.name.to_s << ": " 
+                res << Low2VHDL.vhdl_name(inner.name) << ": " 
                 res << inner.type.to_vhdl << ";\n"
             end
 
@@ -847,7 +860,7 @@ module HDLRuby::Low
                 raise AnyError, "Sub references are not supported in VHDL, please remove them using Low::to_upper! from hruby_low_without_space."
             end
             # Generates the current reference.
-            res << self.name.to_s
+            res << Low2VHDL.vhdl_name(self.name)
             # Returns the resulting string.
             return res
         end
