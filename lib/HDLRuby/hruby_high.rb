@@ -2418,13 +2418,27 @@ module HDLRuby::High
                 # Yes, perform a connection by name
                 connects = connects[0].to_h
                 # Performs the connections.
-                connects.each do |left,right|
+                # connects.each do |left,right|
+                #     # Gets the signal corresponding to connect.
+                #     left = self.get_signal(left)
+                #     # Convert it to a reference.
+                #     left = RefObject.new(self.to_ref,left)
+                #     # Make the connection.
+                #     left <= right
+                # end
+                connects.each do |key,value|
                     # Gets the signal corresponding to connect.
-                    left = self.get_signal(left)
+                    signal = self.get_signal(key)
+                    # Check if it is an output.
+                    isout = self.get_output(key)
                     # Convert it to a reference.
-                    left = RefObject.new(self.to_ref,left)
+                    ref = RefObject.new(self.to_ref,signal)
                     # Make the connection.
-                    left <= right
+                    if isout then
+                        value <= ref
+                    else
+                        ref <= value
+                    end
                 end
             else
                 # No, perform a connection is order of declaration
