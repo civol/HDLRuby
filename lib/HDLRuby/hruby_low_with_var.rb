@@ -113,12 +113,12 @@ module HDLRuby::Low
         # +sym2var+ table.
         def refs_by_variables!(stmnt,sym2var)
             # First, recurse.
-            if stmnt.respond_to?(:each_child) then
-                stmnt.each_child {|elem| refs_by_variables!(elem,sym2var) }
+            if stmnt.respond_to?(:each_node) then
+                stmnt.each_node {|elem| refs_by_variables!(elem,sym2var) }
             end
             # Now replace an element if required.
-            if stmnt.respond_to?(:map_children!) then
-                stmnt.map_children! do |elem| 
+            if stmnt.respond_to?(:map_nodes!) then
+                stmnt.map_nodes! do |elem| 
                     var = sym2var[elem.to_sym]
                     var ? var2ref(var) : elem
                 end
@@ -156,7 +156,7 @@ module HDLRuby::Low
         #
         # NOTE: the result is a new block.
         def with_var(upper = nil)
-            puts "with_var for #{self} with upper=#{upper}"
+            # puts "with_var for #{self} with upper=#{upper}"
             # Handle the cases that does not need directly a variable
             # convertion
             # Is the block a par?
@@ -166,7 +166,6 @@ module HDLRuby::Low
                     # Yes, converts to seq.
                     return self.to_seq
                 end
-                puts "Clone Wars"
                 # No, simply clone.
                 return self.clone
             end
