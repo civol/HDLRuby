@@ -15,7 +15,13 @@ module HDLRuby
     # Generates an absolute uniq name.
     def self.uniq_name
         @@absoluteCounter += 1
-        return ":#{@@absoluteCounter}".to_sym
+        name = ":#{@@absoluteCounter}"
+        if Symbol.all_symbols.find {|symbol| symbol.to_s == name } then
+            # The symbol exists, try again.
+            return self.uniq_name
+        else
+            return name.to_sym
+        end
     end
 
 end
