@@ -85,18 +85,18 @@ SystemT:
             RefName:
               type: bit
               ref:
+                RefThis:
+                  type: void
+              name: o
+          right:
+            RefName:
+              type: bit
+              ref:
                 RefName:
                   type: void
                   ref:
                     RefThis:
                       type: void
                   name: ioI
-              name: o
-          right:
-            RefName:
-              type: bit
-              ref:
-                RefThis:
-                  type: void
               name: o
       behaviors: []
