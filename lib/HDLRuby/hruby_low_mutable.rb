@@ -474,11 +474,6 @@ module HDLRuby::Low
             no.parent = self if no
         end
 
-        # Maps on the alternate ifs.
-        def map_noifs!(&ruby_block)
-            @no_ifs.map(&ruby_block)
-        end
-
         # Deletes an alternate if.
         def delete_noif!(noif)
             if @noifs.include?(noif) then
@@ -494,8 +489,10 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             @condition = ruby_block.call(@condition)
             @yes = ruby_block.call(@yes)
+            @noifs.map do |cond,stmnt|
+                [ ruby_block.call(cond), ruby_block.call(stmnt) ]
+            end
             @no = ruby_block.call(@no) if @no
-            map_noifs!(&ruby_block)
         end
     end
 
@@ -611,6 +608,11 @@ module HDLRuby::Low
             @delay = delay
             # And set its parent.
             delay.parent = self
+        end
+
+        # Maps on the children (including the condition).
+        def map_nodes!(&ruby_block)
+            # Nothing to do.
         end
     end
 

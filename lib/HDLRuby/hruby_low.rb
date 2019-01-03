@@ -199,7 +199,7 @@ module HDLRuby::Low
         def each_input(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_input) unless ruby_block
-            # A block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each input signal instance.
             @inputs.each(&ruby_block)
         end
 
@@ -209,7 +209,7 @@ module HDLRuby::Low
         def each_output(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_output) unless ruby_block
-            # A block? Apply it on each output signal instance.
+            # A ruby block? Apply it on each output signal instance.
             @outputs.each(&ruby_block)
         end
 
@@ -219,7 +219,7 @@ module HDLRuby::Low
         def each_inout(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_inout) unless ruby_block
-            # A block? Apply it on each inout signal instance.
+            # A ruby block? Apply it on each inout signal instance.
             @inouts.each(&ruby_block)
         end
 
@@ -230,7 +230,7 @@ module HDLRuby::Low
         def each_signal(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal) unless ruby_block
-            # A block? Apply it on each signal instance.
+            # A ruby block? Apply it on each signal instance.
             @inputs.each(&ruby_block)
             @outputs.each(&ruby_block)
             @inouts.each(&ruby_block)
@@ -240,7 +240,7 @@ module HDLRuby::Low
         def each_signal_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First iterate over the current system type's signals.
             self.each_signal(&ruby_block)
             # Then apply on the behaviors (since in HDLRuby:High, blocks can
@@ -450,8 +450,20 @@ module HDLRuby::Low
         def each_scope(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_scope) unless ruby_block
-            # A block? Apply it on each sub scope.
+            # A ruby block? Apply it on each sub scope.
             @scopes.each(&ruby_block)
+        end
+
+        # Iterates over the scopes deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_scope_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_scope_deep) unless ruby_block
+            # A ruby block? Apply it on self.
+            ruby_block.call(self)
+            # And recurse each sub scope.
+            @scopes.each {|scope| scope.each_scope_deep(&ruby_block) }
         end
 
         # Tells if there is any sub scope.
@@ -496,7 +508,7 @@ module HDLRuby::Low
             # puts "each_systemI from scope=#{self}"
             # No ruby block? Return an enumerator.
             return to_enum(:each_systemI) unless ruby_block
-            # A block? Apply it on each system instance.
+            # A ruby block? Apply it on each system instance.
             @systemIs.each(&ruby_block)
         end
 
@@ -548,7 +560,7 @@ module HDLRuby::Low
         def each_inner(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_inner) unless ruby_block
-            # A block? Apply it on each inner signal instance.
+            # A ruby block? Apply it on each inner signal instance.
             # @inners.each_value(&ruby_block)
             @inners.each(&ruby_block)
         end
@@ -559,7 +571,7 @@ module HDLRuby::Low
         def each_signal(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal) unless ruby_block
-            # A block? Apply it on each signal instance.
+            # A ruby block? Apply it on each signal instance.
             @inners.each(&ruby_block)
         end
 
@@ -568,7 +580,7 @@ module HDLRuby::Low
         def each_signal_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First iterate over the current system type's signals.
             self.each_signal(&ruby_block)
             # Then apply on the behaviors (since in HDLRuby:High, blocks can
@@ -678,7 +690,7 @@ module HDLRuby::Low
         def each_connection(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_connection) unless ruby_block
-            # A block? Apply it on each connection.
+            # A ruby block? Apply it on each connection.
             @connections.each(&ruby_block)
         end
 
@@ -703,7 +715,7 @@ module HDLRuby::Low
         def each_connection_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_connection_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First iterate over current system type's connection.
             self.each_connection(&ruby_block)
             # Then recurse on the system instances.
@@ -732,7 +744,7 @@ module HDLRuby::Low
         def each_behavior(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_behavior) unless ruby_block
-            # A block? Apply it on each behavior.
+            # A ruby block? Apply it on each behavior.
             @behaviors.each(&ruby_block)
         end
 
@@ -742,7 +754,7 @@ module HDLRuby::Low
         def reverse_each_behavior(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_behavior) unless ruby_block
-            # A block? Apply it on each behavior.
+            # A ruby block? Apply it on each behavior.
             @behaviors.reverse_each(&ruby_block)
         end
 
@@ -756,7 +768,7 @@ module HDLRuby::Low
         def each_behavior_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_behavior_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First iterate over current system type's behavior.
             self.each_behavior(&ruby_block)
             # Then recurse on the system instances.
@@ -785,7 +797,7 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Then apply it on each behavior's block deeply.
             self.each_behavior do |behavior|
                 behavior.each_block_deep(&ruby_block)
@@ -799,7 +811,7 @@ module HDLRuby::Low
             return to_enum(:each_statement_deep) unless ruby_block
             # A ruby block?
             # Apply it on each block deeply.
-            self.each_block_deep do |block|
+            self.each_block do |block|
                 block.each_statement_deep(&ruby_block)
             end
         end
@@ -809,7 +821,7 @@ module HDLRuby::Low
         def each_arrow_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_arrow_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First, apply it on each connection.
             self.each_connection do |connection|
                 ruby_block.call(connection)
@@ -832,7 +844,7 @@ module HDLRuby::Low
         def each_sensitive_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_sensitive_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First iterate over the current system type's connections.
             self.each_connection do |connection|
                 ruby_block.call(connection,
@@ -1351,7 +1363,7 @@ module HDLRuby::Low
         def each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
-            # A block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each input signal instance.
             @types.each(&ruby_block)
         end
 
@@ -1361,7 +1373,7 @@ module HDLRuby::Low
         def each_type(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
-            # A block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each input signal instance.
             @types.each(&ruby_block)
         end
 
@@ -1491,7 +1503,7 @@ module HDLRuby::Low
         def each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
-            # A block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each input signal instance.
             @types.each(&ruby_block)
         end
 
@@ -1501,7 +1513,7 @@ module HDLRuby::Low
         def each_type(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
-            # A block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each input signal instance.
             @types.each_value(&ruby_block)
         end
 
@@ -1511,7 +1523,7 @@ module HDLRuby::Low
         def each_name(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_name) unless ruby_block
-            # A block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each input signal instance.
             @types.each_key(&ruby_block)
         end
 
@@ -1663,7 +1675,7 @@ module HDLRuby::Low
         def each_event(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_event) unless ruby_block
-            # A block? Apply it on each event.
+            # A ruby block? Apply it on each event.
             @events.each(&ruby_block)
         end
 
@@ -2050,11 +2062,16 @@ module HDLRuby::Low
             return [@left,@right].hash
         end
 
+        # Clones the transmit (deeply)
+        def clone
+            return Transmit.new(@left.clone, @right.clone)
+        end
+
         # Iterates over the children if any.
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the children.
+            # A ruby block? Apply it on the children.
             ruby_block.call(@left)
             ruby_block.call(@right)
         end
@@ -2065,23 +2082,27 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children
             @left.each_node_deep(&ruby_block)
             @right.each_node_deep(&ruby_block)
         end
 
-        # Clones the transmit (deeply)
-        def clone
-            return Transmit.new(@left.clone, @right.clone)
+        # Iterates over all the stamements of the block and its sub blocks.
+        def each_statement_deep(&ruby_block)
+            # No ruby statement? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
         end
 
         # Iterates over the sub blocks.
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Nothing to do.
         end
 
@@ -2089,7 +2110,7 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Nothing to do.
         end
     end
@@ -2190,7 +2211,7 @@ module HDLRuby::Low
         def each_noif(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_noif) unless ruby_block
-            # A block?
+            # A ruby block?
             # Appy it on the alternate if statements.
             @noifs.each do |next_cond,next_yes|
                 yield(next_cond,next_yes)
@@ -2201,7 +2222,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block?
+            # A ruby block?
             # Appy it on the children.
             ruby_block.call(@condition)
             ruby_block.call(@yes)
@@ -2216,7 +2237,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children
             @condition.each_node_deep(&ruby_block)
@@ -2232,7 +2253,7 @@ module HDLRuby::Low
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on the yes, the alternate ifs and the no blocks.
             ruby_block.call(@yes) if @yes.is_a?(Block)
             @noifs.each do |next_cond,next_yes|
@@ -2241,11 +2262,26 @@ module HDLRuby::Low
             ruby_block.call(@no) if @no.is_a?(Block)
         end
 
+        # Iterates over all the stamements of the block and its sub blocks.
+        def each_statement_deep(&ruby_block)
+            # No ruby statement? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # And recurse on the alternate ifs and the no statements.
+            @yes.each_statement_deep(&ruby_block)
+            @noifs.each do |next_cond,next_yes|
+                next_yes.each_statement_deep(&ruby_block)
+            end
+            @no.each_statement_deep(&ruby_block) if @no.is_a?(Block)
+        end
+
         # Iterates over all the blocks contained in the current block.
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on the yes, the alternate ifs and the no blocks.
             @yes.each_block_deep(&ruby_block)
             @noifs.each do |next_cond,next_yes|
@@ -2319,7 +2355,7 @@ module HDLRuby::Low
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on the statement if it is a block.
             ruby_block.call(@statement) if @statement.is_a?(Block)
         end
@@ -2328,16 +2364,25 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Recurse on the statement.
-            @statement.each_block_deep(&ruby_block) if @statement.respond_to?(:each_block_deep)
+            @statement.each_block_deep(&ruby_block)
+        end
+
+        # Iterates over all the stamements of the block and its sub blocks.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Recurse on the statement.
+            @statement.each_statement_deep(&ruby_block)
         end
 
         # Interates over the children.
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block?
+            # A ruby block?
             # Appy it on the children.
             ruby_block.call(@match)
             ruby_block.call(@statement)
@@ -2347,7 +2392,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children
             @match.each_node_deep(&ruby_block)
@@ -2456,7 +2501,7 @@ module HDLRuby::Low
         def each_when(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_when) unless ruby_block
-            # A block? Apply it on each when case.
+            # A ruby block? Apply it on each when case.
             @whens.each(&ruby_block)
         end
 
@@ -2466,7 +2511,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_when) unless ruby_block
-            # A block? Apply it on each child.
+            # A ruby block? Apply it on each child.
             ruby_block.call(@value)
             @whens.each(&ruby_block)
             ruby_block.call(@default) if @default
@@ -2476,7 +2521,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children
             @value.each_node_deep(&ruby_block)
@@ -2488,7 +2533,7 @@ module HDLRuby::Low
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on each when's block.
             self.each_when { |w| w.each_block(&ruby_block) }
             # And apply it on the default if any.
@@ -2499,11 +2544,24 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on each when's block.
             self.each_when { |w| w.each_block_deep(&ruby_block) }
             # And apply it on the default if any.
             @default.each_block_deep(&ruby_block) if @default
+        end
+
+        # Iterates over all the statements contained in the current statement.
+        def each_statement_deep(&ruby_block)
+            # No ruby statement? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # And apply it on each when's statement.
+            self.each_when { |w| w.each_statement_deep(&ruby_block) }
+            # And apply it on the default if any.
+            @default.each_statement_deep(&ruby_block) if @default
         end
 
         # Clones the Case (deeply)
@@ -2597,7 +2655,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block?
+            # A ruby block?
             # Nothing to do.
         end
 
@@ -2605,7 +2663,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
         end
 
@@ -2613,7 +2671,7 @@ module HDLRuby::Low
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Nothing to do.
         end
 
@@ -2621,8 +2679,17 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Nothing to do.
+        end
+
+        # Iterates over all the statements contained in the current block.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
         end
 
     end
@@ -2680,7 +2747,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the child.
+            # A ruby block? Apply it on the child.
             ruby_block.call(@statement)
         end
 
@@ -2688,7 +2755,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the child
             @statement.each_node_deep(&ruby_block)
@@ -2698,7 +2765,7 @@ module HDLRuby::Low
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on the statement if it is a block.
             ruby_block.call(@statement) if statement.is_a?(Block)
         end
@@ -2707,9 +2774,20 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # Recurse on the statement.
             @statement.each_block_deep(&ruby_block)
+        end
+
+        # Iterates over all the statements contained in the current block.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # Recurse on the statement.
+            @statement.each_statement_deep(&ruby_block)
         end
         
     end
@@ -2787,7 +2865,7 @@ module HDLRuby::Low
         def each_inner(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_inner) unless ruby_block
-            # A block? Apply it on each inner signal instance.
+            # A ruby block? Apply it on each inner signal instance.
             # @inners.each_value(&ruby_block)
             @inners.each(&ruby_block)
         end
@@ -2803,7 +2881,7 @@ module HDLRuby::Low
         def each_signal_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal_deep) unless ruby_block
-            # A block?
+            # A ruby block?
             # First, apply on the signals of the block.
             self.each_signal(&ruby_block)
             # Then apply on each sub block. 
@@ -2836,7 +2914,7 @@ module HDLRuby::Low
         def each_statement(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_statement) unless ruby_block
-            # A block? Apply it on each statement.
+            # A ruby block? Apply it on each statement.
             @statements.each(&ruby_block)
         end
 
@@ -2848,7 +2926,7 @@ module HDLRuby::Low
         def reverse_each_statement(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_statement) unless ruby_block
-            # A block? Apply it on each statement.
+            # A ruby block? Apply it on each statement.
             @statements.reverse_each(&ruby_block)
         end
 
@@ -2872,7 +2950,7 @@ module HDLRuby::Low
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block) unless ruby_block
-            # A block?
+            # A ruby block?
             # Apply it on each statement which contains blocks.
             self.each_statement do |statement|
                 ruby_block.call(statement) if statement.is_a?(Block)
@@ -2883,12 +2961,12 @@ module HDLRuby::Low
         def each_block_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
-            # A block?
-            # Apply it on each statement which contains blocks.
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # And apply it on each statement which contains blocks.
             self.each_statement do |statement|
-                if statement.respond_to?(:each_block_deep) then
-                    statement.each_block_deep(&ruby_block)
-                end
+                statement.each_block_deep(&ruby_block)
             end
         end
 
@@ -2896,13 +2974,25 @@ module HDLRuby::Low
         def each_statement_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_statement_deep) unless ruby_block
-            # A block?
-            # Apply it on each statement deeply.
+            # A ruby block?
+            # Apply it on current.
+            ruby_block.call(self)
+            # And apply it on each statement deeply.
             self.each_statement do |statement|
-                if statement.respond_to?(:each_statement_deep) then
-                    statement.each_statement_deep(&ruby_block)
-                end
-                ruby_block.call(statement)
+                statement.each_statement_deep(&ruby_block)
+            end
+        end
+
+        # Iterates over all the stamements of the block and its sub blocks.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on current.
+            ruby_block.call(self)
+            # And apply it on each statement deeply.
+            self.each_statement do |stmnt|
+                stmnt.each_node_deep(&ruby_block)
             end
         end
 
@@ -3071,7 +3161,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And that's all.
         end
@@ -3083,7 +3173,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
             # puts "each_ref_deep for Expression which is:#{self}"
-            # A block?
+            # A ruby block?
             # If the expression is a reference, applies ruby_block on it.
             ruby_block.call(self) if self.is_a?(Ref)
         end
@@ -3208,7 +3298,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the child.
+            # A ruby block? Apply it on the child.
             ruby_block.call(@child)
         end
 
@@ -3218,7 +3308,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the child.
             @child.each_node_deep(&ruby_block)
@@ -3231,7 +3321,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
             # puts "each_ref_deep for Unary"
-            # A block?
+            # A ruby block?
             # Recurse on the child.
             @child.each_ref_deep(&ruby_block)
         end
@@ -3318,7 +3408,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the child.
+            # A ruby block? Apply it on the child.
             ruby_block.call(@child)
         end
 
@@ -3328,7 +3418,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the child.
             @child.each_node_deep(&ruby_block)
@@ -3341,7 +3431,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
             # puts "each_ref_deep for Unary"
-            # A block?
+            # A ruby block?
             # Recurse on the child.
             @child.each_ref_deep(&ruby_block)
         end
@@ -3402,7 +3492,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the children.
+            # A ruby block? Apply it on the children.
             ruby_block.call(@left)
             ruby_block.call(@right)
         end
@@ -3413,7 +3503,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children.
             @left.each_node_deep(&ruby_block)
@@ -3427,7 +3517,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
             # puts "each_ref_deep for Binary"
-            # A block?
+            # A ruby block?
             # Recurse on the children.
             @left.each_ref_deep(&ruby_block)
             @right.each_ref_deep(&ruby_block)
@@ -3511,7 +3601,7 @@ module HDLRuby::Low
         def each_choice(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_choice) unless ruby_block
-            # A block? Apply it on each choice.
+            # A ruby block? Apply it on each choice.
             @choices.each(&ruby_block)
         end
 
@@ -3524,7 +3614,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the children.
+            # A ruby block? Apply it on the children.
             ruby_block.call(@select)
             @choices.each(&ruby_block)
         end
@@ -3535,7 +3625,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children.
             @select.each_node_deep(&ruby_block)
@@ -3549,7 +3639,7 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_ref_deep) unless ruby_block
             # puts "each_ref_deep for Select"
-            # A block?
+            # A ruby block?
             # Recurse on the children.
             self.select.each_ref_deep(&ruby_block)
             self.each_choice do |choice|
@@ -3619,7 +3709,7 @@ module HDLRuby::Low
         def each_expression(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_expression) unless ruby_block
-            # A block? Apply it on each children.
+            # A ruby block? Apply it on each children.
             @expressions.each(&ruby_block)
         end
         alias_method :each_node, :each_expression
@@ -3662,7 +3752,7 @@ module HDLRuby::Low
         def path_each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:path_each) unless ruby_block
-            # A block? Apply it on... nothing by default.
+            # A ruby block? Apply it on... nothing by default.
             return nil
         end
 
@@ -3670,7 +3760,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the children: default none.
+            # A ruby block? Apply it on the children: default none.
         end
 
         alias_method :each_expression, :each_node
@@ -3679,7 +3769,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And that's all.
         end
@@ -3734,7 +3824,7 @@ module HDLRuby::Low
         def each_ref(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_input) unless ruby_block
-            # A block? Apply it on each children.
+            # A ruby block? Apply it on each children.
             @refs.each(&ruby_block)
         end
         alias_method :each_node, :each_ref
@@ -3804,7 +3894,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the index and the ref.
+            # A ruby block? Apply it on the index and the ref.
             ruby_block.call(@index)
             ruby_block.call(@ref)
         end
@@ -3815,7 +3905,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children.
             @index.each_node_deep(&ruby_block)
@@ -3896,7 +3986,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the ranfe and the ref.
+            # A ruby block? Apply it on the ranfe and the ref.
             ruby_block.call(@range.first)
             ruby_block.call(@range.last)
             ruby_block.call(@ref)
@@ -3908,7 +3998,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the children.
             @range.first.each_node_deep(&ruby_block)
@@ -3980,7 +4070,7 @@ module HDLRuby::Low
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
-            # A block? Apply it on the child.
+            # A ruby block? Apply it on the child.
             ruby_block.call(@ref)
         end
 
@@ -3990,7 +4080,7 @@ module HDLRuby::Low
         def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node_deep) unless ruby_block
-            # A block? First apply it to current.
+            # A ruby block? First apply it to current.
             ruby_block.call(self)
             # And recurse on the child.
             @ref.each_node_deep(&ruby_block)
