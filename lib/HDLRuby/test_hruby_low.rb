@@ -545,10 +545,23 @@ puts "\nAdding $blockIn to $block as a statement..."
 $block.add_statement($blockIn)
 
 puts "Checking the added statements deeply... "
-$statements.each.with_index do |statement,i|
+i = 0
+$bStatements = $block.each_statement_deep.to_a
+$statements.each_with_index do |statement,j|
     begin
-        print "  For statement #{i}... "
-        bStatement = $block.each_statement_deep.to_a[i]
+        print "  For statement #{j}... "
+        bStatement = $bStatements[i]
+        i += 1
+        if bStatement.is_a?(Block) then
+            # Skip Block.
+            bStatement = $bStatements[i]
+            i += 1
+        end
+        if bStatement.is_a?(If) then
+            # Skip the following yes.
+            i += 1
+        end
+
         if bStatement != statement then
             puts "Error: invalid statement, got #{bStatement} but expecting #{statement}."
             $success = false
