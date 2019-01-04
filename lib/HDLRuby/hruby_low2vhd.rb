@@ -380,7 +380,7 @@ module HDLRuby::Low
             # Generate the variables.
             # It is assumed that the inners are all in declared in the
             # direct sub block and that they represent variables, i.e.,
-            # Low::to_upper! and Low::with_var! has been called.
+            # Low::to_upper_space! and Low::with_var! has been called.
             self.block.each_inner do |inner|
                 res << " " * ((level+1)*3)
                 res << "variable "
