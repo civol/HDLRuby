@@ -2464,7 +2464,12 @@ module HDLRuby::High
         # NOTE: actually executes +ruby_block+ in the context of the
         #       systemT.
         def open(&ruby_block)
-            return @systemT.run(&ruby_block)
+            # return @systemT.run(&ruby_block)
+            # Extend the eigen system.
+            @systemT.run(&ruby_block)
+            # Update the methods.
+            @systemT.eigenize(self)
+            self.eigen_extend(@systemT.public_namespace)
         end
 
         # include Hmissing
