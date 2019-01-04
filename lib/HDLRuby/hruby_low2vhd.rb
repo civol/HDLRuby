@@ -15,6 +15,15 @@ module HDLRuby::Low
     ## Provides tools for converting HDLRuby::Low objects to VHDL.
     module Low2VHDL
 
+        ## Generates the pakage requirement for an entity.
+        #  +spaces+ are the spaces to put before each line.
+        def self.packages(spaces)
+            return "#{spaces}library ieee;\n" +
+                   "#{spaces}use ieee.std_logic_1164.all;\n" +
+                   "#{spaces}use ieee.std_logic_unsigned.all;\n" +
+                   "#{spaces}use ieee.std_logic_arith.all;\n\n"
+        end
+
         ## Tells if a +name+ is VHDL-compatible.
         def self.vhdl_name?(name)
             return name =~ /^[a-zA-Z][a-zA-Z_0-9]*$/
@@ -55,6 +64,7 @@ module HDLRuby::Low
             res = ""
             # Generate the entity
             # The header
+            res << Low2VHDL.packages(" " * (level*3))
             res << " " * (level*3)
             res << "entity #{Low2VHDL.entity_name(self.name)} is\n"
             # The ports
