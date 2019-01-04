@@ -3,6 +3,11 @@
 require 'HDLRuby'
 require 'HDLRuby/hruby_check.rb'
 require 'ripper'
+require 'HDLRuby/hruby_low2high'
+require 'HDLRuby/hruby_low2vhd'
+require 'HDLRuby/hruby_low_without_namespace'
+require 'HDLRuby/hruby_low_with_port'
+require 'HDLRuby/hruby_low_with_var'
 
 ##
 # Library for loading an HDLRuby description in HDR format
@@ -164,8 +169,14 @@ if __FILE__ == $0 then
         opts.on("-y", "--yaml", "Output in YAML format") do |y|
             $options[:yaml] = y
         end
+        opts.on("-r", "--hdr","Output in HDLRuby format") do |v|
+            $options[:hdr] = v
+        end
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             $options[:verilog] = v
+        end
+        opts.on("-V", "--vhdl","Output in VHDL format") do |v|
+            $options[:vhdl] = v
         end
         opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
             $options[:syntax] = s
@@ -210,9 +221,9 @@ if __FILE__ == $0 then
     # puts "options=#{$options}"
 
     # Check the compatibility of the options
-    if $options[:yaml] && $options[:verilog] then
-        warn("Please choose EITHER YAML OR Verilog HDL output.")
-        puts optparse.help()
+    if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl].include?(op) } > 1 then
+        warn("Please choose either YAML, HDLRuby, Verilog HDL, or VHDL output.")
+        puts $optparse.help()
     end
 
     # Get the the input and the output files.
@@ -261,7 +272,15 @@ if __FILE__ == $0 then
     # Generate the result.
     if $options[:yaml] then
         $output << $top_instance.to_low.systemT.to_yaml
+    elsif $options[:hdr] then
+        $output << $top_instance.to_low.systemT.to_high
     elsif $options[:verilog] then
         warn("Verilog HDL output is not available yet... but it will be soon, promise!")
+    elsif $options[:vhdl] then
+        hardware = $top_instance.to_low.systemT
+        hardware.to_upper_space!
+        hardware.with_port!
+        hardware.with_var!
+        $output << hardware.to_vhdl
     end
 end
