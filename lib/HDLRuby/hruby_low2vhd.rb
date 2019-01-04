@@ -715,9 +715,9 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
             # Generate the operator string.
-            operator = self.operator == :~ ? "not " : self.operator.to_s
+            operator = self.operator == :~ ? "not " : self.operator.to_s[0]
             # Generate the unary operation.
-            return "(#{self.operator.to_s[0]}" + self.child.to_vhdl(level) + ")"
+            return "(#{operator}" + self.child.to_vhdl(level) + ")"
         end
     end
 
