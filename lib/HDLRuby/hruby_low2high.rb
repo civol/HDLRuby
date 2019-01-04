@@ -9,6 +9,51 @@ module HDLRuby::Low
 # description
 #
 ########################################################################
+    
+    ## Provides tools for converting HDLRuby::Low objects to HDLRuby::High.
+    module Low2High
+
+        ## Tells if an HDLRuby::Low +name+ syntax is compatible for
+        #  HDLRuby::High.
+        def self.high_name?(name)
+            return name =~ /^[a-zA-Z_][a-zA-Z_0-9]*$/
+        end
+
+        ## Converts a HDLRuby::Low +name+ for declaration to HDLRuby::High.
+        def self.high_decl_name(name)
+            if high_name?(name) then
+                # Compatible name return it as is.
+                return name.to_s
+            else
+                # Incompatible, use quotes.
+                return "\"#{name}\""
+            end
+        end
+
+        ## Converts a HDLRuby::Low +name+ for usage to HDLRuby::High.
+        def self.high_use_name(name)
+            if high_name?(name) then
+                # Compatible name return it as is.
+                return name.to_s
+            else
+                # Incompatible, use the HDLRuby::High "send" operator.
+                return "(+:\"#{name}\")"
+            end
+        end
+
+        ## Convert a HDLRuby::Low +name+ for instantiation to HDLRuby::High
+        #  with args as argument.
+        def self.high_call_name(name,args)
+            if high_name?(name) then
+                # Compatible name return it as is.
+                return "#{name} #{[*args].join(",")}"
+            else
+                # Incompatible, use the HDLRuby::High "send" operator.
+                return "send(:\"#{name}\",#{[*args].join(",")})"
+            end
+        end
+    end
+
 
 
     ## Extends the SystemT class with generation of HDLRuby::High text.
@@ -21,25 +66,28 @@ module HDLRuby::Low
             res = ""
             # Generate the header.
             res << " " * (level*3)
-            res << "system :#{self.name} do\n"
+            res << "system :#{Low2High.high_decl_name(self.name)} do\n"
             # Generate the interface.
             # Inputs.
             self.each_input do |input|
                 res << " " * ((level+1)*3)
                 res << input.type.to_high(level+1) 
-                res << ".input :" << input.name.to_s << "\n"
+                res << ".input :" << Low2High.high_decl_name(input.name)
+                res << "\n"
             end
             # Outputs.
             self.each_output do |output|
                 res << " " * ((level+1)*3)
                 res << output.type.to_high(level+1) 
-                res << ".output :" << output.name.to_s << "\n"
+                res << ".output :" << Low2High.high_decl_name(output.name)
+                res << "\n"
             end
             # Inouts.
             self.each_inout do |inout|
                 res << " " * ((level+1)*3)
                 res << inout.type.to_high(level+1) 
-                res << ".inout :" << inout.name.to_s << "\n"
+                res << ".inout :" << Low2High.high_decl_name(inout.name)
+                res << "\n"
             end
             # Generate the scope.
             res << " " * (level*3)
@@ -66,7 +114,7 @@ module HDLRuby::Low
             if header then
                 res << (" " * (level*3)) << "sub "
                 unless self.name.empty? then
-                    res << ":" << self.name.to_s << " "
+                    res << ":" << Low2High.high_decl_name(self.name) << " "
                 end
                 res << "do\n"
             end
@@ -75,7 +123,7 @@ module HDLRuby::Low
             self.each_inner do |inner|
                 res << " " * (level*3)
                 res << inner.type.to_high(level) 
-                res << ".inner :" << inner.name.to_s << "\n"
+                res << ".inner :" << Low2High.high_decl_name(inner.name) << "\n"
             end
             # Generate the instances.
             res << "\n" if self.each_inner.any?
@@ -113,7 +161,7 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_high(level = 0)
-            return self.name.to_s
+            return Low2High.high_use_name(self.name)
         end
     end
 
@@ -243,7 +291,7 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_high(level = 0)
-            return self.name.to_s
+            return Low2High.high_use_name(self.name)
         end
     end
 
@@ -254,7 +302,8 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_high(level = 0)
-            return self.systemT.name.to_s + " :" + self.name.to_s
+            return Low2High.high_call_name(self.systemT.name,
+                   ":" + Low2High.high_decl_name(self.name))
         end
     end
 
@@ -423,7 +472,7 @@ module HDLRuby::Low
                     res << " " * (level*3) << "#{self.mode} "
                 end
                 unless self.name.empty? then
-                    res << ":" << self.name.to_s << " "
+                    res << ":" << Low2High.high_decl_name(self.name) << " "
                 end
                 res << "do\n"
             end
@@ -432,7 +481,7 @@ module HDLRuby::Low
             self.each_inner do |inner|
                 res << " " * (level*3)
                 res << inner.type.to_high(level) 
-                res << ".inner :" << inner.name.to_s << "\n"
+                res << ".inner :" << Low2High.high_decl_name(inner.name) << "\n"
             end
             # Generate the statements.
             self.each_statement do |stmnt|
@@ -491,7 +540,11 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_high(level = 0)
-            return self.content.to_s
+            if self.content.is_a?(HDLRuby::BitString) then
+                return "_#{self.content}"
+            else
+                return self.content.to_s
+            end
         end
     end
 
@@ -645,7 +698,7 @@ module HDLRuby::Low
             # Generates the sub reference if any.
             res << self.ref.to_high(level) << "." unless self.ref.is_a?(RefThis)
             # Generates the current reference.
-            res << self.name.to_s
+            res << Low2High.high_use_name(self.name)
             # Returns the resulting string.
             return res
         end
