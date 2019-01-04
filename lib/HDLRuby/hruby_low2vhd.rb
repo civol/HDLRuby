@@ -340,12 +340,15 @@ module HDLRuby::Low
             # The resulting string.
             res = "record \n"
             # Generate each sub type.
-            self.each_type do |key,type|
+            self.each do |key,type|
                 res << " " * ((level+1)*3)
-                res << type << ": " << type.to_vhdl(level+1)
+                res << Low2VHDL.vhdl_name(key)
+                res << ": " << type.to_vhdl(level+1)
+                res << "\n"
             end
+            res << " " * (level*3)
             # Close the record.
-            res << " end record"
+            res << "end record"
             # Return the result.
             return res
         end
@@ -855,9 +858,9 @@ module HDLRuby::Low
         def to_vhdl(level = 0)
             # The resulting string.
             res = ""
-            # There should not be further ref.
+            # Generate the sub refs if any (case of struct).
             unless self.ref.is_a?(RefThis) then
-                raise AnyError, "Sub references are not supported in VHDL, please remove them using Low::to_upper! from hruby_low_without_space."
+                res << self.ref.to_vhdl(level) << "."
             end
             # Generates the current reference.
             res << Low2VHDL.vhdl_name(self.name)
