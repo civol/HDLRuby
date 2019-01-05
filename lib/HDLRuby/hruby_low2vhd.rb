@@ -354,7 +354,7 @@ module HDLRuby::Low
                 res << " " * ((level+1)*3)
                 res << Low2VHDL.vhdl_name(key)
                 res << ": " << type.to_vhdl(level+1)
-                res << "\n"
+                res << ";\n"
             end
             res << " " * (level*3)
             # Close the record.
