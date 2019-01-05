@@ -176,6 +176,11 @@ if __FILE__ == $0 then
             $options[:verilog] = v
         end
         opts.on("-V", "--vhdl","Output in VHDL format") do |v|
+            HDLRuby::Low::Low2VHDL.vhdl93 = false
+            $options[:vhdl] = v
+        end
+        opts.on("-U", "--vhdl93","Output in VHDL'93 format") do |v|
+            HDLRuby::Low::Low2VHDL.vhdl93 = true
             $options[:vhdl] = v
         end
         opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|

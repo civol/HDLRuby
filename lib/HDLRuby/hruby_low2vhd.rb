@@ -15,6 +15,23 @@ module HDLRuby::Low
     ## Provides tools for converting HDLRuby::Low objects to VHDL.
     module Low2VHDL
 
+        # Indicates if VHDL'93 can be generated.
+        # Default: true
+        #
+        # NOTE: when possible, it is better to be left true since the
+        # identifier does not require any mangling in VHDL'93
+        @@vhdl93 = true
+
+        ## Tells if VHDL'93 is supported or not.
+        def self.vhdl93
+            return @@vhdl93
+        end
+
+        ## Sets/unsets the support of VHDL'93.
+        def self.vhdl93=(mode)
+            @@vhdl93 = mode ? true : false
+        end
+
         ## Generates the pakage requirement for an entity.
         #  +spaces+ are the spaces to put before each line.
         def self.packages(spaces)
@@ -24,16 +41,44 @@ module HDLRuby::Low
         end
 
         ## Tells if a +name+ is VHDL-compatible.
+        #  To ensure compatibile, assume all the character must have the
+        #  same case.
         def self.vhdl_name?(name)
-            return name =~ /^[a-zA-Z][a-zA-Z_0-9]*$/
+            name = name.to_s
+            # First: character check.
+            return false unless name =~ /^[a-zA-Z]|([a-zA-Z][a-zA-Z_0-9]*[a-zA-Z0-9])$/
+            # Then character sequence check.
+            return false if name.include?("__")
+            # Then case check.
+            return (name == name.upcase || name == name.downcase)
         end
 
         ## Converts a +name+ to a VHDL-compatible name.
         def self.vhdl_name(name)
-            # Nothing to do if the name is VHDL-compatible.
-            return name.to_s if self.vhdl_name?(name)
-            # Put the name between //
-            return "\\#{name}\\".to_s
+            if vhdl93 then
+                # VHDL'93, nothing to do if the name is VHDL-compatible.
+                return name.to_s if self.vhdl_name?(name)
+                # Otherwise put the name between //
+                return "\\#{name}\\".to_s
+            else
+                # Not VHDL'93, need to mangle the name.
+                # For safety also force downcase.
+                name = name.to_s
+                # First character: only letter is possible.
+                unless name[0] =~ /[a-zA-Z]/ then
+                    name = "v" + name
+                end
+                # Other letters: convert special characters.
+                return name.each_char.map do |c|
+                    if c=~ /[a-uw-z0-9]/ then
+                        c
+                    elsif c == "v" then
+                        "vv"
+                    else
+                        "v" + c.ord.to_s
+                    end
+                end.join
+            end
         end
 
         ## Converts a +name+ to a VHDL entity name.
@@ -428,7 +473,7 @@ module HDLRuby::Low
                 end.join(", ")
                 res << ")"
             end
-            res << " is\n"
+            res << "\n"
             # Generate the variables.
             # It is assumed that the inners are all in declared in the
             # direct sub block and that they represent variables, i.e.,
