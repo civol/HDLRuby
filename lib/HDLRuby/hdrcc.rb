@@ -273,14 +273,17 @@ if __FILE__ == $0 then
     if $options[:yaml] then
         $output << $top_instance.to_low.systemT.to_yaml
     elsif $options[:hdr] then
-        $output << $top_instance.to_low.systemT.to_high
+        $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
+            $output << systemT.to_high
+        end
     elsif $options[:verilog] then
         warn("Verilog HDL output is not available yet... but it will be soon, promise!")
     elsif $options[:vhdl] then
-        hardware = $top_instance.to_low.systemT
-        hardware.to_upper_space!
-        hardware.with_port!
-        hardware.with_var!
-        $output << hardware.to_vhdl
+        $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
+            systemT.to_upper_space!
+            systemT.with_port!
+            systemT.with_var!
+            $output << systemT.to_vhdl
+        end
     end
 end
