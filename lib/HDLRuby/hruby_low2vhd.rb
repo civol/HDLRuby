@@ -20,8 +20,7 @@ module HDLRuby::Low
         def self.packages(spaces)
             return "#{spaces}library ieee;\n" +
                    "#{spaces}use ieee.std_logic_1164.all;\n" +
-                   "#{spaces}use ieee.std_logic_unsigned.all;\n" +
-                   "#{spaces}use ieee.std_logic_arith.all;\n\n"
+                   "#{spaces}use ieee.numeric_std.all;\n\n"
         end
 
         ## Tells if a +name+ is VHDL-compatible.
@@ -49,6 +48,37 @@ module HDLRuby::Low
         # NOTE: assume names have been converted to VHDL-compatible ones.
         def self.architecture_name(name)
             return self.vhdl_name(name.to_s + "_a")
+        end
+
+        ## Tells if a +type+ is arithmetic-compatible.
+        def self.arith?(type)
+            return type.is_a?(TypeVector) && 
+                [:signed,:unsigned,:float].include?(type.base.name)
+        end
+
+        ## Generates expression expr while casting it to arithmetic-compatible
+        #  type if required.
+        def self.to_arith(expr)
+            if arith?(expr.type) then
+                # The expression is arithmetic-compatible, just generate it.
+                return expr.to_vhdl
+            else
+                # The expression is to convert, by default convert to unsigned
+                # (this is the standard interpretation of HDLRuby).
+                return "unsigned(" + expr.to_vhdl + ")"
+            end
+        end
+
+        ## Cast a +type+ to undo arithmetic conversion if necessary.
+        def self.unarith_cast(type)
+            # Is the type arithmetic?
+            if arith?(type) then
+                # Yes, no undo required.
+                return ""
+            else
+                # No, undo required.
+                return "std_logic_vector"
+            end
         end
 
     end
@@ -88,7 +118,10 @@ module HDLRuby::Low
                 res << Low2VHDL.vhdl_name(inout.name) << ": inout " 
                 res << inout.type.to_vhdl << ";\n"
             end
+            # Remove the last ";" for conforming with VHDL syntax.
+            res[-2..-1] = "\n" if res[-2] == ";"
             res << " " * ((level+1)*3)
+            # Close the port declaration.
             res << ");\n"
             # Close the entity
             res << " " * (level*3)
@@ -180,8 +213,14 @@ module HDLRuby::Low
                     res << Low2VHDL.vhdl_name(inout.name) << ": inout " 
                     res << inout.type.to_vhdl << ";\n"
                 end
+                # Remove the last ";" for conforming with VHDL syntax.
+                res[-2..-1] = "\n" if res[-2] == ";"
                 res << " " * ((level+1)*3)
+                # Close the port declaration.
                 res << ");\n"
+                # Close the component.
+                res << " " * (level*3)
+                res << "end component;\n\n" 
             end
             # The inner signals declaration.
             self.each_inner do |inner|
@@ -211,7 +250,7 @@ module HDLRuby::Low
                         res << " " * ((level+2)*3)
                         res << Low2VHDL.vhdl_name(input.name) << " => " 
                         res << ref.to_vhdl(level) 
-                        res << ";\n"
+                        res << ",\n"
                     end
                 end
                 # Outputs
@@ -221,7 +260,7 @@ module HDLRuby::Low
                         res << " " * ((level+2)*3)
                         res << Low2VHDL.vhdl_name(output.name) << " => " 
                         res << ref.to_vhdl(level) 
-                        res << ";\n"
+                        res << ",\n"
                     end
                 end
                 # Inouts
@@ -231,9 +270,12 @@ module HDLRuby::Low
                         res << " " * ((level+2)*3)
                         res << Low2VHDL.vhdl_name(inout.name) << " => " 
                         res << ref.to_vhdl(level) 
-                        res << ";\n"
+                        res << ",\n"
                     end
                 end
+                # Remove the last ";" for conforming with VHDL syntax.
+                res[-2..-1] = "\n" if res[-2] == ","
+                # Close the port map declaration.
                 res << " " * ((level+1)*3)
                 res << ");\n"
             end
@@ -729,8 +771,15 @@ module HDLRuby::Low
         def to_vhdl(level = 0)
             # Generate the operator string.
             operator = self.operator == :~ ? "not " : self.operator.to_s[0]
-            # Generate the unary operation.
-            return "(#{operator}" + self.child.to_vhdl(level) + ")"
+            # Is the operator arithmetic?
+            if [:+@, :-@].include?(self.operator) then
+                # Yes, type conversion my be required by VHDL standard.
+                return "#{Low2VHDL.unarith_cast(self)}(#{operator}" +
+                             Low2VHDL.to_arith(self.child) + ")"
+            else
+                # No, generate simply the unary operation.
+                return "(#{operator}" + self.child.to_vhdl(level) + ")"
+            end
         end
     end
 
@@ -753,9 +802,17 @@ module HDLRuby::Low
             else
                 operator = self.operator.to_s
             end
-            # Generate the binary operation.
-            return "(" + self.left.to_vhdl(level) + operator + 
-                         self.right.to_vhdl(level) + ")"
+            # Is the operator arithmetic?
+            if [:+, :-, :*, :/, :%].include?(self.operator) then
+                # Yes, type conversion my be required by VHDL standard.
+                return "#{Low2VHDL.unarith_cast(self)}(" +
+                    Low2VHDL.to_arith(self.left) + operator +
+                    Low2VHDL.to_arith(self.right) + ")"
+            else
+                # No, simply generate the binary operation.
+                return "(" + self.left.to_vhdl(level) + operator + 
+                             self.right.to_vhdl(level) + ")"
+            end
         end
     end
 
