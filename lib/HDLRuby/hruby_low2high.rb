@@ -94,7 +94,7 @@ module HDLRuby::Low
             res << "\n"
             res << self.scope.to_high(level+1,false)
             # End of the system.
-            res << "end"
+            res << "end\n\n"
             # Return the result.
             return res
         end
@@ -220,7 +220,7 @@ module HDLRuby::Low
             # The resulting string.
             res = "{ "
             # Generate each sub type.
-            res << self.each_type.map do |key,type|
+            res << self.each.map do |key,type|
                 "#{key}: " + type.to_high(level)
             end.join(", ")
             # Close the struct.
