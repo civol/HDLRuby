@@ -748,6 +748,8 @@ module HDLRuby::Low
                 operator = " or "
             when :^
                 operator = " xor "
+            when :==
+                operator = " = "
             else
                 operator = self.operator.to_s
             end
