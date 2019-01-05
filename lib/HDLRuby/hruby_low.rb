@@ -356,6 +356,19 @@ module HDLRuby::Low
         #     signal
         # end
 
+        # Iterates over the systemT deeply if any.
+        def each_systemT_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemT_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the systemT accessible through the instances.
+            self.scope.each_scope_deep do |scope|
+                scope.each_systemI do |systemI|
+                    systemI.systemT.each_systemT_deep(&ruby_block)
+                end
+            end
+        end
     end
 
 
