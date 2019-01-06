@@ -61,6 +61,8 @@ module HDLRuby::Low
     # NOTE: delegates its content-related methods to its Scope object.
     class SystemT
 
+        include Hparent
+
         # The name of the system.
         attr_reader :name
 
@@ -385,7 +387,10 @@ module HDLRuby::Low
         def initialize(name = :"")
             # Check and set the name.
             @name = name.to_sym
-            # puts "New scope=#{self}"
+            # Initialize the local types.
+            @types = HashName.new
+            # Initialize the local system types.
+            @systemTs = HashName.new
             # Initialize the sub scopes.
             @scopes = []
             # Initialize the inner signal instance lists.
@@ -401,6 +406,18 @@ module HDLRuby::Low
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Scope)
+            idx = 0
+            obj.each_systemT do |systemT|
+                return false unless @systemTs[systemT.name].eql?(systemT)
+                idx += 1
+            end
+            return false unless idx == @systemTs.size
+            idx = 0
+            obj.each_type do |type|
+                return false unless @types[type.name].eql?(type)
+                idx += 1
+            end
+            return false unless idx == @types.size
             idx = 0
             obj.each_scope do |scope|
                 return false unless @scopes[idx].eql?(scope)
@@ -436,8 +453,114 @@ module HDLRuby::Low
 
         # Hash function.
         def hash
-            return [@scopes,@inners,@systemIs,@connections,@behaviors].hash
+            return [@systemTs,@types,@scopes,@inners,@systemIs,@connections,@behaviors].hash
         end
+
+        # Handling the local system types.
+
+        # Adds system instance +systemT+.
+        def add_systemT(systemT)
+            # puts "add_systemT with name #{systemT.name}"
+            # Checks and add the systemT.
+            unless systemT.is_a?(SystemT)
+                raise AnyError,
+                      "Invalid class for a system type: #{systemT.class}"
+            end
+            if @systemTs.include?(systemT) then
+                raise AnyError, "SystemT #{systemT.name} already present."
+            end
+            # Set the parent of the instance
+            systemT.parent = self
+            # puts "systemT = #{systemT}, parent=#{self}"
+            # Add the instance
+            @systemTs.add(systemT)
+        end
+
+        # Iterates over the system instances.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_systemT(&ruby_block)
+            # puts "each_systemT from scope=#{self}"
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemT) unless ruby_block
+            # A ruby block? Apply it on each system instance.
+            @systemTs.each(&ruby_block)
+        end
+
+        # Tells if there is any system instance.
+        def has_systemT?
+            return !@systemTs.empty?
+        end
+
+        # Gets a system instance by +name+.
+        def get_systemT(name)
+            return @systemTs[name]
+        end
+
+        # # Deletes system instance systemT.
+        # def delete_systemT(systemT)
+        #     if @systemTs.key?(systemT.name) then
+        #         # The instance is present, do remove it.
+        #         @systemTs.delete(systemT.name)
+        #         # And remove its parent.
+        #         systemT.parent = nil
+        #     end
+        #     systemT
+        # end
+
+        # Handle the local types.
+
+        # Adds system instance +type+.
+        def add_type(type)
+            # puts "add_type with name #{type.name}"
+            # Checks and add the type.
+            unless type.is_a?(Type)
+                raise AnyError,
+                      "Invalid class for a type: #{type.class}"
+            end
+            if @types.include?(type) then
+                raise AnyError, "Type #{type.name} already present."
+            end
+            # Set the parent of the instance
+            type.parent = self
+            # puts "type = #{type}, parent=#{self}"
+            # Add the instance
+            @types.add(type)
+        end
+
+        # Iterates over the system instances.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_type(&ruby_block)
+            # puts "each_type from scope=#{self}"
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type) unless ruby_block
+            # A ruby block? Apply it on each system instance.
+            @types.each(&ruby_block)
+        end
+
+        # Tells if there is any system instance.
+        def has_type?
+            return !@types.empty?
+        end
+
+        # Gets a system instance by +name+.
+        def get_type(name)
+            return @types[name]
+        end
+
+        # # Deletes system instance type.
+        # def delete_type(type)
+        #     if @types.key?(type.name) then
+        #         # The instance is present, do remove it.
+        #         @types.delete(type.name)
+        #         # And remove its parent.
+        #         type.parent = nil
+        #     end
+        #     type
+        # end
+
+
 
         # Handling the scopes
         
@@ -881,6 +1004,9 @@ module HDLRuby::Low
     ##
     # Describes a data type.
     class Type
+
+        include Hparent
+
         # The name of the type
         attr_reader :name
 
@@ -974,6 +1100,15 @@ module HDLRuby::Low
         def equivalent?(type)
             # By default, types are equivalent iff they have the same name.
             return (type.is_a?(Type) and self.name == type.name)
+        end
+
+        # Iterates over the types deeply if any.
+        def each_type_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And that's all by default.
         end
     end
 
@@ -1142,6 +1277,16 @@ module HDLRuby::Low
             return [super,@def].hash
         end
 
+        # Iterates over the types deeply if any.
+        def each_type_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the definition.
+            @def.each_type_deep(&ruby_block)
+        end
+
         # Delegate the type methods to the ref.
         def_delegators :@def,
                        :signed?, :unsigned?, :fixed?, :float?, :leaf?,
@@ -1250,6 +1395,16 @@ module HDLRuby::Low
             return (type.is_a?(TypeVector) and
                     @range == type.range
                     @base.equivalent?(type.base) )
+        end
+
+        # Iterates over the types deeply if any.
+        def each_type_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the base.
+            @base.each_type_deep(&ruby_block)
         end
     end
 
@@ -1388,6 +1543,16 @@ module HDLRuby::Low
             return to_enum(:each_type) unless ruby_block
             # A ruby block? Apply it on each input signal instance.
             @types.each(&ruby_block)
+        end
+
+        # Iterates over the types deeply if any.
+        def each_type_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the sub types.
+            @types.each { |type| type.each_type_deep(&ruby_block) }
         end
 
         # Tell if the tuple is regular, i.e., all its sub types are equivalent.
@@ -1538,6 +1703,16 @@ module HDLRuby::Low
             return to_enum(:each_name) unless ruby_block
             # A ruby block? Apply it on each input signal instance.
             @types.each_key(&ruby_block)
+        end
+
+        # Iterates over the types deeply if any.
+        def each_type_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_type_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the sub types.
+            @types.each_value { |type| type.each_type_deep(&ruby_block) }
         end
 
         # Gets the bitwidth of the type, nil for undefined.
