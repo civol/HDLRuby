@@ -89,6 +89,16 @@ module HDLRuby::Low
     # Describes scopes of system types.
     class Scope
 
+        # Maps on the local types.
+        def map_types!(&ruby_block)
+            @types.map(&ruby_block)
+        end
+
+        # Maps on the local systemTs.
+        def map_systemTs!(&ruby_block)
+            @systemTs.map(&ruby_block)
+        end
+
         # Maps on the scopes.
         def map_scopes!(&ruby_block)
             @scopes.map(&ruby_block)
@@ -112,6 +122,28 @@ module HDLRuby::Low
         # Maps on the behaviors.
         def map_behaviors!(&ruby_block)
             @behaviors.map(&ruby_block)
+        end
+
+        # Deletes an type.
+        def delete_type!(type)
+            if @types.key?(type.name) then
+                # The type is present, delete it. 
+                @types.delete(type.name)
+                # And remove its parent.
+                type.parent = nil
+            end
+            type
+        end
+
+        # Deletes an systemT.
+        def delete_systemT!(systemT)
+            if @systemTs.key?(systemT.name) then
+                # The systemT is present, delete it. 
+                @systemTs.delete(systemT.name)
+                # And remove its parent.
+                systemT.parent = nil
+            end
+            systemT
         end
 
         # Deletes a scope.
@@ -205,17 +237,17 @@ module HDLRuby::Low
     class TypeVector
         
         # Sets the +base+ type.
-        def set_base(type)
+        def set_base!(type)
             # Check and set the base
-            unless base.is_a?(Type)
+            unless type.is_a?(Type)
                 raise AnyError,
                       "Invalid class for VectorType base: #{base.class}."
             end
-            @base = base
+            @base = type
         end
 
         # Sets the +range+.
-        def set_range
+        def set_range!(ranage)
             # Check and set the range.
             if range.respond_to?(:to_i) then
                 # Integer case: convert to 0..(range-1).
