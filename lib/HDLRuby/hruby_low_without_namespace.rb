@@ -31,9 +31,48 @@ module HDLRuby::Low
     #  to the upper namespace.
     class SystemT
 
+        include ForceName
+
         # Moves the declarations to the upper namespace.
         def to_upper_space!
             self.scope.to_upper_space!
+        end
+
+        # Moves local systemTs to global.
+        #
+        # NOTE: assumes to_upper_space! has been called.
+        def to_global_systemTs!
+            # Force a name if not.
+            self.force_name!
+            # For each local systemT
+            self.scope.each_systemT.to_a.each do |systemT|
+                # Rename it for globalization.
+                former = systemT.name
+                self.extend_name!(systemT)
+                # Apply the renaming to all the inner objects.
+                self.scope.replace_names_subs!(former,systemT.name)
+                # Remove it.
+                self.scope.delete_systemT!(systemT)
+            end
+        end
+
+        # Replaces recursively +former+ name by +nname+ until it is redeclared.
+        def replace_names!(former,nname)
+            # Replace owns name if required.
+            if self.name == former then
+                self.set_name!(nname)
+            end
+            # Recurse on the interface.
+            self.each_input {|input| input.replace_names!(former,nname) }
+            self.each_output {|output| output.replace_names!(former,nname) }
+            self.each_inout {|inout| inout.replace_names!(former,nname) }
+            # Recurse on the scope.
+            self.scope.replace_names!(former,nname)
+        end
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        def break_types!
+            self.scope.break_types!
         end
     end
 
@@ -58,7 +97,11 @@ module HDLRuby::Low
 
             # Reinsert the extracted declares to self.
             decls.flatten.each do |decl|
-                if decl.is_a?(SignalI) then
+                if decl.is_a?(Type) then
+                    self.add_type(decl)
+                elsif decl.is_a?(SystemT) then
+                    self.add_systemT(decl)
+                elsif decl.is_a?(SignalI) then
                     self.add_inner(decl)
                 elsif decl.is_a?(SystemI) then
                     self.add_systemI(decl)
@@ -76,6 +119,30 @@ module HDLRuby::Low
             self.force_name!
             # The extracted declares.
             decls = []
+            # Extract the types.
+            types = []
+            self.each_type {|type| types << type }
+            types.each {|type| self.delete_type!(type) }
+            # Renames them with the current level.
+            types.each do |type|
+                former = type.name
+                self.extend_name!(type)
+                self.replace_names_subs!(former,type.name)
+            end
+            # Adds the types
+            decls << types
+            # Extract the systemTs.
+            systemTs = []
+            self.each_systemT {|systemT| systemTs << systemT }
+            systemTs.each {|systemT| self.delete_systemT!(systemT) }
+            # Renames them with the current level.
+            systemTs.each do |systemT|
+                former = systemT.name
+                self.extend_name!(systemT)
+                self.replace_names_subs!(former,systemT.name)
+            end
+            # Adds the systemTs
+            decls << systemTs
             # Extract the inners.
             inners = []
             self.each_inner {|inner| inners << inner }
@@ -105,10 +172,25 @@ module HDLRuby::Low
         end
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared
-        # in the sub scopes and behaviors.
+        # in the internals.
         def replace_names_subs!(former,nname)
+            self.each_type do |type|
+                type.replace_names!(former,nname)
+            end
+            self.each_systemT do |systemT|
+                systemT.replace_names!(former,nname)
+            end
             self.each_scope do |scope|
                 scope.replace_names!(former,nname)
+            end
+            self.each_inner do |inner|
+                inner.replace_names!(former,nname)
+            end
+            self.each_systemI do |systemI|
+                systemI.replace_names!(former,nname)
+            end
+            self.each_connection do |connection|
+                connection.replace_names!(former,nname)
             end
             self.each_behavior do |behavior|
                 behavior.replace_names!(former,nname)
@@ -118,9 +200,174 @@ module HDLRuby::Low
         # Replaces recursively +former+ name by +nname+ until it is redeclared.
         def replace_names!(former,nname)
             # Stop here if the name is redeclared.
+            return if self.each_type.find {|type| type.name == former }
+            return if self.each_systemT.find {|systemT| systemT.name == former }
             return if self.each_inner.find {|inner| inner.name == former }
-            # Recurse on the sub scopes and behaviors.
+            # Recurse on the internals.
             replace_names_subs!(former,nname)
+        end
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        def break_types!
+            # The created types by structure.
+            types = {}
+            # Break the local types.
+            self.each_type {|type| type.break_types!(types)}
+            # Break the types in the inners.
+            self.each_inner {|inner| inner.type.break_types!(types) }
+            # Break the types in the connections.
+            self.each_connection do |connection| 
+                connection.left.break_types!(types)
+                connection.right.break_types!(types)
+            end
+            # Break the types in the behaviors.
+            self.each_behavior do |behavior|
+                behavior.each_event do |event|
+                    event.ref.break_types!(types) 
+                end
+                behavior.block.break_types!(types)
+            end
+
+            # Add the resulting types.
+            types.each_value {|type| self.add_type(type) }
+        end
+    end
+
+    ## Extends the Type class with functionality for breaking hierarchical
+    #  types.
+    class Type
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            # By default, nothing to do.
+            return self
+        end
+    end
+
+    ## Extends the TypeVector class with functionality for breaking hierarchical
+    #  types.
+    class TypeVector
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            if self.base.is_a?(TypeVector) || self.base.is_a?(TypeTuple) ||
+               self.base.is_a?(TypeStruct) then
+                # Need to break
+                # First recurse on the base.
+                nbase = self.base.break_types!(types)
+                # Maybe such a type already exists.
+                ndef = types[nbase]
+                if ndef then
+                    # Yes, use it.
+                    self.set_base!(ndef.clone)
+                else
+                    # No change it to a type definition
+                    ndef = TypeDef.new(HDLRuby.uniq_name,nbase)
+                    self.set_base!(ndef)
+                    # And add it to the types by structure.
+                    types[nbase] = ndef
+                end
+            end
+            return self
+        end
+    end
+
+    ## Extends the TypeTuple class with functionality for breaking hierarchical
+    #  types.
+    class TypeTuple
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            self.map_types! do |sub|
+                if sub.is_a?(TypeVector) || sub.is_a?(TypeTuple) ||
+                        sub.is_a?(TypeStruct) then
+                    # Need to break
+                    # First recurse on the sub.
+                    nsub = sub.break_types!(types)
+                    # Maybe such a type already exists.
+                    ndef = types[sub]
+                    if ndef then
+                        # Yes, use it.
+                        ndef.clone
+                    else
+                        # No change it to a type definition
+                        ndef = TypeDef.new(HDLRuby.uniq_name,nsub)
+                        # And add it to the types by structure.
+                        types[nsub] = ndef
+                        nsub
+                    end
+                end
+            end
+            return self
+        end
+    end
+
+    ## Extends the TypeStruct class with functionality for breaking hierarchical
+    #  types.
+    class TypeStruct
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            self.map_types! do |sub|
+                if sub.is_a?(TypeVector) || sub.is_a?(TypeStruct) ||
+                        sub.is_a?(TypeStruct) then
+                    # Need to break
+                    # First recurse on the sub.
+                    nsub = sub.break_types!(types)
+                    # Maybe such a type already exists.
+                    ndef = types[sub]
+                    if ndef then
+                        # Yes, use it.
+                        ndef.clone
+                    else
+                        # No change it to a type definition
+                        ndef = TypeDef.new(HDLRuby.uniq_name,nsub)
+                        # And add it to the types by structure.
+                        types[nsub] = ndef
+                        nsub
+                    end
+                end
+            end
+            return self
+        end
+    end
+
+    ## Extends the SignalI class with functionality for moving the declarations
+    #  to the upper namespace.
+    class SignalI
+
+        # Replaces recursively +former+ name by +nname+ until it is redeclared.
+        def replace_names!(former,nname)
+            # Recurse on the type.
+            self.type.each_type_deep do |type|
+                if type.respond_to?(:name) && type.name == former then
+                    type.set_name!(nname)
+                end
+            end
+        end
+    end
+
+    ## Extends the SystemI class with functionality for moving the declarations
+    #  to the upper namespace.
+    class SystemI
+
+        # Replaces recursively +former+ name by +nname+ until it is redeclared.
+        def replace_names!(former,nname)
+            # Replace owns name if required.
+            if self.name == former then
+                self.set_name!(nname)
+            end
+            # Recurse on the system type.
+            self.systemT.replace_names!(former,nname)
         end
     end
 
@@ -176,6 +423,15 @@ module HDLRuby::Low
                 end
             end
         end
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            self.each_node do |node|
+                node.break_types!(types)
+            end
+        end
     end
 
     ## Extends the Expression class with functionality for moving the
@@ -188,6 +444,18 @@ module HDLRuby::Low
             self.each_node_deep do |node|
                 if node.respond_to?(:name) && node.name == former then
                     node.set_name!(nname)
+                end
+            end
+        end
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            self.each_node do |node|
+                # Need to break only in the case of a cast.
+                if node.is_a?(Cast) then
+                    node.type.break_types!(types)
                 end
             end
         end
@@ -267,6 +535,18 @@ module HDLRuby::Low
             self.match.replace_names!(former,nname)
             # Recurse on the statement.
             self.statement.replace_names!(former,nname)
+        end
+
+        # Breaks the hierarchical types into sequences of type definitions.
+        # Assumes to_upper_space! has been called before.
+        # +types+ include the resulting types.
+        def break_types!(types)
+            self.each_node do |node|
+                # Need to break only in the case of a cast.
+                if node.is_a?(Cast) then
+                    node.type.break_types!(types)
+                end
+            end
         end
     end
 
