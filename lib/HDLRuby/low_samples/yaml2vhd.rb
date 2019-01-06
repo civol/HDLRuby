@@ -12,6 +12,8 @@ hardware = hardwares[-1]
 
 # Generate the corresponding VHDL code.
 hardware.to_upper_space!
+hardware.to_global_systemTs!
+hardware.break_types!
 hardware.with_port!
 hardware.with_var!
 puts hardware.to_vhdl

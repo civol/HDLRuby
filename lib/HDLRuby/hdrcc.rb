@@ -20,7 +20,8 @@ module HDLRuby
     # Class for loading hdr files.
     class HDRLoad
 
-        TOP_NAME = "__hdr_top_instance__"
+        # TOP_NAME = "__hdr_top_instance__"
+        TOP_NAME = "__"
 
         # The top instance, only accessible after parsing the files.
         attr_reader :top_instance
@@ -284,10 +285,17 @@ if __FILE__ == $0 then
     elsif $options[:verilog] then
         warn("Verilog HDL output is not available yet... but it will be soon, promise!")
     elsif $options[:vhdl] then
-        $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
+        top_system = $top_instance.to_low.systemT
+        # Make description compatible with vhdl generation.
+        top_system.each_systemT_deep do |systemT|
             systemT.to_upper_space!
+            systemT.to_global_systemTs!
+            systemT.break_types!
             systemT.with_port!
             systemT.with_var!
+        end
+        # Generate the vhdl.
+        top_system.each_systemT_deep.reverse_each do |systemT|
             $output << systemT.to_vhdl
         end
     end

@@ -64,12 +64,8 @@ module HDLRuby::Low
                 # Not VHDL'93, need to mangle the name.
                 # For safety also force downcase.
                 name = name.to_s
-                # First character: only letter is possible.
-                unless name[0] =~ /[a-zA-Z]/ then
-                    name = "v" + name
-                end
                 # Other letters: convert special characters.
-                return name.each_char.map do |c|
+                name = name.each_char.map do |c|
                     if c=~ /[a-uw-z0-9]/ then
                         c
                     elsif c == "v" then
@@ -78,6 +74,11 @@ module HDLRuby::Low
                         "v" + c.ord.to_s
                     end
                 end.join
+                # First character: only letter is possible.
+                unless name[0] =~ /[a-z]/ then
+                    name = "v" + name
+                end
+                return name
             end
         end
 
@@ -267,7 +268,17 @@ module HDLRuby::Low
                 res << " " * (level*3)
                 res << "end component;\n\n" 
             end
-            # The inner signals declaration.
+
+            # Generate the architecture's type definition.
+            # It is assumed that these types are all TypeDef.
+            self.each_type do |type|
+                res << (" " * level*3)
+                res << "type #{Low2VHDL.vhdl_name(type.name)} is "
+                res << type.def.to_vhdl(level+1)
+                res << ";\n"
+            end
+
+            # Generate the inner signals declaration.
             self.each_inner do |inner|
                 res << " " * (level * 3)
                 res << "signal " << Low2VHDL.vhdl_name(inner.name) << ": "
@@ -361,8 +372,10 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
-            # Simply generates the redefined type.
-            return self.def.to_vhdl(level)
+            # # Simply generates the redefined type.
+            # return self.def.to_vhdl(level)
+            # Simply use the name of the type.
+            return Low2VHDL.vhdl_name(self.name)
         end
     end
 
@@ -377,6 +390,9 @@ module HDLRuby::Low
             # Depending on the base.
             if self.base.class < Type then
                 # The base is not a leaf, therefore the type is a VHDL array.
+                # NOTE: array are always valid if used in type definition,
+                # it is assumed that break_types! from
+                # hruby_low_without_namespace.rb is used.
                 res << "array ("
                 res << self.range.first.to_vhdl(level)
                 if self.range.first > self.range.last then
