@@ -41,12 +41,16 @@ module HDLRuby
     TO_BASIC_NAMES = TO_BASICS.map { |klass| const_reduce(klass.to_s) }
     # The classes describing types (must be described only once)
     TO_BASICS_TYPES = [Low::SystemT,
-                       Low::Type,
+                       Low::Type, Low::TypeDef,
                        Low::TypeVector, Low::TypeTuple, Low::TypeStruct]
 
     # The list of fields to exclude from serialization.
     FIELDS_TO_EXCLUDE = { Low::SystemT => [:@interface,:@parent ] }
     FIELDS_TO_EXCLUDE.default = [ :@parent ]
+
+    # The list of fields that correspond to reference.
+    FIELDS_OF_REF     = { Low::SystemI => [ :@systemT ] }
+    FIELDS_OF_REF.default = [:@type ]
 
     # The name of the reference argument if any.
     REF_ARG_NAMES = { Low::SystemI    => "systemT",
@@ -80,7 +84,16 @@ module HDLRuby
     #   from is kept.
     #   +types+:: contains the type objects which will have to be converted
     #   separately.
-    def self.value_to_basic(value, types = {})
+    # def self.value_to_basic(value, types = {})
+    # Converts a +value+ to a basic structure easy-to-write YAML string.
+    #
+    # Other parameters:
+    #   +ref+:: indicates if the object is a reference or not.
+    #   +types+:: contains the type objects which will have to be converted
+    #   separately.
+    #   +generated+:: is the stack of the generated named objects in the current
+    #   context.
+    def self.value_to_basic(ref, value, types = {}, generated = [[]])
         # Depending on the class.
         if value.is_a?(Symbol) then
             # Symbol objects are converted to strings.
@@ -93,35 +106,25 @@ module HDLRuby
             return value
         elsif  value.is_a?(Range)
             # Convert to an array made of the converted first and last.
-            return [value_to_basic(value.first,types),
-                    value_to_basic(value.last,types)]
+            return [value_to_basic(ref,value.first,types,generated),
+                    value_to_basic(ref,value.last,types,generated)]
         elsif value.is_a?(Array) then
             # Arrays are kept as they are, but their content is converted
             # to basic.
-            return value.map { |elem| value_to_basic(elem,types) }
+            return value.map { |elem| value_to_basic(ref,elem,types,generated) }
         # elsif value.is_a?(Base::HashName) then
         elsif value.is_a?(Low::HashName) then
             # Hash name, convert it to an array.
-            return value.map { |v| value_to_basic(v,types) }
+            return value.map { |v| value_to_basic(ref,v,types,generated) }
         elsif value.is_a?(Hash) then
             # Maybe the hash is empty.
             if value.empty? then
                 return { }
             end
-            # # Maybe it is a hash of named objects.
-            # if TO_BASICS.include?(value.first[1].class) then
-            #     # Yes, convert it to an array since it is a hash with names.
-            #     return value.map { |k,v| value_to_basic(v,types) }
-            # else
-            #     # No, basic hash. They are kept as they are, but their content
-            #     # is converted to basic.
-            #     return value.map do |k,v|
-            #         [value_to_basic(k,types), value_to_basic(v,types)]
-            #     end.to_h
-            # end
             # Convert its content to basic.
             return value.map do |k,v|
-                [value_to_basic(k,types), value_to_basic(v,types)]
+                [value_to_basic(ref,k,types,generated),
+                 value_to_basic(ref,v,types,generated)]
             end.to_h
         else
             # For the other cases, only HDLRuby classes supporting to_basic
@@ -129,7 +132,8 @@ module HDLRuby
             unless TO_BASICS.include?(value.class) then
                 raise AnyError, "Invalid class for converting to basic structure: #{value.class}"
             end
-            return value.to_basic(false,types)
+            # return value.to_basic(false,types)
+            return value.to_basic(false,ref,types,generated)
         end
     end
 
@@ -189,6 +193,7 @@ module HDLRuby
                         # corresponding object.
                         elem = FROM_BASICS_REFS[elem.to_sym]
                     end
+                    # puts "elem=#{elem}"
                     elem
                 end
                 # Build the object with the processed arguments.
@@ -217,6 +222,7 @@ module HDLRuby
                 end
                 # Store the objects if it is named.
                 if object.respond_to?(:name) then
+                    # puts "Registering name=#{object.name} with #{object}"
                     FROM_BASICS_REFS[object.name] = object
                 end
                 # Returns the resulting object.
@@ -257,17 +263,39 @@ module HDLRuby
         #   from is kept.
         #   +types+:: contains the type objects which will have to be converted
         #   separately.
-        def to_basic(top = true, types = {})
-            if !top and TO_BASICS_TYPES.include?(self.class) and
-               !self.name.empty? then
-                # Type object, but not the top, add it to the types list
-                # without converting it.
-                # print "Adding type with name=#{self.name}\n"
-                types[self.name] = self
+        # def to_basic(top = true, types = {})
+        # Converts the object to a basic structure which can be dumped into an
+        # easy-to-write YAML string.
+        #
+        # Other parameters:
+        #   +top+:: indicates if the object is the top of the
+        #   description or not. If it is the top, the namespace it comes
+        #   from is kept.
+        #   +ref+:: indicates if the object is a reference or not.
+        #           If it is a reference, its generation is to be skipped
+        #           for later.
+        #   +types+:: contains the type objects which will have to be converted
+        #   separately.
+        #   +generated+:: is the stack of the generated named objects in the
+        #   current context.
+        def to_basic(top = true, ref = false, types = {}, generated = [[]])
+            # if !top and TO_BASICS_TYPES.include?(self.class) and
+            if !top and ref then
+                # Refered object, but not the top, add it to the types list
+                # without converting it if not already generated.
+                unless generated.flatten.include?(self.name)
+                    # puts "Adding type with name=#{self.name}\n"
+                    types[self.name] = self
+                end
                 # puts "types=#{types}"
                 # And return the name.
                 return self.name.to_s
             end
+            # puts "generating #{self.class} with name=#{self.name}\n" if self.respond_to?(:name)
+            # Self is generated, remove it from the types to generate.
+            generated[-1] << self.name if self.respond_to?(:name)
+            # Add a level to the stack of generated named objects.
+            generated << []
             # print "to_basic for class=#{self.class}\n"
             # Create the hash which will contains the content of the object.
             content = { }
@@ -275,13 +303,6 @@ module HDLRuby
             # is the class name and whose value is the content of the
             # object.
             class_name = self.class.to_s
-            # if top then
-            #     # Top object: keep the right-most module in the name.
-            #     class_name = HDLRuby.const_reduce(class_name,2)
-            # else
-            #     # Not a top object: keep only the class name.
-            #     class_name = HDLRuby.const_reduce(class_name)
-            # end
             # Keep only the class name
             class_name = HDLRuby.const_reduce(class_name)
 
@@ -296,11 +317,13 @@ module HDLRuby
                 # Skip the parent.
                 # Get the value of the variable.
                 var_val = self.instance_variable_get(var_sym)
-                # Remove the @ from the symbol.
-                var_sym = var_sym.to_s[1..-1]
                 # Sets the content.
                 # content[var_sym] = HDLRuby.value_to_basic(var_val,types)
-                value = HDLRuby.value_to_basic(var_val,types)
+                value = HDLRuby.value_to_basic(
+                    FIELDS_OF_REF[self.class].include?(var_sym), var_val,
+                    types,generated)
+                # Remove the @ from the symbol.
+                var_sym = var_sym.to_s[1..-1]
                 # EMPTY VALUES ARE NOT SKIPPED
                 # # Empty values are skipped
                 # unless value.respond_to?(:empty?) and value.empty? then
@@ -314,7 +337,9 @@ module HDLRuby
                 # The result is a sequence including each type and the
                 # current object.
                 result = [ result ]
-                to_treat = types
+                # Sort the type so that data types comes first.
+                to_treat = types.each.partition {|name,type| !type.is_a?(Type) }
+                to_treat.flatten!(1)
                 while !to_treat.empty?
                     others = {}
                     to_treat.each do |name,type|
@@ -328,6 +353,9 @@ module HDLRuby
                 end
                     
             end
+
+            # Restore the stack of generated named objets.
+            generated.pop
 
             # Return the resulting hash.
             return result
