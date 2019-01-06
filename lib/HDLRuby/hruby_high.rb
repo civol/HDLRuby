@@ -626,9 +626,9 @@ module HDLRuby::High
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            eigen = self.expand(High.names_create(i_name.to_s + "::T"), *args)
+            eigen = self.expand(High.names_create(i_name.to_s + ":T"), *args)
             # Moved to expand
-            # eigen = self.class.new(High.names_create(i_name.to_s + "::T"))
+            # eigen = self.class.new(High.names_create(i_name.to_s + ":T"))
 
             # # Include the mixin systems given when declaring the system.
             # @to_includes.each { |system| eigen.scope.include(system) }
@@ -1552,16 +1552,24 @@ module HDLRuby::High
             # Adds the content of its included systems.
             #@includes.each_value {|instance| instance.user.fill_low(scopeLow) }
             @includes.each_value {|system| system.scope.fill_low(scopeLow) }
+            # Adds the declared local system types.
+            # NOTE: in the current version of HDLRuby::High, there should not
+            # be any of them (only eigen systems are real system types).
+            self.each_systemT { |systemT| scopeLow.add_systemT(systemT.to_low) }
+            # Adds the local types.
+            self.each_type { |type| scopeLow.add_type(type.to_low) }
             # Adds the inner scopes.
             self.each_scope { |scope| scopeLow.add_scope(scope.to_low) }
             # Adds the inner signals.
             self.each_inner { |inner| scopeLow.add_inner(inner.to_low) }
             # Adds the instances.
             # Single ones.
-            self.each_systemI { |systemI|
+            self.each_systemI do |systemI|
                 # puts "Filling with systemI=#{systemI.name}"
-                scopeLow.add_systemI(systemI.to_low) 
-            }
+                systemI_low = scopeLow.add_systemI(systemI.to_low)
+                # Also add the eigen system to the list of local systems.
+                scopeLow.add_systemT(systemI_low.systemT)
+            end
             # Grouped ones.
             self.each_groupI do |name,systemIs|
                 systemIs.each.with_index { |systemI,i|
@@ -1570,7 +1578,9 @@ module HDLRuby::High
                     # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
                     systemI.name = name.to_s + "[#{i}]"
                     # And convert it to low
-                    scopeLow.add_systemI(systemI.to_low())
+                    systemI_low = scopeLow.add_systemI(systemI.to_low())
+                    # Also add the eigen system to the list of local systems.
+                    scopeLow.add_systemT(systemI_low.systemT)
                 }
             end
             # Adds the connections.
@@ -1728,7 +1738,7 @@ module HDLRuby::High
         
         # Gets the computation method for +operator+.
         def comp_operator(op)
-            return (op.to_s + "::C").to_sym
+            return (op.to_s + ":C").to_sym
         end
 
         # Performs unary operation +operator+ on expression +expr+.
@@ -2287,13 +2297,19 @@ module HDLRuby::High
     def typedef(name, &ruby_block)
         type = TypeGen.new(name,&ruby_block)
         if HDLRuby::High.in_system? then
+            # Must be inside a scope.
+            unless HDLRuby::High.top_user.is_a?(Scope) then
+                raise AnyError, "A local type cannot be declared within a #{HDLRuby::High.top_user.class}."
+            end
             define_singleton_method(name.to_sym) do |*args|
                 if (args.size < ruby_block.arity) then
                     # Not enough arguments get generic type as is.
                     type
                 else
                     # There are arguments, specialize the type.
-                    type.generate(*args)
+                    gtype = type.generate(*args)
+                    # And add it as a local type of the system.
+                    HDLRuby::High.top_user.add_type(gtype)
                 end
             end
         else
@@ -2500,7 +2516,7 @@ module HDLRuby::High
         def to_low(name = self.name)
             # puts "to_low with #{self} (#{self.name}) #{self.systemT}"
             # Converts the system of the instance to HDLRuby::Low
-            # systemTlow = self.systemT.to_low(High.names_create(name.to_s+ "::T"))
+            # systemTlow = self.systemT.to_low(High.names_create(name.to_s+ ":T"))
             systemTlow = self.systemT.to_low
             # Creates the resulting HDLRuby::Low instance
             return HDLRuby::Low::SystemI.new(High.names_create(name),
