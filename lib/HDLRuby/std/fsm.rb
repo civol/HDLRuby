@@ -25,11 +25,8 @@ module HDLRuby::High::Std
         # The current and next state signals.
         attr_accessor :cur_state, :next_state
 
-        # attr_reader :states, :mk_ev, :mk_rst, :namespace
-
         # Creates a new fsm type with +name+.
         #
-        # The proc +ruby_block+ is executed when instantiating the fsm.
         def initialize(name)
             # Check and set the name
             @name = name.to_sym
@@ -55,7 +52,8 @@ module HDLRuby::High::Std
             # Creates the namespace to execute the fsm block in.
             @namespace = Namespace.new(self)
 
-            # Generates the function for setting up the fsm.
+            # Generates the function for setting up the fsm
+            # provided there is a name.
             obj = self # For using the right self within the proc
             HDLRuby::High.space_reg(@name) do |&ruby_block|
                 if ruby_block then
@@ -65,7 +63,7 @@ module HDLRuby::High::Std
                     # Return the fsm as is.
                     return obj
                 end
-            end
+            end unless name.empty?
 
         end
 
@@ -87,7 +85,7 @@ module HDLRuby::High::Std
                     HDLRuby::High.space_push(namespace)
                     # Execute the instantiation block
                     return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
-                    HDLRuby::High.space_pop
+                    # HDLRuby::High.space_pop
 
                     # Create the state register.
                     name = HDLRuby.uniq_name
@@ -107,11 +105,10 @@ module HDLRuby::High::Std
                             # Prepare the default next state.
                             this.next_state <= mux(mk_rst.call , 0, this.cur_state + 1)
                             # Generate the content of the state.
-                            HDLRuby::High.space_push(namespace)
-                            HDLRuby::High.top_user.instance_exec(&st.code)
-                            HDLRuby::High.space_pop
+                            st.code.call
                         end
                     end
+                    HDLRuby::High.space_pop
                 end
             end
 
@@ -168,9 +165,41 @@ module HDLRuby::High::Std
     end
 
 
-    ## Declare a new fsm with +name+.
-    def fsm(name)
-        return FsmT.new(name)
+    ## Declare a new fsm.
+    #  The arguments can be any of (but in this order):
+    #
+    #  - +name+:: name.
+    #  - +clk+:: clock.
+    #  - +event+:: clock event.
+    #  - +rst+:: reset. (must be declared AFTER clock or clock event).
+    #
+    #  If provided, +ruby_block+ the fsm is directly instantiated with it.
+    def fsm(*args, &ruby_block)
+        # Sets the name if any
+        unless args[0].respond_to?(:to_event) then
+            name = args.shift.to_sym
+        else
+            name = :""
+        end
+        # Create the fsm.
+        fsmI = FsmT.new(name)
+        
+        # Process the clock event if any.
+        unless args.empty? then
+            fsmI.for_event(args.shift)
+        end
+        # Process the reset if any.
+        unless args.empty? then
+            fsmI.for_reset(args.shift)
+        end
+        # Is there a ruby block?
+        if ruby_block then
+            # Yes, generate the fsm.
+            fsmI.build(&ruby_block)
+        else
+            # No return the fsm structure for later generation.
+            return fsmI
+        end
     end
 
 end

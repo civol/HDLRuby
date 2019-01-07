@@ -1,10 +1,6 @@
-require 'HDLRuby'
+require '../std/fsm.rb'
 
-configure_high
-
-require 'HDLRuby/std/fsm'
 include HDLRuby::High::Std
-
 
 # Implementation of a fsm.
 system :my_fsm do
@@ -35,12 +31,3 @@ system :my_fsm do
         end
     end
 end
-
-# Instantiate it for checking.
-my_fsm :my_fsmI
-
-# Generate the low level representation.
-low = my_fsmI.systemT.to_low
-
-# Displays it
-puts low.to_yaml
