@@ -94,6 +94,7 @@ module HDLRuby::Low
             res << "\n"
             res << self.scope.to_high(level+1,false)
             # End of the system.
+            res << " " * (level*3)
             res << "end\n\n"
             # Return the result.
             return res
@@ -119,6 +120,16 @@ module HDLRuby::Low
                 res << "do\n"
             end
             level = level + 1 if header
+            # Generate the sub types.
+            # Assume the types are TypeDef.
+            self.each_type do |type|
+                res << " " * (level*3)
+                res << "typedef :#{type.name} do\n"
+                res << " " * ((level+1)*3) << type.def.to_high(level)
+                res << " " * (level*3) << "end\n"
+            end
+            # Generaste the sub system types.
+            self.each_systemT { |systemT| res << systemT.to_high(level) }
             # Generate the inners declaration.
             self.each_inner do |inner|
                 res << " " * (level*3)

@@ -279,9 +279,10 @@ if __FILE__ == $0 then
     if $options[:yaml] then
         $output << $top_instance.to_low.systemT.to_yaml
     elsif $options[:hdr] then
-        $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
-            $output << systemT.to_high
-        end
+        # $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
+        #     $output << systemT.to_high
+        # end
+        $output << $top_instance.to_low.systemT.to_high
     elsif $options[:verilog] then
         warn("Verilog HDL output is not available yet... but it will be soon, promise!")
     elsif $options[:vhdl] then
