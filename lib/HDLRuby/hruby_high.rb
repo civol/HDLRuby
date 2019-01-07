@@ -4898,8 +4898,15 @@ module HDLRuby::High
     def self.names_create(base)
         base = base.to_s.clone
         # Create a non-conflicting name
-        while(self.names_has?(base)) do
-            base << "_"
+        # while(self.names_has?(base)) do
+        #     base << "_"
+        # end
+        if self.names_has?(base) then
+            count = 0
+            while (self.names_has?(base + count.to_s)) do
+                count += 1
+            end
+            base << count.to_s
         end
         # Add and return it
         self.names_add(base)
