@@ -127,6 +127,28 @@ module HDLRuby::Low
             end
         end
 
+        ## Generates the name of a mux function by type string +tstr+.
+        def self.mux_name(tstr)
+            return "mux#{tstr.gsub(/[^a-zA-Z0-9_]/,"_")}"
+        end
+
+        ## Generates the VHDL code for the mux function for type string +tstr+.
+        #  +spaces+ is the ident for the resulting code.
+        def self.mux_function(tstr,spaces)
+            # Create the name of the function from the type.
+            # Generates the function
+            return "#{spaces}function #{mux_name(tstr)}" + 
+                       "(cond : boolean, left : #{tstr}, right : #{tstr})\n" +
+                   "#{spaces}return #{tstr} is\n" +
+                   "#{spaces}begin\n" +
+                   "#{spaces}   if(cond) then\n" +
+                   "#{spaces}      return left;\n" +
+                   "#{spaces}   else\n" +
+                   "#{spaces}      return right;\n" +
+                   "#{spaces}   end if;\n" +
+                   "#{spaces}end mux#{tstr};\n\n"
+        end
+
     end
 
 
@@ -276,6 +298,29 @@ module HDLRuby::Low
                 res << "type #{Low2VHDL.vhdl_name(type.name)} is "
                 res << type.def.to_vhdl(level+1)
                 res << ";\n"
+            end
+
+            ## Generates the required mux functions.
+            mtps = [] # The mux functions to generate by type.
+            # Gather the mux functions to generate.
+            self.each_scope_deep do |scope|
+                # Checks the connections.
+                scope.each_connection do |connection|
+                    connection.right.each_node_deep do |node|
+                        mtps << node.type.to_vhdl(level) if node.is_a?(Select)
+                    end
+                end
+                # Checks the statements.
+                scope.each_behavior do |behavior|
+                    behavior.block.each_node_deep do |node|
+                        mtps << node.type.to_vhdl(level) if node.is_a?(Select)
+                    end
+                end
+            end
+            # Generate the gathered functions (only one per type).
+            mtps.uniq!
+            mtps.each do |tstr|
+                res << Low2VHDL.mux_function(tstr," " * level*3)
             end
 
             # Generate the inner signals declaration.
@@ -888,7 +933,8 @@ module HDLRuby::Low
             # The resulting string.
             res = ""
             # Generate the header.
-            res << "mux(" + self.select.to_vhdl(level) << ", "
+            res << "#{Low2VHDL.mux_name(self.type.to_vhdl(level))}(" +
+                    self.select.to_vhdl(level) << ", "
             # Generate the choices
             res << self.each_choice.map do |choice|
                 choice.to_vhdl(level+1)
