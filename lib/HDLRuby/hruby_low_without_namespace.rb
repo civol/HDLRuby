@@ -579,7 +579,7 @@ module HDLRuby::Low
             # Recurse on the whens.
             self.each_when {|w| w.replace_names!(former,nname) }
             # Recurse on the default.
-            self.default.replace_names!(former,nnmame) if self.default
+            self.default.replace_names!(former,nname) if self.default
         end
     end
 
