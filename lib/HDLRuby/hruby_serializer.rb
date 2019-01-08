@@ -50,7 +50,7 @@ module HDLRuby
 
     # The list of fields that correspond to reference.
     FIELDS_OF_REF     = { Low::SystemI => [ :@systemT ] }
-    FIELDS_OF_REF.default = [:@type ]
+    FIELDS_OF_REF.default = [ :@type ]
 
     # The name of the reference argument if any.
     REF_ARG_NAMES = { Low::SystemI    => "systemT",
@@ -320,8 +320,9 @@ module HDLRuby
                 # Sets the content.
                 # content[var_sym] = HDLRuby.value_to_basic(var_val,types)
                 value = HDLRuby.value_to_basic(
-                    FIELDS_OF_REF[self.class].include?(var_sym), var_val,
-                    types,generated)
+                    FIELDS_OF_REF[self.class].include?(var_sym) && 
+                    var_val.respond_to?(:name) && !var_val.name.empty?,
+                    var_val, types,generated)
                 # Remove the @ from the symbol.
                 var_sym = var_sym.to_s[1..-1]
                 # EMPTY VALUES ARE NOT SKIPPED
@@ -365,7 +366,9 @@ module HDLRuby
         def to_yaml
             # Convert the object to basic representations
             basics = to_basic
-            # Remove duplicate descripions
+            # puts "basics=#{basics}"
+            basics = [ basics ] unless basics.is_a?(Array)
+            # Remove duplicate descriptions
             basics.uniq! { |elem| elem.first[1]["name"] }
             # Convert the basic representations to YAML
             return YAML.dump_stream(*basics)
