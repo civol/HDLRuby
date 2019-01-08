@@ -154,12 +154,45 @@ module HDLRuby::High::Std
             return result
         end
 
-        # Set the next state to +name+.
-        def goto(name)
-            # Ensure +name+ is a symbol.
-            name = name.to_sym
-            # Get the state with name.
-            @next_state <= (@states.detect { |st| st.name == name }).value
+        # Set the next state. Arguments can be:
+        #
+        # +name+: the name of the next state.
+        # +expr+, +names+: an expression with the list of the next statements
+        #                  in order of the value of the expression, the last
+        #                  one being necesserily the default case.
+        def goto(*args)
+            # Make reference to the fsm attributes.
+            next_state = @next_state
+            states = @states
+            # Depending on the first argument type.
+            unless args[0].is_a?(Symbol) then
+                # expr + names arguments.
+                hcase (args.shift)
+                args[0..-2].each.with_index do |arg,i|
+                    # Ensure the argument is a symbol.
+                    arg = arg.to_sym
+                    # Make the when statement.
+                    hwhen(i) do
+                        next_state <= 
+                            (states.detect { |st| st.name == arg }).value
+                    end
+                end
+                # The last name is the default case.
+                # Ensure it is a symbol.
+                arg = args[-1].to_sym
+                # Make the default statement.
+                helse do
+                    next_state <= 
+                        (states.detect { |st| st.name == arg }).value
+                end
+            else
+                # single name argument, check it.
+                raise AnyError, "Invalid argument for a goto: if no expression is given only a single name can be used." if args.size > 1
+                # Ensure the name is a symbol.
+                name = args[0].to_sym
+                # Get the state with name.
+                next_state <= (states.detect { |st| st.name == name }).value
+            end
         end
 
     end
