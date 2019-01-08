@@ -22,9 +22,9 @@ system :or32 do
     or0.y <= y[15..0]
     s[15..0] <= or0.s[15..0]
 
-    or16(:or1).(x[15..0],y[15..0])
+    or16(:or1).(x[31..16],y[31..16])
 
-    s[15..0] <= or1.s[15..0]
+    s[31..16] <= or1.s[31..16]
 end
 
 # Instantiate it for checking.
