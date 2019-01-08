@@ -2342,11 +2342,23 @@ module HDLRuby::High
     # Methods for declaring systems
 
     # Declares a high-level system type named +name+, with +includes+ mixins
-    # hardware types and using +ruby_block+ for instantiating.
+    # system types and using +ruby_block+ for instantiating.
     def system(name = :"", *includes, &ruby_block)
         # print "system ruby_block=#{ruby_block}\n"
         # Creates the resulting system.
         return SystemT.new(name,*includes,&ruby_block)
+    end
+
+    # Declares a high-level system instance named +name+, with +includes+
+    # mixins system types and using +ruby_block+ for instantiating.
+    #
+    # NOTE: this is for generating directly an instance without declaring
+    #       it system type.
+    def instance(name, *includes, &ruby_block)
+        # Creates the system type.
+        systemT = system(:"",*includes,&ruby_block)
+        # Instantiate it with +name+.
+        return systemT.instantiate(name) 
     end
 
     # Methods for declaring functions
