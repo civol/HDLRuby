@@ -4152,7 +4152,8 @@ module HDLRuby::Low
             return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(RefRange)
-            return false unless @range.eql?(obj.index)
+            return false unless @range.first.eql?(obj.range.first)
+            return false unless @range.last.eql?(obj.range.last)
             return false unless @ref.eql?(obj.ref)
             return true
         end
