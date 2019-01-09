@@ -863,8 +863,8 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
             case self.content
-            when Numeric
-                return self.content.to_s
+            # when Numeric
+            #     return self.content.to_s
             when HDLRuby::BitString
                 return '"' + self.content.to_s + '"'
             else
