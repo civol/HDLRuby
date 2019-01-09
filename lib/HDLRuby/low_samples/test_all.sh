@@ -33,6 +33,8 @@ do
     if [[ ${file:0:1} == "_" ]] ; then continue; fi
     # Skip the vector.yaml sample since it contains a tuple not supported yet.
     if [[ $file == "vector.yaml" ]] ; then continue; fi
+    # Skip the rom.yaml sample since it contains a tuple not supported yet.
+    if [[ $file == "rom.yaml" ]] ; then continue; fi
     # A sample to check
     bundle exec ruby yaml2vhd.rb "$file" || exit 1
 done
