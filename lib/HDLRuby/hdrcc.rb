@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
 
+require 'fileutils'
 require 'HDLRuby'
 require 'HDLRuby/hruby_check.rb'
 require 'ripper'
@@ -187,6 +188,9 @@ if __FILE__ == $0 then
         opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
             $options[:syntax] = s
         end
+        opts.on("-m", "--multiple", "Produce multiple files for the result.\nThe output name is then interpreted as a directory name.") do |v|
+            $options[:multiple] = v
+        end
         opts.on("-d", "--directory dir","Specify the base directory for loading the hdr files") do |d|
             $options[:directory] = d
         end
@@ -251,8 +255,19 @@ if __FILE__ == $0 then
 
     # Open the output.
     if $output then
-        $output = File.open($output,"w")
+        if $options[:multiple] then
+            # Create a directory if necessary.
+            unless File.directory?($output)
+                FileUtils.mkdir_p($output)
+            end
+        else
+            # Open the file.
+            $output = File.open($output,"w")
+        end
     else
+        if $option[:multiple] then
+            raise "Need a target directory in multiple files generation mode."
+        end
         $output = $stdout
     end
 
@@ -263,6 +278,9 @@ if __FILE__ == $0 then
     $loader.check_all
 
     if $options[:syntax] then
+        if $options[:multiple] then
+            raise "Multiple files generation mode not supported for syntax tree output."
+        end
         $output << $loader.show_all
         exit
     end
@@ -279,6 +297,9 @@ if __FILE__ == $0 then
     if $options[:yaml] then
         $output << $top_instance.to_low.systemT.to_yaml
     elsif $options[:hdr] then
+        if $options[:multiple] then
+            raise "Multiple files generation mode not supported for HDLRuby output yet."
+        end
         # $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
         #     $output << systemT.to_high
         # end
@@ -296,8 +317,22 @@ if __FILE__ == $0 then
             systemT.with_var!
         end
         # Generate the vhdl.
-        top_system.each_systemT_deep.reverse_each do |systemT|
-            $output << systemT.to_vhdl
+        if $options[:multiple] then
+            # Multiple files generation mode.
+            top_system.each_systemT_deep.each do |systemT|
+                # Open the file for current systemT
+                name = HDLRuby::Low::Low2VHDL.entity_name(systemT.name)
+                output = File.open($output + "/#{name}.vhd","w")
+                # Generate the VHDL code in to.
+                output << systemT.to_vhdl
+                # Close the file.
+                output.close
+            end
+        else
+            # Single file generation mode.
+            top_system.each_systemT_deep.reverse_each do |systemT|
+                $output << systemT.to_vhdl
+            end
         end
     end
 end
