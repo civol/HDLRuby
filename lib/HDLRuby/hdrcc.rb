@@ -318,15 +318,26 @@ if __FILE__ == $0 then
         end
         # Generate the vhdl.
         if $options[:multiple] then
+            # Get the base name of the input file, it will be used for
+            # generating the names of the multiple result files.
+            basename = File.basename($input,File.extname($input))
+            basename = $output + "/" + basename
+            # File name counter.
+            count = 0
+            # Prepare the initial name for the main file.
+            name = basename + ".vhd"
             # Multiple files generation mode.
-            top_system.each_systemT_deep.each do |systemT|
+            top_system.each_systemT_deep do |systemT|
                 # Open the file for current systemT
-                name = HDLRuby::Low::Low2VHDL.entity_name(systemT.name)
-                output = File.open($output + "/#{name}.vhd","w")
+                # name = HDLRuby::Low::Low2VHDL.entity_name(systemT.name)
+                output = File.open(name,"w")
                 # Generate the VHDL code in to.
                 output << systemT.to_vhdl
                 # Close the file.
                 output.close
+                # Prepare the next name.
+                count += 1
+                name = basename + count.to_s + ".vhd"
             end
         else
             # Single file generation mode.
