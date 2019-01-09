@@ -102,8 +102,8 @@ module HDLRuby::Low
                 [:signed,:unsigned,:float].include?(type.base.name)
         end
 
-        ## Generates expression expr while casting it to arithmetic-compatible
-        #  type if required.
+        ## Generates expression +expr+ while casting it to
+        #  arithmetic-compatible type if required.
         def self.to_arith(expr)
             if arith?(expr.type) then
                 # The expression is arithmetic-compatible, just generate it.
@@ -111,7 +111,36 @@ module HDLRuby::Low
             else
                 # The expression is to convert, by default convert to unsigned
                 # (this is the standard interpretation of HDLRuby).
-                return "unsigned(" + expr.to_vhdl + ")"
+                if expr.type.to_vhdl == "std_logic" then
+                    # std_logic case: must convert to vector first.
+                    return "unsigned('0' & " + expr.to_vhdl + ")"
+                else
+                    # Other case, ue the expression direction.
+                    return "unsigned(" + expr.to_vhdl + ")"
+                end
+            end
+        end
+
+        ## Generates epression +expr+ while casting it to match +type+ if
+        #  required.
+        def self.to_type(type,expr)
+            if expr.type.to_vhdl != "std_logic" &&
+               type.to_vhdl == "std_logic" then
+                # Conversion to std_logic required.
+                if expr.is_a?(Value) then
+                    # Values can simply be rewritten.
+                    if expr.content.to_s.to_i(2) == 0 then
+                        return "'0'"
+                    else
+                        return "'1'"
+                    end
+                else
+                    # Otherwise a cast is required.
+                    return "unsigned(#{expr.to_vhdl})(0)"
+                end
+            else
+                # No conversion required.
+                return expr.to_vhdl
             end
         end
 
@@ -466,7 +495,11 @@ module HDLRuby::Low
                 # Now the range
                 res << "("
                 res << self.range.first.to_vhdl(level)
-                if self.range.first > self.range.last then
+                left = self.range.first
+                right = self.range.last
+                left = left.content if left.is_a?(Value)
+                right = right.content if right.is_a?(Value)
+                if left > right then
                     res << " downto "
                 else
                     res << " to "
@@ -526,12 +559,26 @@ module HDLRuby::Low
                 res << Low2VHDL.vhdl_name(self.block.name) << ": "
             end
             res << "process "
-            # Generate the enitivity list if any.
+            # Generate the senitivity list.
             if self.each_event.any? then
+                # If there is a clock.
                 res << "("
                 res << self.each_event.map do |event|
                     event.ref.to_vhdl(level)
                 end.join(", ")
+                res << ")"
+            else
+                # If no clock, generate the sensitivity list from the right
+                # values.
+                list = self.block.each_node_deep.select do |node|
+                    node.is_a?(RefName) && !node.leftvalue? && 
+                        !node.parent.is_a?(RefName)
+                end.to_a
+                # Keep only one ref per signal.
+                list.uniq! { |node| node.name }
+                # Generate the sensitivity list from it.
+                res << "("
+                res << list.map {|node| node.to_vhdl(level) }.join(", ")
                 res << ")"
             end
             res << "\n"
@@ -639,7 +686,7 @@ module HDLRuby::Low
         def to_vhdl(level = 0)
             return " " * (level*3 ) + 
                    self.left.to_vhdl(level) + " <= " +
-                   self.right.to_vhdl(level) + ";\n"
+                   Low2VHDL.to_type(self.left.type,self.right) + ";\n"
         end
     end
     
@@ -815,13 +862,13 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
-            case self.content.class
+            case self.content
             when Numeric
                 return self.content.to_s
             when HDLRuby::BitString
-                return 'B"' + self.content.to_s + '"'
-            else
                 return '"' + self.content.to_s + '"'
+            else
+                return '"' + self.content.to_s(2) + '"'
             end
         end
     end
