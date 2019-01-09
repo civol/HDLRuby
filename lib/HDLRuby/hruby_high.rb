@@ -2473,10 +2473,16 @@ module HDLRuby::High
                 connects.each.with_index do |csig,i|
                     # Gets i-est signal to connect
                     ssig = self.systemT.get_interface_with_included(i)
+                    # Check if it is an output.
+                    isout = self.get_output(ssig.name)
                     # Convert it to a reference.
                     ssig = RefObject.new(self.to_ref,ssig)
                     # Make the connection.
-                    ssig <= csig
+                    if isout then
+                        csig <= ssig
+                    else
+                        ssig <= csig
+                    end
                 end
             end
         end
