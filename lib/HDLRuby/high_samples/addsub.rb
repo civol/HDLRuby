@@ -4,7 +4,7 @@ configure_high
 
 # An adder-suber
 system :addsub do
-    [2..0].input  :opr
+    [1..0].input  :opr
     [15..0].input :x,:y
     [16..0].output :s
 
