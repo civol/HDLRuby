@@ -3331,7 +3331,7 @@ module HDLRuby::Low
             # Maybe its the left of a left value.
             if parent.respond_to?(:leftvalue?) && parent.leftvalue? then
                 # Yes so it is also a left value.
-                return parent.left == self
+                return parent.ref == self
             end
             # No, therefore maybe it is directly a left value.
             return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
