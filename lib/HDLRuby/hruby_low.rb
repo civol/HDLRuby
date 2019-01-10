@@ -1054,8 +1054,13 @@ module HDLRuby::Low
         end
 
         # Gets the bitwidth of the type, by default 0.
+        # Bit, signed, unsigned and Float base have a width of 1.
         def width
-            0
+            if [:bit, :signed, :unsigned, :float ].include?(@name) then
+                return 1
+            else
+                return 0
+            end
         end
 
         # Tells if the type has a range.
@@ -1359,7 +1364,7 @@ module HDLRuby::Low
         def width
             first = @range.first
             last  = @range.last
-            return @base.width * (first-last).abs
+            return @base.width * ((first-last).abs + 1)
         end
 
         # Gets the direction of the range.
