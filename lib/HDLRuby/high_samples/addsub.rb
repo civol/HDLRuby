@@ -17,13 +17,9 @@ system :addsub do
         s <= x+y+cin
     end
 
-
     # Some computation.
-    hcase(opr)
-    hwhen(0) { add.(0,0,0,s) }
-    hwhen(1) { add.(x,y,0,s) }
-    hwhen(2) { add.(x,~y,1,s) }
-    helse    { add.(0,~y,2,s) }
+    hif(opr) { add.(x,~y,1,s) }
+    helse    { add.(x,y,0,s) }
 end
 
 
