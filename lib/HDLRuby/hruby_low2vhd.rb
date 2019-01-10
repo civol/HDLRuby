@@ -121,6 +121,17 @@ module HDLRuby::Low
             end
         end
 
+        ## Generates a expression converted to the boolean type.
+        def self.to_boolean(expr)
+            if expr.is_a?(Binary) and expr.operator == :== then
+                # Equality comparison, no conversion required.
+                return expr.to_vhdl
+            else
+                # Conversion to boolean required.
+                return "(" + expr.to_vhdl + " = '1')"
+            end
+        end
+
         ## Generates epression +expr+ while casting it to match +type+ if
         #  required.
         def self.to_type(type,expr)
@@ -699,7 +710,7 @@ module HDLRuby::Low
             # The result string.
             res = " " * (level*3)
             # Generate the test.
-            res << "if (" << self.condition.to_vhdl(level) << ") then\n"
+            res << "if (" << Low2VHDL.to_boolean(self.condition) << ") then\n"
             # Generate the yes part.
             res << self.yes.to_vhdl(level+1)
             # Generate the alternate if parts.
