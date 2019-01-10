@@ -149,6 +149,10 @@ module HDLRuby::Low
                     # Otherwise a cast is required.
                     return "unsigned(#{expr.to_vhdl})(0)"
                 end
+            elsif expr.is_a?(Value) then
+                # puts "type=#{type}, type.range=#{type.range}"
+                # Value width must be adjusted.
+                return expr.to_vhdl(type.width)
             else
                 # No conversion required.
                 return expr.to_vhdl
@@ -735,13 +739,14 @@ module HDLRuby::Low
     ## Extends the When class with generation of HDLRuby::High text.
     class When
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the text of the equivalent HDLRuby::High code ensuring
+        # the match is of +type+.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(type,level = 0)
             # The result string.
             res = " " * (level*3)
             # Generate the match.
-            res << "when " << self.match.to_vhdl(level+1) << " =>\n"
+            res << "when " << Low2VHDL.to_type(type,self.match) << " =>\n"
             # Generate the statement.
             res << self.statement.to_vhdl(level+1)
             # Returns the result.
@@ -761,7 +766,7 @@ module HDLRuby::Low
             res << "case " << self.value.to_vhdl(level) << " is\n"
             # Generate the whens.
             self.each_when do |w|
-                res << w.to_vhdl(level)
+                res << w.to_vhdl(self.value.type,level)
             end
             # Generate teh default if any.
             if self.default then
@@ -870,16 +875,21 @@ module HDLRuby::Low
     ## Extends the Value class with generation of HDLRuby::High text.
     class Value
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the text of the equivalent HDLRuby::High code with
+        # +width+ bits.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(width = nil,level = 0)
+            # puts "width=#{width}"
+            width = self.type.width unless width
             case self.content
             # when Numeric
             #     return self.content.to_s
             when HDLRuby::BitString
-                return '"' + self.content.to_s + '"'
+                sign = self.type.signed? ? self.content.to_s[-1] : "0"
+                return '"' + self.content.to_s.rjust(width,sign) + '"'
             else
-                return '"' + self.content.to_s(2) + '"'
+                sign = self.type.signed? ? (self.content>=0 ? "0" : "1") : "0"
+                return '"' + self.content.to_s(2).rjust(width,sign) + '"'
             end
         end
     end
