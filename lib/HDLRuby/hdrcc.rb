@@ -11,8 +11,8 @@ require 'HDLRuby/hruby_low_with_port'
 require 'HDLRuby/hruby_low_with_var'
 
 ##
-# Library for loading an HDLRuby description in HDR format
-###########################################################
+# HDLRuby compiler interface program
+#####################################
 
 module HDLRuby
 
