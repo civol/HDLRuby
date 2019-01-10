@@ -1,4 +1,4 @@
-# An adder-suber
+# An extended adder-suber
 system :addsubz do
     [1..0].input  :opr
     [15..0].input :x,:y

@@ -2,7 +2,7 @@ require 'HDLRuby'
 
 configure_high
 
-# An adder-suber
+# An extended adder-suber
 system :addsub do
     [1..0].input  :opr
     [15..0].input :x,:y
