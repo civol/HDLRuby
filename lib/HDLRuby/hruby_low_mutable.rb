@@ -517,12 +517,27 @@ module HDLRuby::Low
             noif
         end
 
+        # Maps on the noifs.
+        def map_noifs!(&ruby_block)
+            @noifs.map do |cond,stmnt|
+                cond  = ruby_block.call(cond)
+                stmnt = ruby_block.call(stmnt)
+                cond.parent  = self
+                stmnt.parent = self
+                [cond,stmnt]
+            end
+        end
+
         # Maps on the children (including the condition).
         def map_nodes!(&ruby_block)
             @condition = ruby_block.call(@condition)
             @yes = ruby_block.call(@yes)
             @noifs.map do |cond,stmnt|
-                [ ruby_block.call(cond), ruby_block.call(stmnt) ]
+                cond  = ruby_block.call(cond)
+                stmnt = ruby_block.call(stmnt)
+                cond.parent  = self
+                stmnt.parent = self
+                [cond,stmnt]
             end
             @no = ruby_block.call(@no) if @no
         end
@@ -713,6 +728,38 @@ module HDLRuby::Low
                 signal.parent = nil
             end
             signal
+        end
+
+        # Inserts statement *stmnt+ at index +idx+.
+        def insert_statement!(idx,stmnt)
+            # Checks the index.
+            if idx > @statements.size then
+                raise AryError, "Index out of range: #{idx}"
+            end
+            # Checks the statement.
+            unless stmnt.is_a?(Statement)
+                raise AnyError, "Invalid type for a statement: #{stmnt.class}"
+            end
+            # Inserts the statement.
+            @statements.insert(idx,stmnt)
+            stmnt.parent = self
+        end
+
+        # Sets statement +stmnt+ at index +idx+.
+        def set_statement!(idx,stmnt)
+            # Checks the index.
+            if idx > @statements.size then
+                raise AryError, "Index out of range: #{idx}"
+            end
+            # Checks the statement.
+            unless stmnt.is_a?(Statement)
+                raise AnyError, "Invalid type for a statement: #{stmnt.class}"
+            end
+            # Detach the previous statement if any.
+            @statements[idx].parent = nil if @statements[idx]
+            # Set the new statement.
+            @statements[idx] = stmnt
+            stmnt.parent = self
         end
 
         # Maps on the statements.

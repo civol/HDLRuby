@@ -6,9 +6,13 @@ require 'HDLRuby/hruby_check.rb'
 require 'ripper'
 require 'HDLRuby/hruby_low2high'
 require 'HDLRuby/hruby_low2vhd'
+require 'HDLRuby/hruby_low_bool2select'
+# require 'HDLRuby/hruby_low_select2if'
 require 'HDLRuby/hruby_low_without_namespace'
 require 'HDLRuby/hruby_low_with_port'
 require 'HDLRuby/hruby_low_with_var'
+require 'HDLRuby/hruby_low_without_concat'
+require 'HDLRuby/hruby_low_cleanup'
 
 ##
 # HDLRuby compiler interface program
@@ -181,6 +185,12 @@ if __FILE__ == $0 then
             HDLRuby::Low::Low2VHDL.vhdl93 = false
             $options[:vhdl] = v
         end
+        opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
+            HDLRuby::Low::Low2VHDL.vhdl93 = false
+            $options[:vhdl] = v
+            $options[:alliance] = v
+            $options[:multiple] = v
+        end
         opts.on("-U", "--vhdl93","Output in VHDL'93 format") do |v|
             HDLRuby::Low::Low2VHDL.vhdl93 = true
             $options[:vhdl] = v
@@ -310,11 +320,15 @@ if __FILE__ == $0 then
         top_system = $top_instance.to_low.systemT
         # Make description compatible with vhdl generation.
         top_system.each_systemT_deep do |systemT|
+            systemT.boolean_in_assign2select! unless $options[:alliance]
+            # systemT.select2if!                if     $options[:alliance]
+            systemT.break_concat_assigns!     if     $options[:alliance]
             systemT.to_upper_space!
             systemT.to_global_systemTs!
             systemT.break_types!
             systemT.with_port!
             systemT.with_var!
+            systemT.cleanup!
         end
         # Generate the vhdl.
         if $options[:multiple] then

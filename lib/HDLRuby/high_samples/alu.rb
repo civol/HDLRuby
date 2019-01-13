@@ -1,0 +1,57 @@
+require 'HDLRuby'
+
+configure_high
+
+
+# A simple ALU
+system :alu do
+    [4].input  :opr
+    [16].input :x,:y
+    [16].output :s
+    output :zf, :cf, :sf, :vf
+
+    # The only adder instance.
+    instance :add do
+        [16].input :x,:y
+        input :cin
+        [17].output :s
+        
+        s <= x+y+cin
+    end
+
+    # The control part for choosing between 0, add, sub and neg.
+    par do
+        # The main computation: s and cf
+        # Default connections
+        cf <= 0
+        add.(0,0,0)
+        # Depending on the operator
+        hcase(opr)
+        hwhen(1) { s <= x }
+        hwhen(2) { s <= y }
+        hwhen(3) { add.(x ,y ,0,[cf,s]) }
+        hwhen(4) { add.(x ,~y,1,[cf,s]) }
+        hwhen(5) { add.(0 ,~y,1,[cf,s]) }
+        hwhen(6) { add.(~x,0 ,1,[cf,s]) }
+        hwhen(7) { s <= x & y }
+        hwhen(8) { s <= x | y }
+        hwhen(9) { s <= x ^ y }
+        hwhen(10){ s <= ~x }
+        hwhen(11){ s <= ~y }
+        helse    { s <= 0 }
+
+        # The remaining flags.
+        zf <= (s == 0)
+        sf <= s[15]
+        vf <= cf ^ sf
+    end
+end
+
+# Instantiate it for checking.
+alu :aluI
+
+# Generate the low level representation.
+low = aluI.systemT.to_low
+
+# Displays it
+puts low.to_yaml

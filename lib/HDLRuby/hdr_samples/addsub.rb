@@ -9,7 +9,7 @@ system :addsub do
         [15..0].input :x,:y
         input :cin
         [16..0].output :s
-        
+
         s <= x+y+cin
     end
 

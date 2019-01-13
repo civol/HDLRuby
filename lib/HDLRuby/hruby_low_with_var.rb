@@ -12,7 +12,7 @@ require "HDLRuby/hruby_low2sym"
 ########################################################################
 module HDLRuby::Low
 
-    ## Extends SystemT with sepration between signals and variables.
+    ## Extends the SystemT class with separation between signals and variables.
     class SystemT
         # Converts to a variable-compatible system.
         #
@@ -24,7 +24,7 @@ module HDLRuby::Low
     end
 
 
-    ## Extends SystemI with sepration between signals and variables.
+    ## Extends the SystemI class with separation between signals and variables.
     class SystemI
         # Converts to a variable-compatible system.
         #
@@ -36,7 +36,7 @@ module HDLRuby::Low
     end
 
 
-    ## Extends Behavior with sepration between signals and variables.
+    ## Extends the Behavior class with separation between signals and variables.
     class Behavior
         # Converts to a variable-compatible behavior.
         #
@@ -49,7 +49,7 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the block with sepration between signals and variables.
+    ## Extends the Block class with separation between signals and variables.
     class Block
 
         # Converts a variable to a reference to it.
@@ -76,7 +76,7 @@ module HDLRuby::Low
 
         # Extract the variables corresponding to external signals from
         # block-based statement +stmnt+, and put the extraction result is
-        # table +sym2var+ that assotiate variable with corresponding signal
+        # table +sym2var+ that associate variable with corresponding signal
         # name.
         def extract_from_externals!(stmnt,sym2var)
             if (stmnt.is_a?(Block)) then
@@ -157,20 +157,6 @@ module HDLRuby::Low
         # NOTE: the result is a new block.
         def with_var(upper = nil)
             # puts "with_var for #{self} with upper=#{upper}"
-            # Handle the cases that does not need directly a variable
-            # convertion
-            # Is the block a par?
-            if self.mode == :par then
-                # Yes, is it within a seq?
-                if upper && upper.mode == :seq then
-                    # Yes, converts to seq.
-                    return self.to_seq
-                end
-                # No, simply clone.
-                return self.clone
-            end
-
-            # The block is a seq, convert it.
             # Recurse on the statements.
             new_stmnts = []
             self.each_statement do |stmnt|
@@ -185,6 +171,26 @@ module HDLRuby::Low
                 # Adds the result.
                 new_stmnts << stmnt
             end
+            # Handle the cases that does not need directly a variable
+            # convertion
+            # Is the block a par?
+            if self.mode == :par then
+                # Yes, creates a new block with the new statements.
+                block = Block.new(self.mode)
+                self.each_inner { |inner| block.add_inner(inner.clone) }
+                new_stmnts.each {|stmnt| block.add_statement(stmnt) }
+                # Is the block within a seq?
+                if upper && upper.mode == :seq then
+                    # Yes, converts to seq.
+                    # return self.to_seq
+                    return block.to_seq
+                end
+                # No, simply return the block.
+                # block = self.clone
+                return block
+            end
+
+            # The block is a seq, convert it.
             # Treat the block
             sym2var = {} # The table of variable by corresponding signal name
             # Generate and replace the variables
@@ -210,12 +216,16 @@ module HDLRuby::Low
                     refs_by_variables!(stmnt,sym2var)
                 end
             end
+            # puts "sym2var=#{sym2var}"
+            # Declare the variables in the top block.
+            top = self.top_block
+            # puts "top=#{top}"
+            sym2var.each_value do |var|
+                # puts "Adding var=#{var.name}"
+                top.add_inner(var.clone) unless top.each_inner.find {|v| v.eql?(var) }
+            end
             # Generate the new block.
             result = self.class.new(self.mode,self.name)
-            # Declare the variables in the block.
-            sym2var.each_value do |var|
-                result.add_inner(var.clone)
-            end
             # Adds the inner signals of current block.
             self.each_inner do |inner|
                 result.add_inner(inner.clone)
@@ -236,4 +246,56 @@ module HDLRuby::Low
 
     end
 
+    ## Extends the If class with separation between signals and variables.
+    class If
+        # Converts to a variable-compatible if where +upper+ is
+        # the upper block if any.
+        #
+        # NOTE: the result is a new if.
+        def with_var(upper = nil)
+            # Treat the sub nodes.
+            # Condition.
+            ncond = self.condition.clone
+            # Yes.
+            nyes =self.yes.with_var(upper)
+            # Noifs.
+            noifs = self.each_noif.map do |cond,stmnt|
+                [cond.clone,stmnt.with_var(upper)]
+            end
+            # No.
+            nno = self.no ? self.no.with_var(upper) : nil
+            # Create the resulting If.
+            res= If.new(ncond,nyes, nno)
+            noifs.each do |cond,stmnt|
+                res.add_noif(cond,stmnt)
+            end
+            return res
+        end
+    end
+
+
+    ## Extends the When class with separation between signals and variables.
+    class When
+        # Converts to a variable-compatible case where +upper+ is
+        # the upper block if any.
+        #
+        # NOTE: the result is a new case.
+        def with_var(upper = nil)
+            return When.new(self.match.clone,self.statement.with_var(upper))
+        end
+    end
+
+
+    ## Extends the Case class with separation between signals and variables.
+    class Case
+        # Converts to a variable-compatible case where +upper+ is
+        # the upper block if any.
+        #
+        # NOTE: the result is a new case.
+        def with_var(upper = nil)
+            ndefault = self.default ? self.default.clone : nil
+            return Case.new(self.value.clone,ndefault,
+                            self.each_when.map {|w| w.with_var(upper) })
+        end
+    end
 end

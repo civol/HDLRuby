@@ -4,7 +4,7 @@ configure_high
 
 # An adder-suber
 system :addsub do
-    [1..0].input  :opr
+    input  :opr
     [15..0].input :x,:y
     [16..0].output :s
 
@@ -13,11 +13,11 @@ system :addsub do
         [15..0].input :x,:y
         input :cin
         [16..0].output :s
-        
+
         s <= x+y+cin
     end
 
-    # Some computation.
+    # Control part for choosing between add and sub.
     hif(opr) { add.(x,~y,1,s) }
     helse    { add.(x,y,0,s) }
 end
