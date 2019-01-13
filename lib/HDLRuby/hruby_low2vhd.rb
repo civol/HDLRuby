@@ -135,6 +135,8 @@ module HDLRuby::Low
         ## Generates epression +expr+ while casting it to match +type+ if
         #  required.
         def self.to_type(type,expr)
+            # puts "expr=#{expr.to_vhdl}"
+            # puts "type=#{type.to_vhdl}, expr.type=#{expr.type.to_vhdl}"
             if expr.type.to_vhdl != "std_logic" &&
                type.to_vhdl == "std_logic" then
                 # Conversion to std_logic required.
@@ -182,7 +184,7 @@ module HDLRuby::Low
             # Create the name of the function from the type.
             # Generates the function
             return "#{spaces}function #{mux_name(tstr)}" + 
-                       "(cond : boolean, left : #{tstr}, right : #{tstr})\n" +
+                       "(cond : boolean; left : #{tstr}; right : #{tstr})\n" +
                    "#{spaces}return #{tstr} is\n" +
                    "#{spaces}begin\n" +
                    "#{spaces}   if(cond) then\n" +
@@ -190,7 +192,7 @@ module HDLRuby::Low
                    "#{spaces}   else\n" +
                    "#{spaces}      return right;\n" +
                    "#{spaces}   end if;\n" +
-                   "#{spaces}end mux#{tstr};\n\n"
+                   "#{spaces}end #{mux_name(tstr)};\n\n"
         end
 
     end
@@ -428,7 +430,7 @@ module HDLRuby::Low
             res << "\n" if self.each_scope.any?
             self.each_scope_deep do |scope|
                 scope.each_connection do |connection|
-                    res << connection.to_vhdl(level)
+                    res << connection.to_vhdl([],level)
                 end
             end
 
@@ -532,8 +534,11 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
+        #
+        # NOTE: type tuples are converted to bit vector of their contents.
         def to_vhdl(level = 0)
-            raise AnyError, "Tuple types are not supported in VHDL, please convert them to Struct types using Low::tuple2struct from HDLRuby/hruby_low_witout_tuple."
+            # raise AnyError, "Tuple types are not supported in VHDL, please convert them to Struct types using Low::tuple2struct from HDLRuby/hruby_low_witout_tuple."
+            return self.to_vector.to_vhdl(level)
         end
     end
 
@@ -567,6 +572,12 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
+            # Gather the variables.
+            # It is assumed that the inners are all in declared in the
+            # direct sub block and that they represent variables, i.e.,
+            # Low::to_upper_space! and Low::with_var! has been called.
+            vars = self.block.each_inner.to_a 
+
             # The resulting string.
             res = " " * (level*3)
             # Generate the header.
@@ -587,7 +598,9 @@ module HDLRuby::Low
                 # values.
                 list = self.block.each_node_deep.select do |node|
                     node.is_a?(RefName) && !node.leftvalue? && 
-                        !node.parent.is_a?(RefName)
+                        !node.parent.is_a?(RefName) &&
+                        # Also skip the variables
+                        !vars.find {|var| var.name == node.name }
                 end.to_a
                 # Keep only one ref per signal.
                 list.uniq! { |node| node.name }
@@ -598,14 +611,11 @@ module HDLRuby::Low
             end
             res << "\n"
             # Generate the variables.
-            # It is assumed that the inners are all in declared in the
-            # direct sub block and that they represent variables, i.e.,
-            # Low::to_upper_space! and Low::with_var! has been called.
-            self.block.each_inner do |inner|
+            vars.each do |var|
                 res << " " * ((level+1)*3)
                 res << "variable "
-                res << Low2VHDL.vhdl_name(inner.name) << ": " 
-                res << inner.type.to_vhdl << ";\n"
+                res << Low2VHDL.vhdl_name(var.name) << ": " 
+                res << var.type.to_vhdl << ";\n"
             end
 
             # Generate the content.
@@ -627,14 +637,14 @@ module HDLRuby::Low
                 end.join(" and ")
                 res << ") then\n"
                 # Generate the body.
-                res << self.block.to_vhdl(level+2)
+                res << self.block.to_vhdl(vars,level+2)
                 # Close the edge test.
                 res << " " * (level*3)
                 res << "end if;\n"
                 level = level - 1
             else
                 # Generate the body directly.
-                res << self.block.to_vhdl(level+1)
+                res << self.block.to_vhdl(vars,level+1)
             end
             # Close the process.
             res << " " * (level*3)
@@ -686,8 +696,9 @@ module HDLRuby::Low
     class Statement
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(vars, level = 0)
             # Should never be here.
             raise AnyError, "Internal error: to_vhdl should be implemented in class :#{self.class}"
         end
@@ -697,10 +708,16 @@ module HDLRuby::Low
     class Transmit
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
-            return " " * (level*3 ) + 
-                   self.left.to_vhdl(level) + " <= " +
+        def to_vhdl(vars,level = 0)
+            # Generate the assign operator.
+            assign = vars.any? do |var|
+                self.left.respond_to?(:name) && var.name == self.left.name 
+            end ? " := " : " <= "
+            # Generate the assignment.
+            return " " * (level*3) + 
+                   self.left.to_vhdl(level) + assign +
                    Low2VHDL.to_type(self.left.type,self.right) + ";\n"
         end
     end
@@ -709,24 +726,25 @@ module HDLRuby::Low
     class If
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(vars,level = 0)
             # The result string.
             res = " " * (level*3)
             # Generate the test.
             res << "if (" << Low2VHDL.to_boolean(self.condition) << ") then\n"
             # Generate the yes part.
-            res << self.yes.to_vhdl(level+1)
+            res << self.yes.to_vhdl(vars,level+1)
             # Generate the alternate if parts.
             self.each_noif do |cond,stmnt|
                 res << " " * (level*3)
                 res << "elsif (" << cond.to_vhdl(level) << ") then\n"
-                res << stmnt.to_vhdl(level+1)
+                res << stmnt.to_vhdl(vars,level+1)
             end
             # Generate the no part if any.
             if self.no then
                 res << " " * (level*3)
-                res << "else\n" << self.no.to_vhdl(level+1)
+                res << "else\n" << self.no.to_vhdl(vars,level+1)
             end
             # Close the if.
             res << " " * (level*3)
@@ -741,14 +759,15 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code ensuring
         # the match is of +type+.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(type,level = 0)
+        def to_vhdl(vars,type,level = 0)
             # The result string.
             res = " " * (level*3)
             # Generate the match.
             res << "when " << Low2VHDL.to_type(type,self.match) << " =>\n"
             # Generate the statement.
-            res << self.statement.to_vhdl(level+1)
+            res << self.statement.to_vhdl(vars,level+1)
             # Returns the result.
             return res
         end
@@ -758,21 +777,22 @@ module HDLRuby::Low
     class Case
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(vars,level = 0)
             # The result string.
             res = " " * (level*3)
             # Generate the test.
             res << "case " << self.value.to_vhdl(level) << " is\n"
             # Generate the whens.
             self.each_when do |w|
-                res << w.to_vhdl(self.value.type,level)
+                res << w.to_vhdl(vars,self.value.type,level)
             end
             # Generate teh default if any.
             if self.default then
                 res << " " * (level*3)
                 res << "when others =>\n"
-                res << self.default.to_vhdl(level+1)
+                res << self.default.to_vhdl(vars,level+1)
             end
             # Close the case.
             res << " " * (level*3)
@@ -798,8 +818,9 @@ module HDLRuby::Low
     class TimeWait
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(vars,level = 0)
             # The resulting string.
             res = " " * (level*3)
             # Generate the wait.
@@ -813,8 +834,9 @@ module HDLRuby::Low
     class TimeRepeat
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(vars,level = 0)
             raise AnyError, "Internal error: TimeRepeat not supported yet for conversion to VHDL."
         end
     end
@@ -823,16 +845,17 @@ module HDLRuby::Low
     class Block
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of variables and
         # +level+ is the hierachical level of the object.
         #
         # NOTE: only the statements are generated, the remaining is assumed
         #       to be handled by the upper scope.
-        def to_vhdl(level = 0)
+        def to_vhdl(vars, level = 0)
             # The resulting string.
             res = ""
             # Generate the statements.
             self.each_statement do |stmnt|
-                res << stmnt.to_vhdl(level)
+                res << stmnt.to_vhdl(vars,level)
             end
             # Return the result.
             return res
@@ -985,7 +1008,8 @@ module HDLRuby::Low
             else
                 # No, simply generate the binary operation.
                 return "(" + self.left.to_vhdl(level) + operator + 
-                             self.right.to_vhdl(level) + ")"
+                             # self.right.to_vhdl(level) + ")"
+                    Low2VHDL.to_type(self.left.type,self.right) + ")"
             end
         end
     end
