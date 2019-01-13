@@ -1115,6 +1115,11 @@ module HDLRuby::Low
             ruby_block.call(self)
             # And that's all by default.
         end
+
+        # Converts to a bit vector.
+        def to_vector
+            return TypeVector.new(:"", Bit, self.width-1..0)
+        end
     end
 
 
@@ -1348,6 +1353,7 @@ module HDLRuby::Low
             # General type comparison.
             return false unless super(obj)
             # Specific comparison.
+            return false unless obj.is_a?(TypeVector)
             return false unless @base.eql?(obj.base)
             return false unless @range.eql?(obj.range)
             return true
@@ -2192,6 +2198,11 @@ module HDLRuby::Low
             raise AnyError,
                 "Internal error: hash is not defined for class: #{self.class}"
         end
+
+        # Gets the top block, i.e. the first block of the current behavior.
+        def top_block
+            return self.parent.is_a?(Behavior) ? self : self.parent.top_block
+        end
     end
 
 
@@ -2590,6 +2601,11 @@ module HDLRuby::Low
             # And recurse on the children
             @match.each_node_deep(&ruby_block)
             @statement.each_node_deep(&ruby_block)
+        end
+
+        # Gets the top block, i.e. the first block of the current behavior.
+        def top_block
+            return self.parent.is_a?(Behavior) ? self : self.parent.top_block
         end
     end
 
@@ -3335,8 +3351,14 @@ module HDLRuby::Low
         def leftvalue?
             # Maybe its the left of a left value.
             if parent.respond_to?(:leftvalue?) && parent.leftvalue? then
-                # Yes so it is also a left value.
-                return parent.ref == self
+                # Yes so it is also a left value if it is a sub ref.
+                if parent.respond_to?(:ref) then
+                    # It might nor be a sub ref.
+                    return parent.ref == self
+                else
+                    # It is necessarily a sub ref (case of RefConcat for now).
+                    return true
+                end
             end
             # No, therefore maybe it is directly a left value.
             return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
@@ -3980,7 +4002,8 @@ module HDLRuby::Low
             super(type)
             # Check and set the refs.
             refs.each do |ref|
-                unless ref.is_a?(Expression) then
+                # puts "ref.class=#{ref.class}"
+                unless ref.is_a?(Ref) then
                     raise AnyError,
                           "Invalid class for an reference: #{ref.class}"
                 end
@@ -4016,15 +4039,41 @@ module HDLRuby::Low
         # Returns an enumerator if no ruby block is given.
         def each_ref(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_input) unless ruby_block
+            return to_enum(:each_ref) unless ruby_block
             # A ruby block? Apply it on each children.
             @refs.each(&ruby_block)
         end
         alias_method :each_node, :each_ref
 
+        # Adds an +ref+ to concat.
+        def add_ref(ref)
+            # Check ref.
+            unless ref.is_a?(Ref) then
+                raise AnyError,
+                      "Invalid class for an ref: #{ref.class}"
+            end
+            # Add it.
+            @refs << ref
+            # And set its parent.
+            ref.parent = self
+            ref
+        end
+
+        # Iterates over the nodes deeply if any.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the sub references.
+            self.each_ref do |ref|
+                ref.each_node_deep(&ruby_block)
+            end
+        end
+
         # Clones the concatenated references (deeply)
         def clone
-            return RefConcat.new(@type, @ref.map { |ref| ref.clone } )
+            return RefConcat.new(@type, @refs.map { |ref| ref.clone } )
         end
     end
 

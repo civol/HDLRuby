@@ -12,8 +12,22 @@ module HDLRuby
         # Creates a new generic vector type named +name+ from +base+ type and
         # with +range+.
         # NOTE: used for type processing.
-        def make(*args)
-            res = TypeVector.new(*args)
+        def make(name,base,range)
+            # Generate a vector or a scalar type depending on the range.
+            # First for checking the rangem ensures the bounds are Ruby
+            # values.
+            first = range.first
+            last = range.last
+            first = first.content if first.is_a?(Value)
+            last = last.content if last.is_a?(Value)
+            # Now can compare at Ruby level (and not HDLRuby level).
+            if first == last then
+                # Single-element, return the base.
+                return base
+            else
+                # Multiple elements, create a new type vector.
+                return TypeVector.new(name,base,range)
+            end
         end
 
         # Type resolution: decide which class to use for representing
@@ -134,11 +148,13 @@ module HDLRuby
 
         # And
         def &(type)
+            # puts "compute types with=#{self} and #{type}"
             # Resolve the type class.
             resolved = self.resolve(type)
             # New type range: largest range 
             bounds = [ self.range.first.to_i, type.range.first.to_i,
                        self.range.last.to_i, type.range.last.to_i ]
+            # puts "bounds=#{bounds}"
             res_lsb =  bounds.min
             res_msb = bounds.max 
             # Create and return the new type: its endianess is the one of self
@@ -161,8 +177,11 @@ module HDLRuby
         end
 
         # Equals
-        alias_method :==, :&
-        alias_method :!=, :&
+        # alias_method :==, :&
+        def ==(type)
+            return Bit
+        end
+        alias_method :!=, :==
 
         # Inferior
         alias_method :<, :&

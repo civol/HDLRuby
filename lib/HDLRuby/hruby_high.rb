@@ -3110,7 +3110,7 @@ module HDLRuby::High
             #     end
             # )
             return Concat.new(self.type,
-                self.each_expression.lazy.map do |expr|
+                self.each_expression.map do |expr|
                     expr.to_expr
                 end
             )
@@ -3123,7 +3123,7 @@ module HDLRuby::High
             #         expr.to_low
             #     end
             return HDLRuby::Low::Concat.new(self.type.to_low,
-                self.each_expression.lazy.map do |expr|
+                self.each_expression.map do |expr|
                     expr.to_low
                 end
             )
@@ -3323,13 +3323,8 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            # return RefConcat.new(
-            #     self.each_ref.lazy.map do |ref|
-            #         ref.to_ref
-            #     end
-            # )
             return RefConcat.new(self.type,
-                self.each_ref.lazy.map do |ref|
+                self.each_ref.map do |ref|
                     ref.to_ref
                 end
             )
@@ -3343,7 +3338,7 @@ module HDLRuby::High
             #     end
             # )
             return HDLRuby::Low::RefConcat.new(self.type.to_low,
-                self.each_ref.lazy.map do |ref|
+                self.each_ref.map do |ref|
                     ref.to_low
                 end
             )
