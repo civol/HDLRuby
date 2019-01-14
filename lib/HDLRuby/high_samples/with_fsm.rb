@@ -5,7 +5,6 @@ configure_high
 require 'HDLRuby/std/fsm'
 include HDLRuby::High::Std
 
-
 # Implementation of a fsm.
 system :my_fsm do
     input :clk,:rst
@@ -27,12 +26,13 @@ system :my_fsm do
     # end
     # Other alternative:
     fsm(clk.posedge,rst) do
-        state         { z <= 0 }
-        state(:there) { z <= a+b }
-        state do
-            hif (a>0) { z <= a-b }
-            helse { goto(:there) }
+        reset         { z <= 0 }
+        state         { z <= a+b }
+        state(:there) do
+            hif (z!=0) { z <= a-b }
+            goto(z==0,:end,:there)
         end
+        state(:end)   { goto(:end) }
     end
 end
 

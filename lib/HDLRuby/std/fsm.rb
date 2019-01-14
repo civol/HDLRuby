@@ -13,7 +13,7 @@ module HDLRuby::High::Std
 
         # The state class
         class State
-            attr_accessor :value, :name, :code
+            attr_accessor :value, :name, :code, :gotos
         end
 
         # The name of the FSM type.
@@ -23,13 +23,24 @@ module HDLRuby::High::Std
         attr_reader :namespace
 
         # The current and next state signals.
-        attr_accessor :cur_state, :next_state
+        attr_accessor :cur_state_sig, :next_state_sig, :work_state
 
         # Creates a new fsm type with +name+.
-        #
-        def initialize(name)
+        # +type+ is the type of FSM, either synchronous (sync) or 
+        # asynchronous (async).
+        def initialize(name,type = :sync)
             # Check and set the name
             @name = name.to_sym
+            # Check and set the type
+            case type
+            when :sync,:synchronous then
+                @type = :sync
+            when :async, :asynchronous then
+                @type = :async
+                raise InternalError, "Asynchornous type not supported yet."
+            else
+                raise AnyError, "Invalid type for a fsm: :#{type}"
+            end
 
             # Initialize the internals of the FSM.
 
@@ -40,14 +51,18 @@ module HDLRuby::High::Std
             @states = []
 
             # The current and next state signals
-            @cur_state = nil
-            @next_state = nil
+            @cur_state_sig = nil
+            @next_state_sig = nil
 
             # The event synchronizing the fsm
             @mk_ev = proc { $clk.posedge }
 
-            # The reset
+            # The reset check.
             @mk_rst = proc { $rst }
+
+            # The code executed in case of reset.
+            # (By default, nothing).
+            @reset_code = nil
 
             # Creates the namespace to execute the fsm block in.
             @namespace = Namespace.new(self)
@@ -76,6 +91,7 @@ module HDLRuby::High::Std
             this = self
             mk_ev = @mk_ev
             mk_rst = @mk_rst
+            reset_code  = @reset_code
 
             return_value = nil
 
@@ -90,22 +106,66 @@ module HDLRuby::High::Std
                     # Create the state register.
                     name = HDLRuby.uniq_name
                     # Declare the state register.
-                    this.cur_state = [states.size].inner(name)
+                    this.cur_state_sig = [states.size.width].inner(name)
                     # Declare the next state wire.
                     name = HDLRuby.uniq_name
-                    this.next_state = [states.size].inner(name)
+                    this.next_state_sig = [states.size.width].inner(name)
 
                     # Create the fsm code
+
                     # Control part: update of the state.
-                    par(mk_ev.call) { this.cur_state <= this.next_state }
+                    par(mk_ev.call) do
+                        hif(mk_rst.call) do
+                            # Reset: current state is to put to 0.
+                            this.cur_state_sig <= 0
+                        end
+                        helse do
+                            # No reset: current state is updated with
+                            # next state value.
+                            this.cur_state_sig <= this.next_state_sig
+                        end
+                    end
+
                     # Operative part: one case per state.
-                    hcase(this.cur_state)
+                    # (clock-dependent if synchronous mode).
+                    par(mk_ev.call) do
+                        # The operative code.
+                       oper_code =  proc do
+                            hcase(this.cur_state_sig)
+                            states.each do |st|
+                                # Register the working state (for the gotos)
+                                this.work_state = st
+                                hwhen(st.value) do
+                                    # Generate the content of the state.
+                                    st.code.call
+                                end
+                            end
+                        end
+                        # Is there reset code?
+                        if reset_code then
+                            # Yes, use it before the operative code.
+                            hif(mk_rst.call) { reset_code.call }
+                            helse(&oper_code)
+                        else
+                            # Use only the operative code.
+                            oper_code.call
+                        end
+                    end
+
+                    # Control part: computation of the next state.
+                    # (clock-independent)
+                    hcase(this.cur_state_sig)
                     states.each do |st|
                         hwhen(st.value) do
-                            # Prepare the default next state.
-                            this.next_state <= mux(mk_rst.call , 0, this.cur_state + 1)
-                            # Generate the content of the state.
-                            st.code.call
+                            if st.gotos.any? then
+                                # Gotos were present, use them.
+                                st.gotos.each(&:call)
+                            else
+                                # No gotos, by default the next step is
+                                # current + 1
+                                # this.next_state_sig <= mux(mk_rst.call , 0, this.cur_state_sig + 1)
+                                this.next_state_sig <=  this.cur_state_sig + 1
+                            end
                         end
                     end
                     HDLRuby::High.space_pop
@@ -114,6 +174,7 @@ module HDLRuby::High::Std
 
             return return_value
         end
+
 
         ## The interface for building the fsm
 
@@ -139,8 +200,12 @@ module HDLRuby::High::Std
             end
         end
 
+        # Declares the code to be executed in case of reset.
+        def reset(&ruby_block)
+            @reset_code = ruby_block
+        end
 
-        # Declare a new state with +name+ and executing +ruby_block+.
+        # Declares a new state with +name+ and executing +ruby_block+.
         def state(name = :"", &ruby_block)
             # Create the resulting state
             result = State.new
@@ -148,13 +213,14 @@ module HDLRuby::High::Std
             result.value = @states.size
             result.name = name.to_sym
             result.code = ruby_block
+            result.gotos = []
             # Add it to the list of states.
             @states << result
             # Return it.
             return result
         end
 
-        # Set the next state. Arguments can be:
+        # Sets the next state. Arguments can be:
         #
         # +name+: the name of the next state.
         # +expr+, +names+: an expression with the list of the next statements
@@ -162,36 +228,60 @@ module HDLRuby::High::Std
         #                  one being necesserily the default case.
         def goto(*args)
             # Make reference to the fsm attributes.
-            next_state = @next_state
+            next_state_sig = @next_state_sig
             states = @states
-            # Depending on the first argument type.
-            unless args[0].is_a?(Symbol) then
-                # expr + names arguments.
-                hcase (args.shift)
-                args[0..-2].each.with_index do |arg,i|
-                    # Ensure the argument is a symbol.
-                    arg = arg.to_sym
-                    # Make the when statement.
-                    hwhen(i) do
-                        next_state <= 
-                            (states.detect { |st| st.name == arg }).value
+            # Add the code of the goto to the working state.
+            @work_state.gotos << proc do
+                # Depending on the first argument type.
+                unless args[0].is_a?(Symbol) then
+                    # expr + names arguments.
+                    # Get the predicate
+                    pred = args.shift
+                    # hif or hcase?
+                    if args.size <= 2 then
+                        # 2 or less cases, generate an hif
+                        arg = args.shift
+                        hif(pred) do
+                            next_state_sig <=
+                                (states.detect { |st| st.name == arg }).value
+                        end
+                        arg = args.shift
+                        if arg then
+                            # There is an else.
+                            helse do
+                                next_state_sig <=
+                                (states.detect { |st| st.name == arg }).value
+                            end
+                        end
+                    else
+                        # More than 2, generate a hcase
+                        hcase (pred)
+                        args[0..-2].each.with_index do |arg,i|
+                            # Ensure the argument is a symbol.
+                            arg = arg.to_sym
+                            # Make the when statement.
+                            hwhen(i) do
+                                next_state_sig <= 
+                                (states.detect { |st| st.name == arg }).value
+                            end
+                        end
+                        # The last name is the default case.
+                        # Ensure it is a symbol.
+                        arg = args[-1].to_sym
+                        # Make the default statement.
+                        helse do
+                            next_state_sig <= 
+                                (states.detect { |st| st.name == arg }).value
+                        end
                     end
+                else
+                    # single name argument, check it.
+                    raise AnyError, "Invalid argument for a goto: if no expression is given only a single name can be used." if args.size > 1
+                    # Ensure the name is a symbol.
+                    name = args[0].to_sym
+                    # Get the state with name.
+                    next_state_sig <= (states.detect { |st| st.name == name }).value
                 end
-                # The last name is the default case.
-                # Ensure it is a symbol.
-                arg = args[-1].to_sym
-                # Make the default statement.
-                helse do
-                    next_state <= 
-                        (states.detect { |st| st.name == arg }).value
-                end
-            else
-                # single name argument, check it.
-                raise AnyError, "Invalid argument for a goto: if no expression is given only a single name can be used." if args.size > 1
-                # Ensure the name is a symbol.
-                name = args[0].to_sym
-                # Get the state with name.
-                next_state <= (states.detect { |st| st.name == name }).value
             end
         end
 
