@@ -121,10 +121,38 @@ module HDLRuby::Low
             end
         end
 
+        ## Tells if an expression is a boolean.
+        def self.boolean?(expr)
+            if expr.is_a?(Unary) && expr.operator == :~ then
+                # NOT, boolean is the sub expr is boolean.
+                return Low2VHDL.boolean?(expr.child)
+            elsif expr.is_a?(Binary) then
+                # Binary case.
+                case(expr.operator)
+                when :==,:!=,:>,:<,:>=,:<= then
+                    # Comparison, it is a boolean.
+                    return true
+                when :&,:|,:^ then
+                    # AND, OR or XOR, boolean if both subs are boolean.
+                    return Low2VHDL.boolean?(expr.left) && 
+                           Low2VHDL.boolean?(expr.right)
+                else
+                    # Other cases: not boolean.
+                    return false
+                end
+            elsif expr.is_a?(Select) then
+                # Select, binary if the choices are boolean.
+                return !expr.each_choice.any? {|c| !Low2VHDL.boolean(c) }
+            else
+                # Other cases are not considered as boolean.
+                return false
+            end
+        end
+
         ## Generates a expression converted to the boolean type.
         def self.to_boolean(expr)
-            if expr.is_a?(Binary) and expr.operator == :== then
-                # Equality comparison, no conversion required.
+            if boolean?(expr) then
+                # Comparison, no conversion required.
                 return expr.to_vhdl
             else
                 # Conversion to boolean required.
@@ -996,6 +1024,8 @@ module HDLRuby::Low
                 operator = " xor "
             when :==
                 operator = " = "
+            when :!=
+                operator = " /= "
             else
                 operator = self.operator.to_s
             end
