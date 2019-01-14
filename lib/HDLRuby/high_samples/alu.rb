@@ -24,15 +24,20 @@ system :alu do
         # The main computation: s and cf
         # Default connections
         cf <= 0
+        vf <= 0
         add.(0,0,0)
         # Depending on the operator
         hcase(opr)
         hwhen(1) { s <= x }
         hwhen(2) { s <= y }
-        hwhen(3) { add.(x ,y ,0,[cf,s]) }
-        hwhen(4) { add.(x ,~y,1,[cf,s]) }
-        hwhen(5) { add.(0 ,~y,1,[cf,s]) }
-        hwhen(6) { add.(~x,0 ,1,[cf,s]) }
+        hwhen(3) { add.(x ,y ,0,[cf,s])
+                   vf <= (~x[15] & ~y[15] & s[15]) | (x[15] & y[15] & ~s[15]) }
+        hwhen(4) { add.(x ,~y,1,[cf,s])
+                   vf <= (~x[15] & y[15] & s[15]) | (x[15] & ~y[15] & ~s[15]) }
+        hwhen(5) { add.(0 ,~y,1,[cf,s])
+                   vf <= (~y[15] & s[15]) }
+        hwhen(6) { add.(~x,0 ,1,[cf,s])
+                   vf <= (x[15] & ~s[15]) }
         hwhen(7) { s <= x & y }
         hwhen(8) { s <= x | y }
         hwhen(9) { s <= x ^ y }
@@ -43,7 +48,6 @@ system :alu do
         # The remaining flags.
         zf <= (s == 0)
         sf <= s[15]
-        vf <= cf ^ sf
     end
 end
 
