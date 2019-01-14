@@ -33,7 +33,8 @@ $allfiles = [$fullname] + $subfiles
 
 # Generate the base names for the sub files.
 $subbases = $subfiles.map {|file|  File.basename(file,$extname) }
-$subbases =[ $basename + "_model" ] + $subbases
+$basename_model = $basename + "_model"
+$subbases =[ $basename_model ] + $subbases
 
 ######################################################
 # Compiling steps
@@ -44,6 +45,14 @@ $allfiles.each do |file|
     puts cmd
     `#{cmd}`
 end
+
+# Check if there is a model have been generated.
+unless File.file?($basename_model + ".vbe") then
+    # No model, single file case.
+    $subbases = [ $basename ]
+end
+
+# puts "$subbases=#{$subbases}"
 
 # Boolean minimisation.
 $subbases.each do |base|
