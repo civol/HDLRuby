@@ -41,7 +41,7 @@ module HDLRuby::Low
             # instance interface.
             self.each_scope_deep do |scope|
                 # Connections.
-                self.each_connection do |connection|
+                scope.each_connection do |connection|
                     connection.right.each_node_deep do |node|
                         # Leaf right value references are to keep.
                         # They are either signal of current system or
@@ -52,11 +52,11 @@ module HDLRuby::Low
                     end
                 end
                 # System instances.
-                self.each_systemI do |systemI|
+                scope.each_systemI do |systemI|
                     keep << systemI.name
                 end
                 # Behaviors.
-                self.each_behavior do |behavior|
+                scope.each_behavior do |behavior|
                     behavior.block.each_node_deep do |node|
                         # Skip left values.
                         next if node.respond_to?(:leftvalue?) && node.leftvalue?
