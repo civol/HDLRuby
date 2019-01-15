@@ -107,7 +107,11 @@ module HDLRuby::Low
         def self.to_arith(expr)
             if arith?(expr.type) then
                 # The expression is arithmetic-compatible, just generate it.
-                return expr.to_vhdl
+                if expr.is_a?(Value) then
+                    return expr.to_arith
+                else
+                    return expr.to_vhdl
+                end
             else
                 # The expression is to convert, by default convert to unsigned
                 # (this is the standard interpretation of HDLRuby).
@@ -183,7 +187,11 @@ module HDLRuby::Low
                 # puts "type=#{type}, type.range=#{type.range}"
                 # Value width must be adjusted.
                 return expr.to_vhdl(type.width)
-            else
+            elsif expr.type.width < type.width then
+                # Need to extend the type.
+                return '"' + "0" * (type.width - expr.type.width) + '" & ' +
+                       expr.to_vhdl
+            else 
                 # No conversion required.
                 return expr.to_vhdl
             end
@@ -926,7 +934,20 @@ module HDLRuby::Low
     ## Extends the Value class with generation of HDLRuby::High text.
     class Value
 
-        # Generates the text of the equivalent HDLRuby::High code with
+        # Generate the text of the equivalent VHDL is case of arithmetic
+        # expression.
+        def to_arith
+            case self.content
+            when HDLRuby::BitString
+                sign = self.type.signed? && self.content.to_s[-1] == "0" ?
+                    -1 : 1
+                return (sign * self.content.to_s.to_i(2)).to_s
+            else
+                return self.content.to_s
+            end
+        end
+
+        # Generates the text of the equivalent VHDL with
         # +width+ bits.
         # +level+ is the hierachical level of the object.
         def to_vhdl(width = nil,level = 0)
@@ -1014,31 +1035,50 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
+            # Shifts/rotate require function call.
+            if [:<<, :>>, :ls, :rs, :lr, :rr].include?(self.operator) then
+                # Generate the function name.
+                case self.operator
+                when :<<, :ls
+                    func = "shift_left"
+                when :>>, :rs
+                    func = "shift_right"
+                when :lr
+                    func = "rotate_left"
+                when :rr
+                    function = "rotate_right"
+                else
+                    raise AnyError, "Internal unexpected error."
+                end
+                return Low2VHDL.unarith_cast(self) + "(#{func}(" + 
+                       Low2VHDL.to_arith(self.left) + "," + 
+                       Low2VHDL.to_arith(self.right) + "))"
+            end
+            # Usual operators.
             # Generate the operator string.
             case self.operator
             when :&
-                operator = " and "
+                opr = " and "
             when :|
-                operator = " or "
+                opr = " or "
             when :^
-                operator = " xor "
+                opr = " xor "
             when :==
-                operator = " = "
+                opr = " = "
             when :!=
-                operator = " /= "
+                opr = " /= "
             else
-                operator = self.operator.to_s
+                opr = self.operator.to_s
             end
             # Is the operator arithmetic?
             if [:+, :-, :*, :/, :%].include?(self.operator) then
                 # Yes, type conversion my be required by VHDL standard.
                 return "#{Low2VHDL.unarith_cast(self)}(" +
-                    Low2VHDL.to_arith(self.left) + operator +
+                    Low2VHDL.to_arith(self.left) + opr +
                     Low2VHDL.to_arith(self.right) + ")"
             else
                 # No, simply generate the binary operation.
-                return "(" + self.left.to_vhdl(level) + operator + 
-                             # self.right.to_vhdl(level) + ")"
+                return "(" + self.left.to_vhdl(level) + opr + 
                     Low2VHDL.to_type(self.left.type,self.right) + ")"
             end
         end
