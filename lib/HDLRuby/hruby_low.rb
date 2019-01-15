@@ -1368,8 +1368,8 @@ module HDLRuby::Low
         #
         # NOTE: must be redefined for specific types.
         def width
-            first = @range.first
-            last  = @range.last
+            first = @range.first.to_i
+            last  = @range.last.to_i
             return @base.width * ((first-last).abs + 1)
         end
 
@@ -3467,6 +3467,11 @@ module HDLRuby::Low
         # Tells if the value is odd.
         def odd?
             return @content.odd?
+        end
+
+        # Converts to integer.
+        def to_i
+            return @content.to_i
         end
 
         # Clones the value (deeply)
