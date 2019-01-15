@@ -2822,7 +2822,8 @@ module HDLRuby::High
 
         # Adds the binary operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
-         :"&",:"|",:"^",:"<<",:">>",
+         :"&",:"|",:"^",
+         :"<<",:">>",:ls,:rs,:lr,:rr,
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
              meth = proc do |right|
                  # return Binary.new(
