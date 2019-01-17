@@ -3429,14 +3429,12 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            # return RefIndex.new(self.ref.to_ref,self.index.to_expr)
-            return RefIndex.new(self.type.base,
+            return RefIndex.new(self.type,
                                 self.ref.to_ref,self.index.to_expr)
         end
 
         # Converts the index reference to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::RefIndex.new(self.ref.to_low,self.index.to_low)
             return HDLRuby::Low::RefIndex.new(self.type.to_low,
                                               self.ref.to_low,self.index.to_low)
         end
@@ -3449,8 +3447,6 @@ module HDLRuby::High
 
         # Converts to a new reference.
         def to_ref
-            # return RefRange.new(self.ref.to_ref,
-            #                   self.range.first.to_expr..self.range.last.to_expr)
             return RefRange.new(self.type,self.ref.to_expr,
                               self.range.first.to_expr..self.range.last.to_expr)
         end

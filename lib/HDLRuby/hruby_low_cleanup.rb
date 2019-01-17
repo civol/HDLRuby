@@ -23,7 +23,7 @@ module HDLRuby::Low
             # Gather the output and inout signals' names, they are used to
             # identify the signals that can be removed.
             keep = self.each_output.map {|sig| sig.name } +
-                   self.each_inout.to_a {|sig| sig.name }
+                   self.each_inout.map {|sig| sig.name }
             self.scope.cleanup!(keep)
         end
 

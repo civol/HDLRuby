@@ -215,7 +215,10 @@ module HDLRuby::Low
             # Break the local types.
             self.each_type {|type| type.break_types!(types)}
             # Break the types in the inners.
-            self.each_inner {|inner| inner.type.break_types!(types) }
+            # self.each_inner {|inner| inner.type.break_types!(types) }
+            self.each_inner do |inner|
+                inner.set_type!(inner.type.break_types!(types))
+            end
             # Break the types in the connections.
             self.each_connection do |connection| 
                 connection.left.break_types!(types)
@@ -260,18 +263,28 @@ module HDLRuby::Low
                 # Need to break
                 # First recurse on the base.
                 nbase = self.base.break_types!(types)
-                # Maybe such a type already exists.
-                ndef = types[nbase]
-                if ndef then
-                    # Yes, use it.
-                    self.set_base!(ndef.clone)
-                else
-                    # No change it to a type definition
-                    ndef = TypeDef.new(HDLRuby.uniq_name,nbase)
-                    self.set_base!(ndef)
-                    # And add it to the types by structure.
-                    types[nbase] = ndef
-                end
+                # # Maybe such a type already exists.
+                # ndef = types[nbase]
+                # if ndef then
+                #     # Yes, use it.
+                #     self.set_base!(ndef.clone)
+                # else
+                #     # No change it to a type definition
+                #     ndef = TypeDef.new(HDLRuby.uniq_name,nbase)
+                #     self.set_base!(ndef)
+                #     # And add it to the types by structure.
+                #     types[nbase] = ndef
+                # end
+                # Sets the base.
+                self.set_base!(nbase)
+                # And create a new type from current type.
+                # Maybe the new type already exists.
+                ndef = types[self]
+                return self if ndef # Yes, already exists.
+                # No, create and register a new typedef.
+                ndef = TypeDef.new(HDLRuby.uniq_name,self)
+                types[self] = ndef
+                return ndef
             end
             return self
         end
@@ -455,7 +468,8 @@ module HDLRuby::Low
             self.each_node do |node|
                 # Need to break only in the case of a cast.
                 if node.is_a?(Cast) then
-                    node.type.break_types!(types)
+                    # node.type.break_types!(types)
+                    node.set_type!(node.type.break_types!(types))
                 end
             end
         end

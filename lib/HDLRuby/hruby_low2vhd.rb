@@ -186,7 +186,7 @@ module HDLRuby::Low
             elsif expr.is_a?(Value) then
                 # puts "type=#{type}, type.range=#{type.range}"
                 # Value width must be adjusted.
-                return expr.to_vhdl(type.width)
+                return expr.to_vhdl(0,type.width)
             elsif expr.type.width < type.width then
                 # Need to extend the type.
                 return '"' + "0" * (type.width - expr.type.width) + '" & ' +
@@ -956,7 +956,7 @@ module HDLRuby::Low
         # Generates the text of the equivalent VHDL with
         # +width+ bits.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(width = nil,level = 0)
+        def to_vhdl(level = 0,width = nil)
             # puts "width=#{width}"
             width = self.type.width unless width
             case self.content
@@ -1124,9 +1124,16 @@ module HDLRuby::Low
             res = ""
             # Generate the header.
             # Generate the expressions.
-            res << self.each_expression.map do |expression|
-                "(" + expression.to_vhdl(level+1) + ")"
-            end.join(" & ")
+            # Depends on the type.
+            if self.type.is_a?(TypeTuple) then
+                res << "( " << self.each_expression.map do |expression|
+                    expression.to_vhdl(level+1)
+                end.join(",\n#{" "*((level+1)*3)}") << " )"
+            else
+                res << self.each_expression.map do |expression|
+                    "(" + expression.to_vhdl(level+1) + ")"
+                end.join(" & ")
+            end
             # Return the resulting string.
             return res
         end
