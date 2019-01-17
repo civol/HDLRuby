@@ -289,15 +289,26 @@ module HDLRuby::High
                 # end
 
                 unless instance_methods.include?(:make_inners) then
-                    # Creates and adds a set of inners typed +type+ from a list of +names+.
+                    # Creates and adds a set of inners typed +type+ from a
+                    # list of +names+.
                     #
-                    # NOTE: a name can also be a signal, is which case it is duplicated. 
+                    # NOTE: * a name can also be a signal, is which case it is
+                    #         duplicated. 
+                    #       * a name can also be a hash containing names
+                    #         associated with an initial value.
                     def make_inners(type, *names)
                         res = nil
                         names.each do |name|
                             if name.respond_to?(:to_sym) then
                                 # Adds the inner signal
-                                res = self.add_inner(SignalI.new(name,type,:inner))
+                                res = self.add_inner(
+                                    SignalI.new(name,type,:inner))
+                            elsif name.is_a?(Hash) then
+                                # Names associated with values.
+                                names.each do |name,value|
+                                    res = self.add_inner(
+                                        SignalI.new(name,type,:inner,value))
+                                end
                             else
                                 # Deactivated because conflict with parent.
                                 # signal = name.clone
@@ -311,10 +322,31 @@ module HDLRuby::High
                     end
                 end
 
+                unless instance_methods.include?(:make_constants) then
+                    # Creates and adds a set of contants typed +type+ from a 
+                    # hsh given names and corresponding values.
+                    def make_constants(type, hsh)
+                        res = nil
+                        hsh.each do |name,value|
+                            # Adds the Constant signal
+                            res = self.add_inner(SignalC.new(name,type,value))
+                        end
+                        return res
+                    end
+                end
+
                 unless instance_methods.include?(:inner) then
                     # Declares high-level bit inner signals named +names+.
                     def inner(*names)
                         self.make_inners(bit,*names)
+                    end
+                end
+
+                unless instance_methods.include?(:constant) then
+                    # Declares high-level untyped constant signals by name and
+                    # value given by +hsh+ of the current type.
+                    def constant(hsh)
+                        self.make_constants(bit,hsh)
                     end
                 end
             end
@@ -393,6 +425,12 @@ module HDLRuby::High
             names.each do |name|
                 if name.respond_to?(:to_sym) then
                     res = self.add_input(SignalI.new(name,type,:input))
+                elsif name.is_a?(Hash) then
+                    # Names associated with values.
+                    names.each do |name,value|
+                        res = self.add_inner(
+                            SignalI.new(name,type,:inner,value))
+                    end
                 else
                     raise AnyError, "Invalid class for a name: #{name.class}"
                 end
@@ -410,6 +448,12 @@ module HDLRuby::High
                 # puts "name=#{name}"
                 if name.respond_to?(:to_sym) then
                     res = self.add_output(SignalI.new(name,type,:output))
+                elsif name.is_a?(Hash) then
+                    # Names associated with values.
+                    names.each do |name,value|
+                        res = self.add_inner(
+                            SignalI.new(name,type,:inner,value))
+                    end
                 else
                     raise AnyError, "Invalid class for a name: #{name.class}"
                 end
@@ -425,6 +469,12 @@ module HDLRuby::High
             names.each do |name|
                 if name.respond_to?(:to_sym) then
                     res = self.add_inout(SignalI.new(name,type,:inout))
+                elsif name.is_a?(Hash) then
+                    # Names associated with values.
+                    names.each do |name,value|
+                        res = self.add_inner(
+                            SignalI.new(name,type,:inner,value))
+                    end
                 else
                     raise AnyError, "Invalid class for a name: #{name.class}"
                 end
@@ -1730,8 +1780,13 @@ module HDLRuby::High
         # Declares high-level untyped inner signals named +names+ of the
         # current type.
         def inner(*names)
-            # High.top_user.make_inners(self.instantiate,*names)
             High.top_user.make_inners(self,*names)
+        end
+
+        # Declares high-level untyped constant signals by name and
+        # value given by +hsh+ of the current type.
+        def constant(hsh)
+            High.top_user.make_constants(self,hsh)
         end
 
         # Computations of expressions
@@ -2767,6 +2822,16 @@ module HDLRuby::High
                   "Expression cannot be converted to a value: #{self.class}"
         end
 
+        # Tell if the expression is constant.
+        def constant?
+            # By default not constant.
+            return false unless self.each_node.any?
+            # If any sub node, check if all of them are constants.
+            self.each_node { |node| return false unless node.constant? }
+            return true
+        end
+
+
         # Converts to a new expression.
         #
         # NOTE: to be redefined in case of non-expression class.
@@ -3150,6 +3215,12 @@ module HDLRuby::High
             return Value.new(self.type,self.content)
         end
 
+        # Tell if the expression is constant.
+        def constant?
+            # A value is a constant.
+            return true
+        end
+
         # Converts to a new expression.
         def to_expr
             return self.to_value
@@ -3274,6 +3345,11 @@ module HDLRuby::High
             # end
             # Set the object
             @object = object
+        end
+
+        # Tell if the expression is constant.
+        def constant?
+            return self.base.constant?
         end
 
         # Converts to a new reference.
@@ -3485,6 +3561,15 @@ module HDLRuby::High
 
         include HStatement
 
+        # Creates a new transmission from a +right+ expression to a +left+
+        # reference, ensuring left is not a constant.
+        def initialize(left,right)
+            if left.constant? then
+                raise AnyError, "Cannot assign to constant: #{left}"
+            end
+            super(left,right)
+        end
+
         # Converts the transmission to a comparison expression.
         #
         # NOTE: required because the <= operator is ambigous and by
@@ -3582,9 +3667,6 @@ module HDLRuby::High
         # The valid bounding directions.
         DIRS = [ :no, :input, :output, :inout, :inner ]
 
-        # # The object the signal is bounded to if any.
-        # attr_reader :bound
-
         # The bounding direction.
         attr_reader :dir
 
@@ -3594,13 +3676,15 @@ module HDLRuby::High
         # Tells if the signal can be written.
         attr_reader :can_write
 
-        # Creates a new signal named +name+ typed as +type+ and with
-        # +dir+ as bounding direction.
+        # Creates a new signal named +name+ typed as +type+ with
+        # +dir+ as bounding direction and possible +value+.
         #
         # NOTE: +dir+ can be :input, :output, :inout or :inner
-        def initialize(name,type,dir)
+        def initialize(name,type,dir,value =  nil)
+            # Check the value.
+            value = value.to_expr if value
             # Initialize the type structure.
-            super(name,type)
+            super(name,type,value)
             # # Save the Location for debugging information
             # @location = caller_locations
 
@@ -3640,16 +3724,8 @@ module HDLRuby::High
             @can_write = condition.to_expr
         end
 
-        # # Tells if the signal is bounded or not.
-        # def bounded?
-        #     return (@dir and @dir != :no)
-        # end
-
         # Sets the direction to +dir+.
         def dir=(dir)
-            # if self.bounded? then
-            #     raise AnyError, "Error: signal #{self.name} already bounded."
-            # end
             unless DIRS.include?(dir) then
                 raise AnyError, "Invalid bounding for signal #{self.name} direction: #{dir}."
             end
@@ -3697,6 +3773,68 @@ module HDLRuby::High
         end
     end
 
+
+    ##
+    # Describes a high-level constant signal.
+    class SignalC < Low::SignalC
+        High = HDLRuby::High
+
+        include HRef
+
+        # Creates a new constant signal named +name+ typed as +type+
+        # and +value+.
+        def initialize(name,type,value)
+            # Check the value is a constant.
+            value = value.to_expr
+            unless value.constant? then
+                raise AnyError,"Non-constant value assignment to constant."
+            end
+            # Initialize the type structure.
+            super(name,type,value)
+            # # Save the Location for debugging information
+            # @location = caller_locations
+
+            unless name.empty? then
+                # Named signal, set the hdl-like access to the signal.
+                obj = self # For using the right self within the proc
+                High.space_reg(name) { obj }
+            end
+
+            # Hierarchical type allows access to sub references, so generate
+            # the corresponding methods.
+            # if type.respond_to?(:each_name) then
+            if type.struct? then
+                type.each_name do |name|
+                    self.define_singleton_method(name) do
+                        RefObject.new(self.to_ref,
+                                    SignalC.new(name,type.get_type(name),
+                                                value[name]))
+                    end
+                end
+            end
+        end
+
+        # Converts to a new reference.
+        def to_ref
+            return RefObject.new(this,self)
+        end
+
+        # Converts to a new expression.
+        def to_expr
+            return self.to_ref
+        end
+
+        # Coerce by converting signal to an expression.
+        def coerce(obj)
+            return [obj,self.to_expr]
+        end
+
+        # Converts the system to HDLRuby::Low and set its +name+.
+        def to_low(name = self.name)
+            return HDLRuby::Low::SignalC.new(name,self.type.to_low,
+                                             self.value.to_low)
+        end
+    end
     
     ##
     # Module giving the properties of a high-level block.
@@ -4548,6 +4686,20 @@ module HDLRuby::High
             end
             return res
         end
+
+        # Declares high-level untyped constant signals by name and value given
+        # by +hsh+ of the current type.
+        #
+        # Retuns the last declared constant.
+        def constant(hsh)
+            res = nil
+            hsh.each do |name,value|
+                res = HDLRuby::High.top_user.
+                    add_inner(SignalC.new(name,
+                              TypeStruct.new(:"",self),:inner,value))
+            end
+            return res
+        end
     end
 
 
@@ -4611,10 +4763,16 @@ module HDLRuby::High
             High.top_user.make_inouts(self.to_type,*names)
         end
 
-        # Declares high-level untyped inner signals named +names+ of the
+        # Declares high-level inner signals named +names+ of the
         # current type.
         def inner(*names)
             High.top_user.make_inners(self.to_type,*names)
+        end
+
+        # Declares high-level inner constants named from +hsh+ with names
+        # and corresponding values.
+        def constant(hsh)
+            High.top_user.make_constants(self.to_type,hsh)
         end
 
         # Array construction shortcuts

@@ -408,8 +408,14 @@ module HDLRuby::Low
             # Generate the inner signals declaration.
             self.each_inner do |inner|
                 res << " " * (level * 3)
-                res << "signal " << Low2VHDL.vhdl_name(inner.name) << ": "
+                # General signal or constant signal?
+                res << (inner.is_a?(SignalC) ?  "constant " : "signal ")
+                # Signal name.
+                res << Low2VHDL.vhdl_name(inner.name) << ": "
+                # Signal type.
                 res << inner.type.to_vhdl(level) 
+                # Signal value.
+                res << " := " << inner.value.to_vhdl(level) if inner.value
                 res << ";\n"
             end
 

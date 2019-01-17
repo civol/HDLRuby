@@ -7,9 +7,7 @@ system :rom8_8 do
     [7..0].input :addr
     [7..0].inout :data
 
-    bit[7..0][2**8].inner :content
-
-    content <= (2**8).times.to_a
+    bit[7..0][2**8].constant content: (2**8).times.to_a
 
     data <= content[addr]
 end

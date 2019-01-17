@@ -2032,8 +2032,13 @@ module HDLRuby::Low
         # The type of the signal
         attr_reader :type
 
+        # The initial value of the signal if any.
+        attr_reader :value
+
         # Creates a new signal named +name+ typed as +type+.
-        def initialize(name,type)
+        # If +val+ is provided, it will be the initial value of the
+        # signal.
+        def initialize(name,type,val = nil)
             # Check and set the name.
             @name = name.to_sym
             # Check and set the type.
@@ -2041,6 +2046,15 @@ module HDLRuby::Low
                 @type = type
             else
                 raise AnyError, "Invalid class for a type: #{type.class}."
+            end
+            # Check and set the initial value if any.
+            if val then
+                unless val.is_a?(Expression) then
+                    raise AnyError, "Invalid class for a constant: #{val.class}"
+                end
+                @value = val
+            else
+                @value = nil
             end
         end
 
@@ -2068,6 +2082,10 @@ module HDLRuby::Low
         end
     end
 
+    ##
+    # Describes a constant signal.
+    class SignalC < SignalI
+    end
 
     ## 
     # Describes a system instance.
