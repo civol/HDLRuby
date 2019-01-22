@@ -32,9 +32,10 @@ end
 $allfiles = [$fullname] + $subfiles
 
 # Generate the base names for the sub files.
-$subbases = $subfiles.map {|file|  File.basename(file,$extname) }
-$basename_model = $basename + "_model"
-$subbases =[ $basename_model ] + $subbases
+# $subbases = $subfiles.map {|file|  File.basename(file,$extname) }
+# $basename_model = $basename + "_model"
+# $subbases =[ $basename_model ] + $subbases
+$allbases = $allfiles.map {|file|  File.basename(file,$extname) }
 
 ######################################################
 # Compiling steps
@@ -46,26 +47,42 @@ $allfiles.each do |file|
     `#{cmd}`
 end
 
-# Check if there is a model have been generated.
-unless File.file?($basename_model + ".vbe") then
-    # No model, single file case.
-    $subbases = [ $basename ]
-end
+# # Check if there is a model have been generated.
+# unless File.file?($basename_model + ".vbe") then
+#     # No model, single file case.
+#     $subbases = [ $basename ]
+# end
 
 # puts "$subbases=#{$subbases}"
 
 # Boolean minimisation.
-$subbases.each do |base|
-    cmd = "boom -l 3 -d 50 #{base}.vbe"
-    puts cmd
-    `#{cmd}`
+# $subbases.each do |base|
+$allbases.each do |base|
+    if File.file?("#{base}.vbe") then
+        cmd = "boom -l 3 -d 50 #{base}.vbe"
+        puts cmd
+        `#{cmd}`
+    end
+    if File.file?("#{base}_model.vbe") then
+        cmd = "boom -l 3 -d 50 #{base}_model.vbe"
+        puts cmd
+        `#{cmd}`
+    end
 end
 
 # Structureal description generation.
-$subbases.each do |base|
-    cmd = "boog #{base}_o #{base} -x 1 -m 2"
-    puts cmd
-    `#{cmd}`
+# $subbases.each do |base|
+$allbases.each do |base|
+    if File.file?("#{base}.vbe") then
+        cmd = "boog #{base}_o #{base} -x 1 -m 2"
+        puts cmd
+        `#{cmd}`
+    end
+    if File.file?("#{base}_model.vbe") then
+        cmd = "boog #{base}_model_o #{base}_model -x 1 -m 2"
+        puts cmd
+        `#{cmd}`
+    end
 end
 
 # Flattening and global optimization.
