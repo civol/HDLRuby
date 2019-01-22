@@ -26,20 +26,26 @@ module HDLRuby::High::Std
         attr_accessor :cur_state_sig, :next_state_sig, :work_state
 
         # Creates a new fsm type with +name+.
-        # +type+ is the type of FSM, either synchronous (sync) or 
-        # asynchronous (async).
-        def initialize(name,type = :sync)
+        # +options+ allows to specify the type of fsm:
+        # synchronous (default) / asynchronous and
+        # mono-front(default) / dual front
+        def initialize(name,*options)
             # Check and set the name
             @name = name.to_sym
-            # Check and set the type
-            case type
-            when :sync,:synchronous then
-                @type = :sync
-            when :async, :asynchronous then
-                @type = :async
-                raise InternalError, "Asynchornous type not supported yet."
-            else
-                raise AnyError, "Invalid type for a fsm: :#{type}"
+            # Check and set the type of fsm depending of the options.
+            @dual = false
+            @type = :sync
+            options.each do |opt|
+                case opt
+                when :sync,:synchronous then
+                    @type = :sync
+                when :async, :asynchronous then
+                    @type = :async
+                when :dual then
+                    @dual = true
+                else
+                    raise AnyError, "Invalid option for a fsm: :#{type}"
+                end
             end
 
             # Initialize the internals of the FSM.
@@ -47,8 +53,16 @@ module HDLRuby::High::Std
 
             # Initialize the environment for building the FSM
 
-            # The states
+            # The main states.
             @states = []
+
+            # The extra synchronous states.
+            @extra_syncs = []
+            # The extra asynchronous states.
+            @extra_asyncs = []
+
+            # The default code of the operative part.
+            @default_codes = []
 
             # The current and next state signals
             @cur_state_sig = nil
@@ -62,7 +76,7 @@ module HDLRuby::High::Std
 
             # The code executed in case of reset.
             # (By default, nothing).
-            @reset_code = nil
+            @reset_codes = []
 
             # Creates the namespace to execute the fsm block in.
             @namespace = Namespace.new(self)
@@ -88,10 +102,15 @@ module HDLRuby::High::Std
             # be hidden when opening the sytem.
             states = @states
             namespace = @namespace
-            this = self
-            mk_ev = @mk_ev
+            this   = self
+            mk_ev  = @mk_ev
             mk_rst = @mk_rst
-            reset_code  = @reset_code
+            type = @type
+            dual = @dual
+            extra_syncs   = @extra_syncs
+            extra_asyncs  = @extra_asyncs
+            default_codes = @default_codes
+            reset_codes   = @reset_codes
 
             return_value = nil
 
@@ -101,7 +120,37 @@ module HDLRuby::High::Std
                     HDLRuby::High.space_push(namespace)
                     # Execute the instantiation block
                     return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
-                    # HDLRuby::High.space_pop
+
+                    # Expands the extra state processing so that al all the
+                    # parts of the state machine are in par (clear synthesis).
+                    [extra_syncs,extra_asyncs].each do |extras|
+                        # Set the values of the extra states from their name.
+                        extras.each do |extra|
+                            st = states.find {|st| st.name == extra.name }
+                            unless st then
+                                raise "Unknown state name: #{extra.name}"
+                            end
+                            extra.value = st.value
+                        end
+                        # Fills the holes in the extra syncs and asyncs.
+                        if extras.any? then
+                            # Sort by value in a new array using counter sort.
+                            results = [ nil ] * states.size
+                            extras.each {|st| results[st.value] = st }
+                            # Fill the whole with empty states.
+                            results.map!.with_index do |st,i| 
+                                unless st then
+                                    st = State.new
+                                    st.value = i
+                                    st.code = proc {}
+                                end
+                                st
+                            end
+                            # Replace the content of extras
+                            extras.clear
+                            results.each {|st| extras << st }
+                        end
+                    end
 
                     # Create the state register.
                     name = HDLRuby.uniq_name
@@ -126,11 +175,23 @@ module HDLRuby::High::Std
                         end
                     end
 
-                    # Operative part: one case per state.
+                    # Operative main-part: one case per state.
                     # (clock-dependent if synchronous mode).
-                    par(mk_ev.call) do
+                    if type == :sync then
+                        # Synchronous case.
+                        event = mk_ev.call
+                        event = event.invert if dual
+                    else
+                        # Asynchronous case: no event required.
+                        event = []
+                    end
+                    # The process
+                    par(*event) do
                         # The operative code.
-                       oper_code =  proc do
+                        oper_code =  proc do
+                            # The default code.
+                            default_codes.each(&:call)
+                            # Depending on the state.
                             hcase(this.cur_state_sig)
                             states.each do |st|
                                 # Register the working state (for the gotos)
@@ -142,9 +203,11 @@ module HDLRuby::High::Std
                             end
                         end
                         # Is there reset code?
-                        if reset_code then
+                        if reset_codes.any? then
                             # Yes, use it before the operative code.
-                            hif(mk_rst.call) { reset_code.call }
+                            hif(mk_rst.call) do
+                                reset_codes.each(&:call)
+                            end
                             helse(&oper_code)
                         else
                             # Use only the operative code.
@@ -168,6 +231,35 @@ module HDLRuby::High::Std
                             end
                         end
                     end
+
+                    # Operative additional parts.
+                    # Extra synchronous operative part.
+                    if extra_syncs.any? then
+                        event = mk_ev.call
+                        event = event.invert if @dual
+                        par(event) do
+                            hcase(this.cur_state_sig)
+                            extra_syncs.each do |st|
+                                hwhen(st.value) do
+                                    # Generate the content of the state.
+                                    st.code.call
+                                end
+                            end
+                        end
+                    end
+                    # Extra asynchronous operative part.
+                    if extra_asyncs.any? then
+                        par do
+                            hcase(this.cur_state_sig)
+                            extra_asyncs.each do |st|
+                                hwhen(st.value) do
+                                    # Generate the content of the state.
+                                    st.code.call
+                                end
+                            end
+                        end
+                    end
+
                     HDLRuby::High.space_pop
                 end
             end
@@ -200,9 +292,14 @@ module HDLRuby::High::Std
             end
         end
 
-        # Declares the code to be executed in case of reset.
+        # Adds a code to be executed in case of reset.
         def reset(&ruby_block)
-            @reset_code = ruby_block
+            @reset_codes << ruby_block
+        end
+
+        # Adds a default operative code.
+        def default(&ruby_block)
+            @default_codes << ruby_block
         end
 
         # Declares a new state with +name+ and executing +ruby_block+.
@@ -217,6 +314,30 @@ module HDLRuby::High::Std
             # Add it to the list of states.
             @states << result
             # Return it.
+            return result
+        end
+
+        # Declares an extra synchronous code to execute for state +name+.
+        def sync(name, &ruby_block)
+            # Create the resulting state.
+            result = State.new
+            result.name = name.to_sym
+            result.code = ruby_block
+            # Add it to the lis of extra synchronous states.
+            @extra_syncs << result
+            # Return it
+            return result
+        end
+
+        # Declares an extra asynchronous code to execute for state +name+.
+        def async(name, &ruby_block)
+            # Create the resulting state.
+            result = State.new
+            result.name = name.to_sym
+            result.code = ruby_block
+            # Add it to the lis of extra synchronous states.
+            @extra_asyncs << result
+            # Return it
             return result
         end
 
@@ -304,8 +425,10 @@ module HDLRuby::High::Std
         else
             name = :""
         end
+        # Get the options from the arguments.
+        options, args = args.partition {|arg| arg.is_a?(Symbol) }
         # Create the fsm.
-        fsmI = FsmT.new(name)
+        fsmI = FsmT.new(name,*options)
         
         # Process the clock event if any.
         unless args.empty? then
