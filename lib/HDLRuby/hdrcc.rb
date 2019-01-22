@@ -7,7 +7,7 @@ require 'ripper'
 require 'HDLRuby/hruby_low2high'
 require 'HDLRuby/hruby_low2vhd'
 require 'HDLRuby/hruby_low_bool2select'
-# require 'HDLRuby/hruby_low_select2if'
+require 'HDLRuby/hruby_low_without_select'
 require 'HDLRuby/hruby_low_without_namespace'
 require 'HDLRuby/hruby_low_with_port'
 require 'HDLRuby/hruby_low_with_var'
@@ -321,7 +321,7 @@ if __FILE__ == $0 then
         # Make description compatible with vhdl generation.
         top_system.each_systemT_deep do |systemT|
             systemT.boolean_in_assign2select! unless $options[:alliance]
-            # systemT.select2if!                if     $options[:alliance]
+            systemT.select2case!              if     $options[:alliance]
             systemT.break_concat_assigns!     if     $options[:alliance]
             systemT.to_upper_space!
             systemT.to_global_systemTs!

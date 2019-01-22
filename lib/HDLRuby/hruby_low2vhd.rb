@@ -181,7 +181,7 @@ module HDLRuby::Low
                     end
                 else
                     # Otherwise a cast is required.
-                    return "unsigned(#{expr.to_vhdl})(0)"
+                    return "unsigned(#{expr.to_vhdl}(0))"
                 end
             elsif expr.is_a?(Value) then
                 # puts "type=#{type}, type.range=#{type.range}"
@@ -209,26 +209,56 @@ module HDLRuby::Low
             end
         end
 
-        ## Generates the name of a mux function by type string +tstr+.
-        def self.mux_name(tstr)
-            return "mux#{tstr.gsub(/[^a-zA-Z0-9_]/,"_")}"
+        ## Generates the name of a mux function by type string +tstr+ and
+        #  number of arguments +num+.
+        def self.mux_name(tstr,num)
+            return "mux#{tstr.gsub(/[^a-zA-Z0-9_]/,"_")}#{num}"
         end
 
-        ## Generates the VHDL code for the mux function for type string +tstr+.
+        ## Generates the VHDL code for the mux function for type string +tstr+
+        #  with +num+ choices.
         #  +spaces+ is the ident for the resulting code.
-        def self.mux_function(tstr,spaces)
+        def self.mux_function(type,num,spaces)
+            # Create the strin of the type.
+            tstr = type.to_vhdl
             # Create the name of the function from the type.
+            name = mux_name(tstr,num)
+            # Create the condition.
+            if num == 2 then
+                cond = "cond : boolean"
+            else
+                # First compute the width of the condition.
+                width = (num-1).width
+                # Now generate the condition.
+                cond = "val : std_logic_vector(#{width-1} downto 0)"
+            end
+            # Generate the arguments.
+            args = num.times.map {|i| "arg#{i} : #{tstr}" }.join("; ")
+            # Generate the body.
+            if num == 2 then
+                body = "#{spaces}   if(cond) then\n" +
+                       "#{spaces}      return arg0;\n" +
+                       "#{spaces}   else\n" +
+                       "#{spaces}      return arg1;\n" +
+                       "#{spaces}   end if;\n"
+            else
+                # First compute the type of the choices.
+                vtype = TypeVector.new(:"",Bit,width-1..0)
+                # Now generate the body.
+                body = "#{spaces}   case(val) is\n" +
+                    num.times.map do |i|
+                       pos = Value.new(vtype,i).to_vhdl
+                       "#{spaces}   when #{pos} => return arg#{i};\n"
+                    end.join + 
+                       "#{spaces}   end case;\n"
+            end
+            # Generate the choices.
             # Generates the function
-            return "#{spaces}function #{mux_name(tstr)}" + 
-                       "(cond : boolean; left : #{tstr}; right : #{tstr})\n" +
+            return "#{spaces}function #{name}" + 
+                       "(#{cond}; #{args})\n" +
                    "#{spaces}return #{tstr} is\n" +
-                   "#{spaces}begin\n" +
-                   "#{spaces}   if(cond) then\n" +
-                   "#{spaces}      return left;\n" +
-                   "#{spaces}   else\n" +
-                   "#{spaces}      return right;\n" +
-                   "#{spaces}   end if;\n" +
-                   "#{spaces}end #{mux_name(tstr)};\n\n"
+                   "#{spaces}begin\n" + body +
+                   "#{spaces}end #{mux_name(tstr,num)};\n\n"
         end
 
     end
@@ -389,20 +419,24 @@ module HDLRuby::Low
                 # Checks the connections.
                 scope.each_connection do |connection|
                     connection.right.each_node_deep do |node|
-                        mtps << node.type.to_vhdl(level) if node.is_a?(Select)
+                        if node.is_a?(Select) then
+                            mtps << [node.type,node.each_choice.to_a.size]
+                        end
                     end
                 end
                 # Checks the statements.
                 scope.each_behavior do |behavior|
                     behavior.block.each_node_deep do |node|
-                        mtps << node.type.to_vhdl(level) if node.is_a?(Select)
+                        if node.is_a?(Select) then
+                            mtps << [node.type,node.each_choice.to_a.size]
+                        end
                     end
                 end
             end
             # Generate the gathered functions (only one per type).
             mtps.uniq!
-            mtps.each do |tstr|
-                res << Low2VHDL.mux_function(tstr," " * level*3)
+            mtps.each do |type,num|
+                res << Low2VHDL.mux_function(type,num," " * level*3)
             end
 
             # Generate the inner signals declaration.
@@ -1100,8 +1134,10 @@ module HDLRuby::Low
         def to_vhdl(level = 0)
             # The resulting string.
             res = ""
+            # The number of arguments.
+            num = @choices.size
             # Generate the header.
-            res << "#{Low2VHDL.mux_name(self.type.to_vhdl(level))}(" +
+            res << "#{Low2VHDL.mux_name(self.type.to_vhdl(level),num)}(" +
                     self.select.to_vhdl(level) << ", "
             # Generate the choices
             res << self.each_choice.map do |choice|
@@ -1124,8 +1160,9 @@ module HDLRuby::Low
             res = ""
             # Generate the header.
             # Generate the expressions.
-            # Depends on the type.
-            if self.type.is_a?(TypeTuple) then
+            # Depends if it is an initialization or not.
+            # if self.type.is_a?(TypeTuple) then
+            if self.parent.is_a?(SignalC) then
                 res << "( " << self.each_expression.map do |expression|
                     expression.to_vhdl(level+1)
                 end.join(",\n#{" "*((level+1)*3)}") << " )"

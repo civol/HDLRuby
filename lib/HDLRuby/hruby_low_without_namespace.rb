@@ -109,6 +109,43 @@ module HDLRuby::Low
                     raise AnyError, "Internal error: invalid class for a declaration: #{decl.class}"
                 end
             end
+
+            # Extract the behaviors of the sub scopes.
+            behs = self.each_scope.map(&:extract_behaviors!).flatten
+            # Reinsert them to self.
+            behs.each { |beh| self.add_behavior(beh) }
+
+            # Extract the connections of the sub scopes.
+            cnxs = self.each_scope.map(&:extract_connections!).flatten
+            # Reinsert them to self.
+            cnxs.each { |beh| self.add_connection(beh) }
+
+            # Now can delete the sub scopes since they are empty.
+            self.each_scope.to_a.each { |scope| self.delete_scope!(scope) }
+        end
+
+        # Extract the behaviors from the scope and returns them into an array.
+        # 
+        # NOTE: do not recurse into the sub scopes!
+        def extract_behaviors!
+            # Get the behaviors.
+            behs = self.each_behavior.to_a
+            # Remove them from the scope.
+            behs.each { |beh| self.delete_behavior!(beh) }
+            # Return the behaviors.
+            return behs
+        end
+
+        # Extract the connections from the scope and returns them into an array.
+        # 
+        # NOTE: do not recurse into the sub scopes!
+        def extract_connections!
+            # Get the connections.
+            cnxs = self.each_connection.to_a
+            # Remove them from the scope.
+            cnxs.each { |beh| self.delete_connection!(beh) }
+            # Return the connections.
+            return cnxs
         end
 
         # Extract the declares from the scope and returns them into an array.

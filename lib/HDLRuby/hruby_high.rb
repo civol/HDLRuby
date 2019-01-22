@@ -4579,14 +4579,15 @@ module HDLRuby::High
         end
     end
 
-    # Extends the Integer class for computing the bit width.
-    class ::Integer
+    # Moved to hruby_tools
+    # # Extends the Integer class for computing the bit width.
+    # class ::Integer
 
-        # Gets the bit width
-        def width
-            return Math.log2(self+1).ceil
-        end
-    end
+    #     # Gets the bit width
+    #     def width
+    #         return Math.log2(self+1).ceil
+    #     end
+    # end
 
     # Extends the Fixnum class for computing for conversion to expression.
     class ::Fixnum

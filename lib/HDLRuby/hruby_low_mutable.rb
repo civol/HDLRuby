@@ -34,17 +34,29 @@ module HDLRuby::Low
 
         # Maps on the inputs.
         def map_inputs!(&ruby_block)
-            @inputs.map(&ruby_block)
+            @inputs.map! do |input|
+                input = ruby_block.call(input)
+                input.parent = self unless input.parent
+                input
+            end
         end
 
         # Maps on the outputs.
         def map_outputs!(&ruby_block)
-            @outputs.map(&ruby_block)
+            @outputs.map! do |output|
+                output = ruby_block.call(output)
+                output.parent = self unless output.parent
+                output
+            end
         end
 
         # Maps on the inouts.
         def map_inouts!(&ruby_block)
-            @inouts.map(&ruby_block)
+            @inouts.map! do |inout|
+                inout = ruby_block.call(inout)
+                inout.parent = self unless inout.parent
+                inout
+            end
         end
 
         # Deletes an input.
@@ -101,27 +113,47 @@ module HDLRuby::Low
 
         # Maps on the scopes.
         def map_scopes!(&ruby_block)
-            @scopes.map(&ruby_block)
+            @scopes.map! do |scope|
+                scope = ruby_block.call(scope)
+                scope.parent = self unless scope.parent
+                scope
+            end
         end
 
         # Maps on the inners.
         def map_inners!(&ruby_block)
-            @inners.map(&ruby_block)
+            @inners.map! do |inner|
+                inner = ruby_block.call(inner)
+                inner.parent = self unless inner.parent
+                inner
+            end
         end
 
         # Maps on the systemIs.
         def map_systemIs!(&ruby_block)
-            @systemIs.map(&ruby_block)
+            @systemIs.map! do |systemI|
+                systemI = ruby_block.call(systemI)
+                systemI.parent = self unless systemI.parent
+                systemI
+            end
         end
 
         # Maps on the connections.
         def map_connections!(&ruby_block)
-            @connections.map(&ruby_block)
+            @connections.map! do |connection|
+                connection = ruby_block.call(connection)
+                connection.parent = self unless connection.parent
+                connection
+            end
         end
 
         # Maps on the behaviors.
         def map_behaviors!(&ruby_block)
-            @behaviors.map(&ruby_block)
+            @behaviors.map! do |behavior|
+                behavior = ruby_block.call(behavior)
+                behavior.parent = self unless behavior.parent
+                behavior
+            end
         end
 
         # Deletes an type.
@@ -318,7 +350,11 @@ module HDLRuby::Low
 
         # Maps on the events.
         def map_events!(&ruby_block)
-            @events.map(&ruby_block)
+            @events.map! do |event|
+                event = ruby_block.call(event)
+                event.parent = self unless event.parent
+                event
+            end
         end
 
         # Deletes a event.
@@ -461,9 +497,9 @@ module HDLRuby::Low
         # Maps on the children.
         def map_nodes!(&ruby_block)
             @left = ruby_block.call(@left)
-            left.parent = self
+            left.parent = self unless left.parent
             @right = ruby_block.call(@right)
-            right.parent = self
+            right.parent = self unless right.parent
         end
     end
 
@@ -522,8 +558,8 @@ module HDLRuby::Low
             @noifs.map do |cond,stmnt|
                 cond  = ruby_block.call(cond)
                 stmnt = ruby_block.call(stmnt)
-                cond.parent  = self
-                stmnt.parent = self
+                cond.parent  = self unless cond.parent
+                stmnt.parent = self unless stmnt.parent
                 [cond,stmnt]
             end
         end
@@ -535,8 +571,8 @@ module HDLRuby::Low
             @noifs.map do |cond,stmnt|
                 cond  = ruby_block.call(cond)
                 stmnt = ruby_block.call(stmnt)
-                cond.parent  = self
-                stmnt.parent = self
+                cond.parent  = self unless cond.parent
+                stmnt.parent = self unless stmnt.parent
                 [cond,stmnt]
             end
             @no = ruby_block.call(@no) if @no
@@ -574,7 +610,9 @@ module HDLRuby::Low
         # Maps on the children (including the condition).
         def map_nodes!(&ruby_block)
             @match = ruby_block.call(@match)
+            @match.parent = self unless @match.parent
             @statement = ruby_block.call(@statement)
+            @statement.parent = self unless @statement.parent
         end
     end
 
@@ -602,7 +640,11 @@ module HDLRuby::Low
 
         # Maps on the whens.
         def map_whens!(&ruby_block)
-            @whens.map(&ruby_block)
+            @whens.map! do |w|
+                w = ruby_block.call(w)
+                w.parent = self unless w.parent
+                w
+            end
         end
 
         # Delete a when.
@@ -615,7 +657,10 @@ module HDLRuby::Low
             # A block? Apply it on each child.
             @value = ruby_block.call(@value)
             map_whens!(&ruby_block)
-            @default = ruby_block.call(@default) if @default
+            if @default then
+                @default = ruby_block.call(@default)
+                @default.parent = self unless @default.parent
+            end
         end
     end
 
@@ -694,6 +739,7 @@ module HDLRuby::Low
         # Maps on the child.
         def map_nodes!(&ruby_block)
             @statement = ruby_block.call(@statement)
+            @statement.parent = self unless @statement.parent
         end
     end
 
@@ -716,7 +762,11 @@ module HDLRuby::Low
 
         # Maps on the inners.
         def map_inners!(&ruby_block)
-            @inners.map(&ruby_block)
+            @inners.map! do |inner|
+                inner = ruby_block.call(inner)
+                inner.parent = self unless inner.parent
+                inner
+            end
         end
 
         # Deletes an inner.
@@ -764,7 +814,11 @@ module HDLRuby::Low
 
         # Maps on the statements.
         def map_statements!(&ruby_block)
-            @statements.map(&ruby_block)
+            @statements.map! do |stmnt|
+                stmnt = ruby_block.call(stmnt)
+                stmnt.parent = self unless stmnt.parent
+                stmnt
+            end
         end
 
         alias_method :map_nodes!, :map_statements!
@@ -839,6 +893,8 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             # By default, nothing to do.
         end
+
+        alias_method :map_expressions!, :map_nodes!
     end
 
     
@@ -873,6 +929,7 @@ module HDLRuby::Low
         # Maps on the child.
         def map_nodes!(&ruby_block)
             @child = ruby_block.call(@child)
+            @child.parent = self unless @child.parent
         end
     end
 
@@ -909,6 +966,7 @@ module HDLRuby::Low
         # Maps on the child.
         def map_nodes!(&ruby_block)
             @child = ruby_block.call(@child)
+            @child.parent = self unless @child.parent
         end
     end
 
@@ -942,7 +1000,9 @@ module HDLRuby::Low
         # Maps on the child.
         def map_nodes!(&ruby_block)
             @left  = ruby_block.call(@left)
+            @left.parent = self unless @left.parent
             @right = ruby_block.call(@right)
+            @right.parent = self unless @right.parent
         end
     end
 
@@ -967,7 +1027,11 @@ module HDLRuby::Low
 
         # Maps on the choices.
         def map_choices!(&ruby_block)
-            @choices.map(&ruby_block)
+            @choices.map! do |choice|
+                choice = ruby_block.call(choice)
+                choice.parent = self unless choice.parent
+                choice
+            end
         end
 
         # Deletes a choice.
@@ -984,6 +1048,7 @@ module HDLRuby::Low
         # Maps on the children.
         def map_nodes!(&ruby_block)
             @select = ruby_block.call(@select)
+            @select.parent = self unless @select.parent
             map_choices!(&ruby_block)
         end
     end
@@ -994,7 +1059,11 @@ module HDLRuby::Low
     class Concat
         # Maps on the expression.
         def map_expressions!(&ruby_block)
-            @expressions.map(&ruby_block)
+            @expressions.map! do |expression|
+                expression = ruby_block.call(expression)
+                expression.parent = self unless expression.parent
+                expression
+            end
         end
 
         alias_method :map_nodes!, :map_expressions!
@@ -1030,7 +1099,11 @@ module HDLRuby::Low
 
         # Maps on the references.
         def map_refs!(&ruby_block)
-            @refs.map(&ruby_block)
+            @refs.map! do |ref|
+                ref = ruby_block.call(ref)
+                ref.parent = self unless ref.parent
+                ref
+            end
         end
 
         alias_method :map_nodes!, :map_refs!
@@ -1079,7 +1152,9 @@ module HDLRuby::Low
         # Maps on the children.
         def map_nodes!(&ruby_block)
             @index = ruby_block.call(@index)
+            @index.parent = self unless @index.parent
             @ref   = ruby_block.call(@ref)
+            @ref.parent = self unless @ref.parent
         end
     end
 
@@ -1120,7 +1195,10 @@ module HDLRuby::Low
         # Maps on the children.
         def map_nodes!(&ruby_block)
             @range = ruby_block.call(@range.first)..ruby_block.call(@range.last)
+            @range.first.parent = self unless @range.first.parent
+            @range.last.parent = self unless @range.last.parent
             @ref   = ruby_block.call(@ref)
+            @ref.parent = self unless @ref.parent
         end
     end
 
@@ -1148,6 +1226,7 @@ module HDLRuby::Low
         # Maps on the children.
         def map_nodes!(&ruby_block)
             @ref = ruby_block.call(@ref)
+            @ref.parent = self unless @ref.parent
         end
     end
 

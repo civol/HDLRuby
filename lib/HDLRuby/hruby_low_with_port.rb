@@ -66,7 +66,17 @@ module HDLRuby::Low
             # Then its sub ref must be a RefName of an instance.
             sub = node.ref
             return false unless sub.is_a?(RefName)
-            return @systemIs.key?(sub.name)
+            # puts "@systemIs.keys=#{@systemIs.keys}"
+            # System instance in current scope?
+            return true if @systemIs.key?(sub.name)
+            # if self.parent.is_a?(Scope) then
+            #     # Recurse the search in the parent.
+            #     return parent.instance_port?(node)
+            # else
+            #     # No parent, failure.
+            #     return false
+            # end
+            return false
         end
 
 
@@ -74,8 +84,8 @@ module HDLRuby::Low
         #
         # NOTE: the result is the same scope.
         def with_port!
-            # Recurse on the sub scope.
-            self.each_scope(&:with_port!)
+            # # Recurse on the sub scope.
+            # self.each_scope(&:with_port!)
             # Gather the references to instance ports.
             # Also remember if the references were left values or not.
             refs = []
@@ -83,6 +93,7 @@ module HDLRuby::Low
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
                     if instance_port?(node) then
+                        # puts "port for node: #{node.ref.name}.#{node.name}"
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
                     end

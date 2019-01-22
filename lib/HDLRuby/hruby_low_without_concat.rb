@@ -8,7 +8,7 @@ module HDLRuby::Low
 
 ##
 # Breaks the concat assigments.
-# Makes handling by some systhesis tools easier.
+# Makes handling by some synthesis tools easier.
 #
 ########################################################################
     

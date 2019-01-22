@@ -130,7 +130,7 @@ module HDLRuby::Low
             # Yes.
             self.yes.delete_unless!(keep)
             # Noifs.
-            self.each_noif { |cond,stmnt| stmnt.delete_unless! }
+            self.each_noif { |cond,stmnt| stmnt.delete_unless!(keep) }
             # No if any.
             self.no.delete_unless!(keep) if self.no
         end

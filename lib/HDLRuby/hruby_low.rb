@@ -889,7 +889,7 @@ module HDLRuby::Low
         # Returns an enumerator if no ruby block is given.
         def reverse_each_behavior(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_behavior) unless ruby_block
+            return to_enum(:reverse_each_behavior) unless ruby_block
             # A ruby block? Apply it on each behavior.
             @behaviors.reverse_each(&ruby_block)
         end
@@ -2053,6 +2053,7 @@ module HDLRuby::Low
                     raise AnyError, "Invalid class for a constant: #{val.class}"
                 end
                 @value = val
+                val.parent = self
             else
                 @value = nil
             end
@@ -2215,6 +2216,15 @@ module HDLRuby::Low
         def hash
             raise AnyError,
                 "Internal error: hash is not defined for class: #{self.class}"
+        end
+
+        # Get the block of the statement.
+        def block
+            if self.is_a?(Block)
+                return self
+            else
+                return self.parent.block
+            end
         end
 
         # Gets the top block, i.e. the first block of the current behavior.
@@ -2509,7 +2519,8 @@ module HDLRuby::Low
             @noifs.each do |next_cond,next_yes|
                 next_yes.each_block_deep(&ruby_block)
             end
-            @no.each_block_deep(&ruby_block) if @no.is_a?(Block)
+            # @no.each_block_deep(&ruby_block) if @no.is_a?(Block)
+            @no.each_block_deep(&ruby_block) if @no
         end
 
         # Clones the If (deeply)
@@ -2737,7 +2748,7 @@ module HDLRuby::Low
         # Returns an enumerator if no ruby block is given.
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_when) unless ruby_block
+            return to_enum(:each_node) unless ruby_block
             # A ruby block? Apply it on each child.
             ruby_block.call(@value)
             @whens.each(&ruby_block)
@@ -3152,7 +3163,7 @@ module HDLRuby::Low
         # Returns an enumerator if no ruby block is given.
         def reverse_each_statement(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_statement) unless ruby_block
+            return to_enum(:reverse_each_statement) unless ruby_block
             # A ruby block? Apply it on each statement.
             @statements.reverse_each(&ruby_block)
         end
@@ -3409,6 +3420,15 @@ module HDLRuby::Low
             # A ruby block?
             # If the expression is a reference, applies ruby_block on it.
             ruby_block.call(self) if self.is_a?(Ref)
+        end
+
+        # Get the statement of the expression.
+        def statement
+            if self.parent.is_a?(Statement)
+                return self.parent
+            else
+                return self.parent.statement
+            end
         end
 
         # Clones the expression (deeply)
@@ -3951,6 +3971,18 @@ module HDLRuby::Low
             @expressions.each(&ruby_block)
         end
         alias_method :each_node, :each_expression
+
+        # Iterates over the nodes deeply if any.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the children.
+            self.each_expression do |expr|
+                expr.each_node_deep(&ruby_block)
+            end
+        end
 
         # Clones the concatenated expression (deeply)
         def clone
