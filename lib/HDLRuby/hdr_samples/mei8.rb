@@ -210,17 +210,19 @@ system :mei8 do
     inner :calc # Tell if calculation is to be stored.
 
     [8].inner :npc # Next pc
+    inner     :nbr # Tell if must branch next.
 
     # Writing to registers.
     par(clk.posedge) do
         hif(rst) do
             # In case of hard reset all the resgister of the operative part
             # are to put to 0.
-            [a,b,c,d,e,f,g,h,zf,cf,sf,vf,npc].each do |r|
+            [a,b,c,d,e,f,g,h,zf,cf,sf,vf,nbr,npc].each do |r|
                 r <= 0
             end
         end
         helsif(calc) do
+            nbr <= 0; npc <= 0
             # No-branch case.
             hif ~branch do
                 # Write to the destination of calculation.
@@ -239,16 +241,16 @@ system :mei8 do
                 sf <= alu.sf
                 vf <= alu.vf
             end
-            # Branch case
+            # Branch case.
             helse do
                 hcase ir[6..3]
                 # brcc
-                hwhen(_1001) { hif(zf) { npc <= alu.z } } # brz
-                hwhen(_1010) { hif(cf) { npc <= alu.z } } # brc
-                hwhen(_1011) { hif(sf) { npc <= alu.z } } # brs
-                hwhen(_1100) { hif(vf) { npc <= alu.z } } # brv
-                hwhen(_1101) { npc <= alu.z; s[7] <= 1  } # trap
-                helse        { npc <= alu.z             } # jump
+                hwhen(_1001) { hif(zf) { npc <= alu.z; nbr <= 1 } } # brz
+                hwhen(_1010) { hif(cf) { npc <= alu.z; nbr <= 1 } } # brc
+                hwhen(_1011) { hif(sf) { npc <= alu.z; nbr <= 1 } } # brs
+                hwhen(_1100) { hif(vf) { npc <= alu.z; nbr <= 1 } } # brv
+                hwhen(_1101) { npc <= alu.z; nbr <= 1 } # br
+                helse        { npc <= alu.z; nbr <= 1 } # jump
             end
         end
         helsif (io_r_done) do
@@ -265,30 +267,34 @@ system :mei8 do
     # iq_pos <= iq1                         # Position of the iq enable to clear
 
     # The main FSM
+    prog.addr <= pc
     fsm(clk.posedge,rst,:async) do
         default      { calc <= 0
-                       prog.addr <= 0
+                       # prog.addr <= 0
                        io_req <= 0; io_rwb <= 0; io_out <= a
                      }
         # Reset state.
         state(:re)   { }
         sync(:re)    { pc <= 0; ir <= 0 }
         # Standard execution states.
-        state(:fe)   { prog.addr <= pc }
+        state(:fe)   { # prog.addr <= pc 
+                     }
         sync(:fe)    { ir <= prog.instr
-                       hif(branch) { pc <= npc }
-                       helse       { pc <= pc + 1 }
+                       pc <= pc + 1
                      }
         state(:ex)   { calc <= 1
                        hif (ir[7..2] == _111110) do
                            io_req <= 1; io_rwb <= ~ir[0]
                        end
-                       # goto(iq_chk,:iq_s,:fe)   # Interrupt / No interrupt
                        goto(:fe)
+                       # goto(iq_chk,:iq_s,:fe)   # Interrupt / No interrupt
+                       goto(branch,:br)
                        goto((ir[7..2] == _111110) & ~io_done,:ld_st) # ld/st
                        goto(ir == _11111110,:ht) # Halt
                        goto(ir == _11111111,:re) # Reset
                      }
+        state(:br)   { goto(:fe) }
+        sync(:br)    { hif(nbr) { pc <= npc - 1 } }
         # State waiting the end of a load/store.
         state(:ld_st){ io_rwb <= ~ir[0]
                        goto(io_done,:fe,:ld_st)
