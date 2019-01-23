@@ -21,11 +21,11 @@
             0b00000000, # 14:
             0b10000000, # 15: movl 0b00000
             0b11000001, # 16: movh 0b001   ; A <= 20H 
-            0b00000010, # 17: mov  A,B     ; B <= A
+            0b00000001, # 17: mov  A,B     ; B <= A
             0b10000000, # 18: movl 0b00000
             0b11000100, # 19: movh 0b100   ; A <= 80H
             0b11111001, # 1A: st++         ; write A
-            0b01001010, # 1B: sub B        ; A <= A-B
+            0b01001001, # 1B: sub B        ; A <= A-B
             0b11001010, # 1C: brz 0b010    ; to address 030 if zero
             0b11101101, # 1D: br  0b101    ; to address 026 (loop)
             0b00000000, # 1E:
