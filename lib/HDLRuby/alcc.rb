@@ -7,6 +7,11 @@ require 'fileutils'
 # Front-end to the Alliance tool chain for hdrcc vhdl results
 ##############################################################
 
+if $*.include?("--clean") then
+    # Clean mode.
+    `rm *.vbe *.vst *.xsc *.ap`
+    exit
+end
 
 ######################################################
 # Initialization phase
