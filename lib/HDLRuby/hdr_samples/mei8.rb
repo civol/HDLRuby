@@ -131,15 +131,13 @@ system :mei8 do
             hif(ir[5..3] == ir[2..0]) do
                 alu.(15,0,0)
             end
-            helse { alu.(15,src00,0) }
+            helse { alu.(7,src00,0) }
             # destination.
             dst <= ir[2..0]
         end
         hwhen _01 do
             # Format 1
             alu.(ir[5..3],a,src01)
-            # destination.
-            dst <= ir[2..0]
         end
         hwhen _10 do
             # Format 2
@@ -268,10 +266,11 @@ system :mei8 do
 
     # The main FSM
     prog.addr <= pc
+    io_out <= a
     fsm(clk.posedge,rst,:async) do
         default      { calc <= 0
                        # prog.addr <= 0
-                       io_req <= 0; io_rwb <= 0; io_out <= a
+                       io_req <= 0; io_rwb <= 0; # io_out <= a
                      }
         # Reset state.
         state(:re)   { }
