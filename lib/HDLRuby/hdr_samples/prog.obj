@@ -1,33 +1,33 @@
             0b00110110, # 00: mov  0,G     ; Start writing a address 0
-            0b10001000, # 01: movl 0b01000
-            0b11000010, # 02: movh 0b010   ; A <= 'H'
-            0b11111001, # 03: st++         ; write it 
-            0b10000101, # 04: movl 0b00101
-            0b11000011, # 05: movh 0b011   ; A <= 'e'
-            0b11111001, # 06: st++         ; write it
-            0b10001100, # 07: movl 0b01100
-            0b11000011, # 08: movh 0b011   ; A <= 'l'
-            0b11111001, # 09: st++         ; write it
-            0b10001100, # 0A: movl 0b01100
-            0b11000011, # 0B: movh 0b011   ; A <= 'l'
-            0b11111001, # 0C: st++         ; write it
-            0b10001111, # 0D: movl 0b01111
-            0b11000011, # 0E: movh 0b011   ; A <= 'o'
-            0b11111001, # 0F: st++         ; write it
-            0b10000001, # 10: movl 0b00001
-            0b11000001, # 11: movh 0b001   ; A <= '!'
-            0b11111001, # 12: st++         ; write it
+            0b10101000, # 01: movl 0b1000
+            0b10110100, # 02: movh 0b0100  ; A <= 'H'
+            0b11111001, # 03: ++st         ; write it 
+            0b10100101, # 04: movl 0b0101
+            0b10110110, # 05: movh 0b0110  ; A <= 'e'
+            0b11111001, # 06: ++st         ; write it
+            0b10101100, # 07: movl 0b1100
+            0b10110110, # 08: movh 0b0110  ; A <= 'l'
+            0b11111001, # 09: ++st         ; write it
+            0b10101100, # 0A: movl 0b1100
+            0b10110110, # 0B: movh 0b0110  ; A <= 'l'
+            0b11111001, # 0C: ++st         ; write it
+            0b10101111, # 0D: movl 0b1111
+            0b10110110, # 0E: movh 0b0110  ; A <= 'o'
+            0b11111001, # 0F: ++st         ; write it
+            0b10100001, # 10: movl 0b0001
+            0b10110010, # 11: movh 0b0010  ; A <= '!'
+            0b11111001, # 12: ++st         ; write it
             0b00000000, # 13:
             0b00000000, # 14:
-            0b10000000, # 15: movl 0b00000
-            0b11000001, # 16: movh 0b001   ; A <= 20H 
+            0b10100000, # 15: movl 0b0000
+            0b10110010, # 16: movh 0b0010  ; A <= 20H 
             0b00000001, # 17: mov  A,B     ; B <= A
-            0b10000000, # 18: movl 0b00000
-            0b11000100, # 19: movh 0b100   ; A <= 80H
-            0b11111001, # 1A: st++         ; write A
-            0b01001001, # 1B: sub B        ; A <= A-B
-            0b11001010, # 1C: brz 0b010    ; to address 030 if zero
-            0b11101101, # 1D: br  0b101    ; to address 026 (loop)
+            0b10111000, # 18: movh 0b1000  ; A <= 80H
+            0b11111001, # 19: ++st         ; write A
+            0b01001001, # 1A: sub B        ; A <= A-B
+            0b11101110, # 1B: brnz 0b110   ; to address 0x19 if non zero
+            0b00000000, # 1C: 
+            0b00000000, # 1D: 
             0b00000000, # 1E:
             0b00000000, # 1F:
             0b11111110, # 20: halt         ; That's all folks... For now.

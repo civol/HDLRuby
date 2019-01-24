@@ -107,7 +107,9 @@ system :mei8 do
 
     [3].inner :dst           # Index of the destination register.
     [8].inner :src00, :src01 # Values of the source registers.
-    inner  :branch # Tell if the instruction is a branch.
+    inner  :branch # Tells if the instruction is a branch.
+    inner  :ld     # Tells if the instruction is a load.
+    inner  :st     # Tells if the instruction is a store.
 
     # Compute the source register value.
     def getsrc(idx,src)
@@ -116,8 +118,8 @@ system :mei8 do
 
     # The decoder.
     par do
-        # By default, no branch, and destination is a.
-        branch <= 0
+        # By default, no branch, no load, no store and destination is a.
+        branch <= 0; ld <= 0; st <= 0
         dst <= 0
         # And transfer 0.
         alu.(15,0,0)
@@ -140,28 +142,32 @@ system :mei8 do
             alu.(ir[5..3],a,src01)
         end
         hwhen _10 do
+            # Format 1-extended: ir[2..0] can either be source or destination
+            # depending on the instruction.
+            hif ir[5] == 0 do
+                alu.([ir[4..3],_1],src01,0)
+                dst <= ir[2..0]
+                # Check if it is a load-store or a branch.
+                hif(   ir[4..3] == _01) { ld <= 1 }
+                helsif(ir[4..3] == _10) { st <= 1 }
+                helsif(ir[4..3] == _11) { branch <= 1 }
+            end
             # Format 2
-            # Computation: 000iiiii
-            alu.(7,[_000,ir[4..0]],0)
-            # Verify it is a branch.
-            branch <= ir[5]
+            helse do
+                # movl: 0000iiii
+                hif(ir[4] == 0) { alu.(7,[_0000,ir[3..0]],0) }
+                # movh: iiiia[3..0]
+                helse           { alu.(7,[ir[3..0],a[3..0]],0) }
+            end
         end
         hwhen _11 do
             # Format 3
             hif ir[5..4] != _11  do
-                # Verify it is a branch.
-                hif ir[5..3] == _000 do
-                    # movh, not a branch.
-                    # Computation: iiiaaaaa
-                    alu.(7,[ir[2..0],a[4..0]],0)
-                end
-                helse do
-                    # brcc, branch.
-                    # Computation: pc + iii 
-                    alu.(0,pc, [ ir[2] ]*5 + [ ir[2..0] ])
-                    # Destination.
-                    branch <= 1
-                end
+                # brcc, branch.
+                # Computation: pc + iii 
+                alu.(0,pc, [ ir[2] ]*5 + [ ir[2..0] ])
+                # Tell it is a branch
+                branch <= 1
             end
             # Format 4
             helse do 
@@ -178,6 +184,12 @@ system :mei8 do
                 hif(ir[3] == 0)    { dst <= 0 } # a
                 helsif(ir[2] == 0) { dst <= 6 } # g
                 helse              { dst <= 7 } # h
+                # Load, store or branch (trap)
+                hif(ir[3..2] == _10) { ld <= ~ir[0]; st <= ir[0] }
+                hif(ir[3..0] == _0110) do
+                    branch <= 1
+                    alu.(7,0xFC,0)
+                end
             end
         end
     end
@@ -229,9 +241,12 @@ system :mei8 do
                     hwhen(i) { r <= alu.z }
                 end
                 # Specific cases
-                hif(ir==_11110111) do # xs
+                hif(ir == _11110111) do # xs
                     s <= a
                     a <= s
+                end
+                hif(ir == _11110110) do # trap
+                    s[7] <= 1
                 end
                 # Flags
                 zf <= alu.zf
@@ -241,14 +256,14 @@ system :mei8 do
             end
             # Branch case.
             helse do
-                hcase ir[6..3]
+                hcase ir[5..3]
                 # brcc
-                hwhen(_1001) { hif(zf) { npc <= alu.z; nbr <= 1 } } # brz
-                hwhen(_1010) { hif(cf) { npc <= alu.z; nbr <= 1 } } # brc
-                hwhen(_1011) { hif(sf) { npc <= alu.z; nbr <= 1 } } # brs
-                hwhen(_1100) { hif(vf) { npc <= alu.z; nbr <= 1 } } # brv
-                hwhen(_1101) { npc <= alu.z; nbr <= 1 } # br
-                helse        { npc <= alu.z; nbr <= 1 } # jump
+                hwhen(_000) {            npc <= alu.z; nbr <= 1   } # br
+                hwhen(_001) { hif(zf)  { npc <= alu.z; nbr <= 1 } } # br z
+                hwhen(_010) { hif(cf)  { npc <= alu.z; nbr <= 1 } } # br c
+                hwhen(_011) { hif(sf)  { npc <= alu.z; nbr <= 1 } } # br s
+                hwhen(_100) { hif(vf)  { npc <= alu.z; nbr <= 1 } } # br v
+                hwhen(_101) { hif(~zf) { npc <= alu.z; nbr <= 1 } } # br nz
             end
         end
         helsif (io_r_done) do
@@ -282,20 +297,18 @@ system :mei8 do
                        pc <= pc + 1
                      }
         state(:ex)   { calc <= 1
-                       hif (ir[7..2] == _111110) do
-                           io_req <= 1; io_rwb <= ~ir[0]
-                       end
+                       hif (ld | st) { io_req <= 1; io_rwb <= ld }
                        goto(:fe)
                        # goto(iq_chk,:iq_s,:fe)   # Interrupt / No interrupt
                        goto(branch,:br)
-                       goto((ir[7..2] == _111110) & ~io_done,:ld_st) # ld/st
+                       goto((ld | st) & ~io_done,:ld_st) # ld/st
                        goto(ir == _11111110,:ht) # Halt
                        goto(ir == _11111111,:re) # Reset
                      }
         state(:br)   { goto(:fe) }
         sync(:br)    { hif(nbr) { pc <= npc - 1 } }
         # State waiting the end of a load/store.
-        state(:ld_st){ io_rwb <= ~ir[0]
+        state(:ld_st){ io_rwb <= ld
                        goto(io_done,:fe,:ld_st)
                        # goto(io_done & iq_chk,:iq_s) # Interrupt / No interrupt
                      } 
