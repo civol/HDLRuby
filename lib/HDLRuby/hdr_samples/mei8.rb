@@ -14,8 +14,8 @@ system :mei8 do
     [8].inout  :dbus
     input      :ack
 
-    # # Interrupts.
-    # input :iq0, :iq1
+    # Interrupts.
+    input :iq0, :iq1
 
     # The rom containing the program.
     instance :prog do
@@ -105,11 +105,15 @@ system :mei8 do
         end
     end
 
+    # Signals relative to the decoder
+    
     [3].inner :dst           # Index of the destination register.
     [8].inner :src00, :src01 # Values of the source registers.
     inner  :branch # Tells if the instruction is a branch.
     inner  :ld     # Tells if the instruction is a load.
     inner  :st     # Tells if the instruction is a store.
+
+    inner :iq_calc # Tells some the interrupt unit is prehempting calculation.
 
     # Compute the source register value.
     def getsrc(idx,src)
@@ -127,6 +131,8 @@ system :mei8 do
         getsrc(ir[5..3],src00)
         getsrc(ir[2..0],src01)
         # Depending on the instruction.
+        hif (iq_calc) { alu.(2,h,0) }
+        helse do
         hcase ir[7..6] 
         hwhen _00 do
             # Format 0
@@ -192,6 +198,7 @@ system :mei8 do
                 end
             end
         end
+        end
     end
 
 
@@ -205,13 +212,15 @@ system :mei8 do
         default       { io_done <= 0; req <= 0; rwb <= 0
                         io_r_done <= 0
                         addr <= 0;
-                        dbus  <= _zzzzzzzz
+                        hif(io_rwb) { dbus <= _zzzzzzzz }
+                        helse       { dbus <= io_out }
+                        # dbus  <= _zzzzzzzz
                         io_in <= dbus
                       }
         state(:wait)  { goto(io_req,:start,:wait) }
         state(:start) { req <= 1; rwb <= io_rwb
                         addr <= g
-                        hif(~io_rwb) { dbus <= io_out }
+                        # hif(~io_rwb) { dbus <= io_out }
                         goto(ack,:end,:start) }
         state(:end)   { io_done <= 1; io_r_done <= io_rwb
                         goto(:wait) }
@@ -222,14 +231,23 @@ system :mei8 do
     [8].inner :npc # Next pc
     inner     :nbr # Tell if must branch next.
 
+    inner     :init # Tell CPU is in initialization
+
     # Writing to registers.
     par(clk.posedge) do
         hif(rst) do
             # In case of hard reset all the resgister of the operative part
             # are to put to 0.
-            [a,b,c,d,e,f,g,h,zf,cf,sf,vf,nbr,npc].each do |r|
+            [a,b,c,d,e,f,g,h,zf,cf,sf,vf,nbr,npc,s].each do |r|
                 r <= 0
             end
+        end
+        helsif(init) { s <= _00000011 }
+        helsif(iq_calc) do
+            s[7] <= 1
+            hif(iq1) { s[1] <= 0 }
+            helse    { s[0] <= 0 }
+            h <= alu.z
         end
         helsif(calc) do
             nbr <= 0; npc <= 0
@@ -273,60 +291,78 @@ system :mei8 do
 
     # The control part
 
-    # # Interrupt flags computations.
-    # inner :iq_chk, :iq_pos
-    # [2..0].inner :iq_msk
+    # Interrupt flags computations.
+    inner :iq_chk
     # iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
-    # iq_pos <= iq1                         # Position of the iq enable to clear
+
+    # Buses permanent connections.
+    prog.addr <= pc
+    # io_out <= a
 
     # The main FSM
-    prog.addr <= pc
-    io_out <= a
     fsm(clk.posedge,rst,:async) do
         default      { calc <= 0
-                       # prog.addr <= 0
-                       io_req <= 0; io_rwb <= 0; # io_out <= a
+                       io_req <= 0; io_rwb <= 1; io_out <= a
+                       iq_calc <= 0; init <= 0
                      }
+        # reset_sync   { pc <= 0; ir <= 0 }
         # Reset state.
-        state(:re)   { }
-        sync(:re)    { pc <= 0; ir <= 0 }
+        state(:re)   { init <= 1 }
+        sync(:re)    { pc <= 0; ir <= 0
+                       iq_chk <= 0
+                     }
         # Standard execution states.
         state(:fe)   { # prog.addr <= pc 
                      }
         sync(:fe)    { ir <= prog.instr
                        pc <= pc + 1
+                       iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
                      }
         state(:ex)   { calc <= 1
                        hif (ld | st) { io_req <= 1; io_rwb <= ld }
                        goto(:fe)
-                       # goto(iq_chk,:iq_s,:fe)   # Interrupt / No interrupt
+                       goto(iq_chk,:iq_s,:fe)   # Interrupt / No interrupt
                        goto(branch,:br)
                        goto((ld | st) & ~io_done,:ld_st) # ld/st
                        goto(ir == _11111110,:ht) # Halt
                        goto(ir == _11111111,:re) # Reset
                      }
-        state(:br)   { goto(:fe) }
+        # sync(:ex)    { io_out <= a }
+        state(:br)   { # goto(:fe) 
+                       goto(iq_chk,:iq_s,:fe) # Interrupt / No interrupt
+                     }
         sync(:br)    { hif(nbr) { pc <= npc - 1 } }
         # State waiting the end of a load/store.
         state(:ld_st){ io_rwb <= ld
-                       goto(io_done,:fe,:ld_st)
-                       # goto(io_done & iq_chk,:iq_s) # Interrupt / No interrupt
+                       goto(:fe)
+                       goto(~io_done,:ld_st)
+                       goto(io_done & iq_chk,:iq_s) # Interrupt / No interrupt
                      } 
-        # sync(:ld_st) { hif(io_done) { a <= io_in } }
-        # # States handling the interrupts.
-        # # Push PC
-        # state(:iq_s) { calc <=1; 
-        #                io_req <= 1; io_rwb <= 0; io_out <= pc 
-        #                alu.(2,f,0)
-        #                goto(io_done, :iq_d, :iq_w) }
-        # sync(:iq_s)  { f <= alu.z }
-        # # Wait the end of the push.
-        # state(:iq_w) { goto(io_done, :iq_d, :iq_w) }
-        # # Jump to interrupt handler (see async)
-        # state(:iq_d) { s[7] <= 1; s[iq_pos] <= 0
-        #                goto(:fe) }
-        # sync(:iq_d)  { pc <= 196 }
-        # # States handling the halt (until rst).
-        state(:ht)   { goto(:ht) }
+        # sync(:ld_st) { io_out <= a }
+        # States handling the interrupts.
+        # Push PC
+        state(:iq_s) { iq_calc <= 1; 
+                       io_req <= 1; io_rwb <= 0; io_out <= pc 
+                       goto(io_done, :iq_d, :iq_s) 
+                     }
+        # sync(:iq_s)  { h <= alu.z }
+        # sync(:iq_s)  { io_out <= pc }
+        # Wait the end of the push.
+        # state(:iq_w) {  io_out <= pc
+        #                 goto(io_done, :iq_d, :iq_w) }
+        # Jump to interrupt handler.
+        state(:iq_d) { goto(:fe) }
+        sync(:iq_d)  { pc <= 0xF8 
+                       # s[7] <= 1;
+                       # hif(iq1) { s[1] <= 0 }
+                       # helse    { s[0] <= 0 }
+        }
+        # States handling the halt (until rst).
+        state(:ht)   { 
+                        goto(iq_chk,:iq_s,:ht) # Interrupt / No interrupt
+                     }
+        sync(:ht)    {
+                       iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
+                     }
     end
 end
