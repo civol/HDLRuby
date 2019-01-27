@@ -991,6 +991,12 @@ module HDLRuby::Low
         # +width+ bits.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0,width = nil)
+            # Maybe the value is used as a range or an index.
+            if self.parent.is_a?(RefIndex) or self.parent.is_a?(RefRange) then
+                # Yes, convert to a simple integer.
+                return self.to_i.to_s
+            end
+            # No, generates as a bit string.
             # puts "width=#{width}"
             width = self.type.width unless width
             case self.content
