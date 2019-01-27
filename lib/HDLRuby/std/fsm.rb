@@ -22,6 +22,10 @@ module HDLRuby::High::Std
         # The namespace associated with the FSM
         attr_reader :namespace
 
+        # The reset codes for the synchronous and the asynchronous operative
+        # parts of the fsm
+        attr_reader :reset_sync, :reset_async
+
         # The current and next state signals.
         attr_accessor :cur_state_sig, :next_state_sig, :work_state
 
@@ -76,7 +80,8 @@ module HDLRuby::High::Std
 
             # The code executed in case of reset.
             # (By default, nothing).
-            @reset_codes = []
+            @reset_sync  = nil
+            @reset_async = nil
 
             # Creates the namespace to execute the fsm block in.
             @namespace = Namespace.new(self)
@@ -110,7 +115,6 @@ module HDLRuby::High::Std
             extra_syncs   = @extra_syncs
             extra_asyncs  = @extra_asyncs
             default_codes = @default_codes
-            reset_codes   = @reset_codes
 
             return_value = nil
 
@@ -203,10 +207,18 @@ module HDLRuby::High::Std
                             end
                         end
                         # Is there reset code?
-                        if reset_codes.any? then
-                            # Yes, use it before the operative code.
+                        if type == :sync and this.reset_sync then
+                            # Yes in case of synchronous fsm,
+                            # use it before the operative code.
                             hif(mk_rst.call) do
-                                reset_codes.each(&:call)
+                                this.reset_sync.call
+                            end
+                            helse(&oper_code)
+                        elsif type == :async and this.reset_async then
+                            # Yes in case of asynchronous fsm,
+                            # use it before the operative code.
+                            hif(mk_rst.call) do
+                                this.reset_async.call
                             end
                             helse(&oper_code)
                         else
@@ -237,25 +249,59 @@ module HDLRuby::High::Std
                     if extra_syncs.any? then
                         event = mk_ev.call
                         event = event.invert if @dual
-                        par(event) do
-                            hcase(this.cur_state_sig)
-                            extra_syncs.each do |st|
-                                hwhen(st.value) do
-                                    # Generate the content of the state.
-                                    st.code.call
+                        # The extra code.
+                        par(*event) do
+                            # Build the extra synchronous part.
+                            sync_code = proc do
+                                hcase(this.cur_state_sig)
+                                extra_syncs.each do |st|
+                                    hwhen(st.value) do
+                                        # Generate the content of the state.
+                                        st.code.call
+                                    end
                                 end
+                            end
+                            # Place it.
+                            if this.reset_sync then
+                                # There some synchronous reset code, use
+                                # it.
+                                hif(mk_rst.call) do
+                                    this.reset_sync.call
+                                end
+                                helse(&sync_code)
+                            else
+                                # No syncrhonous code, place the extra
+                                # synchronous states as is.
+                                sync_code.call
                             end
                         end
                     end
+
                     # Extra asynchronous operative part.
                     if extra_asyncs.any? then
                         par do
-                            hcase(this.cur_state_sig)
-                            extra_asyncs.each do |st|
-                                hwhen(st.value) do
-                                    # Generate the content of the state.
-                                    st.code.call
+                            # Build the extra synchronous part.
+                            async_code = proc do
+                                hcase(this.cur_state_sig)
+                                extra_asyncs.each do |st|
+                                    hwhen(st.value) do
+                                        # Generate the content of the state.
+                                        st.code.call
+                                    end
                                 end
+                            end
+                            # Place it with possible reset.
+                            if this.reset_async then
+                                # There some synchronous reset code, use
+                                # it.
+                                hif(mk_rst.call) do
+                                    this.reset_async.call
+                                end
+                                helse(&sync_code)
+                            else
+                                # No syncrhonous code, place the extra
+                                # synchronous states as is.
+                                sync_code.call
                             end
                         end
                     end
@@ -293,8 +339,23 @@ module HDLRuby::High::Std
         end
 
         # Adds a code to be executed in case of reset.
-        def reset(&ruby_block)
-            @reset_codes << ruby_block
+        # +type+ indicates if it is the synchronous part or the
+        # asynchronous part that is to reset.
+        def reset(type = @type,&ruby_block)
+            if type == :sync or type == :synchronous then
+                # Reset of the synchronous part.
+                if @reset_sync then 
+                    raise AnyError.new("Reset of the synchronous part already declared.")
+                end
+                @reset_sync = ruby_block
+            elsif type == :async or type == :asynchronous then
+                # Reset if the asynchronous part.
+                if @reset_async then
+                    raise AnyError.new("Reset of the asynchronosu part already declared.")
+                end
+            else
+                raise AnyError.new("Invalid fsm type for declaring a reset code: #{type}")
+            end
         end
 
         # Adds a default operative code.
