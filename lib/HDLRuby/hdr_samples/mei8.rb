@@ -55,8 +55,6 @@ system :mei8 do
 
         # The control part for choosing between 0, add, sub and neg.
         par do
-            # The main computation: s and cf
-
             # Default computations
             cf <= 0
             vf <= 0
@@ -222,14 +220,12 @@ system :mei8 do
                         addr <= 0;
                         hif(io_rwb) { dbus <= _zzzzzzzz }
                         helse       { dbus <= io_out }
-                        # dbus  <= _zzzzzzzz
                         io_in <= dbus
                       }
         reset(:sync)  { data <= 0; }
         state(:wait)  { goto(io_req,:start,:wait) }
         state(:start) { req <= 1; rwb <= io_rwb
                         addr <= g
-                        # hif(~io_rwb) { dbus <= io_out }
                         goto(ack,:end,:start) }
         sync(:start)  { data <= io_in }
         state(:end)   { io_done <= 1; io_r_done <= io_rwb
@@ -297,7 +293,6 @@ system :mei8 do
             end
         end
         helsif (io_r_done) do
-            # a <= io_in
             a <= data
         end
     end
@@ -306,11 +301,9 @@ system :mei8 do
 
     # Interrupt flags computations.
     inner :iq_chk
-    # iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
 
     # Buses permanent connections.
     prog.addr <= pc
-    # io_out <= a
 
     # The main FSM
     fsm(clk.posedge,rst,:async) do
@@ -325,8 +318,7 @@ system :mei8 do
                        iq_chk <= 0
                      }
         # Standard execution states.
-        state(:fe)   { # prog.addr <= pc 
-                     }
+        state(:fe)   { }
         sync(:fe)    { ir <= prog.instr
                        pc <= pc + 1
                        iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
@@ -340,9 +332,7 @@ system :mei8 do
                        goto(ir == _11111110,:ht) # Halt
                        goto(ir == _11111111,:re) # Reset
                      }
-        # sync(:ex)    { io_out <= a }
-        state(:br)   { # goto(:fe) 
-                       goto(iq_chk,:iq_s,:fe) # Interrupt / No interrupt
+        state(:br)   { goto(iq_chk,:iq_s,:fe) # Interrupt / No interrupt
                      }
         sync(:br)    { hif(nbr) { pc <= npc - 1 } }
         # State waiting the end of a load/store.
@@ -351,31 +341,19 @@ system :mei8 do
                        goto(~io_done,:ld_st)
                        goto(io_done & iq_chk,:iq_s) # Interrupt / No interrupt
                      } 
-        # sync(:ld_st) { io_out <= a }
         # States handling the interrupts.
         # Push PC
         state(:iq_s) { iq_calc <= 1; 
                        io_req <= 1; io_rwb <= 0; io_out <= pc 
                        goto(io_done, :iq_d, :iq_s) 
                      }
-        # sync(:iq_s)  { h <= alu.z }
-        # sync(:iq_s)  { io_out <= pc }
-        # Wait the end of the push.
-        # state(:iq_w) {  io_out <= pc
-        #                 goto(io_done, :iq_d, :iq_w) }
         # Jump to interrupt handler.
         state(:iq_d) { goto(:fe) }
-        sync(:iq_d)  { pc <= 0xF8 
-                       # s[7] <= 1;
-                       # hif(iq1) { s[1] <= 0 }
-                       # helse    { s[0] <= 0 }
-        }
+        sync(:iq_d)  { pc <= 0xF8 }
         # States handling the halt (until rst).
-        state(:ht)   { 
-                        goto(iq_chk,:iq_s,:ht) # Interrupt / No interrupt
+        state(:ht)   { goto(iq_chk,:iq_s,:ht) # Interrupt / No interrupt
                      }
-        sync(:ht)    {
-                       iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
+        sync(:ht)    { iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) # External interrupt check
                      }
     end
 end
