@@ -110,6 +110,7 @@ system :mei8 do
     [3].inner :dst           # Index of the destination register.
     [8].inner :src00, :src01 # Values of the source registers.
     inner  :branch # Tells if the instruction is a branch.
+    inner  :write  # Tells the computation result is to write to a register.
     inner  :ld     # Tells if the instruction is a load.
     inner  :st     # Tells if the instruction is a store.
 
@@ -122,82 +123,88 @@ system :mei8 do
 
     # The decoder.
     par do
-        # By default, no branch, no load, no store and destination is a.
-        branch <= 0; ld <= 0; st <= 0
+        # By default, no branch, no load, no store, do write
+        # and destination is a.
+        branch <= 0; ld <= 0; st <= 0; write <= 1
         dst <= 0
         # And transfer 0.
         alu.(15,0,0)
         # Compute the possible source 2
         getsrc(ir[5..3],src00)
         getsrc(ir[2..0],src01)
-        # Depending on the instruction.
+        # Is it an interrupt?
         hif (iq_calc) { alu.(2,h,0) }
+        # No, do normal decoding.
         helse do
-        hcase ir[7..6] 
-        hwhen _00 do
-            # Format 0
-            hif(ir[5..3] == ir[2..0]) do
-                alu.(15,0,0)
-            end
-            helse { alu.(7,src00,0) }
-            # destination.
-            dst <= ir[2..0]
-        end
-        hwhen _01 do
-            # Format 1
-            alu.(ir[5..3],a,src01)
-        end
-        hwhen _10 do
-            # Format 1-extended: ir[2..0] can either be source or destination
-            # depending on the instruction.
-            hif ir[5] == 0 do
-                alu.([ir[4..3],_1],src01,0)
+            # Depending on the instruction.
+            hcase ir[7..6] 
+            hwhen _00 do
+                # Do the writing if no nop
+                hif(ir == _00000000) { write <= 0 }
+                # Format 0
+                hif(ir[5..3] == ir[2..0]) do
+                    alu.(15,0,0)
+                end
+                helse { alu.(7,src00,0) }
+                # destination.
                 dst <= ir[2..0]
-                # Check if it is a load-store or a branch.
-                hif(   ir[4..3] == _01) { ld <= 1 }
-                helsif(ir[4..3] == _10) { st <= 1 }
-                helsif(ir[4..3] == _11) { branch <= 1 }
             end
-            # Format 2
-            helse do
-                # movl: 0000iiii
-                hif(ir[4] == 0) { alu.(7,[_0000,ir[3..0]],0) }
-                # movh: iiiia[3..0]
-                helse           { alu.(7,[ir[3..0],a[3..0]],0) }
+            hwhen _01 do
+                # Format 1
+                alu.(ir[5..3],a,src01)
             end
-        end
-        hwhen _11 do
-            # Format 3
-            hif ir[5..4] != _11  do
-                # brcc, branch.
-                # Computation: pc + iii 
-                alu.(0,pc, [ ir[2] ]*5 + [ ir[2..0] ])
-                # Tell it is a branch
-                branch <= 1
-            end
-            # Format 4
-            helse do 
-                # Computation.
-                alu.([_1,ir[2..0]],a,0)
-                # Special cases of format 4:
-                # ld/st cases: g is incremented/decremented
-                hif(ir[3..1] == _100)  { alu.(2,g,0) }
-                hif(ir[3..1] == _101)  { alu.(3,g,0) }
-                # push/pop case: h is decremented/incremented
-                hif(ir[3..0] == _1100) { alu.(3,h,0) }
-                hif(ir[3..0] == _1101) { alu.(2,h,0) }
-                # Destination: depending on the instrution.
-                hif(ir[3] == 0)    { dst <= 0 } # a
-                helsif(ir[2] == 0) { dst <= 6 } # g
-                helse              { dst <= 7 } # h
-                # Load, store or branch (trap)
-                hif(ir[3..2] == _10) { ld <= ~ir[0]; st <= ir[0] }
-                hif(ir[3..0] == _0110) do
-                    branch <= 1
-                    alu.(7,0xFC,0)
+            hwhen _10 do
+                # Format 1-extended: ir[2..0] can either be source or destination
+                # depending on the instruction.
+                hif ir[5] == 0 do
+                    write <= 0 # cp or branch, no writing required.
+                    alu.([ir[4..3],_1],src01,0)
+                    dst <= ir[2..0]
+                    # Check if it is a load-store or a branch.
+                    hif(   ir[4..3] == _01) { ld <= 1 }
+                    helsif(ir[4..3] == _10) { st <= 1 }
+                    helsif(ir[4..3] == _11) { branch <= 1 }
+                end
+                # Format 2
+                helse do
+                    # movl: 0000iiii
+                    hif(ir[4] == 0) { alu.(7,[_0000,ir[3..0]],0) }
+                    # movh: iiiia[3..0]
+                    helse           { alu.(7,[ir[3..0],a[3..0]],0) }
                 end
             end
-        end
+            hwhen _11 do
+                # Format 3
+                hif ir[5..4] != _11  do
+                    # brcc, branch.
+                    # Computation: pc + iii 
+                    alu.(0,pc, [ ir[2] ]*5 + [ ir[2..0] ])
+                    # Tell it is a branch
+                    branch <= 1
+                end
+                # Format 4
+                helse do 
+                    # Computation.
+                    alu.([_1,ir[2..0]],a,0)
+                    # Special cases of format 4:
+                    # ld/st cases: g is incremented/decremented
+                    hif(ir[3..1] == _100)  { alu.(2,g,0) }
+                    hif(ir[3..1] == _101)  { alu.(3,g,0) }
+                    # push/pop case: h is decremented/incremented
+                    hif(ir[3..0] == _1100) { alu.(3,h,0) }
+                    hif(ir[3..0] == _1101) { alu.(2,h,0) }
+                    # Destination: depending on the instrution.
+                    hif(ir[3] == 0)    { dst <= 0 } # a
+                    helsif(ir[2] == 0) { dst <= 6 } # g
+                    helse              { dst <= 7 } # h
+                    # Load, store or branch (trap)
+                    hif(ir[3..2] == _10) { ld <= ~ir[0]; st <= ir[0] }
+                    hif(ir[3..0] == _0110) do
+                        branch <= 1
+                        alu.(7,0xFC,0)
+                    end
+                end
+            end
         end
     end
 
@@ -206,6 +213,7 @@ system :mei8 do
     inner :io_req, :io_rwb, :io_done, :io_r_done
     [8].inner :io_out # The write buffer.
     [8].inner :io_in  # The read buffer.
+    [8].inner :data
 
     # The io unit.
     fsm(clk.posedge,rst,:async) do
@@ -217,11 +225,13 @@ system :mei8 do
                         # dbus  <= _zzzzzzzz
                         io_in <= dbus
                       }
+        reset(:sync)  { data <= 0; }
         state(:wait)  { goto(io_req,:start,:wait) }
         state(:start) { req <= 1; rwb <= io_rwb
                         addr <= g
                         # hif(~io_rwb) { dbus <= io_out }
                         goto(ack,:end,:start) }
+        sync(:start)  { data <= io_in }
         state(:end)   { io_done <= 1; io_r_done <= io_rwb
                         goto(:wait) }
     end
@@ -254,9 +264,11 @@ system :mei8 do
             # No-branch case.
             hif ~branch do
                 # Write to the destination of calculation.
-                hcase(dst)
-                [a,b,c,d,e,f,g,h].each.with_index do |r,i|
-                    hwhen(i) { r <= alu.z }
+                hif write do
+                    hcase(dst)
+                    [a,b,c,d,e,f,g,h].each.with_index do |r,i|
+                        hwhen(i) { r <= alu.z }
+                    end
                 end
                 # Specific cases
                 hif(ir == _11110111) do # xs
@@ -285,7 +297,8 @@ system :mei8 do
             end
         end
         helsif (io_r_done) do
-            a <= io_in
+            # a <= io_in
+            a <= data
         end
     end
 
@@ -305,7 +318,7 @@ system :mei8 do
                        io_req <= 0; io_rwb <= 1; io_out <= a
                        iq_calc <= 0; init <= 0
                      }
-        # reset_sync   { pc <= 0; ir <= 0 }
+        reset(:sync) { pc <= 0; ir <= 0; iq_chk <= 0 }
         # Reset state.
         state(:re)   { init <= 1 }
         sync(:re)    { pc <= 0; ir <= 0
