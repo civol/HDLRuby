@@ -1,7 +1,7 @@
 module HDLRuby::High::Std
 
     ##
-    # Standard HDLRuby::High library: fsm
+    # Standard HDLRuby::High library: fsm generator.
     # 
     ########################################################################
 
