@@ -229,6 +229,11 @@ system :mei8 do
                     [a,b,c,d,e,f,g,h].each.with_index do |r,i|
                         hwhen(i) { r <= alu.z }
                     end
+                    # Flags
+                    zf <= alu.zf
+                    cf <= alu.cf
+                    sf <= alu.sf
+                    vf <= alu.vf
                 end
                 # Specific cases
                 hif(ir == _11110111) do # xs
@@ -238,11 +243,6 @@ system :mei8 do
                 hif(ir == _11110110) do # trap
                     s[7] <= 1
                 end
-                # Flags
-                zf <= alu.zf
-                cf <= alu.cf
-                sf <= alu.sf
-                vf <= alu.vf
             end
             # Branch case.
             helse do
