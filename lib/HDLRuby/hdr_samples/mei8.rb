@@ -1,4 +1,5 @@
 require '../std/fsm.rb'
+require '../std/decoder.rb'
 include HDLRuby::High::Std
 
 # A simple implementation of the MEI8 processor.
@@ -66,20 +67,16 @@ system :mei8 do
             hcase(opr)
             # add
             hwhen(0)  { add.(x ,y ,0,[cf,z])
-                        vf <= (~x[7] & ~y[7] & z[7]) |
-                              (x[7] & y[7] & ~z[7]) }
+                        vf <= (~x[7] & ~y[7] & z[7]) | (x[7] & y[7] & ~z[7]) }
             # sub
             hwhen(1)  { add.(x ,~y,1,[cf,z])
-                        vf <= (~x[7] & y[7] & z[7]) |
-                              (x[7] & ~y[7] & ~z[7]) }
+                        vf <= (~x[7] & y[7] & z[7]) | (x[7] & ~y[7] & ~z[7]) }
             # inc
             hwhen(2)  { add.(x ,0 ,1,[cf,z])
-                        vf <= (~x[7] & ~y[7] & z[7]) |
-                              (x[7] & y[7] & ~z[7]) }
+                        vf <= (~x[7] & ~y[7] & z[7]) | (x[7] & y[7] & ~z[7]) }
             # dec
             hwhen(3)  { add.(x ,0xFF ,0,[cf,z])
-                        vf <= (~x[7] & ~y[7] & z[7]) |
-                              (x[7] & y[7] & ~z[7]) }
+                        vf <= (~x[7] & ~y[7] & z[7]) | (x[7] & y[7] & ~z[7]) }
             # and
             hwhen(4)  { z <= x & y }
             # or
@@ -106,7 +103,7 @@ system :mei8 do
     # Signals relative to the decoder
     
     [3].inner :dst           # Index of the destination register.
-    [8].inner :src00, :src01 # Values of the source registers.
+    [8].inner :src0, :src1   # Values of the source registers.
     inner  :branch # Tells if the instruction is a branch.
     inner  :write  # Tells the computation result is to write to a register.
     inner  :ld     # Tells if the instruction is a load.
@@ -128,80 +125,47 @@ system :mei8 do
         # And transfer 0.
         alu.(15,0,0)
         # Compute the possible source 2
-        getsrc(ir[5..3],src00)
-        getsrc(ir[2..0],src01)
+        getsrc(ir[5..3],src0)
+        getsrc(ir[2..0],src1)
         # Is it an interrupt?
         hif (iq_calc) { alu.(2,h,0) }
         # No, do normal decoding.
         helse do
             # Depending on the instruction.
-            hcase ir[7..6] 
-            hwhen _00 do
-                # Do the writing if no nop
-                hif(ir == _00000000) { write <= 0 }
+            decoder(ir) do
                 # Format 0
-                hif(ir[5..3] == ir[2..0]) do
-                    alu.(15,0,0)
-                end
-                helse { alu.(7,src00,0) }
-                # destination.
-                dst <= ir[2..0]
-            end
-            hwhen _01 do
+                entry("00000000") { write <= 0 }          # nop
+                entry("00sssddd") { 
+                     hif (s == d) { alu.(15,0,0) }        # mov 0,d
+                     helse        { alu.(7,src0) }        # mov s,d
+                                    dst <= ir[2..0] }
                 # Format 1
-                alu.(ir[5..3],a,src01)
-            end
-            hwhen _10 do
-                # Format 1-extended: ir[2..0] can either be source or destination
-                # depending on the instruction.
-                hif ir[5] == 0 do
-                    write <= 0 # cp or branch, no writing required.
-                    alu.([ir[4..3],_1],src01,0)
-                    dst <= ir[2..0]
-                    # Check if it is a load-store or a branch.
-                    hif(   ir[4..3] == _01) { ld <= 1 }
-                    helsif(ir[4..3] == _10) { st <= 1 }
-                    helsif(ir[4..3] == _11) { branch <= 1 }
-                end
+                entry("01ooosss") { alu.(o,a,src1) }      # alu s
+                # Format 1 extended.
+                entry("10000sss") { write <= 0
+                                    alu.(1,src1) }        # cp s
+                entry("10001ddd") { ld <= 1; dst <= d }   # ld s
+                entry("10010sss") { st <= 1; write <= 0 } # st s
+                entry("10011sss") { branch <= 1
+                                    alu.(7,src1) }        # jr s
                 # Format 2
-                helse do
-                    # movl: 0000iiii
-                    hif(ir[4] == 0) { alu.(7,[_0000,ir[3..0]],0) }
-                    # movh: iiiia[3..0]
-                    helse           { alu.(7,[ir[3..0],a[3..0]],0) }
-                end
-            end
-            hwhen _11 do
-                # Format 3
-                hif ir[5..4] != _11  do
-                    # brcc, branch.
-                    # Computation: pc + iii 
-                    alu.(0,pc, [ ir[2] ]*5 + [ ir[2..0] ])
-                    # Tell it is a branch
-                    branch <= 1
-                end
+                entry("1010iiii") { alu.(7,[_0000,i]) }   # movl i
+                entry("1011iiii") { alu.(7,[i,a[3..0]]) } # movh i
                 # Format 4
-                helse do 
-                    # Computation.
-                    alu.([_1,ir[2..0]],a,0)
-                    # Special cases of format 4:
-                    # ld/st cases: g is incremented/decremented
-                    hif(ir[3..1] == _100)  { alu.(2,g,0) }
-                    hif(ir[3..1] == _101)  { alu.(3,g,0) }
-                    # push/pop case: h is decremented/incremented
-                    hif(ir[3..0] == _1100) { alu.(3,h,0) }
-                    hif(ir[3..0] == _1101) { alu.(2,h,0) }
-                    # Destination: depending on the instrution.
-                    hif(ir[3] == 0)    { dst <= 0 } # a
-                    helsif(ir[2] == 0) { dst <= 6 } # g
-                    helse              { dst <= 7 } # h
-                    # Load, store or branch (trap)
-                    hif(ir[3..2] == _10) { ld <= ~ir[0]; st <= ir[0] }
-                    hif(ir[3..0] == _0110) do
-                        branch <= 1
-                        alu.(7,0xFC,0)
-                    end
-                end
+                entry("11110110") { branch <= 1
+                                    alu.(7,0xFC)  }       # trap
+                entry("11110ooo") { alu.([_1,o],a) }      # alu ( / xs)
+                entry("111110ds") { st <= s; ld <= ~s
+                                    alu.([_1,d],g)
+                                    dst <= 6 }            # ++--ld / ++--st
+                entry("1111110i") { branch <= i
+                                    st <= ~i; ld <= i
+                                    alu.([_1,~i],h)
+                                    dst <= 7 }            # push / pop pc
+                # Format 3
+                entry("11cccsii") { branch <= 1
+                                    alu.(0,pc,[s]*6+[i]) }# br c i
+                # halt / reset: treated in main fsm
             end
         end
     end
