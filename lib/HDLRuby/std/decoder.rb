@@ -76,48 +76,43 @@ module HDLRuby::High::Std
             this   = self
             return_value = nil
 
-            # Enters the current system
-            HDLRuby::High.cur_system.open do
-                sub do
-                    HDLRuby::High.space_push(namespace)
-                    # Execute the instantiation block
-                    return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
+            HDLRuby::High.space_push(namespace)
+            # Execute the instantiation block
+            return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
 
-                    # Create the decoder code
+            # Create the decoder code
 
-                    # The process
-                    par do
-                        # Depending on the type of entry.
-                        test = :hif # Which command to use for testing
-                                    # (first: hif, then heslif)
-                        entries.each do |entry|
-                            # Build the predicate for checking the entry.
-                            entry_predicate = entry.id_fields.map do |field|
-                                expr[field.range] == field.content
-                            end.reduce(:&)
+            # The process
+            par do
+                # Depending on the type of entry.
+                test = :hif # Which command to use for testing
+                # (first: hif, then heslif)
+                entries.each do |entry|
+                    # Build the predicate for checking the entry.
+                    entry_predicate = entry.id_fields.map do |field|
+                        expr[field.range] == field.content
+                    end.reduce(:&)
 
-                            send(test,entry_predicate) do
-                                # Sets the local variables.
-                                entry.var_fields.each do |field|
-                                    this.
-                                    define_singleton_method(field.content) do
-                                        expr[field.range]
-                                    end
-                                end
-                                # Generate the content of the entry.
-                                entry.code.call
+                    send(test,entry_predicate) do
+                        # Sets the local variables.
+                        entry.var_fields.each do |field|
+                            this.
+                                define_singleton_method(field.content) do
+                                expr[field.range]
                             end
-                            test = :helsif # Now use helsif for the alternative.
                         end
-                        # Adds the default code if any.
-                        if default_code then
-                            helse(&default_code)
-                        end
+                        # Generate the content of the entry.
+                        entry.code.call
                     end
-
-                    HDLRuby::High.space_pop
+                    test = :helsif # Now use helsif for the alternative.
+                end
+                # Adds the default code if any.
+                if default_code then
+                    helse(&default_code)
                 end
             end
+
+            HDLRuby::High.space_pop
 
             return return_value
         end
@@ -205,7 +200,7 @@ module HDLRuby::High::Std
         end
         # Create the decoder.
         decoderI = DecoderT.new(name)
-        
+
         # Is there a ruby block?
         if ruby_block then
             # Yes, generate the decoder.
