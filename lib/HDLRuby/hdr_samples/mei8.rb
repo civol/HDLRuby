@@ -105,6 +105,7 @@ system :mei8 do
     [3].inner :dst           # Index of the destination register.
     [8].inner :src0, :src1   # Values of the source registers.
     inner  :branch  # Tells if the instruction is a branch.
+    inner  :cc      # Tells if a branch condition is met.
     inner  :wr, :wf # Tells the computation result is to write to a gpr/flag.
     inner  :ld      # Tells if the instruction is a load.
     inner  :st      # Tells if the instruction is a store.
@@ -127,6 +128,8 @@ system :mei8 do
         # Compute the possible source 2
         getsrc(ir[5..3],src0)
         getsrc(ir[2..0],src1)
+        # Compute the branch condition.
+        cc <= mux(ir[5..3],1,zf,cf,sf,vf,~zf,0)
         # Is it an interrupt?
         hif (iq_calc) { alu.(2,h,0) }
         # No, do normal decoding.
@@ -164,7 +167,7 @@ system :mei8 do
                                     alu.([_1,~i],h)
                                     dst <= 7 }            # push / pop pc
                 # Format 3
-                entry("11cccsii") { branch <= 1
+                entry("11cccsii") { branch <= cc; wr <= 0
                                     alu.(0,pc,[s]*6+[i]) }# br c i
                 # halt / reset: treated in main fsm
             end
@@ -222,39 +225,26 @@ system :mei8 do
             h <= alu.z
         end
         helsif(calc) do
-            # No-branch case.
-            hif ~branch do
-                # Write to the destination gpr.
-                hif wr do
-                    hcase(dst)
-                    [a,b,c,d,e,f,g,h].each.with_index do |r,i|
-                        hwhen(i) { r <= alu.z }
-                    end
-                end
-                hif wf do
-                    # Write the the flags.
-                    zf <= alu.zf; cf <= alu.cf; sf <= alu.sf; vf <= alu.vf
-                end
-                # Specific cases
-                hif(ir == _11110111) do # xs
-                    s <= a
-                    a <= s
-                end
-                hif(ir == _11110110) do # trap
-                    s[7] <= 1
+            # Write to the destination gpr.
+            hif wr do
+                hcase(dst)
+                [a,b,c,d,e,f,g,h].each.with_index do |r,i|
+                    hwhen(i) { r <= alu.z }
                 end
             end
-            # Branch case.
-            helse do
-                hcase ir[5..3]
-                # brcc
-                hwhen(_000) {            npc <= alu.z; nbr <= 1   } # br
-                hwhen(_001) { hif(zf)  { npc <= alu.z; nbr <= 1 } } # br z
-                hwhen(_010) { hif(cf)  { npc <= alu.z; nbr <= 1 } } # br c
-                hwhen(_011) { hif(sf)  { npc <= alu.z; nbr <= 1 } } # br s
-                hwhen(_100) { hif(vf)  { npc <= alu.z; nbr <= 1 } } # br v
-                hwhen(_101) { hif(~zf) { npc <= alu.z; nbr <= 1 } } # br nz
+            hif wf do
+                # Write the the flags.
+                zf <= alu.zf; cf <= alu.cf; sf <= alu.sf; vf <= alu.vf
             end
+            # Specific cases
+            hif(ir == _11110111) do # xs
+                s <= a
+                a <= s
+            end
+            hif(ir == _11110110) do # trap
+                s[7] <= 1
+            end
+            hif(branch) { npc <= alu.z; nbr <= 1 }
         end
         helsif (io_r_done) do
             a <= data
