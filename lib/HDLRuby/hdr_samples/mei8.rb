@@ -104,12 +104,12 @@ system :mei8 do
     
     [3].inner :dst           # Index of the destination register.
     [8].inner :src0, :src1   # Values of the source registers.
-    inner  :branch # Tells if the instruction is a branch.
-    inner  :write  # Tells the computation result is to write to a register.
-    inner  :ld     # Tells if the instruction is a load.
-    inner  :st     # Tells if the instruction is a store.
+    inner  :branch  # Tells if the instruction is a branch.
+    inner  :wr, :wf # Tells the computation result is to write to a gpr/flag.
+    inner  :ld      # Tells if the instruction is a load.
+    inner  :st      # Tells if the instruction is a store.
 
-    inner :iq_calc # Tells some the interrupt unit is prehempting calculation.
+    inner :iq_calc  # Tells some the interrupt unit is preempting calculation.
 
     # Compute the source register value.
     def getsrc(idx,src)
@@ -118,9 +118,9 @@ system :mei8 do
 
     # The decoder.
     par do
-        # By default, no branch, no load, no store, do write
-        # and destination is a.
-        branch <= 0; ld <= 0; st <= 0; write <= 1
+        # By default, no branch, no load, no store, write to gpr but not to
+        # flags and destination is a.
+        branch <= 0; ld <= 0; st <= 0; wr <= 1; wf <= 0
         dst <= 0
         # And transfer 0.
         alu.(15,0,0)
@@ -134,18 +134,19 @@ system :mei8 do
             # Depending on the instruction.
             decoder(ir) do
                 # Format 0
-                entry("00000000") { write <= 0 }          # nop
+                entry("00000000") { wr <= 0 }             # nop
                 entry("00sssddd") { 
                      hif (s == d) { alu.(15,0,0) }        # mov 0,d
                      helse        { alu.(7,src0) }        # mov s,d
                                     dst <= ir[2..0] }
                 # Format 1
-                entry("01ooosss") { alu.(o,a,src1) }      # alu s
+                entry("01ooosss") { wf <= 1
+                                    alu.(o,a,src1) }      # alu s
                 # Format 1 extended.
-                entry("10000sss") { write <= 0
+                entry("10000sss") { wr <= 0; wf <= 1
                                     alu.(1,src1) }        # cp s
                 entry("10001ddd") { ld <= 1; dst <= d }   # ld s
-                entry("10010sss") { st <= 1; write <= 0 } # st s
+                entry("10010sss") { st <= 1; wr <= 0 }    # st s
                 entry("10011sss") { branch <= 1
                                     alu.(7,src1) }        # jr s
                 # Format 2
@@ -205,6 +206,7 @@ system :mei8 do
 
     # Writing to registers.
     par(clk.posedge) do
+        nbr <= 0; npc <= 0 # By default no branch to schedule.
         hif(rst) do
             # In case of hard reset all the resgister of the operative part
             # are to put to 0.
@@ -220,20 +222,18 @@ system :mei8 do
             h <= alu.z
         end
         helsif(calc) do
-            nbr <= 0; npc <= 0
             # No-branch case.
             hif ~branch do
-                # Write to the destination of calculation.
-                hif write do
+                # Write to the destination gpr.
+                hif wr do
                     hcase(dst)
                     [a,b,c,d,e,f,g,h].each.with_index do |r,i|
                         hwhen(i) { r <= alu.z }
                     end
-                    # Flags
-                    zf <= alu.zf
-                    cf <= alu.cf
-                    sf <= alu.sf
-                    vf <= alu.vf
+                end
+                hif wf do
+                    # Write the the flags.
+                    zf <= alu.zf; cf <= alu.cf; sf <= alu.sf; vf <= alu.vf
                 end
                 # Specific cases
                 hif(ir == _11110111) do # xs
