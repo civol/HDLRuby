@@ -180,7 +180,8 @@ system :mei8 do
             # are to put to 0.
             [a,b,c,d,e,f,g,h,zf,cf,sf,vf,nbr,npc,s].each { |r| r <= 0 }
         end
-        helsif(init) { s <= _00000011 } # Enable interrupts when starting.
+        # Ensures a is 0 and enable interrupts when starting.
+        helsif(init) { a<= 0; s <= _00000011; } 
         helsif(iq_calc) do
             s[7] <= 1
             hif(iq1) { s[1] <= 0 }
@@ -202,7 +203,11 @@ system :mei8 do
             hif(ir == _11110110) { s[7] <= 1 }      # trap
             hif(branch) { npc <= alu.z; nbr <= 1 }  # Branch
         end
-        helsif (io_r_done) { a <= data }
+        # Write memory read result to a register if any.
+        helsif (io_r_done) do
+            hif(branch) { npc <= data; nbr <= 1 }   # pop case  
+            helse       { a <= data }               # ld case
+        end
     end
 
     # Interrupt check buffer.
@@ -237,7 +242,8 @@ system :mei8 do
         sync(:br)    { hif(nbr) { pc <= npc - 1 } }
         # State waiting the end of a load/store.
         state(:ld_st){ io_rwb <= ld
-                       goto(:fe)
+                       # goto(:fe)
+                       goto(branch,:br,:fe)
                        goto(~io_done,:ld_st)
                        goto(io_done & iq_chk,:iq_s)}# Interrupt / No interrupt
         # States handling the interrupts.
