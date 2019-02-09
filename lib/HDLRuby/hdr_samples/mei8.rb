@@ -20,7 +20,6 @@ system :mei8 do
     instance :prog do
         [7..0].input  :addr
         [7..0].output :instr
-
         bit[7..0][2**8].constant content: 
             File.readlines("./prog.obj").map {|l| l.split[0].to_i(2)}
 
@@ -33,7 +32,6 @@ system :mei8 do
     [8].inner :ir                            # Instruction register.
     [8].inner :pc                            # Program counter.
     [8].inner :s                             # Status register.
-
 
     # The ALU 
     instance :alu do
@@ -128,7 +126,6 @@ system :mei8 do
                 # Format 4
                 entry("11110110") { branch <= 1
                                     alu.(7,0xFC)  }       # trap
-                # entry("11110ooo") { alu.([_1,o],a) }      # alu ( / xs)
                 entry("111110ds") { st <= s; ld <= ~s
                                     alu.([_1,d],g)
                                     dst <= 6 }            # ++--ld / ++--st
@@ -145,34 +142,35 @@ system :mei8 do
     end
 
     # The signals for controlling the io unit.
-    inner :io_req, :io_rwb, :io_done, :io_r_done
-    [8].inner :io_out,:io_in # The write and read lines.
-    [8].inner :data          # The read buffer.
+    inner :io_req, :io_rwb, :io_done # Request, read/not write, done.
+    inner :io_r_done                 # Read done.
+    [8].inner :io_out,:io_in         # The write and read inner buses.
+    [8].inner :data                  # The read buffer.
 
     # The io unit.
     fsm(clk.posedge,rst,:async) do
         default       { io_done <= 0; req <= 0; rwb <= 0; addr <= 0
                         io_r_done <= 0
+                        # Default handling of the 3-state data bus
                         hif(io_rwb) { dbus <= _zzzzzzzz }
                         helse       { dbus <= io_out }
                         io_in <= dbus }
         reset(:sync)  { data <= 0; }
-        state(:wait)  { goto(io_req,:start,:wait) }
-        state(:start) { req <= 1; rwb <= io_rwb
-                        addr <= g
-                        goto(ack,:end,:start) }
+        state(:wait)  { goto(io_req,:start,:wait) }        # Waiting for an IO
+        state(:start) { req <= 1; rwb <= io_rwb; addr <= g # Start an IO
+                        goto(ack,:end,:start) }   # Wait exteral ack to end IO
         sync(:start)  { data <= io_in }
-        state(:end)   { io_done <= 1; io_r_done <= io_rwb
+        state(:end)   { io_done <= 1; io_r_done <= io_rwb  # End IO 
                         goto(:wait) }
     end
 
-    inner :calc # Tell if calculation is to be stored.
-    inner :init # Tell CPU is in initialization
+    inner :calc    # Tell if calculation is to be writen back to a register.
+    inner :init    # Tell CPU is in initialization mode (soft reset).
 
     [8].inner :npc # Next pc
     inner     :nbr # Tell if must branch next.
 
-    # Writing to registers.
+    # Write back unit: handles the writing to registers.
     par(clk.posedge) do
         nbr <= 0; npc <= 0 # By default no branch to schedule.
         hif(rst) do
@@ -210,41 +208,38 @@ system :mei8 do
         end
     end
 
-    # Interrupt check buffer.
-    inner :iq_chk
+    prog.addr <= pc # Buses permanent connections.
 
-    # Buses permanent connections.
-    prog.addr <= pc
+    inner :iq_chk # Interrupt check buffer.
 
     # The main FSM
     fsm(clk.posedge,rst,:async) do
         default      { init <= 0; calc <= 0
                        io_req <= 0; io_rwb <= 1; io_out <= a
                        iq_calc <= 0 }
-        reset(:sync) { pc <= 0; ir <= 0; iq_chk <= 0 }
-        # Reset state.
+        reset(:sync) { pc <= 0; ir <= 0; iq_chk <= 0 }        # Hard reset
+        # Soft reset state.
         state(:re)   { init <= 1 }
-        sync(:re)    { pc <= 0; ir <= 0; iq_chk <= 0 }
+        sync(:re)    { pc <= 0; ir <= 0; iq_chk <= 0 } 
         # Standard execution states.
         state(:fe)   { }
-        sync(:fe)    { ir <= prog.instr; pc <= pc + 1
-                       iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) }
-        state(:ex)   { calc <= 1
-                       hif (ld | st) { io_req <= 1; io_rwb <= ld }
-                       goto(:fe)
-                       goto(iq_chk,:iq_s,:fe)    # Interrupt / No interrupt
-                       goto(branch,:br)
-                       goto((ld | st) & ~io_done,:ld_st) # ld/st
-                       goto(ir == _11111110,:ht)         # Halt
-                       goto(ir == _11111111,:re) }       # Reset
+        sync(:fe)    { ir <= prog.instr; pc <= pc + 1          # Standard fetch
+                       iq_chk <= (iq0 & s[0]) | (iq1 & s[1]) } # Check interrupt
+        state(:ex)   { calc <= 1                  # Activate the write back unit
+                       hif(ld|st) { io_req <= 1; io_rwb <= ld } # Prepare IO unit if ld or st
+                       goto(:fe)                  # By default execution is over
+                       goto(iq_chk,:iq_s)         # Interrupt / No interrupt
+                       goto(branch,:br)           # Branch instruction
+                       goto((ld|st) & ~io_done,:ld_st) # ld/st instruction
+                       goto(ir == _11111110,:ht)       # Halt instruction
+                       goto(ir == _11111111,:re) }     # Reset instruction
         # Branch state.
-        state(:br)   { goto(iq_chk,:iq_s,:fe) }  # Interrupt / No interrupt
-        sync(:br)    { hif(nbr) { pc <= npc - 1 } }
+        state(:br)   { goto(iq_chk,:iq_s,:fe) }   # Interrupt / No interrupt
+        sync(:br)    { hif(nbr) { pc <= npc-1 } } # Next pc is the branch target
         # State waiting the end of a load/store.
-        state(:ld_st){ io_rwb <= ld
-                       # goto(:fe)
-                       goto(branch,:br,:fe)
-                       goto(~io_done,:ld_st)
+        state(:ld_st){ io_rwb <= ld           # Tell IO unit if read or write
+                       goto(branch,:br,:fe)   # In case of pop, branch after ld
+                       goto(~io_done,:ld_st)  # ld/et not finished yet
                        goto(io_done & iq_chk,:iq_s)}# Interrupt / No interrupt
         # States handling the interrupts.
         # Push PC
