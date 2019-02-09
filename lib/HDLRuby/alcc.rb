@@ -101,7 +101,7 @@ puts cmd
 `#{cmd}`
 
 # Route.
-cmd = "nero -V -4 -p #{$basename}_p #{$basename}_l #{$basename}_r"
+cmd = "nero -V -G -6 -p #{$basename}_p #{$basename}_l #{$basename}_r"
 puts cmd
 `#{cmd}`
 
