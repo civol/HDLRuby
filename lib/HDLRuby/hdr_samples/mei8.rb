@@ -4,7 +4,7 @@ include HDLRuby::High::Std
 
 # A simple implementation of the MEI8 processor.
 #
-# In this implementation, the program is hard coded in an internal ROM
+# In this implementation, the program is hard-coded in an internal ROM
 system :mei8 do
     # Clock and reset.
     input :clk, :rst
