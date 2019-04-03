@@ -14,6 +14,8 @@ require 'HDLRuby/hruby_low_with_var'
 require 'HDLRuby/hruby_low_without_concat'
 require 'HDLRuby/hruby_low_cleanup'
 
+require 'HDLRuby/hruby_verilog.rb'
+
 ##
 # HDLRuby compiler interface program
 #####################################
@@ -315,7 +317,17 @@ if __FILE__ == $0 then
         # end
         $output << $top_instance.to_low.systemT.to_high
     elsif $options[:verilog] then
-        warn("Verilog HDL output is not available yet... but it will be soon, promise!")
+        # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
+        top_system = $top_instance.to_low.systemT
+        # Make description compatible with verilog generation.
+        top_system.each_systemT_deep do |systemT|
+            systemT.to_upper_space!
+            systemT.to_global_systemTs!
+            systemT.break_types!
+            systemT.with_port!
+        end
+        # Verilog generation
+        $output << top_system.to_verilog
     elsif $options[:vhdl] then
         top_system = $top_instance.to_low.systemT
         # Make description compatible with vhdl generation.
