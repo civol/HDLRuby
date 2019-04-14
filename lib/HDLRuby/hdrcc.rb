@@ -182,6 +182,7 @@ if __FILE__ == $0 then
         end
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             $options[:verilog] = v
+            $options[:multiple] = v
         end
         opts.on("-V", "--vhdl","Output in VHDL format") do |v|
             HDLRuby::Low::Low2VHDL.vhdl93 = false
@@ -326,8 +327,41 @@ if __FILE__ == $0 then
             systemT.break_types!
             systemT.with_port!
         end
-        # Verilog generation
-        $output << top_system.to_verilog
+        # # Verilog generation
+        # $output << top_system.to_verilog
+        # Generate the Verilog.
+        if $options[:multiple] then
+            # Get the base name of the input file, it will be used for
+            # generating the main name of the multiple result files.
+            basename = File.basename($input,File.extname($input))
+            basename = $output + "/" + basename
+            # File name counter.
+            count = 0
+            # Prepare the initial name for the main file.
+            name = basename + ".v"
+            # Multiple files generation mode.
+            top_system.each_systemT_deep do |systemT|
+                # Generate the name if necessary.
+                unless name
+                    name = $output + "/" +
+                        HDLRuby::Verilog.name_to_verilog(systemT.name) +
+                        ".v"
+                end
+                # Open the file for current systemT
+                output = File.open(name,"w")
+                # Generate the VHDL code in to.
+                output << systemT.to_verilog
+                # Close the file.
+                output.close
+                # Clears the name.
+                name = nil
+            end
+        else
+            # Single file generation mode.
+            top_system.each_systemT_deep.reverse_each do |systemT|
+                $output << systemT.to_verilog
+            end
+        end
     elsif $options[:vhdl] then
         top_system = $top_instance.to_low.systemT
         # Make description compatible with vhdl generation.
