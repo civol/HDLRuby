@@ -188,10 +188,7 @@ system :mei8 do
         end
         helsif(calc) do
             hif wr do # Write to the destination gpr.
-                hcase(dst)
-                [a,b,c,d,e,f,g,h].each.with_index do |r,i|
-                    hwhen(i) { r <= alu.z }
-                end
+                [a,b,c,d,e,f,g,h].hcase(dst) { |r| r <= alu.z }
             end
             hif wf do # Write the the flags.
                 zf <= alu.zf; cf <= alu.cf; sf <= alu.sf; vf <= alu.vf
