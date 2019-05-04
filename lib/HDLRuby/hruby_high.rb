@@ -4772,6 +4772,15 @@ module HDLRuby::High
             High.top_user.make_constants(self.to_type,hsh)
         end
 
+        # Creates a hcase statement executing +ruby_block+ on the element of
+        # the array selected by +value+
+        def hcase(value,&ruby_block)
+            High.cur_block.hcase(value)
+            self.each.with_index do |elem,i|
+                High.cur_block.hwhen(i) { ruby_block.call(elem) }
+            end
+        end
+
         # Array construction shortcuts
 
         # Create an array whose number of elements is given by the content

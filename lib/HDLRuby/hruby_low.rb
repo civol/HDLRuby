@@ -3146,6 +3146,11 @@ module HDLRuby::Low
             statement
         end
 
+        # Gets the number of statements.
+        def num_statements
+            return @statements.size
+        end
+
         # Iterates over the statements.
         #
         # Returns an enumerator if no ruby block is given.
@@ -3392,6 +3397,11 @@ module HDLRuby::Low
             # No, therefore maybe it is directly a left value.
             return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
                     parent.left == self
+        end
+
+        # Tells if the expression is a right value.
+        def rightvalue?
+            return !self.leftvalue?
         end
 
         # Iterates over the expression children if any.

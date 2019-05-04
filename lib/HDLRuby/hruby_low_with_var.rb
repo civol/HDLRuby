@@ -1,6 +1,7 @@
 require "HDLRuby/hruby_error"
 require "HDLRuby/hruby_low_mutable"
 require "HDLRuby/hruby_low2sym"
+require "HDLRuby/hruby_low2seq"
 
 
 ##
@@ -152,7 +153,7 @@ module HDLRuby::Low
 
 
         # Converts to a variable-compatible block where +upper+ is
-        # the upper block i any.
+        # the upper block if any.
         #
         # NOTE: the result is a new block.
         def with_var(upper = nil)
@@ -183,7 +184,7 @@ module HDLRuby::Low
                 if upper && upper.mode == :seq then
                     # Yes, converts to seq.
                     # return self.to_seq
-                    return block.to_seq
+                    return block.blocks2seq!
                 end
                 # No, simply return the block.
                 # block = self.clone

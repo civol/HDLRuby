@@ -20,20 +20,23 @@ module HDLRuby
             last = range.last
             first = first.content if first.is_a?(Value)
             last = last.content if last.is_a?(Value)
-            # Now can compare at Ruby level (and not HDLRuby level).
-            if first == last then
-                # Single-element, return the base.
-                return base
-            else
-                # Multiple elements, create a new type vector.
-                return TypeVector.new(name,base,range)
-            end
+            # Necessarily a TypeVector, since [0..0] has actually a
+            # different meaning from [0]!
+            # # Now can compare at Ruby level (and not HDLRuby level).
+            # if first == last then
+            #     # Single-element, return the base.
+            #     return base
+            # else
+            #     # Multiple elements, create a new type vector.
+            #     return TypeVector.new(name,base,range)
+            # end
+            return TypeVector.new(name,base,range)
         end
 
         # Type resolution: decide which class to use for representing
         # a computating result with +type+.
         def resolve(type)
-            # puts "type=#{type}"
+            # puts "self=#{self} type=#{type}"
             if self.float? then
                 return self
             elsif type.float? then
@@ -46,7 +49,7 @@ module HDLRuby
                 return self
             elsif type.unsigned? then
                 return type
-            elsif self.width >= type.width
+            elsif self.width >= type.width then
                 return self
             else
                 return type
@@ -151,6 +154,11 @@ module HDLRuby
             # puts "compute types with=#{self} and #{type}"
             # Resolve the type class.
             resolved = self.resolve(type)
+            
+            # Logical operation on non-vector types are kept as is.
+            return resolved unless resolved.is_a?(TypeVector)
+
+            # Otherwise the range is computed.
             # New type range: largest range 
             bounds = [ self.range.first.to_i, type.range.first.to_i,
                        self.range.last.to_i, type.range.last.to_i ]

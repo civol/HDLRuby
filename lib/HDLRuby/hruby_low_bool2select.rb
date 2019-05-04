@@ -67,13 +67,16 @@ module HDLRuby::Low
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
-            # Apply on the condition.
-            self.set_condition(self.condition.boolean_in_assign2select)
+            # No need to apply on condition!
+            # # Apply on the condition.
+            # self.set_condition!(self.condition.boolean_in_assign2select)
             # Apply on the yes.
             self.yes.boolean_in_assign2select!
             # Apply on the noifs.
-            self.map_noifs! do |cond,stmnt|
-                [cond.boolean_in_assign2select,stmnt.boolean_in_assign2select!]
+            @noifs.map! do |cond,stmnt|
+                # No need to apply on condition!
+                # [cond.boolean_in_assign2select,stmnt.boolean_in_assign2select!]
+                [cond,stmnt.boolean_in_assign2select!]
             end
             # Apply on the no if any.
             self.no.boolean_in_assign2select! if self.no
@@ -87,8 +90,9 @@ module HDLRuby::Low
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
-            # Apply on the match.
-            self.set_match!(self.match.boolean_in_assign2select)
+            # No need to apply on the match!
+            # # Apply on the match.
+            # self.set_match!(self.match.boolean_in_assign2select)
             # Apply on the statement.
             self.statement.boolean_in_assign2select!
             return self
@@ -102,12 +106,13 @@ module HDLRuby::Low
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
-            # Apply on the value.
-            self.set_value!(self.value.boolean_in_assign2select)
+            # No need to apply on the value!
+            # # Apply on the value.
+            # self.set_value!(self.value.boolean_in_assign2select)
             # Apply on the whens.
             self.each_when(&:boolean_in_assign2select!)
             # Apply on the default if any.
-            self.default.boolean_in_assign2select!
+            self.default.boolean_in_assign2select! if self.default
             return self
         end
     end
@@ -209,7 +214,7 @@ module HDLRuby::Low
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the sub expressions.
-            return Concat.new(self.type,self.map_expression do |expr|
+            return Concat.new(self.type,self.each_expression.map do |expr|
                 expr.boolean_in_assign2select
             end )
         end

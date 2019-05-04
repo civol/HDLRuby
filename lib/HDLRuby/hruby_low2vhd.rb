@@ -32,6 +32,23 @@ module HDLRuby::Low
             @@vhdl93 = mode ? true : false
         end
 
+        # Indicates if target toolchain is Alliance: requires a slightly
+        # different VHDL syntax.
+        #
+        # NOTE: this syntax is not lint-compatible and should be avoided
+        # unless using specifically Alliance.
+        @@alliance = false
+
+        ## Tells if Allicance toolchain is targeted.
+        def self.alliance
+            return @@alliance
+        end
+
+        ## Sets/unsets the Allicance toolchain targeting.
+        def self.alliance=(mode)
+            @@alliance = mode ? true : false
+        end
+
         ## Generates the pakage requirement for an entity.
         #  +spaces+ are the spaces to put before each line.
         def self.packages(spaces)
@@ -117,7 +134,13 @@ module HDLRuby::Low
                 # (this is the standard interpretation of HDLRuby).
                 if expr.type.to_vhdl == "std_logic" then
                     # std_logic case: must convert to vector first.
-                    return "unsigned('0' & " + expr.to_vhdl + ")"
+                    if alliance then
+                        # Alliance toolchain case.
+                        return "unsigned('0' & " + expr.to_vhdl + ")"
+                    else
+                        # General case.
+                        return "unsigned(\"\" & " + expr.to_vhdl + ")"
+                    end
                 else
                     # Other case, ue the expression direction.
                     return "unsigned(" + expr.to_vhdl + ")"
@@ -146,7 +169,7 @@ module HDLRuby::Low
                 end
             elsif expr.is_a?(Select) then
                 # Select, binary if the choices are boolean.
-                return !expr.each_choice.any? {|c| !Low2VHDL.boolean(c) }
+                return !expr.each_choice.any? {|c| !Low2VHDL.boolean?(c) }
             else
                 # Other cases are not considered as boolean.
                 return false
@@ -167,10 +190,9 @@ module HDLRuby::Low
         ## Generates epression +expr+ while casting it to match +type+ if
         #  required.
         def self.to_type(type,expr)
-            # puts "expr=#{expr.to_vhdl}"
-            # puts "type=#{type.to_vhdl}, expr.type=#{expr.type.to_vhdl}"
-            if expr.type.to_vhdl != "std_logic" &&
-               type.to_vhdl == "std_logic" then
+            # puts "expr=#{expr.to_vhdl}" unless expr.is_a?(Concat)
+            # puts "type.width=#{type.width}, expr.type.width=#{expr.type.width}"
+            if type.to_vhdl == "std_logic" then
                 # Conversion to std_logic required.
                 if expr.is_a?(Value) then
                     # Values can simply be rewritten.
@@ -179,14 +201,37 @@ module HDLRuby::Low
                     else
                         return "'1'"
                     end
-                else
+                elsif expr.type.to_vhdl != "std_logic"
                     # Otherwise a cast is required.
-                    return "unsigned(#{expr.to_vhdl}(0))"
+                    # if expr.type.base.name == :signed then
+                    #     return "unsigned(#{expr.to_vhdl})(0)"
+                    # else
+                    #    # return "unsigned(#{expr.to_vhdl}(0))"
+                    #    return "unsigned(#{expr.to_vhdl})(0)"
+                    # end
+                    if alliance then
+                        # Specific syntax for casting to std_logic with Alliance
+                        if expr.type.width == 1 then
+                            # No cast required with alliance if bitwidth is 1.
+                            return expr.to_vhdl
+                        else
+                            # Alliance-specific cast to std_logic.
+                            return "unsigned(#{expr.to_vhdl}(0))"
+                        end
+                    else
+                        # Lint-compatible casting to std_logic
+                        return "unsigned(#{expr.to_vhdl})(0)"
+                    end
+                else
+                    # Both are std_logic, nothing to to.
+                    return expr.to_vhdl
                 end
             elsif expr.is_a?(Value) then
                 # puts "type=#{type}, type.range=#{type.range}"
                 # Value width must be adjusted.
                 return expr.to_vhdl(0,type.width)
+            elsif expr.is_a?(Concat) then
+                return expr.to_vhdl(type)
             elsif expr.type.width < type.width then
                 # Need to extend the type.
                 return '"' + "0" * (type.width - expr.type.width) + '" & ' +
@@ -449,7 +494,15 @@ module HDLRuby::Low
                 # Signal type.
                 res << inner.type.to_vhdl(level) 
                 # Signal value.
-                res << " := " << inner.value.to_vhdl(level) if inner.value
+                if inner.value then
+                    if inner.value.is_a?(Concat) then
+                        # Concat are to be given the expected type of the
+                        # elements for casting them equally.
+                        res << " := " << inner.value.to_vhdl(inner.type.base,level)
+                    else
+                        res << " := " << inner.value.to_vhdl(level)
+                    end
+                end
                 res << ";\n"
             end
 
@@ -562,7 +615,7 @@ module HDLRuby::Low
                 # hruby_low_without_namespace.rb is used.
                 res << "array ("
                 res << self.range.first.to_vhdl(level)
-                if self.range.first > self.range.last then
+                if self.range.first >= self.range.last then
                     res << " downto "
                 else
                     res << " to "
@@ -592,7 +645,7 @@ module HDLRuby::Low
                 right = self.range.last
                 left = left.content if left.is_a?(Value)
                 right = right.content if right.is_a?(Value)
-                if left > right then
+                if left >= right then
                     res << " downto "
                 else
                     res << " to "
@@ -814,7 +867,8 @@ module HDLRuby::Low
             # Generate the alternate if parts.
             self.each_noif do |cond,stmnt|
                 res << " " * (level*3)
-                res << "elsif (" << cond.to_vhdl(level) << ") then\n"
+                # res << "elsif (" << cond.to_vhdl(level) << ") then\n"
+                res << "elsif (" << Low2VHDL.to_boolean(cond) << ") then\n"
                 res << stmnt.to_vhdl(vars,level+1)
             end
             # Generate the no part if any.
@@ -869,6 +923,12 @@ module HDLRuby::Low
                 res << " " * (level*3)
                 res << "when others =>\n"
                 res << self.default.to_vhdl(vars,level+1)
+            else
+                # NOTE: some VHDL parsers are very picky about others,
+                # even though all the cases have been treated through
+                # "when" statements.
+                res << " " * (level*3)
+                res << "when others =>\n"
             end
             # Close the case.
             res << " " * (level*3)
@@ -983,7 +1043,8 @@ module HDLRuby::Low
                     -1 : 1
                 return (sign * self.content.to_s.to_i(2)).to_s
             else
-                return self.content.to_s
+                # NOTE: in VHDL, "z" and "x" must be upcase.
+                return self.content.to_s.upcase
             end
         end
 
@@ -1104,6 +1165,11 @@ module HDLRuby::Low
             # Generate the operator string.
             case self.operator
             when :&
+                # puts "self.left.to_vhdl=#{self.left.to_vhdl}"
+                # puts "self.right.to_vhdl=#{self.right.to_vhdl}"
+                # puts "self.left.type=#{self.left.type.to_vhdl}"
+                # puts "self.right.type=#{self.right.type.to_vhdl}"
+                # puts "self.type=#{self.type.to_vhdl}"
                 opr = " and "
             when :|
                 opr = " or "
@@ -1160,8 +1226,10 @@ module HDLRuby::Low
     class Concat
 
         # Generates the text of the equivalent HDLRuby::High code.
+        # +type+ is the expected type of the content.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        def to_vhdl(type,level = 0)
+            raise "Invalid class for a type: #{type.class}" unless type.is_a?(Type) 
             # The resulting string.
             res = ""
             # Generate the header.
@@ -1170,10 +1238,19 @@ module HDLRuby::Low
             # if self.type.is_a?(TypeTuple) then
             if self.parent.is_a?(SignalC) then
                 res << "( " << self.each_expression.map do |expression|
-                    expression.to_vhdl(level+1)
+                    Low2VHDL.to_type(type,expression)
                 end.join(",\n#{" "*((level+1)*3)}") << " )"
             else
+                # Compute the width of the concatenation.
+                width = self.each_expression.reduce(0) do |sum,expr|
+                    sum += expr.type.width
+                end
+                # Generate the missing bits if any.
+                width = type.width - width
+                res << '"' + "0" * width + '" & ' if width > 0
+                # Generate the concatenation.
                 res << self.each_expression.map do |expression|
+                    # "(" + Low2VHDL.to_type(type,expression) + ")"
                     "(" + expression.to_vhdl(level+1) + ")"
                 end.join(" & ")
             end
@@ -1221,7 +1298,13 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
-            return self.ref.to_vhdl(level) + "(#{self.index.to_vhdl(level)})"
+            if self.index.is_a?(Value) then
+                return self.ref.to_vhdl(level) + 
+                    "(#{self.index.to_vhdl(level)})"
+            else
+                return self.ref.to_vhdl(level) +
+                    "(to_integer(unsigned(#{self.index.to_vhdl(level)})))"
+            end
         end
     end
 
@@ -1236,7 +1319,7 @@ module HDLRuby::Low
             first = first.content if first.is_a?(Value)
             last = self.range.last
             last = last.content if last.is_a?(Value)
-            direction = first > last ?  "downto " : " to "
+            direction = first >= last ?  "downto " : " to "
             # Generate the reference.
             return self.ref.to_vhdl(level) +
                 "((#{self.range.first.to_vhdl(level)}) " +

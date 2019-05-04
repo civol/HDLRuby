@@ -187,9 +187,11 @@ if __FILE__ == $0 then
         opts.on("-V", "--vhdl","Output in VHDL format") do |v|
             HDLRuby::Low::Low2VHDL.vhdl93 = false
             $options[:vhdl] = v
+            $options[:multiple] = v
         end
         opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
             HDLRuby::Low::Low2VHDL.vhdl93 = false
+            HDLRuby::Low::Low2VHDL.alliance = true
             $options[:vhdl] = v
             $options[:alliance] = v
             $options[:multiple] = v
@@ -197,6 +199,7 @@ if __FILE__ == $0 then
         opts.on("-U", "--vhdl93","Output in VHDL'93 format") do |v|
             HDLRuby::Low::Low2VHDL.vhdl93 = true
             $options[:vhdl] = v
+            $options[:multiple] = v
         end
         opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
             $options[:syntax] = s
@@ -367,8 +370,8 @@ if __FILE__ == $0 then
         # Make description compatible with vhdl generation.
         top_system.each_systemT_deep do |systemT|
             systemT.boolean_in_assign2select! unless $options[:alliance]
-            systemT.select2case!              if     $options[:alliance]
-            systemT.break_concat_assigns!     if     $options[:alliance]
+            systemT.select2case!              # if     $options[:alliance]
+            systemT.break_concat_assigns!     # if     $options[:alliance]
             systemT.to_upper_space!
             systemT.to_global_systemTs!
             systemT.break_types!
