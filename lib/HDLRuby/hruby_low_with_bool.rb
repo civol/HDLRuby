@@ -57,8 +57,10 @@ module HDLRuby::Low
         #
         # NOTE: the result is the same systemT.
         def with_boolean!
-            self.each_connection { |connection| connection.with_boolean! }
-            self.each_behavior   { |behavior|   behavior.with_boolean! }
+            self.scope.each_scope_deep do |scope|
+                scope.each_connection { |connection| connection.with_boolean! }
+                scope.each_behavior   { |behavior|   behavior.with_boolean! }
+            end
             return self
         end
     end
