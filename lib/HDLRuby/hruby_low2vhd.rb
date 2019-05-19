@@ -1,4 +1,5 @@
 require 'HDLRuby'
+require 'HDLRuby/hruby_low_with_bool'
 require 'HDLRuby/hruby_low_without_namespace'
 require 'HDLRuby/hruby_low_with_var'
 
@@ -15,21 +16,21 @@ module HDLRuby::Low
     ## Provides tools for converting HDLRuby::Low objects to VHDL.
     module Low2VHDL
 
-        # Indicates if VHDL'93 can be generated.
+        # Indicates if VHDL'08 can be generated.
         # Default: true
         #
         # NOTE: when possible, it is better to be left true since the
-        # identifier does not require any mangling in VHDL'93
-        @@vhdl93 = true
+        # identifier does not require any mangling in VHDL'08
+        @@vhdl08 = true
 
-        ## Tells if VHDL'93 is supported or not.
-        def self.vhdl93
-            return @@vhdl93
+        ## Tells if VHDL'08 is supported or not.
+        def self.vhdl08
+            return @@vhdl08
         end
 
-        ## Sets/unsets the support of VHDL'93.
-        def self.vhdl93=(mode)
-            @@vhdl93 = mode ? true : false
+        ## Sets/unsets the support of VHDL'08.
+        def self.vhdl08=(mode)
+            @@vhdl08 = mode ? true : false
         end
 
         # Indicates if target toolchain is Alliance: requires a slightly
@@ -72,13 +73,13 @@ module HDLRuby::Low
 
         ## Converts a +name+ to a VHDL-compatible name.
         def self.vhdl_name(name)
-            if vhdl93 then
-                # VHDL'93, nothing to do if the name is VHDL-compatible.
+            if vhdl08 then
+                # VHDL'08, nothing to do if the name is VHDL-compatible.
                 return name.to_s if self.vhdl_name?(name)
                 # Otherwise put the name between //
                 return "\\#{name}\\".to_s
             else
-                # Not VHDL'93, need to mangle the name.
+                # Not VHDL'08, need to mangle the name.
                 # For safety also force downcase.
                 name = name.to_s
                 # Other letters: convert special characters.
@@ -148,37 +149,40 @@ module HDLRuby::Low
             end
         end
 
-        ## Tells if an expression is a boolean.
-        def self.boolean?(expr)
-            if expr.is_a?(Unary) && expr.operator == :~ then
-                # NOT, boolean is the sub expr is boolean.
-                return Low2VHDL.boolean?(expr.child)
-            elsif expr.is_a?(Binary) then
-                # Binary case.
-                case(expr.operator)
-                when :==,:!=,:>,:<,:>=,:<= then
-                    # Comparison, it is a boolean.
-                    return true
-                when :&,:|,:^ then
-                    # AND, OR or XOR, boolean if both subs are boolean.
-                    return Low2VHDL.boolean?(expr.left) && 
-                           Low2VHDL.boolean?(expr.right)
-                else
-                    # Other cases: not boolean.
-                    return false
-                end
-            elsif expr.is_a?(Select) then
-                # Select, binary if the choices are boolean.
-                return !expr.each_choice.any? {|c| !Low2VHDL.boolean?(c) }
-            else
-                # Other cases are not considered as boolean.
-                return false
-            end
-        end
+        # Moved to hruby_low_with_bool.rb
+        #
+        # ## Tells if an expression is a boolean.
+        # def self.boolean?(expr)
+        #     if expr.is_a?(Unary) && expr.operator == :~ then
+        #         # NOT, boolean is the sub expr is boolean.
+        #         return Low2VHDL.boolean?(expr.child)
+        #     elsif expr.is_a?(Binary) then
+        #         # Binary case.
+        #         case(expr.operator)
+        #         when :==,:!=,:>,:<,:>=,:<= then
+        #             # Comparison, it is a boolean.
+        #             return true
+        #         when :&,:|,:^ then
+        #             # AND, OR or XOR, boolean if both subs are boolean.
+        #             return Low2VHDL.boolean?(expr.left) && 
+        #                    Low2VHDL.boolean?(expr.right)
+        #         else
+        #             # Other cases: not boolean.
+        #             return false
+        #         end
+        #     elsif expr.is_a?(Select) then
+        #         # Select, binary if the choices are boolean.
+        #         return !expr.each_choice.any? {|c| !Low2VHDL.boolean?(c) }
+        #     else
+        #         # Other cases are not considered as boolean.
+        #         return false
+        #     end
+        # end
 
         ## Generates a expression converted to the boolean type.
         def self.to_boolean(expr)
-            if boolean?(expr) then
+            # if boolean?(expr) then
+            if expr.boolean? then
                 # Comparison, no conversion required.
                 return expr.to_vhdl
             else
@@ -215,12 +219,30 @@ module HDLRuby::Low
                             # No cast required with alliance if bitwidth is 1.
                             return expr.to_vhdl
                         else
-                            # Alliance-specific cast to std_logic.
-                            return "unsigned(#{expr.to_vhdl}(0))"
+                            # Multi-bit, need to select a bit and possibly
+                            # cast to unsigned.
+                            if expr.type.signed? then
+                                return "unsigned(#{expr.to_vhdl}(0))"
+                            # elsif expr.is_a?(RefRange) then
+                            #     # Range reference case.
+                            #     return "#{expr.ref.to_vhdl}(#{expr.range.first.to_vhdl})"
+                            else
+                                # Other cases.
+                                return "#{expr.to_vhdl}(0)"
+                            end
                         end
                     else
                         # Lint-compatible casting to std_logic
-                        return "unsigned(#{expr.to_vhdl})(0)"
+                        if expr.type.signed? then
+                            # Signed, cast to unsigned.
+                            return "unsigned(#{expr.to_vhdl})(0)"
+                        # elsif expr.is_a?(RefRange) then
+                        #     # Range reference case.
+                        #     return "#{expr.ref.to_vhdl}(#{expr.range.first.to_vhdl})"
+                        else
+                            # Other cases
+                            return "#{expr.to_vhdl}(0)"
+                        end
                     end
                 else
                     # Both are std_logic, nothing to to.
@@ -582,7 +604,7 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0)
-            return "std_logic"
+            return self.boolean? ? "boolean" : "std_logic"
         end
     end
 
@@ -1039,9 +1061,13 @@ module HDLRuby::Low
         def to_arith
             case self.content
             when HDLRuby::BitString
-                sign = self.type.signed? && self.content.to_s[-1] == "0" ?
-                    -1 : 1
-                return (sign * self.content.to_s.to_i(2)).to_s
+                if self.content.specified? then
+                    sign = self.type.signed? && self.content.to_s[-1] == "0" ?
+                        -1 : 1
+                    return (sign * self.content.to_s.to_i(2)).to_s
+                else
+                    return self.content.to_s.upcase
+                end
             else
                 # NOTE: in VHDL, "z" and "x" must be upcase.
                 return self.content.to_s.upcase
@@ -1052,10 +1078,19 @@ module HDLRuby::Low
         # +width+ bits.
         # +level+ is the hierachical level of the object.
         def to_vhdl(level = 0,width = nil)
+            if self.type.boolean? then
+                # Boolean case
+                if self.content.is_a?(HDLRuby::BitString)
+                    return self.zero? ? "false" : "true"
+                else
+                    return self.to_i == 0 ? "false" : "true"
+                end
+            end
+            # Other cases
             # Maybe the value is used as a range or an index.
             if self.parent.is_a?(RefIndex) or self.parent.is_a?(RefRange) then
                 # Yes, convert to a simple integer.
-                return self.to_i.to_s
+                return self.to_i.to_s.upcase
             end
             # No, generates as a bit string.
             # puts "width=#{width}"
@@ -1065,10 +1100,10 @@ module HDLRuby::Low
             #     return self.content.to_s
             when HDLRuby::BitString
                 sign = self.type.signed? ? self.content.to_s[-1] : "0"
-                return '"' + self.content.to_s.rjust(width,sign) + '"'
+                return '"' + self.content.to_s.rjust(width,sign).upcase + '"'
             else
                 sign = self.type.signed? ? (self.content>=0 ? "0" : "1") : "0"
-                return '"' + self.content.to_s(2).rjust(width,sign) + '"'
+                return '"' + self.content.to_s(2).rjust(width,sign).upcase + '"'
             end
         end
     end
