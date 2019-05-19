@@ -26,15 +26,21 @@ module HDLRuby::Low
                 # Get the type for the matches.
                 type = select.select.type
                 # Create and add the whens.
+                size = select.each_choice.count
                 select.each_choice.with_index do |choice,i|
                     # Create the transmission statements of the when.
                     left = RefName.new(sig.type,RefThis.new,sig.name)
                     trans = Transmit.new(left,choice.clone)
                     # Put it into a block for the when.
-                    tb = Block.new(:seq)
+                    tb = Block.new(:par)
                     tb.add_statement(trans)
-                    # Create and add the when.
-                    cas.add_when( When.new(Value.new(type,i), tb) )
+                    if i < size-1 then
+                        # Create and add the when.
+                        cas.add_when( When.new(Value.new(type,i), tb) )
+                    else
+                        # Last choice, add a default/
+                        cas.default = tb
+                    end
                 end
                 # Adds the case to the block.
                 blk.add_statement(cas)
