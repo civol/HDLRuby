@@ -6,6 +6,8 @@ require 'HDLRuby/hruby_check.rb'
 require 'ripper'
 require 'HDLRuby/hruby_low2high'
 require 'HDLRuby/hruby_low2vhd'
+require 'HDLRuby/hruby_low_without_outread'
+require 'HDLRuby/hruby_low_with_bool'
 require 'HDLRuby/hruby_low_bool2select'
 require 'HDLRuby/hruby_low_without_select'
 require 'HDLRuby/hruby_low_without_namespace'
@@ -185,21 +187,24 @@ if __FILE__ == $0 then
             $options[:multiple] = v
         end
         opts.on("-V", "--vhdl","Output in VHDL format") do |v|
-            HDLRuby::Low::Low2VHDL.vhdl93 = false
+            HDLRuby::Low::Low2VHDL.vhdl08 = false
             $options[:vhdl] = v
             $options[:multiple] = v
+            $options[:vhdl08] = false
         end
         opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
-            HDLRuby::Low::Low2VHDL.vhdl93 = false
+            HDLRuby::Low::Low2VHDL.vhdl08 = false
             HDLRuby::Low::Low2VHDL.alliance = true
             $options[:vhdl] = v
             $options[:alliance] = v
             $options[:multiple] = v
+            $options[:vhdl08] = false
         end
-        opts.on("-U", "--vhdl93","Output in VHDL'93 format") do |v|
-            HDLRuby::Low::Low2VHDL.vhdl93 = true
+        opts.on("-U", "--vhdl08","Output in VHDL'08 format") do |v|
+            HDLRuby::Low::Low2VHDL.vhdl08 = true
             $options[:vhdl] = v
             $options[:multiple] = v
+            $options[:vhdl08] = true
         end
         opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
             $options[:syntax] = s
@@ -369,6 +374,8 @@ if __FILE__ == $0 then
         top_system = $top_instance.to_low.systemT
         # Make description compatible with vhdl generation.
         top_system.each_systemT_deep do |systemT|
+            systemT.without_outread2inner!    unless $options[:vhdl08]
+            systemT.with_boolean!
             systemT.boolean_in_assign2select! unless $options[:alliance]
             systemT.select2case!              # if     $options[:alliance]
             systemT.break_concat_assigns!     # if     $options[:alliance]
