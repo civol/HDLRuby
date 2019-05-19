@@ -98,7 +98,7 @@ system :mei8 do
         src0 <= mux(ir[5..3],a,b,c,d,e,f,g,h)
         src1 <= mux(ir[2..0],a,b,c,d,e,f,g,h)
         # Compute the branch condition.
-        cc <= mux(ir[5..3],1,zf,cf,sf,vf,~zf,0)
+        cc <= mux(ir[5..3],_1,zf,cf,sf,vf,~zf,_0)
         # Is it an interrupt?
         hif (iq_calc) { alu.(2,h,0) }
         # No, do a normal decoding of the instruction in ir.
