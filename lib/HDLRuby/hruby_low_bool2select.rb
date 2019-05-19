@@ -1,6 +1,7 @@
 require 'HDLRuby'
 require 'HDLRuby/hruby_tools'
 require 'HDLRuby/hruby_low_mutable'
+require 'HDLRuby/hruby_low_with_bool'
 
 
 module HDLRuby::Low
@@ -180,7 +181,9 @@ module HDLRuby::Low
                 # Yes, create a select.
                 nself = Binary.new(self.type,self.operator,nleft,nright)
                 return Select.new(self.type, "?", nself,
-                        Value.new(self.type,1), Value.new(self.type,0) )
+                        # Value.new(self.type,1), Value.new(self.type,0) )
+                        Value.new(HDLRuby::Low::Boolean,1),
+                        Value.new(HDLRuby::Low::Boolean,0) )
             else
                 # No return it as is.
                 self.set_left!(nleft)
