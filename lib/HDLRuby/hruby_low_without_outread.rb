@@ -20,7 +20,7 @@ module HDLRuby::Low
         # signal.
         #
         # NOTE: the result is the same systemT.
-        def without_outread2inner!
+        def outread2inner!
             # puts "For system: #{self.name}"
             # First gather the read on output signals.
             outreads = {}

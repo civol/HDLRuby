@@ -374,7 +374,7 @@ if __FILE__ == $0 then
         top_system = $top_instance.to_low.systemT
         # Make description compatible with vhdl generation.
         top_system.each_systemT_deep do |systemT|
-            systemT.without_outread2inner!    unless $options[:vhdl08]
+            systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
             systemT.with_boolean!
             systemT.boolean_in_assign2select! unless $options[:alliance]
             systemT.select2case!              # if     $options[:alliance]
