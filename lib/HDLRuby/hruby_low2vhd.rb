@@ -240,8 +240,8 @@ module HDLRuby::Low
                         #     # Range reference case.
                         #     return "#{expr.ref.to_vhdl}(#{expr.range.first.to_vhdl})"
                         else
-                            # Other cases
-                            return "#{expr.to_vhdl}(0)"
+                            # Other cases: for std_logic generation.
+                            return expr.to_vhdl(0,true)
                         end
                     end
                 else
@@ -1156,17 +1156,22 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        # +std_logic+ tells if std_logic computation is to be done.
+        def to_vhdl(level = 0, std_logic = false)
             # Generate the operator string.
             operator = self.operator == :~ ? "not " : self.operator.to_s[0]
             # Is the operator arithmetic?
             if [:+@, :-@].include?(self.operator) then
                 # Yes, type conversion my be required by VHDL standard.
-                return "#{Low2VHDL.unarith_cast(self)}(#{operator}" +
+                res = "#{Low2VHDL.unarith_cast(self)}(#{operator}" +
                              Low2VHDL.to_arith(self.child) + ")"
+                res += "(0)" if std_logic
+                return res
             else
                 # No, generate simply the unary operation.
-                return "(#{operator}" + self.child.to_vhdl(level) + ")"
+                # (The other unary operator is logic, no need to force
+                # std_logic.)
+                return "(#{operator}" + self.child.to_vhdl(level,std_logic) + ")"
             end
         end
     end
@@ -1176,7 +1181,8 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        # +std_logic+ tells if std_logic computation is to be done.
+        def to_vhdl(level = 0, std_logic = false)
             # Shifts/rotate require function call.
             if [:<<, :>>, :ls, :rs, :lr, :rr].include?(self.operator) then
                 # Generate the function name.
@@ -1192,9 +1198,11 @@ module HDLRuby::Low
                 else
                     raise AnyError, "Internal unexpected error."
                 end
-                return Low2VHDL.unarith_cast(self) + "(#{func}(" + 
+                res =  Low2VHDL.unarith_cast(self) + "(#{func}(" + 
                        Low2VHDL.to_arith(self.left) + "," + 
                        Low2VHDL.to_arith(self.right) + "))"
+                res += "(0)" if std_logic # Force std_logic if required.
+                return res
             end
             # Usual operators.
             # Generate the operator string.
@@ -1220,13 +1228,20 @@ module HDLRuby::Low
             # Is the operator arithmetic?
             if [:+, :-, :*, :/, :%].include?(self.operator) then
                 # Yes, type conversion my be required by VHDL standard.
-                return "#{Low2VHDL.unarith_cast(self)}(" +
+                res = "#{Low2VHDL.unarith_cast(self)}(" +
                     Low2VHDL.to_arith(self.left) + opr +
                     Low2VHDL.to_arith(self.right) + ")"
+                res += "(0)" if std_logic # Force std_logic if required.
+                return res
             else
-                # No, simply generate the binary operation.
-                return "(" + self.left.to_vhdl(level) + opr + 
-                    Low2VHDL.to_type(self.left.type,self.right) + ")"
+                # No, simply generate the binary operation
+                if std_logic then
+                    return "(" + self.left.to_vhdl(level,std_logic) + opr + 
+                        self.right.to_vhdl(level,std_logic) + ")"
+                else
+                    return "(" + self.left.to_vhdl(level) + opr + 
+                        Low2VHDL.to_type(self.left.type,self.right) + ")"
+                end
             end
         end
     end
@@ -1332,12 +1347,13 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        # +std_logic+ tells if std_logic computation is to be done.
+        def to_vhdl(level = 0, std_logic = false)
             if self.index.is_a?(Value) then
-                return self.ref.to_vhdl(level) + 
+                return self.ref.to_vhdl(level,std_logic) + 
                     "(#{self.index.to_vhdl(level)})"
             else
-                return self.ref.to_vhdl(level) +
+                return self.ref.to_vhdl(level,std_logic) +
                     "(to_integer(unsigned(#{self.index.to_vhdl(level)})))"
             end
         end
@@ -1348,7 +1364,8 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        # +std_logic+ tells if std_logic computation is to be done.
+        def to_vhdl(level = 0, std_logic = false)
             # Generates the direction.
             first = self.range.first
             first = first.content if first.is_a?(Value)
@@ -1356,9 +1373,22 @@ module HDLRuby::Low
             last = last.content if last.is_a?(Value)
             direction = first >= last ?  "downto " : " to "
             # Generate the reference.
-            return self.ref.to_vhdl(level) +
-                "((#{self.range.first.to_vhdl(level)}) " +
-                direction + "(#{self.range.last.to_vhdl(level)}))"
+            # Forced std_logic case.
+            if std_logic then
+                if first == last then
+                    # No range, single bit access for forcing std_logic.
+                    return self.ref.to_vhdl(level) +
+                        "(#{self.range.first.to_vhdl(level)})"
+                else
+                    return self.ref.to_vhdl(level) +
+                        "((#{self.range.first.to_vhdl(level)}) " +
+                        direction + "(#{self.range.last.to_vhdl(level)}))(0)"
+                end
+            else
+                return self.ref.to_vhdl(level) +
+                    "((#{self.range.first.to_vhdl(level)}) " +
+                    direction + "(#{self.range.last.to_vhdl(level)}))"
+            end
         end
     end
 
@@ -1367,7 +1397,8 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0)
+        # +std_logic+ tells if std_logic computation is to be done.
+        def to_vhdl(level = 0, std_logic = false)
             # The resulting string.
             res = ""
             # Generate the sub refs if any (case of struct).
@@ -1376,6 +1407,7 @@ module HDLRuby::Low
             end
             # Generates the current reference.
             res << Low2VHDL.vhdl_name(self.name)
+            res << "(0)" if std_logic # Force to std_logic if required
             # Returns the resulting string.
             return res
         end
