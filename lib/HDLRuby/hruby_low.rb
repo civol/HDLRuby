@@ -1325,6 +1325,9 @@ module HDLRuby::Low
 
         # Creates a new vector type named +name+ from +base+ type and with
         # +range+.
+        # NOTE: if +range+ is a positive integer it is converted to
+        # (range-1)..0, if it is a negative integer it is converted to
+        # 0..(-range-1)
         def initialize(name,base,range)
             # Initialize the type.
             super(name)
@@ -1339,7 +1342,7 @@ module HDLRuby::Low
             # Check and set the range.
             if range.respond_to?(:to_i) then
                 # Integer case: convert to 0..(range-1).
-                range = (range-1)..0
+                range = range > 0 ? (range-1)..0 : 0..(-range-1)
             elsif
                 # Other cases: assume there is a first and a last to create
                 # the range.
