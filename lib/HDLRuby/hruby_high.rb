@@ -221,15 +221,34 @@ module HDLRuby::High
     module Hmux
         # Creates an operator selecting from +select+ one of the +choices+.
         #
-        # NOTE: +choices+ can either be a list of arguments or an array.
-        # If +choices+ has only two entries
-        # (and it is not a hash), +value+ will be converted to a boolean.
+        # NOTE: * +choices+ can either be a list of arguments or an array.
+        #         If +choices+ has only two entries (and it is not a hash),
+        #         +value+ will be converted to a boolean.
+        #       * The type of the select is computed as the largest no
+        #         integer-constant choice. If only constant integer choices,
+        #         use the largest type of them.
         def mux(select,*choices)
             # Process the choices.
             choices = choices.flatten(1) if choices.size == 1
             choices.map! { |choice| choice.to_expr }
+            # Compute the type of the select as the largest no 
+            # integer-constant type.
+            # If only such constants, use the largest type of them.
+            type = choices.reduce(Bit) do |type,choice|
+                unless choice.is_a?(Value) && choice.type == Integer then
+                    type.width >= choice.type.width ? type : choice.type
+                else
+                    type
+                end
+            end
+            unless type then
+                type = choices.reduce(Bit) do |type,choice|
+                    type.width >= choice.type.width ? type : choice.type
+                end
+            end
             # Generate the select expression.
-            return Select.new(choices[0].type,"?",select.to_expr,*choices)
+            # return Select.new(choices[0].type,"?",select.to_expr,*choices)
+            return Select.new(type,"?",select.to_expr,*choices)
         end
     end
 
