@@ -20,7 +20,7 @@ system :mei8 do
     instance :prog do
         [7..0].input  :addr
         [7..0].output :instr
-        bit[7..0][2**8].constant content: 
+        bit[7..0][-256].constant content: 
             File.readlines("./prog.obj").map {|l| l.split[0].to_i(2)}
 
         instr <= content[addr]
