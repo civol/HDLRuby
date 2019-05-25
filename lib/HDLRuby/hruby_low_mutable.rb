@@ -409,6 +409,37 @@ module HDLRuby::Low
             @ref = ref
         end
 
+        # Replace node by corresponding replacement from +node2reassign+ that
+        # is a table whose entries are:
+        # +node+ the node to replace
+        # +rep+  the replacement of the node
+        # +ref+  the reference where to reassign the node.
+        def reassign_expressions!(node2reassign)
+            # Build the replacement table.
+            node2rep = node2reassign.map {|n,r| [n,r[0]] }.to_h
+
+            # Performs the replacement.
+            node2rep_done = {} # The performed replacements.
+            # Replace on the sons of the reference.
+            node2rep_done.merge!(self.ref.replace_expressions!(node2rep))
+            # Shall we replace the ref?
+            rep = node2rep[self.ref]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.ref
+                # node.set_parent!(nil)
+                self.set_ref!(rep)
+                node2rep_done[node] = rep
+            end
+
+            # Assign the replaced nodes.
+            node2rep_done.each do |node,rep|
+                reassign = node2reassign[node][1].clone
+                self.parent.
+                    add_connection(Connection.new(reassign,node.clone))
+            end
+        end
     end
 
 
@@ -463,6 +494,16 @@ module HDLRuby::Low
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Statement
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # By default: nothing to do.
+            return {}
+        end
     end
 
 
@@ -500,6 +541,42 @@ module HDLRuby::Low
             left.parent = self unless left.parent
             @right = ruby_block.call(@right)
             right.parent = self unless right.parent
+        end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = self.left.replace_expressions!(node2rep)
+            res.merge!(self.right.replace_expressions!(node2rep))
+            # Is there a replacement to do on the left?
+            rep = node2rep[self.left]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.left
+                # node.set_parent!(nil)
+                self.set_left!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            # Is there a replacement to do on the right?
+            rep = node2rep[self.right]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.right
+                # node.set_parent!(nil)
+                self.set_right!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+
+            return res
         end
     end
 
@@ -578,6 +655,33 @@ module HDLRuby::Low
             # end
             @no = ruby_block.call(@no) if @no
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = {}
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            # Is there a replacement to do on the condition?
+            rep = node2rep[self.condition]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.condition
+                # node.set_parent!(nil)
+                self.set_condition!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+
+            return res
+        end
     end
 
     ##
@@ -608,12 +712,39 @@ module HDLRuby::Low
             statement.parent = self
         end
 
-        # Maps on the children (including the condition).
+        # Maps on the children (including the match).
         def map_nodes!(&ruby_block)
             @match = ruby_block.call(@match)
             @match.parent = self unless @match.parent
             @statement = ruby_block.call(@statement)
             @statement.parent = self unless @statement.parent
+        end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = {}
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            # Is there a replacement to do on the value?
+            rep = node2rep[self.match]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.match
+                # node.set_parent!(nil)
+                self.set_match!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+
+            return res
         end
     end
 
@@ -663,6 +794,33 @@ module HDLRuby::Low
                 @default.parent = self unless @default.parent
             end
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = {}
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            # Is there a replacement to do on the value?
+            rep = node2rep[self.value]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.value
+                # node.set_parent!(nil)
+                self.set_value!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+
+            return res
+        end
     end
 
 
@@ -684,6 +842,30 @@ module HDLRuby::Low
         def set_unit!(unit)
             # Check and set the unit.
             @unit = unit.to_sym
+        end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = self.value.replace_expressions!
+            # Is there a replacement to do on the value?
+            rep = node2rep[self.value]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.value
+                # node.set_parent!(nil)
+                self.set_value!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+
+            return res
         end
     end
 
@@ -741,6 +923,21 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             @statement = ruby_block.call(@statement)
             @statement.parent = self unless @statement.parent
+        end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            res = {}
+            # Recurse on the children.
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            return res
         end
     end
 
@@ -834,6 +1031,53 @@ module HDLRuby::Low
             end
             statement
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            res = {}
+            # Recurse on the children.
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            return res
+        end
+
+        # Replace node by corresponding replacement from +node2reassign+ that
+        # is a table whose entries are:
+        # +node+ the node to replace
+        # +rep+  the replacement of the node
+        # +ref+  the reference where to reassign the node.
+        def reassign_expressions!(node2reassign)
+            # Build the replacement table.
+            node2rep = node2reassign.map {|n,r| [n,r[0]] }.to_h
+
+            # First recurse on the sub blocks.
+            self.each_block { |block| block.reassign_expressions!(node2rep) }
+
+            # Now work on the block.
+            # Replace on the statements.
+            self.map_statements! do |statement|
+                # Do the replacement
+                node2rep_done = statement.replace_expressions!(node2rep)
+                # Assign the replaced nodes in a new block.
+                unless node2rep_done.empty?
+                    blk = Block.new(:seq)
+                    node2rep_done.each do |node,rep|
+                        reassign = node2reassign[node][1].clone
+                        blk.add_statement(Transmit.new(reassign,node.clone))
+                    end
+                    blk.add_statement(statement)
+                    blk
+                else
+                    statement
+                end
+            end
+        end
     end
 
     # Describes a timed block.
@@ -870,6 +1114,40 @@ module HDLRuby::Low
     # transmission, it has a common structure. Therefore, it is described
     # as a subclass of a transmit.
     class Connection
+
+        # Replace node by corresponding replacement from +node2reassign+ that
+        # is a table whose entries are:
+        # +node+ the node to replace
+        # +rep+  the replacement of the node
+        # +ref+  the reference where to reassign the node.
+        def reassign_expressions!(node2reassign)
+            # Build the replacement table.
+            node2rep = node2reassign.map {|n,r| [n,r[0]] }.to_h
+
+            # Performs the replacements.
+            node2rep_done = {} # The performed replacements.
+            # Replace on the sons of the left.
+            node2rep_done.merge!(self.left.replace_expressions!(node2rep))
+            # Replace on the sons of the left.
+            node2rep_done.merge!(self.right.replace_expressions!(node2rep))
+            # Shall we replace the right?
+            rep = node2rep[self.right]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.right
+                # node.set_parent!(nil)
+                self.set_right!(rep)
+                node2rep_done[node] = rep
+            end
+
+            # Assign the replaced nodes.
+            node2rep_done.each do |node,rep|
+                reassign = node2reassign[node][1].clone
+                self.parent.add_connection(
+                    Connection.new(reassign,node.clone))
+            end
+        end
     end
 
 
@@ -896,6 +1174,17 @@ module HDLRuby::Low
         end
 
         alias_method :map_expressions!, :map_nodes!
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # By default, nothing to do.
+            return {}
+        end
     end
 
     
@@ -912,10 +1201,8 @@ module HDLRuby::Low
         end
     end
 
-    ##
-    # Describes a cast.
-    class Cast
-
+    # Module for mutable expressions with one child.
+    module OneChildMutable
         # Sets the child.
         def set_child!(child)
             # Check and set the child.
@@ -932,6 +1219,35 @@ module HDLRuby::Low
             @child = ruby_block.call(@child)
             @child.parent = self unless @child.parent
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the child.
+            res = self.child.replace_expressions!(node2rep)
+            # Is there a replacement to do?
+            rep = node2rep[self.child]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.child
+                # node.set_parent!(nil)
+                self.set_child!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            return res
+        end
+    end
+
+    ##
+    # Describes a cast.
+    class Cast
+        include OneChildMutable
     end
 
 
@@ -952,23 +1268,25 @@ module HDLRuby::Low
     ## 
     # Describes an unary operation.
     class Unary
+        include OneChildMutable
 
-        # Sets the child.
-        def set_child!(child)
-            # Check and set the child.
-            unless child.is_a?(Expression)
-                raise AnyError,"Invalid class for an expression: #{child.class}"
-            end
-            @child = child
-            # And set its parent.
-            child.parent = self
-        end
+        # Moved to OneChildMutable
+        # # Sets the child.
+        # def set_child!(child)
+        #     # Check and set the child.
+        #     unless child.is_a?(Expression)
+        #         raise AnyError,"Invalid class for an expression: #{child.class}"
+        #     end
+        #     @child = child
+        #     # And set its parent.
+        #     child.parent = self
+        # end
 
-        # Maps on the child.
-        def map_nodes!(&ruby_block)
-            @child = ruby_block.call(@child)
-            @child.parent = self unless @child.parent
-        end
+        # # Maps on the child.
+        # def map_nodes!(&ruby_block)
+        #     @child = ruby_block.call(@child)
+        #     @child.parent = self unless @child.parent
+        # end
     end
 
 
@@ -1004,6 +1322,42 @@ module HDLRuby::Low
             @left.parent = self unless @left.parent
             @right = ruby_block.call(@right)
             @right.parent = self unless @right.parent
+        end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = self.left.replace_expressions!(node2rep)
+            res.merge!(self.right.replace_expressions!(node2rep))
+            # Is there a replacement to do on the left?
+            rep = node2rep[self.left]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.left
+                # node.set_parent!(nil)
+                self.set_left!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            # Is there a replacement to do on the right?
+            rep = node2rep[self.right]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.right
+                # node.set_parent!(nil)
+                self.set_right!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+
+            return res
         end
     end
 
@@ -1052,12 +1406,90 @@ module HDLRuby::Low
             @select.parent = self unless @select.parent
             map_choices!(&ruby_block)
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = {}
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            # Is there a replacement to do on the select?
+            rep = node2rep[self.select]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.select
+                # node.set_parent!(nil)
+                self.set_select!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            # Is there a replacement of on a choice.
+            self.map_choices! do |choice|
+                rep = node2rep[choice]
+                if rep then
+                    # Yes, do it.
+                    rep = rep.clone
+                    node = choice
+                    # node.set_parent!(nil)
+                    # And register the replacement.
+                    res[node] = rep
+                    rep
+                else
+                    choice
+                end
+            end
+            return res
+        end
+    end
+
+    # Module adding some (but not all) mutable methods to Concat and
+    # RefConcat.
+    module MutableConcat
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the children.
+            res = {}
+            self.each_node do |node|
+                res.merge!(node.replace_expressions!(node2rep))
+            end
+            # Is there a replacement of on a sub node?
+            self.map_nodes! do |sub|
+                rep = node2rep[sub]
+                if rep then
+                    # Yes, do it.
+                    rep = rep.clone
+                    node = sub
+                    # node.set_parent!(nil)
+                    # And register the replacement.
+                    res[node] = rep
+                    rep
+                else
+                    sub
+                end
+            end
+            return res
+        end
     end
 
 
     ## 
     # Describes a concatenation expression.
     class Concat
+        include MutableConcat
+
         # Maps on the expression.
         def map_expressions!(&ruby_block)
             @expressions.map! do |expression|
@@ -1079,6 +1511,7 @@ module HDLRuby::Low
             end
             expression
         end
+
     end
 
 
@@ -1097,6 +1530,7 @@ module HDLRuby::Low
     ##
     # Describes concatenation reference.
     class RefConcat
+        include MutableConcat
 
         # Maps on the references.
         def map_refs!(&ruby_block)
@@ -1157,6 +1591,43 @@ module HDLRuby::Low
             @ref   = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the ref.
+            res = self.ref.replace_expressions!(node2rep)
+            # And and the index.
+            res = self.index.replace_expressions!(node2rep)
+            
+            # Is there a replacement to on the ref?
+            rep = node2rep[self.ref]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.ref
+                # node.set_parent!(nil)
+                self.set_ref!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            # Is there a replacement to on the index?
+            rep = node2rep[self.index]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.index
+                # node.set_parent!(nil)
+                self.set_index!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            return res
+        end
     end
 
 
@@ -1201,6 +1672,56 @@ module HDLRuby::Low
             @ref   = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
         end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the ref.
+            res = self.ref.replace_expressions!(node2rep)
+            # And and the range.
+            res = self.range.first.replace_expressions!(node2rep)
+            res = self.range.last.replace_expressions!(node2rep)
+            
+            # Is there a replacement to on the ref?
+            rep = node2rep[self.ref]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.ref
+                # node.set_parent!(nil)
+                self.set_ref!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            # Is there a replacement to on the range first?
+            range = self.range
+            rep = node2rep[range.first]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = range.first
+                # node.set_parent!(nil)
+                range.first = rep
+                # And register the replacement.
+                res[node] = rep
+            end
+            rep = node2rep[range.last]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = range.last
+                # node.set_parent!(nil)
+                range.last = rep
+                # And register the replacement.
+                res[node] = rep
+            end
+            self.set_range!(range)
+            return res
+        end
     end
 
 
@@ -1228,6 +1749,30 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             @ref = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
+        end
+
+        # Replaces sub expressions using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_expressions!(node2rep)
+            # First recurse on the ref.
+            res = self.ref.replace_expressions!(node2rep)
+            
+            # Is there a replacement to on the ref?
+            rep = node2rep[self.ref]
+            if rep then
+                # Yes, do it.
+                rep = rep.clone
+                node = self.ref
+                # node.set_parent!(nil)
+                self.set_ref!(rep)
+                # And register the replacement.
+                res[node] = rep
+            end
+            return res
         end
     end
 
