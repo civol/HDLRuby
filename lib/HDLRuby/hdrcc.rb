@@ -11,6 +11,7 @@ require 'HDLRuby/hruby_low_with_bool'
 require 'HDLRuby/hruby_low_bool2select'
 require 'HDLRuby/hruby_low_without_select'
 require 'HDLRuby/hruby_low_without_namespace'
+require 'HDLRuby/hruby_low_without_bit2vector'
 require 'HDLRuby/hruby_low_with_port'
 require 'HDLRuby/hruby_low_with_var'
 require 'HDLRuby/hruby_low_without_concat'
@@ -377,6 +378,7 @@ if __FILE__ == $0 then
             systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
             systemT.with_boolean!
             systemT.boolean_in_assign2select! unless $options[:alliance]
+            systemT.bit2vector2inner!         unless $options[:vhdl08] || $options[:alliance]
             systemT.select2case!              # if     $options[:alliance]
             systemT.break_concat_assigns!     # if     $options[:alliance]
             systemT.to_upper_space!
