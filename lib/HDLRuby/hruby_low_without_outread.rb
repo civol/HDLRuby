@@ -48,7 +48,7 @@ module HDLRuby::Low
                     end
                 end
             end
-            # puts "outreads=#{outreads}"
+            # puts "outreads=#{outreads.keys}"
 
             # Generate one inner signal per read output.
             out2inner = {}
@@ -56,6 +56,7 @@ module HDLRuby::Low
                 # Generate the inner variable.
                 out2inner[name] = 
                  self.scope.add_inner(SignalI.new(HDLRuby::uniq_name,node.type))
+                # puts "new inner=#{out2inner[name].name}"
             end
 
             # Replace the output by the corresponding inner in the
@@ -100,57 +101,6 @@ module HDLRuby::Low
             end
 
             return self
-        end
-    end
-
-    ## Extends the Statement class for remove read of output signal.
-    class Statement
-    end
-
-    ## Extends the Expression class for checking if it a boolean expression
-    #  or not.
-    class Expression
-        # Tells if the expression is boolean.
-        def boolean?
-            return false
-        end
-    end
-
-    ## Extends the Unary class for checking if it is a boolean expression
-    #  or not.
-    class Unary
-        # Tells if the expression is boolean.
-        def boolean?
-            return self.child.boolean?
-        end
-    end
-
-    ## Extends the Binary class for checking if it is a boolean expression
-    #  or not.
-    class Binary
-        # Tells if the expression is boolean.
-        def boolean?
-            case(self.operator)
-            when :==,:!=,:>,:<,:>=,:<= then
-                # Comparison, it is a boolean.
-                return true
-            when :&,:|,:^ then
-                # AND, OR or XOR, boolean if both subs are boolean.
-                return self.left.boolean? && self.right.boolean?
-            else
-                # Other cases: not boolean.
-                return false
-            end
-        end
-    end
-
-    ## Extends the Select class for checking if it a boolean epression
-    #  or not.
-    class Select
-        # Tells if the expression is boolean.
-        def boolean?
-            # Boolean if all the choices are boolean.
-            return !self.each_choice.any? {|c| !c.boolean? }
         end
     end
 
