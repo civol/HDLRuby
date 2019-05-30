@@ -19,13 +19,13 @@ __Warning__:
 __Usage__:
 
 ```
-hdrcc.rb [options] <input hdr file> [<output file>]
+hdrcc.rb [options] <input file> [<output file>]
 ```
 
 Where:
 
  * `options` is a list of options
- * `<input hdr file>` is the initial file to compile (mandatory)
+ * `<input file>` is the initial file to compile (mandatory)
  *  `<output file>` is the output file
 
 |  Options         |          |
@@ -47,34 +47,34 @@ __Notice__:
 
 __Examples__:
 
-* Compile system named `adder` from `adder.hdr` input file and generate `adder.yaml` low-level YAML description:
+* Compile system named `adder` from `adder.rb` input file and generate `adder.yaml` low-level YAML description:
 
 ```
-hdrcc.rb --yaml --top adder adder.hdr adder.yaml
+hdrcc.rb --yaml --top adder adder.rb adder.yaml
 ```
 
-* Compile `adder.hdr` input file and generate `adder.v` low-level Verilog HDL description:
+* Compile `adder.rb` input file and generate `adder.v` low-level Verilog HDL description:
 
 ```
-hdrcc.rb --verilog adder.hdr adder.v
+hdrcc.rb --verilog adder.rb adder.v
 ```
 
 * Check the validity of `adder.hrd` input file:
   
   ```
-  hdrcc.rb adder.hdr
+  hdrcc.rb adder.rb
   ```
   
-* Compile system `adder` whose bit width is generic from `adder_gen.hdr` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:
+* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:
 
 ```
-hdrcc -v -t adder --param 16 adder_gen.hdr
+hdrcc -v -t adder --param 16 adder_gen.rb
 ```
 
-* Compile system `multer` with inputs and output bit width is generic from `multer_gen.hdr` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`
+* Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`
 
 ```
-hdrcc -y -t multer -p 16,16,32 multer_gen.hdr multer_gen.yaml 
+hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer_gen.yaml 
 ```
 
 ## Using HDLRuby within Ruby
