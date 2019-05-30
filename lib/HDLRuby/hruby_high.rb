@@ -2865,7 +2865,7 @@ module HDLRuby::High
 
         # Casts as +type+.
         def as(type)
-            return Cast.new(type.to_type,self)
+            return Cast.new(type.to_type,self.to_expr)
         end
 
         # Gets the origin method for operation +op+.
