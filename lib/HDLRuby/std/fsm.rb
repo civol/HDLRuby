@@ -243,6 +243,10 @@ module HDLRuby::High::Std
                             end
                         end
                     end
+                    # By default set the next state to 0.
+                    helse do
+                        this.next_state_sig <= 0
+                    end
 
                     # Operative additional parts.
                     # Extra synchronous operative part.
