@@ -25,7 +25,7 @@ module HDLRuby::Low
     
     ##
     # The boolean type leaf.
-    class << ( Boolean = Type.new(:bit) )
+    class << ( Boolean = Type.new(:boolean) )
         include LLeaf
         # Tells if the type fixed point.
         def fixed?

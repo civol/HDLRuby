@@ -176,14 +176,20 @@ module HDLRuby::Low
             # Recurse on the sub nodes.
             nleft = self.left.boolean_in_assign2select
             nright = self.right.boolean_in_assign2select
-            # Is it a comparison.
-            if [:==,:>,:<,:>=,:<=].include?(self.operator) then
+            # Is it a comparison but the parent is not a boolean?
+            # or a transmit to a boolean.
+            if [:==,:>,:<,:>=,:<=].include?(self.operator) &&
+              ( (self.parent.is_a?(Expression) && !self.parent.type.boolean?) ||
+                (self.parent.is_a?(Transmit) && !self.parent.left.type.boolean?)) then
                 # Yes, create a select.
                 nself = Binary.new(self.type,self.operator,nleft,nright)
-                return Select.new(self.type, "?", nself,
+                # return Select.new(self.type, "?", nself,
+                return Select.new(HDLRuby::Low::Bit, "?", nself,
                         # Value.new(self.type,1), Value.new(self.type,0) )
-                        Value.new(HDLRuby::Low::Boolean,1),
-                        Value.new(HDLRuby::Low::Boolean,0) )
+                        Value.new(HDLRuby::Low::Bit,1), 
+                        Value.new(HDLRuby::Low::Bit,0) )
+                        # Value.new(HDLRuby::Low::Boolean,1),
+                        # Value.new(HDLRuby::Low::Boolean,0) )
             else
                 # No return it as is.
                 self.set_left!(nleft)

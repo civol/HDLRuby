@@ -16,7 +16,7 @@ module HDLRuby::Low
 
     ## Extends the SystemT class for removing bit to vector conversions.
     class SystemT
-        # Replace biy to vector conversions by assignment to on bit of
+        # Replace bit to vector conversions by assignment to on bit of
         # an intermediate inner vector.
         #
         # NOTE: the result is the same systemT.

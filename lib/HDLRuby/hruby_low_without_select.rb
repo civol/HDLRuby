@@ -21,6 +21,7 @@ module HDLRuby::Low
         def self.selects2block(selects) 
             blk = Block.new(:seq)
             selects.each do |select,sig|
+                # puts "for select=#{select.to_high} with sig=#{sig.name}(#{sig.type.name})"
                 # Create the case.
                 cas = Case.new(select.select.clone)
                 # Get the type for the matches.
@@ -42,6 +43,7 @@ module HDLRuby::Low
                         cas.default = tb
                     end
                 end
+                # puts "Resulting case: #{cas.to_high}"
                 # Adds the case to the block.
                 blk.add_statement(cas)
             end

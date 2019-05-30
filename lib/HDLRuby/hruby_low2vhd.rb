@@ -251,7 +251,7 @@ module HDLRuby::Low
             elsif expr.is_a?(Value) then
                 # puts "type=#{type}, type.range=#{type.range}"
                 # Value width must be adjusted.
-                return expr.to_vhdl(0,type.width)
+                return expr.to_vhdl(0,false,type.width)
             elsif expr.is_a?(Concat) then
                 return expr.to_vhdl(type)
             elsif expr.type.width < type.width then
@@ -1077,7 +1077,8 @@ module HDLRuby::Low
         # Generates the text of the equivalent VHDL with
         # +width+ bits.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(level = 0,width = nil)
+        def to_vhdl(level = 0, std_logic = false, width = nil)
+            raise "Invalid std_logic argument: #{std_logic}." unless std_logic == true || std_logic == false
             if self.type.boolean? then
                 # Boolean case
                 if self.content.is_a?(HDLRuby::BitString)
@@ -1093,8 +1094,8 @@ module HDLRuby::Low
                 return self.to_i.to_s.upcase
             end
             # No, generates as a bit string.
-            # puts "width=#{width}"
             width = self.type.width unless width
+            # puts "self.type=#{self.type} width=#{width}"
             case self.content
             # when Numeric
             #     return self.content.to_s
@@ -1119,15 +1120,15 @@ module HDLRuby::Low
                 when :bit
                     return "std_logic_vector(resize(unsigned(" + 
                         self.child.to_vhdl(level) + ")," +
-                        (type.range.first-type.range.last).abs.to_s + "))"
+                        (type.range.first-type.range.last+1).abs.to_s + "))"
                 when :signed
                     return "resize(signed(" + 
                         self.child.to_vhdl(level) + ")," +
-                        (type.range.first-type.range.last).abs.to_s + ")"
+                        (type.range.first-type.range.last+1).abs.to_s + ")"
                 when :unsigned
                     return "resize(unsigned(" + 
                         self.child.to_vhdl(level) + ")," +
-                        (type.range.first-type.range.last).abs.to_s + ")"
+                        (type.range.first-type.range.last+1).abs.to_s + ")"
                 else
                     raise "Intenal error: convertion to #{type.class} not supported yet for VHDL conversion."
                 end
@@ -1233,6 +1234,11 @@ module HDLRuby::Low
                     Low2VHDL.to_arith(self.right) + ")"
                 res += "(0)" if std_logic # Force std_logic if required.
                 return res
+            # Is it a comparison ?
+            elsif [:>, :<, :>=, :<=, :==, :!=].include?(self.operator) then
+                # Generate comparison operation
+                return "(" + self.left.to_vhdl(level) + opr +
+                    Low2VHDL.to_type(self.left.type,self.right) + ")"
             else
                 # No, simply generate the binary operation
                 if std_logic then
@@ -1253,7 +1259,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         #
         # NOTE: assumes the existance of the mux function.
-        def to_vhdl(level = 0)
+        def to_vhdl(level = 0, std_logic = false)
             # The resulting string.
             res = ""
             # The number of arguments.
