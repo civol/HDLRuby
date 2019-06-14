@@ -186,10 +186,10 @@ module HDLRuby::Low
                 # return Select.new(self.type, "?", nself,
                 return Select.new(HDLRuby::Low::Bit, "?", nself,
                         # Value.new(self.type,1), Value.new(self.type,0) )
-                        Value.new(HDLRuby::Low::Bit,1), 
-                        Value.new(HDLRuby::Low::Bit,0) )
-                        # Value.new(HDLRuby::Low::Boolean,1),
-                        # Value.new(HDLRuby::Low::Boolean,0) )
+                        Value.new(HDLRuby::Low::Bit,0), 
+                        Value.new(HDLRuby::Low::Bit,1) )
+                        # Value.new(HDLRuby::Low::Boolean,0),
+                        # Value.new(HDLRuby::Low::Boolean,1) )
             else
                 # No return it as is.
                 self.set_left!(nleft)
