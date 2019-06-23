@@ -15,37 +15,41 @@ system :mei8 do
     input      :ack
     # Interrupts.
     input :iq0, :iq1
+    # The signals for controlling the io unit.
+    inner :io_req, :io_rwb, :io_done # Request, read/not write, done.
+    inner :io_r_done                 # Read done.
+    [8].inner :io_out,:io_in         # The write and read inner buses.
+    [8].inner :data                  # The read buffer.
 
     # The rom containing the program.
     instance :prog do
-        [7..0].input  :addr
-        [7..0].output :instr
-        bit[7..0][-256].constant content: 
+        [7..0].input  :addr          # The address bus
+        [7..0].output :instr         # The instruction bus
+        bit[7..0][-256].constant content: # The content of the memory
             File.readlines("./prog.obj").map {|l| l.split[0].to_i(2)}
-
-        instr <= content[addr]
+        instr <= content[addr]       # The access procedure
     end
 
     # The registers.
-    [8].inner :a, :b, :c, :d, :e, :f, :g, :h # General purpose registers.
+    [8].inner :a, :b, :c, :d, :e, :f, :g, :h # General purpose registers
     inner     :zf, :cf, :sf, :vf             # Flags
-    [8].inner :ir                            # Instruction register.
-    [8].inner :pc                            # Program counter.
-    [8].inner :s                             # Status register.
+    [8].inner :ir                            # Instruction register
+    [8].inner :pc                            # Program counter
+    [8].inner :s                             # Status register
 
     # The ALU 
     instance :alu do
-        [4].input  :opr
-        [8].input  :x,:y
-        [8].output :z
-        output :zf, :cf, :sf, :vf
+        [4].input  :opr                      # The operator bus
+        [8].input  :x,:y                     # The input buses
+        [8].output :z                        # The output bus
+        output :zf, :cf, :sf, :vf            # The flag signals
 
         # The only adder instance.
         instance :add do
-            [8].input :x,:y
-            input :cin
-            [9].output :z
-
+            [8].input :x,:y                  # The input buses
+            input :cin                       # The input carry
+            [9].output :z                    # The output bus (including
+                                             # the output carry)
             z <= x.as([9])+y+cin
         end
 
@@ -90,8 +94,8 @@ system :mei8 do
     # The decoder.
     par do
         # By default, no branch, no load, no store, write to gpr but not to
-        # flags and destination is a.
-        branch <= 0; ld <= 0; st <= 0; wr <= 1; wf <= 0; dst <= 0
+        # flags and destination is a and output value is a
+        branch <= 0; ld <= 0; st <= 0; wr <= 1; wf <= 0; dst <= 0; io_out <= a
         # And transfer 0.
         alu.(15,0,0)
         # Compute the possible sources
@@ -106,33 +110,36 @@ system :mei8 do
             decoder(ir) do
                 # Format 0
                 entry("00000000") { wr <= 0 }             # nop
-                entry("00sssddd") { 
-                     hif (s == d) { alu.(15,0,0) }        # mov 0,d
-                     helse        { alu.(7,src0) }        # mov s,d
-                                    dst <= ir[2..0] }
+                entry("00xxxyyy") { 
+                     hif (x == y) { alu.(15,0,0) }        # mov 0,y
+                     helse        { alu.(7,src0) }        # mov x,y
+                                    dst <= y }
                 # Format 1
-                entry("01ooosss") { wf <= 1
-                                    alu.(o,a,src1) }      # alu s
+                entry("01oooyyy") { wf <= 1
+                                    # Destination is also y in case of inc/dec
+                                    hif (ir[6..4] == _101) { dst <= y }
+                                    alu.(o,a,src1) }      # binary alu
                 # Format 1 extended.
-                entry("10000sss") { wr <= 0; wf <= 1
-                                    alu.(1,src1) }        # cp s
-                entry("10001ddd") { ld <= 1; dst <= d }   # ld s
-                entry("10010sss") { st <= 1; wr <= 0 }    # st s
-                entry("10011sss") { branch <= 1
-                                    alu.(7,src1) }        # jr s
+                entry("10000yyy") { wr <= 0; wf <= 1
+                                    alu.(1,a,src1) }      # cp y
+                entry("10001yyy") { ld <= 1; dst <= y }   # ld y
+                entry("10010yyy") { st <= 1; wr <= 0      # st y
+                    [a,b,c,d,e,f,g,h].hcase(y) {|r| io_out <= r } }
+                entry("10011yyy") { branch <= 1           # jr y, must inc y
+                                    alu.(2,src1) }        # since pc-1 is used
                 # Format 2
                 entry("1010iiii") { alu.(7,[_0000,i]) }   # movl i
                 entry("1011iiii") { alu.(7,[i,a[3..0]]) } # movh i
                 # Format 4
-                entry("11110110") { branch <= 1
-                                    alu.(7,0xFC)  }       # trap
-                entry("111110ds") { st <= s; ld <= ~s
-                                    alu.([_1,d],g)
-                                    dst <= 6 }            # ++--ld / ++--st
+                entry("11110110") { branch <= 1           # trap
+                                    alu.(7,0xFC)  }       
+                entry("11110ooo") { wf <= 1; alu.([_1,o],a) } # unary alu
+                entry("111110os") { st <= s; ld <= ~s     # ++--ld / ++--st
+                                    alu.([_1,o],g); dst <= 6 }
                 entry("1111110i") { branch <= i
                                     st <= ~i; ld <= i
                                     alu.([_1,~i],h)
-                                    dst <= 7 }            # push / pop pc
+                                    dst <= 7; io_out <= pc } # push / pop pc
                 # Format 3
                 entry("11cccsii") { branch <= cc; wr <= 0
                                     alu.(0,pc,[s]*6+[i]) }# br c i
@@ -140,12 +147,6 @@ system :mei8 do
             end
         end
     end
-
-    # The signals for controlling the io unit.
-    inner :io_req, :io_rwb, :io_done # Request, read/not write, done.
-    inner :io_r_done                 # Read done.
-    [8].inner :io_out,:io_in         # The write and read inner buses.
-    [8].inner :data                  # The read buffer.
 
     # The io unit.
     fsm(clk.posedge,rst,:async) do
@@ -201,7 +202,10 @@ system :mei8 do
         # Write memory read result to a register if any.
         helsif (io_r_done) do
             hif(branch) { npc <= data; nbr <= 1 }   # pop case  
-            helse       { a <= data }               # ld case
+            helsif(ir[7..3] == _10001) do           # ld case
+                [a,b,c,d,e,f,g,h].hcase(dst) {|r| r <= data }
+            end
+            helse { a <= data }                     # ld++-- case
         end
     end
 
@@ -211,8 +215,7 @@ system :mei8 do
 
     # The main FSM
     fsm(clk.posedge,rst,:async) do
-        default      { init <= 0; calc <= 0
-                       io_req <= 0; io_rwb <= 1; io_out <= a
+        default      { init <= 0; calc <= 0; io_req <= 0; io_rwb <= 1
                        iq_calc <= 0 }
         reset(:sync) { pc <= 0; ir <= 0; iq_chk <= 0 }        # Hard reset
         # Soft reset state.
@@ -241,7 +244,7 @@ system :mei8 do
         # States handling the interrupts.
         # Push PC
         state(:iq_s) { iq_calc <= 1; 
-                       io_req <= 1; io_rwb <= 0; io_out <= pc 
+                       io_req <= 1; io_rwb <= 0; # io_out <= pc 
                        goto(io_done, :iq_d, :iq_s) }
         # Jump to interrupt handler.
         state(:iq_d) { goto(:fe) }
