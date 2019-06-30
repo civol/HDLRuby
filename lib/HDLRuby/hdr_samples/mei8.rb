@@ -89,7 +89,7 @@ system :mei8 do
     inner :cc      # Tells if a branch condition is met.
     inner :wr, :wf # Tells the computation result is to write to a gpr/flag.
     inner :ld, :st # Tells if the instruction is a load/store.
-    inner :iq_calc # Tells some the interrupt unit is preempting calculation.
+    inner :iq_calc # Tells if the interrupt unit is preempting calculation.
 
     # The decoder.
     par do
