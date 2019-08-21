@@ -3877,6 +3877,9 @@ module HDLRuby::High
             @return_value
         end
 
+        # Opens the block.
+        alias_method :open, :build
+
         # Converts to a new reference.
         def to_ref
             return RefObject.new(this,self)
@@ -4277,6 +4280,10 @@ module HDLRuby::High
             # Unset the current behavior
             @@cur_behavior = nil
         end
+
+        # Sets an event to the behavior.
+        # NOTE: currently actually adds an event if there are already some!
+        alias_method :at, :add_event
 
         # Converts the time behavior to HDLRuby::Low.
         def to_low

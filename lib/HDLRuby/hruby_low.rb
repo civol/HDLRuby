@@ -225,11 +225,22 @@ module HDLRuby::Low
             @inouts.each(&ruby_block)
         end
 
+        # Iterates over all the signals of the interface of the 
+        # system.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal) unless ruby_block
+            # A ruby block? Apply it on each signal instance.
+            @interface.each(&ruby_block)
+        end
+
         # Iterates over all the signals of the system including its
         # scope (input, output, inout, inner).
         #
         # Returns an enumerator if no ruby block is given.
-        def each_signal(&ruby_block)
+        def each_signal_all(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal) unless ruby_block
             # A ruby block? Apply it on each signal instance.
@@ -244,7 +255,7 @@ module HDLRuby::Low
             return to_enum(:each_signal_deep) unless ruby_block
             # A ruby block?
             # First iterate over the current system type's signals.
-            self.each_signal(&ruby_block)
+            self.each_signal_all(&ruby_block)
             # Then apply on the behaviors (since in HDLRuby:High, blocks can
             # include signals).
             @scope.each_signal_deep(&ruby_block)
