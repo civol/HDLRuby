@@ -80,10 +80,10 @@ class Handshaker
         write_ready = @write_ready 
         HDLRuby::High.cur_system.open do
             obuffer = type.output(HDLRuby.uniq_name)
-            oread_valid  = input(HDLRuby.uniq_name)
-            oread_ready  = input(HDLRuby.uniq_name)
-            owrite_valid = output(HDLRuby.uniq_name)
-            owrite_ready = output(HDLRuby.uniq_name)
+            oread_valid  = output(HDLRuby.uniq_name)
+            oread_ready  = output(HDLRuby.uniq_name)
+            owrite_valid = input(HDLRuby.uniq_name)
+            owrite_ready = input(HDLRuby.uniq_name)
         end
         @obuffer = obuffer
         @oread_valid   = oread_valid
@@ -107,16 +107,16 @@ class Handshaker
         iwrite_ready = @iwrite_ready
         HDLRuby::High.cur_block.open do
             hif(iread_valid) do
-                owrite_valid = 0
-                owrite_ready = 0
+                iwrite_valid <= 0
+                iwrite_ready <= 0
                 hif(iread_ready) do
                     target <= ibuffer
-                    owrite_valid = 1
+                    iwrite_valid <= 1
                     blk.call if blk
                 end
             end
             helse do
-                owrite_ready = 1
+                iwrite_ready <= 1
             end
         end
     end
@@ -130,16 +130,16 @@ class Handshaker
         owrite_ready = @owrite_ready
         HDLRuby::High.cur_block.open do
             hif(owrite_valid) do
-                iread_valid = 0
-                iread_ready = 0
+                oread_valid <= 0
+                oread_ready <= 0
                 hif(owrite_ready) do
                     obuffer <= target
-                    iread_valid = 1
+                    oread_valid <= 1
                     blk.call if blk
                 end
             end 
             helse do
-                iread_ready = 1
+                oread_ready <= 1
             end
         end
     end
@@ -181,7 +181,7 @@ end
 system :hs_test do
     input :clk,:rst
 
-    # Declares the handhaker
+    # Declares the handshaker
     hs = Handshaker.new([8])
 
     # Sets the reset.
@@ -192,6 +192,7 @@ system :hs_test do
     # Instantiate the consummer.
     hs_consummer(hs).(:consummer).(clk,*hs)
 end
+
 
 
 # Idea: core / container / ?
