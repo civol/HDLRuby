@@ -185,8 +185,8 @@ module HDLRuby::High
         # NOTE: it is ok to use the private namespace because the scope
         # can only be accessed if it is available from its systemT.
         def method_missing(m, *args, &ruby_block)
+            # puts "looking for #{m} in #{self}"
             # Is the scope currently opened?
-            # puts "self.class=#{self.class}"
             # if High.space_top.user_deep?(self) then
             if High.space_index(self.namespace) then
                 # Yes, use the stack of namespaces.
@@ -4497,11 +4497,19 @@ module HDLRuby::High
     # NOTE: +level+ allows to get an upper block of the currently enclosing
     #       block.
     def self.cur_block(level = 0)
-        if Namespaces[-1-level].user.is_a?(Block)
-            return Namespaces[-1-level].user
-        else
+        # if Namespaces[-1-level].user.is_a?(Block)
+        #     return Namespaces[-1-level].user
+        # else
+        #     raise AnyError, 
+        #           "Not within a block: #{Namespaces[-1-level].user.class}"
+        # end
+        if Namespaces[-1-level].user.is_a?(Scope) then
             raise AnyError, 
                   "Not within a block: #{Namespaces[-1-level].user.class}"
+        elsif Namespaces[-1-level].user.is_a?(Block) then
+            return Namespaces[-1-level].user
+        else
+            return cur_block(level+1)
         end
     end
 
