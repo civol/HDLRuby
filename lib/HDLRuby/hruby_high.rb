@@ -151,16 +151,6 @@ module HDLRuby::High
                 # the space.
                 begin
                     High.space_call(m,*args,&ruby_block)
-                # Not required any longer and messes with the error messages.
-                # rescue
-                #     # Not in the private namespace, maybe in the public one.
-                #     if self.respond_to?(:public_namespace) and
-                #     High.space_index(self.public_namespace) then
-                #         High.space_call(m,*args,&ruby_block)
-                #     else
-                #         # No, this is a true error.
-                #         raise NotDefinedError, "undefined HDLRuby construct, local variable or method `#{m}'."
-                #     end
                 end
             elsif self.respond_to?(:public_namespace) and
                   High.space_index(self.public_namespace) then
@@ -201,17 +191,6 @@ module HDLRuby::High
                     return RefObject.new(self.to_ref,res)
                 end
             end
-
-            # puts "method_missing in scope=#{@name}(#{self}) with m=#{m}"
-            # puts "self.namespace=#{self.namespace}" 
-            # # puts "namespace methods = #{self.namespace.methods}"
-            # if self.namespace.respond_to?(m) then
-            #     puts "Found"
-            #     self.namespace.send(m,*args,&ruby_block)
-            # else
-            #     puts "NOT Found"
-            #     h_missing(m,*args,&ruby_block)
-            # end
         end
     end
 
@@ -247,7 +226,6 @@ module HDLRuby::High
                 end
             end
             # Generate the select expression.
-            # return Select.new(choices[0].type,"?",select.to_expr,*choices)
             return Select.new(type,"?",select.to_expr,*choices)
         end
     end
@@ -261,52 +239,6 @@ module HDLRuby::High
         # Only adds the methods if not present.
         def self.included(klass)
             klass.class_eval do
-                # unless instance_methods.include?(:add_inner) then
-                #     # Adds inner signal +signal+.
-                #     def add_inner(signal)
-                #         # Checks and add the signal.
-                #         unless signal.is_a?(SignalI)
-                #             raise AnyError,
-                #                   "Invalid class for a signal instance: #{signal.class}"
-                #         end
-                #         if @inners.has_key?(signal.name) then
-                #             raise AnyError,
-                #                   "SignalI #{signal.name} already present."
-                #         end
-                #         @inners[signal.name] = signal
-                #     end
-
-                #     # Iterates over the inner signals.
-                #     #
-                #     # Returns an enumerator if no ruby block is given.
-                #     def each_inner(&ruby_block)
-                #         # No ruby block? Return an enumerator.
-                #         return to_enum(:each_inner) unless ruby_block
-                #         # A block? Apply it on each inner signal instance.
-                #         @inners.each_value(&ruby_block)
-                #     end
-                #     alias_method :each_signal, :each_inner
-
-                #     ## Gets an inner signal by +name+.
-                #     def get_inner(name)
-                #         return @inners[name]
-                #     end
-                #     alias_method :get_signal, :get_inner
-
-                #     # Iterates over all the signals of the block and its sub block's ones.
-                #     def each_signal_deep(&ruby_block)
-                #         # No ruby block? Return an enumerator.
-                #         return to_enum(:each_signal_deep) unless ruby_block
-                #         # A block?
-                #         # First, apply on the signals of the block.
-                #         self.each_signal(&ruby_block)
-                #         # Then apply on each sub block. 
-                #         self.each_block_deep do |block|
-                #             block.each_signal_deep(&ruby_block)
-                #         end
-                #     end
-                # end
-
                 unless instance_methods.include?(:make_inners) then
                     # Creates and adds a set of inners typed +type+ from a
                     # list of +names+.
@@ -329,10 +261,6 @@ module HDLRuby::High
                                         SignalI.new(name,type,:inner,value))
                                 end
                             else
-                                # Deactivated because conflict with parent.
-                                # signal = name.clone
-                                # signal.dir = :inner
-                                # self.add_inner(signal)
                                 raise AnyError,
                                       "Invalid class for a name: #{name.class}"
                             end
@@ -399,10 +327,7 @@ module HDLRuby::High
         # The proc +ruby_block+ is executed when instantiating the system.
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
-            # super(name,Scope.new())
             super(name,Scope.new(name,self))
-            # # Save the Location for debugging information
-            # @location = caller_locations
 
             # Initialize the set of extensions to transmit to the instances'
             # eigen class
@@ -420,7 +345,6 @@ module HDLRuby::High
             end
             @to_includes = mixins
             # Prepare the instantiation methods
-            # make_instantiater(name,SystemI,:add_systemI,&ruby_block)
             make_instantiater(name,SystemI,&ruby_block)
         end
 
@@ -501,57 +425,6 @@ module HDLRuby::High
             return res
         end
 
-        # # Creates and adds a set of inners typed +type+ from a list of +names+.
-        # #
-        # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_inners(type, *names)
-        #     res = nil
-        #     names.each do |name|
-        #         if name.respond_to?(:to_sym) then
-        #             res = self.add_inner(SignalI.new(name,type,:inner))
-        #         else
-        #             raise AnyError, "Invalid class for a name: #{name.class}"
-        #         end
-        #     end
-        #     return res
-        # end
-
-        # # Adds a +name+ to export.
-        # #
-        # # NOTE: if the name do not corresponds to any inner signal nor
-        # # instance, raise an exception.
-        # def add_export(name)
-        #     # Check the name.
-        #     name = name.to_sym
-        #     # Look for construct to make public.
-        #     # Maybe it is an inner signals.
-        #     inner = self.get_inner(name)
-        #     if inner then
-        #         # Yes set it as export.
-        #         @exports[name] = inner
-        #         return
-        #     end
-        #     # No, maybe it is an instance.
-        #     instance = self.get_systemI(name)
-        #     if instance then
-        #         # Yes, set it as export.
-        #         @exports[name] = instance
-        #         return
-        #     end
-        #     # No, error.
-        #     raise AnyError, NameError.new("Invalid name for export: #{name}")
-        # end
-
-        # # Iterates over the exported constructs.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each_export(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_export) unless ruby_block
-        #     # A block? Apply it on each input signal instance.
-        #     @exports.each_value(&ruby_block)
-        # end
-        
         # Iterates over the all interface signals, i.e, also the ones of
         # the included systems.
         #
@@ -600,8 +473,6 @@ module HDLRuby::High
         # NOTE: actually executes +ruby_block+ in the context of the scope
         #       of the system.
         def open(&ruby_block)
-            # self.scope.open(&ruby_block)
-            #
             # Are we instantiating current system?
             if (High.space_include?(self.scope.namespace)) then
                 # Yes, execute the ruby block in the top context of the
@@ -614,27 +485,9 @@ module HDLRuby::High
                 @instance_procs << ruby_block
             end
         end
-
-        # # The proc used for instantiating the system type.
-        # attr_reader :instance_proc
         
         # The instantiation target class.
         attr_reader :instance_class
-
-        # # The instance owning the system if it is an eigen system
-        # attr_reader :owner
-
-        # # Sets the +owner+ deeply.
-        # #
-        # # Note: 
-        # # - will make the system eigen
-        # # - sets the includes owner too
-        # def owner=(owner)
-        #     @owner = owner
-        #     puts "set owner to #{self} with #{owner}"
-        #     self.scope.each_included {|included| included.owner = owner }
-        #     return owner
-        # end
 
         # Iterates over the instance procedures.
         #
@@ -696,44 +549,12 @@ module HDLRuby::High
         def instantiate(i_name,*args)
             # Create the eigen type.
             eigen = self.expand(High.names_create(i_name.to_s + ":T"), *args)
-            # Moved to expand
-            # eigen = self.class.new(High.names_create(i_name.to_s + ":T"))
-
-            # # Include the mixin systems given when declaring the system.
-            # @to_includes.each { |system| eigen.scope.include(system) }
-
-            # # Fills the scope of the eigen class.
-            # eigen.scope.build_top(self.scope,*args)
-            # # puts "eigen scope=#{eigen.scope}"
-
-            # Moved after the instance creation
-            # # Fill the public namespace
-            # space = eigen.public_namespace
-            # # Interface signals
-            # # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
-            # # puts "eigen interface=#{eigen.each_signal.to_a.size}"
-            # eigen.each_signal do |signal|
-            #     # puts "eigen signal=#{signal.name}"    
-            #     # space.send(:define_singleton_method,signal.name) { signal }
-            #     space.send(:define_singleton_method,signal.name) do
-            #         RefObject.new(eigen.owner.to_ref,signal)
-            #     end
-            # end
-            # # Exported objects
-            # eigen.each_export do |export|
-            #     # space.send(:define_singleton_method,export.name) { export }
-            #     space.send(:define_singleton_method,export.name) do
-            #         RefObject.new(eigen.owner.to_ref,export)
-            #     end
-            # end
 
             # Create the instance and sets its eigen system to +eigen+.
             instance = @instance_class.new(i_name,eigen)
             eigen.eigenize(instance)
             # puts "instance interface=#{instance.each_signal.to_a.size}"
             # puts "eigen interface=#{eigen.each_signal.to_a.size}"
-            # Link it to its eigen system
-            # eigen.owner = instance
 
             # Extend the instance.
             instance.eigen_extend(@singleton_instanceO)
@@ -787,9 +608,6 @@ module HDLRuby::High
                 i_names.each do |i_name|
                     # Instantiate.
                     instance = obj.instantiate(i_name,*args)
-                    # Moved to instantiate
-                    # # Add the instance.
-                    # High.top_user.send(add_instance,instance)
                 end
                 # # Return the last instance.
                 instance
@@ -827,125 +645,6 @@ module HDLRuby::High
             self.make_inouts(bit,*names)
         end
 
-        # # Declares high-level bit inner signals named +names+.
-        # def inner(*names)
-        #     self.make_inners(bit,*names)
-        # end
-
-        # # Declares a high-level behavior activated on a list of +events+, and
-        # # built by executing +ruby_block+.
-        # def behavior(*events, &ruby_block)
-        #     # Preprocess the events.
-        #     events.map! do |event|
-        #         event.to_event
-        #     end
-        #     # Create and add the resulting behavior.
-        #     self.add_behavior(Behavior.new(*events,&ruby_block))
-        # end
-
-        # # Declares a high-level timed behavior built by executing +ruby_block+.
-        # def timed(&ruby_block)
-        #     # Create and add the resulting behavior.
-        #     self.add_behavior(TimeBehavior.new(&ruby_block))
-        # end
-
-
-        # # Creates a new parallel block built from +ruby_block+.
-        # #
-        # # This methods first creates a new behavior to put the block in.
-        # def par(&ruby_block)
-        #     self.behavior do
-        #         par(&ruby_block)
-        #     end
-        # end
-
-        # # Creates a new sequential block built from +ruby_block+.
-        # #
-        # # This methods first creates a new behavior to put the block in.
-        # def seq(&ruby_block)
-        #     self.behavior do
-        #         seq(&ruby_block)
-        #     end
-        # end
-
-        # # Statements automatically enclosed in a behavior.
-        # 
-        # # Creates a new if statement with a +condition+ that when met lead
-        # # to the execution of the block in +mode+ generated by the +ruby_block+.
-        # #
-        # # NOTE:
-        # #  * the else part is defined through the helse method.
-        # #  * a behavior is created to enclose the hif.
-        # def hif(condition, mode = nil, &ruby_block)
-        #     self.behavior do
-        #         hif(condition,mode,&ruby_block)
-        #     end
-        # end
-
-        # # Sets the block executed when the condition is not met to the block
-        # # in +mode+ generated by the execution of +ruby_block+.
-        # #
-        # # Can only be used once.
-        # #
-        # # NOTE: added to the hif of the last behavior.
-        # def helse(mode = nil, &ruby_block)
-        #     # There is a ruby_block: the helse is assumed to be with
-        #     # the last statement of the last behavior.
-        #     statement = self.last_behavior.last_statement
-        #     # Completes the hif or the hcase statement.
-        #     unless statement.is_a?(If) or statement.is_a?(Case) then
-        #         raise AnyError, "Error: helse statement without hif nor hcase (#{statement.class})."
-        #     end
-        #     statement.helse(mode, &ruby_block)
-        # end
-
-        # # Sets the condition check when the condition is not met to the block,
-        # # with a +condition+ that when met lead
-        # # to the execution of the block in +mode+ generated by the +ruby_block+.
-        # def helsif(condition, mode = nil, &ruby_block)
-        #     # There is a ruby_block: the helse is assumed to be with
-        #     # the last statement of the last behavior.
-        #     statement = @statements.last
-        #     # Completes the hif statement.
-        #     unless statement.is_a?(If) then
-        #         raise AnyError, "Error: helsif statement without hif (#{statement.class})."
-        #     end
-        #     statement.helsif(condition, mode, &ruby_block)
-        # end
-
-        # # Creates a new case statement with a +value+ used for deciding which
-        # # block to execute.
-        # #
-        # # NOTE: 
-        # #  * the when part is defined through the hwhen method.
-        # #  * a new behavior is created to enclose the hcase.
-        # def hcase(value)
-        #     self.behavior do
-        #         hcase(condition,value)
-        #     end
-        # end
-
-        # # Sets the block of a case structure executed when the +match+ is met
-        # # to the block in +mode+ generated by the execution of +ruby_block+.
-        # #
-        # # Can only be used once.
-        # def hwhen(match, mode = nil, &ruby_block)
-        #     # There is a ruby_block: the helse is assumed to be with
-        #     # the last statement of the last behavior.
-        #     statement = @statements.last
-        #     # Completes the hcase statement.
-        #     unless statement.is_a?(Case) then
-        #         raise AnyError, "Error: hwhen statement without hcase (#{statement.class})."
-        #     end
-        #     statement.hwhen(match, mode, &ruby_block)
-        # end
-        # 
-
-        # # Sets the constructs corresponding to +names+ as exports.
-        # def export(*names)
-        #     names.each {|name| self.add_export(name) }
-        # end
-
         # Extend the class according to another +system+.
         def extend(system)
             # Adds the singleton methods
@@ -982,48 +681,8 @@ module HDLRuby::High
         #
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(systemTlow)
-            # No needed any more, since use expand and fill_interface
-            # # Adds the content of its included systems.
-            # self.scope.each_included do |included| 
-            #     # included.systemT.fill_low(systemTlow)
-            #     included.fill_low(systemTlow)
-            # end
-            # puts "fill_low with systemTlow=#{systemTlow.name} (#{systemTlow.class})"
             # Fills the interface
             self.fill_interface(systemTlow)
-            # Moved to fill_interface
-            # # Adds its input signals.
-            # self.each_input { |input|  systemTlow.add_input(input.to_low) }
-            # # Adds its output signals.
-            # self.each_output { |output| systemTlow.add_output(output.to_low) }
-            # # Adds its inout signals.
-            # self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
-            # # # Adds the inner signals.
-            # # self.each_inner { |inner|  systemTlow.add_inner(inner.to_low) }
-            # # # Adds the instances.
-            # # # Single ones.
-            # # self.each_systemI { |systemI|
-            # #     systemTlow.add_systemI(systemI.to_low) 
-            # # }
-            # # # Grouped ones.
-            # # self.each_groupI do |name,systemIs|
-            # #     systemIs.each.with_index { |systemI,i|
-            # #         # Sets the name of the system instance
-            # #         # (required for conversion of further accesses).
-            # #         # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
-            # #         systemI.name = name.to_s + "[#{i}]"
-            # #         # And convert it to low
-            # #         systemTlow.add_systemI(systemI.to_low())
-            # #     }
-            # # end
-            # # # Adds the connections.
-            # # self.each_connection { |connection|
-            # #     systemTlow.add_connection(connection.to_low)
-            # # }
-            # # # Adds the behaviors.
-            # # self.each_behavior { |behavior|
-            # #     systemTlow.add_behavior(behavior.to_low)
-            # # }
         end
 
         # Converts the system to HDLRuby::Low and set its +name+.
@@ -1076,8 +735,6 @@ module HDLRuby::High
         def initialize(name = :"", systemT = nil, &ruby_block)
             # Initialize the scope structure
             super(name)
-            # # Save the Location for debugging information
-            # @location = caller_locations
 
             # Initialize the set of grouped system instances.
             @groupIs = {}
@@ -1110,19 +767,6 @@ module HDLRuby::High
             return self
         end
 
-        # # The name of the scope if any.
-        # #
-        # # NOTE: 
-        # #  * the name of the first scope of a system is the system's.
-        # #  * for building reference path with converting to low.
-        # def name
-        #     if self.parent.is_a?(SystemT) then
-        #         return self.parent.name
-        #     else
-        #         return @name
-        #     end
-        # end
-
         # Adds a group of system +instances+ named +name+.
         def add_groupI(name, *instances)
             # Ensure name is a symbol and is not already used for another
@@ -1154,23 +798,6 @@ module HDLRuby::High
             # A block? Apply it on each input signal instance.
             @groupIs.each(&ruby_block)
         end
-
-        # Cf. Hinner
-        # # Creates and adds a set of inners typed +type+ from a list of +names+.
-        # #
-        # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_inners(type, *names)
-        #     res = nil
-        #     names.each do |name|
-        #         if name.respond_to?(:to_sym) then
-        #             res = self.add_inner(SignalI.new(name,type,:inner))
-        #         else
-        #             # Deactivated because conflict with parent.
-        #             raise AnyError, "Invalid class for a name: #{name.class}"
-        #         end
-        #     end
-        #     return res
-        # end
 
         # Adds a +name+ to export.
         #
@@ -1225,9 +852,6 @@ module HDLRuby::High
         #
         # NOTE: actually executes +ruby_block+ in the context.
         def open(&ruby_block)
-            # # No push since should not merge the current environment into
-            # # the system's.
-            # High.space_insert(-1,@namespace)
             High.space_push(@namespace)
             res = High.top_user.instance_eval(&ruby_block)
             High.space_pop
@@ -1318,41 +942,6 @@ module HDLRuby::High
 
 
         include HScope_missing
-        # Moved to Hscope_missing for sharing with block
-        # include Hmissing
-        # alias_method :h_missing, :method_missing
-
-        # # Missing methods are looked for in the private namespace.
-        # # 
-        # # NOTE: it is ok to use the private namespace because the scope
-        # # can only be accessed if it is available from its systemT.
-        # def method_missing(m, *args, &ruby_block)
-        #     # Is the scope currently opened?
-        #     if High.space_top.user_deep?(self) then
-        #         # Yes, use the stack of namespaces.
-        #         h_missing(m,*args,&ruby_block)
-        #     else
-        #         # No, look into the current namespace and return a reference
-        #         # to the result if it is a referable hardware object.
-        #         res = self.namespace.send(m,*args,&ruby_block)
-        #         if res.respond_to?(:to_ref) then
-        #             # This is a referable object, build the reference from
-        #             # the namespace.
-        #             return RefObject.new(self.to_ref,res)
-        #         end
-        #     end
-
-        #     # puts "method_missing in scope=#{@name}(#{self}) with m=#{m}"
-        #     # puts "self.namespace=#{self.namespace}" 
-        #     # # puts "namespace methods = #{self.namespace.methods}"
-        #     # if self.namespace.respond_to?(m) then
-        #     #     puts "Found"
-        #     #     self.namespace.send(m,*args,&ruby_block)
-        #     # else
-        #     #     puts "NOT Found"
-        #     #     h_missing(m,*args,&ruby_block)
-        #     # end
-        # end
 
         # Methods used for describing a system in HDLRuby::High
 
@@ -1387,17 +976,6 @@ module HDLRuby::High
             return scope.return_value
         end
 
-        # # Declares a high-level behavior activated on a list of
-        # # +events+, and built by executing +ruby_block+.
-        # def behavior(*events, &ruby_block)
-        #     # Preprocess the events.
-        #     events.map! do |event|
-        #         event.respond_to?(:to_event) ? event.to_event : event
-        #     end
-        #     # Create and add the resulting behavior.
-        #     self.add_behavior(Behavior.new(*events,&ruby_block))
-        # end
-
         # Declares a high-level sequential behavior activated on a list of
         # +events+, and built by executing +ruby_block+.
         def seq(*events, &ruby_block)
@@ -1426,26 +1004,6 @@ module HDLRuby::High
             # Create and add the resulting behavior.
             self.add_behavior(TimeBehavior.new(:seq,&ruby_block))
         end
-
-
-        # # Creates a new parallel block built from +ruby_block+.
-        # #
-        # # This methods first creates a new behavior to put the block in.
-        # def par(&ruby_block)
-        #     self.behavior do
-        #         par(&ruby_block)
-        #     end
-        # end
-
-        # # Creates a new sequential block with possible +name+ and
-        # # built from +ruby_block+.
-        # #
-        # # This methods first creates a new behavior to put the block in,
-        # # but if no block is given returns :seq.
-        # def seq(name = :"", &ruby_block)
-        #     return :seq unless ruby_block
-        #     self.behavior(:seq,&ruby_block)
-        # end
 
         # Statements automatically enclosed in a behavior.
         
@@ -1484,7 +1042,6 @@ module HDLRuby::High
         def helsif(condition, mode = nil, &ruby_block)
             # There is a ruby_block: the helse is assumed to be with
             # the last statement of the last behavior.
-            # statement = @statements.last
             statement = self.last_behavior.last_statement
             # Completes the hif statement.
             unless statement.is_a?(If) then
@@ -1526,37 +1083,6 @@ module HDLRuby::High
             names.each {|name| self.add_export(name) }
         end
 
-        # # Extend the class according to another +system+.
-        # def extend(system)
-        #     # Adds the singleton methods
-        #     self.eigen_extend(system)
-        #     @singleton_instanceO.eigen_extend(system.singleton_instance)
-        # end
-
-        # # Include a +system+ type with possible +args+ instanciation
-        # # arguments.
-        # def include(system,*args)
-        #     if @includes.key?(system.name) then
-        #         raise AnyError, "Cannot include twice the same system."
-        #     end
-        #     # puts "Include system=#{system.name}"
-        #     # Create the instance to include
-        #     instance = system.instantiate(:"",*args)
-        #     # puts "instance=#{instance}"
-        #     # Concat its public namespace to the current one and current's
-        #     # public one.
-        #     self.namespace.concat_namespace(instance.public_namespace)
-        #     if self.parent.is_a?(SystemT) then
-        #         # Include concats namespace of system only if it is a
-        #         # direct parent of the scope.
-        #         # Using include within a scope which is not one of a system
-        #         # does not change the interface!
-        #         self.parent.public_namespace.concat_namespace(instance.public_namespace)
-        #     end
-        #     # Adds it the list of includeds
-        #     @includes[system.name] = instance
-        # end
-
         # Include a +system+ type with possible +args+ instanciation
         # arguments.
         def include(system,*args)
@@ -1569,16 +1095,6 @@ module HDLRuby::High
             include_name = system.name
             # Expand the system to include
             system = system.expand(:"",*args)
-            # # Concat its public namespace to the current one and current's
-            # # public one.
-            # self.namespace.concat_namespace(system.public_namespace)
-            # if self.parent.is_a?(SystemT) then
-            #     # Include concats namespace of system only if it is a
-            #     # direct parent of the scope.
-            #     # Using include within a scope which is not one of a system
-            #     # does not change the interface!
-            #     self.parent.public_namespace.concat_namespace(system.public_namespace)
-            # end
             # Add the included system interface to the current one.
             if self.parent.is_a?(SystemT) then
                 space = self.namespace
@@ -1599,7 +1115,6 @@ module HDLRuby::High
                 end
             end
             # Adds it the list of includeds
-            # @includes[system.name] = system
             @includes[include_name] = system
         end
 
@@ -1608,7 +1123,6 @@ module HDLRuby::High
             # puts "as with name: #{system.name}"
             system = system.name if system.respond_to?(:name)
             # puts "includes are: #{@includes.keys}"
-            # return @includes[system].public_namespace
             return @includes[system].namespace
         end
 
@@ -1619,7 +1133,6 @@ module HDLRuby::High
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(scopeLow)
             # Adds the content of its included systems.
-            #@includes.each_value {|instance| instance.user.fill_low(scopeLow) }
             @includes.each_value {|system| system.scope.fill_low(scopeLow) }
             # Adds the declared local system types.
             # NOTE: in the current version of HDLRuby::High, there should not
@@ -1778,7 +1291,6 @@ module HDLRuby::High
 
         # Declares high-level input signals named +names+ of the current type.
         def input(*names)
-            # High.top_user.make_inputs(self.instantiate,*names)
             High.top_user.make_inputs(self,*names)
         end
 
@@ -1884,8 +1396,6 @@ module HDLRuby::High
         def initialize(name)
             # Initialize the type structure.
             super(name)
-            # # Save the Location for debugging information
-            # @location = caller_locations
         end
 
         # Converts the type to HDLRuby::Low and set its +name+.
@@ -1936,15 +1446,6 @@ module HDLRuby::High
     # The bit type.
     Bit = define_type(:bit)
     class << Bit
-        # # Tells if the type fixed point.
-        # def fixed?
-        #     return true
-        # end
-        # # Gets the bitwidth of the type, nil for undefined.
-        # def width
-        #     1
-        # end
-
         # Converts the type to HDLRuby::Low.
         def to_low
             return Low::Bit
@@ -1956,19 +1457,6 @@ module HDLRuby::High
     # The signed bit type.
     Signed = define_type(:signed)
     class << Signed 
-        # # Tells if the type is signed.
-        # def signed?
-        #     return true
-        # end
-        # # Tells if the type is fixed point.
-        # def fixed?
-        #     return true
-        # end
-        # # Gets the bitwidth of the type, nil for undefined.
-        # def width
-        #     1
-        # end
-
         # Converts the type to HDLRuby::Low.
         def to_low
             return Low::Signed
@@ -1980,19 +1468,6 @@ module HDLRuby::High
     # The unsigned bit type.
     Unsigned = define_type(:unsigned)
     class << Unsigned
-        # # Tells if the type is unsigned.
-        # def unsigned?
-        #     return true
-        # end
-        # # Tells if the type is fixed point.
-        # def fixed?
-        #     return true
-        # end
-        # # Gets the bitwidth of the type, nil for undefined.
-        # def width
-        #     1
-        # end
-
         # Converts the type to HDLRuby::Low.
         def to_low
             return Low::Unsigned
@@ -2001,25 +1476,9 @@ module HDLRuby::High
         include HbasicType
     end
 
-    # # The numeric type (for all the Ruby Numeric types).
-    # define_type :numeric
-
     # The float bit type
     Float = define_type(:float)
     class << Float
-        # # Tells if the type is signed.
-        # def signed?
-        #     return true
-        # end
-        # # Tells if the type is floating point.
-        # def float?
-        #     return true
-        # end
-        # # Gets the bitwidth of the type, nil for undefined.
-        # def width
-        #     1
-        # end
-
         # Converts the type to HDLRuby::Low.
         def to_low
             return Low::Float
@@ -2029,23 +1488,6 @@ module HDLRuby::High
     end
     
 
-
-
-
-
-    # ##
-    # # Describes a numeric type.
-    # class TypeNumeric < Low::TypeNumeric
-    #     High = HDLRuby::High
-
-    #     include Htype
-
-    #     # Converts the type to HDLRuby::Low and set its +name+.
-    #     def to_low(name = self.name)
-    #         # Generate and return the new type.
-    #         return HDLRuby::Low::TypeNumeric.new(name,self.numeric)
-    #     end
-    # end
 
 
     ##
@@ -2142,88 +1584,6 @@ module HDLRuby::High
         High = HDLRuby::High
         include Htype
         include HvectorType
-
-        # # # The range of the vector.
-        # # attr_reader :range
-
-        # # # Creates a new vector type named +name+ from +base+ type and with
-        # # # +range+.
-        # # def initialize(name,base,range)
-        # #     # Initialize the type.
-        # #     super(name,basa,range)
-
-        # #     # # Check and set the vector-specific attributes.
-        # #     # if rng.respond_to?(:to_i) then
-        # #     #     # Integer case: convert to a 0..(rng-1) range.
-        # #     #     rng = (rng-1)..0
-        # #     # elsif
-        # #     #     # Other cases: assume there is a first and a last to create
-        # #     #     # the range.
-        # #     #     rng = rng.first..rng.last
-        # #     # end
-        # #     # @range = rng
-        # # end
-
-        # # Type handling: these methods may have to be overriden when 
-        # # subclassing.
-
-        # # Moved to base
-        # # # Gets the bitwidth of the type, nil for undefined.
-        # # #
-        # # # NOTE: must be redefined for specific types.
-        # # def width
-        # #     first = @range.first
-        # #     last  = @range.last
-        # #     return @base.width * (first-last).abs
-        # # end
-
-        # # # Gets the direction of the range.
-        # # def dir
-        # #     return (@range.last - @range.first)
-        # # end
-
-        # # # Tells if the type signed, false for unsigned.
-        # # def signed?
-        # #     return @base.signed?
-        # # end
-
-        # # # # Tells if a type is generic or not.
-        # # # def generic?
-        # # #     # The type is generic if the base is generic.
-        # # #     return self.base.generic?
-        # # # end
-
-        # # # Checks the compatibility with +type+
-        # # def compatible?(type)
-        # #     # # if type is void, compatible anyway.
-        # #     # return true if type.name == :void
-        # #     # Compatible if same width and compatible base.
-        # #     return false unless type.respond_to?(:dir)
-        # #     return false unless type.respond_to?(:base)
-        # #     return ( self.dir == type.dir and
-        # #              self.base.compatible?(type.base) )
-        # # end
-
-        # # # Merges with +type+
-        # # def merge(type)
-        # #     # # if type is void, return self anyway.
-        # #     # return self if type.name == :void
-        # #     # Compatible if same width and compatible base.
-        # #     unless type.respond_to?(:dir) and type.respond_to?(:base) then
-        # #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
-        # #     end
-        # #     unless self.dir == type.dir then
-        # #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
-        # #     end
-        # #     return TypeVector.new(@name,@range,@base.merge(type.base))
-        # # end
-
-        # # Converts the type to HDLRuby::Low and set its +name+.
-        # def to_low(name = self.name)
-        #     # Generate and return the new type.
-        #     return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
-        #                                         self.range.to_low)
-        # end
     end
     
 
@@ -2293,53 +1653,10 @@ module HDLRuby::High
 
     ##
     # Describes a structure type.
-    # class TypeStruct < TypeHierarchy
     class TypeStruct < Low::TypeStruct
         High = HDLRuby::High
 
         include Htype
-
-        # Moved to Low
-        # # Gets the bitwidth of the type, nil for undefined.
-        # #
-        # # NOTE: must be redefined for specific types.
-        # def width
-        #     return @types.reduce(0) {|sum,type| sum + type.width }
-        # end
-
-        # # Checks the compatibility with +type+
-        # def compatible?(type)
-        #     # # If type is void, compatible anyway.
-        #     # return true if type.name == :void
-        #     # Not compatible if different types.
-        #     return false unless type.is_a?(TypeStruct)
-        #     # Not compatibe unless each entry has the same name in same order.
-        #     return false unless self.each_name == type.each_name
-        #     self.each do |name,sub|
-        #         return false unless sub.compatible?(self.get_type(name))
-        #     end
-        #     return true
-        # end
-
-        # # Merges with +type+
-        # def merge(type)
-        #     # # if type is void, return self anyway.
-        #     # return self if type.name == :void
-        #     # Not compatible if different types.
-        #     unless type.is_a?(TypeStruct) then
-        #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
-        #     end
-        #     # Not compatibe unless each entry has the same name and same order.
-        #     unless self.each_name == type.each_name then
-        #         raise AnyError, "Incompatible types for merging: #{self}, #{type}."
-        #     end
-        #     # Creates the new type content
-        #     content = {}
-        #     self.each do |name,sub|
-        #         content[name] = self.get_type(name).merge(sub)
-        #     end
-        #     return TypeStruct.new(@name,content)
-        # end  
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
@@ -2358,11 +1675,6 @@ module HDLRuby::High
     def struct(content)
         return TypeStruct.new(:"",content)
     end
-
-    # # Creates an unnamed union type from a +content+.
-    # def union(content)
-    #     return TypeUnion.new(:"",content)
-    # end
 
     # Methods for declaring types
 
@@ -2398,20 +1710,6 @@ module HDLRuby::High
             end
         end
     end
-
-    # # Creates type named +name+ and using +ruby_block+ for building it.
-    # def type(name,&ruby_block)
-    #     # Builds the type.
-    #     type = HDLRuby::High.top_user.instance_eval(&ruby_block)
-    #     # Ensures type is really a type.
-    #     # unless type.is_a?(Type) then
-    #     unless type.respond_to?(:htype?) then
-    #         raise AnyError, "Invalid class for a type: #{type.class}."
-    #     end
-    #     # Name it.
-    #     type.name = name
-    #     return type
-    # end
 
     # Methods for declaring systems
 
@@ -2458,15 +1756,6 @@ module HDLRuby::High
     end
 
 
-    # # Extends the system type class for converting it to a data type.
-    # class SystemT
-    #     # Converts the system type to a data type using +left+ signals
-    #     # as left values and +right+ signals as right values.
-    #     def to_type(left,right)
-    #         return TypeSystemT.new(:"",self,left,right)
-    #     end
-    # end
-
 
 
     # Classes describing harware instances.
@@ -2483,9 +1772,6 @@ module HDLRuby::High
         def initialize(name, systemT)
             # Initialize the system instance structure.
             super(name,systemT)
-            # # Save the Location for debugging information
-            # @location = caller_locations
-            # puts "New systemI with scope=#{self.systemT.scope}"
 
             # Sets the hdl-like access to the system instance.
             obj = self # For using the right self within the proc
@@ -2520,14 +1806,6 @@ module HDLRuby::High
                 # Yes, perform a connection by name
                 connects = connects[0].to_h
                 # Performs the connections.
-                # connects.each do |left,right|
-                #     # Gets the signal corresponding to connect.
-                #     left = self.get_signal(left)
-                #     # Convert it to a reference.
-                #     left = RefObject.new(self.to_ref,left)
-                #     # Make the connection.
-                #     left <= right
-                # end
                 connects.each do |key,value|
                     # Gets the signal corresponding to connect.
                     signal = self.get_signal(key)
@@ -2572,7 +1850,6 @@ module HDLRuby::High
         # NOTE: actually executes +ruby_block+ in the context of the
         #       systemT.
         def open(&ruby_block)
-            # return @systemT.run(&ruby_block)
             # Extend the eigen system.
             @systemT.run(&ruby_block)
             # Update the methods.
@@ -2608,7 +1885,6 @@ module HDLRuby::High
         def to_low(name = self.name)
             # puts "to_low with #{self} (#{self.name}) #{self.systemT}"
             # Converts the system of the instance to HDLRuby::Low
-            # systemTlow = self.systemT.to_low(High.names_create(name.to_s+ ":T"))
             systemTlow = self.systemT.to_low
             # Creates the resulting HDLRuby::Low instance
             return HDLRuby::Low::SystemI.new(High.names_create(name),
@@ -2649,12 +1925,9 @@ module HDLRuby::High
         # +ruby_block+.
         def initialize(condition, mode = nil, &ruby_block)
             # Create the yes block.
-            # yes_block = High.make_block(:par,&ruby_block)
             yes_block = High.make_block(mode,&ruby_block)
             # Creates the if statement.
             super(condition.to_expr,yes_block)
-            # # Save the Location for debugging information
-            # @location = caller_locations
         end
 
         # Sets the block executed in +mode+ when the condition is not met to
@@ -2706,8 +1979,6 @@ module HDLRuby::High
         # on +match+.
         def initialize(match,statement)
             super(match,statement)
-            # # Save the Location for debugging information
-            # @location = caller_locations
         end
 
         # Converts the if to HDLRuby::Low.
@@ -2730,8 +2001,6 @@ module HDLRuby::High
         def initialize(value)
             # Create the yes block.
             super(value.to_expr)
-            # # Save the Location for debugging information
-            # @location = caller_locations
         end
 
         # Sets the block executed in +mode+ when the value matches +match+.
@@ -2740,7 +2009,6 @@ module HDLRuby::High
         # Can only be used once for the given +match+.
         def hwhen(match, mode = nil, &ruby_block)
             # Create the nu block if required
-            # when_block = High.make_block(:par,&ruby_block)
             when_block = High.make_block(mode,&ruby_block)
             # Adds the case.
             self.add_when(When.new(match.to_expr,when_block))
@@ -2752,7 +2020,6 @@ module HDLRuby::High
         # Can only be used once.
         def helse(mode = nil, &ruby_block)
             # Create the nu block if required
-            # no_block = High.make_block(:par,&ruby_block)
             default_block = High.make_block(mode,&ruby_block)
             # Sets the default block.
             self.default = default_block
@@ -2763,9 +2030,6 @@ module HDLRuby::High
             # Create the low level case.
             caseL = HDLRuby::Low::Case.new(@value.to_low)
             # Add each when case.
-            # self.each_when do |match,statement|
-            #     caseL.add_when(When.new(match.to_low, statement.to_low))
-            # end
             self.each_when do |w|
                 caseL.add_when(w.to_low)
             end
@@ -2880,8 +2144,6 @@ module HDLRuby::High
         [:"-@",:"@+",:"~", :abs,
          :boolean, :bit, :signed, :unsigned].each do |operator|
             meth = proc do
-                # return Unary.new(self.to_expr.type.send(operator),operator,
-                #                  self.to_expr)
                 expr = self.to_expr
                 return expr.type.unary(operator,expr)
             end
@@ -2910,9 +2172,6 @@ module HDLRuby::High
          :"<<",:">>",:ls,:rs,:lr,:rr,
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
              meth = proc do |right|
-                 # return Binary.new(
-                 #     self.to_expr.type.send(operator,right.to_expr.type),
-                 #     operator, self.to_expr,right.to_expr)
                  expr = self.to_expr
                  return expr.type.binary(operator,expr,right.to_expr)
              end
@@ -2932,14 +2191,12 @@ module HDLRuby::High
             end 
             if rng.is_a?(HDLRuby::Low::Expression) then
                 # Index case
-                # return RefIndex.new(self.to_ref,rng)
                 return RefIndex.new(self.type.base,self.to_expr,rng)
             else
                 # Range case, ensure it is made among expression.
                 first = rng.first.to_expr
                 last = rng.last.to_expr
                 # Abd create the reference.
-                # return RefRange.new(self.to_ref,first..last)
                 return RefRange.new(self.type.slice(first..last),
                                     self.to_expr,first..last)
             end
@@ -2970,7 +2227,6 @@ module HDLRuby::High
         # Sets the data +type+.
         def type=(type)
             # Check and set the type.
-            # unless type.is_a?(Type) then
             unless type.respond_to?(:htype?) then
                 raise AnyError, "Invalid class for a type: #{type.class}."
             end
@@ -2990,84 +2246,6 @@ module HDLRuby::High
             return Select.new(choices[0].type,"?",self.to_expr,*choices)
         end
 
-        # # The parent construct.
-        # attr_reader :parent
-
-        # # Sets the +parent+ construct.
-        # def parent=(parent)
-        #     # Check and set the type.
-        #     unless ( parent.is_a?(Low::Expression) or
-        #              parent.is_a?(Low::Transmit) or
-        #              parent.is_a?(Low::If) or
-        #              parent.is_a?(Low::Case) ) then
-        #         raise AnyError, "Invalid class for a type: #{type.class}."
-        #     end
-        #     @parent = parent
-        # end
-
-        # # Iterates over the expression parents if any (actually at most once).
-        # def each_parent(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_parent) unless ruby_block
-        #     # A block? Apply it on the parent.
-        #     ruby_block.call(@parent)
-        # end
-
-        # # Methods for conversion for HDLRuby::Low: type processing, flattening
-        # # and so on
-
-        # # Make the current expression a parent and recurse.
-        # def make_parents_deep
-        #     # Set the parents of the children and recurse on them.
-        #     self.each_child do |child|
-        #         if child.respond_to?(:parent=) then
-        #             child.parent = self
-        #         else
-        #             child.add_parent(self)
-        #         end
-        #         child.make_parents_deep
-        #     end
-        # end
-
-        # # Resolves the unknown signal types and conflicts in the context
-        # # of system type +systemT+.
-        # # Returns true if the resolution succeeded.
-        # #
-        # # NOTE: sets the type of the expression.
-        # def resolve_types(systemT)
-        #     # Only typed expression can be used for resolving types.
-        #     unless @type then
-        #         raise AnyError, "Cannot resolve type: nil type."
-        #     end
-        #     # Resolve the children.
-        #     self.each_child do |child|
-        #         if child.type == nil then
-        #             # The child's type is unknown, should not happen.
-        #             raise AnyError, "Cannot resolve type: child's type is nil."
-        #         end
-        #         # Check if the type is compatible with the child's.
-        #         if @type.compatible?(child.type) then
-        #             # Yes, compute and set the new type for both.
-        #             @type = child.type = type.merge(child.type)
-        #         else
-        #             # Incombatible types, cannot resolve type.
-        #             raise AnyError, "Cannot resolve type: #{@type} and child's #{child.type} are incompatible."
-        #         end
-        #     end
-        #     # Resolve the parents.
-        #     self.each_parent do |parent|
-        #         if parent.type == nil then
-        #             # Simple sets the parent's type to current one.
-        #             parent.type = @type
-        #         elsif @type.compatible?(parent.type) then
-        #             # Yes, compute and set the new type for both.
-        #             @type = parent.type = type.merge(parent.type)
-        #         else
-        #             # Incombatible types, cannot resolve type.
-        #             raise AnyError, "Cannot resolve type: #{@type} and #{parent.type} are incompatible."
-        #         end
-        #     end
-        # end
     end
 
 
@@ -3135,7 +2313,6 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            # return Binary.new(self.operator,self.left.to_expr,self.right.to_expr)
             return Binary.new(self.type, self.operator,
                               self.left.to_expr, self.right.to_expr)
         end
@@ -3148,12 +2325,6 @@ module HDLRuby::High
         end
     end
 
-
-    # ##
-    # # Describes a high-level ternary expression
-    # class Ternary < Low::Ternary
-    #     include HExpression
-    # end
 
     ##
     # Describes a section operation (generalization of the ternary operator).
@@ -3172,7 +2343,6 @@ module HDLRuby::High
 
         # Converts the selection expression to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::Select.new("?",self.select.to_low,
             return HDLRuby::Low::Select.new(self.type.to_low,"?",
                                             self.select.to_low,
             *self.each_choice.map do |choice|
@@ -3189,11 +2359,6 @@ module HDLRuby::High
 
         # Converts to a new expression.
         def to_expr
-            # return Concat.new(
-            #     self.each_expression.lazy.map do |expr|
-            #         expr.to_expr
-            #     end
-            # )
             return Concat.new(self.type,
                 self.each_expression.map do |expr|
                     expr.to_expr
@@ -3203,10 +2368,6 @@ module HDLRuby::High
 
         # Converts the concatenation expression to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::Concat.new(
-            #     self.each_expression.lazy.map do |expr|
-            #         expr.to_low
-            #     end
             return HDLRuby::Low::Concat.new(self.type.to_low,
                 self.each_expression.map do |expr|
                     expr.to_low
@@ -3253,10 +2414,6 @@ module HDLRuby::High
             return HDLRuby::Low::Value.new(self.type.to_low,self.content)
         end
 
-        # # For support in ranges.
-        # def <=>(expr)
-        #     return self.to_s <=> expr.to_s
-        # end
     end
 
 
@@ -3288,30 +2445,6 @@ module HDLRuby::High
         def to_event
             return Event.new(:change,self.to_ref)
         end
-
-        # Moved to HExpression
-        # # Creates an access to elements of range +rng+ of the signal.
-        # #
-        # # NOTE: +rng+ can be a single expression in which case it is an index.
-        # def [](rng)
-        #     if rng.respond_to?(:to_expr) then
-        #         # Number range: convert it to an expression.
-        #         rng = rng.to_expr
-        #     end 
-        #     if rng.is_a?(HDLRuby::Low::Expression) then
-        #         # Index case
-        #         # return RefIndex.new(self.to_ref,rng)
-        #         return RefIndex.new(self.type.base,self.to_ref,rng)
-        #     else
-        #         # Range case, ensure it is made among expression.
-        #         first = rng.first.to_expr
-        #         last = rng.last.to_expr
-        #         # Abd create the reference.
-        #         # return RefRange.new(self.to_ref,first..last)
-        #         return RefRange.new(self.type.slice(first..last),
-        #                             self.to_ref,first..last)
-        #     end
-        # end
 
         # Iterate over the elements.
         #
@@ -3351,17 +2484,11 @@ module HDLRuby::High
                 # Untyped object, so untyped reference.
                 super(void)
             end
-            # # Save the Location for debugging information
-            # @location = caller_locations
             # Check and set the base (it must be convertible to a reference).
             unless base.respond_to?(:to_ref)
                 raise AnyError, "Invalid base for a RefObject: #{base}"
             end
             @base = base
-            # # Check and set the object (it must have a name).
-            # unless object.respond_to?(:name)
-            #     raise AnyError, "Invalid object for a RefObject: #{object}"
-            # end
             # Set the object
             @object = object
         end
@@ -3388,27 +2515,6 @@ module HDLRuby::High
             @object.send(m,*args,&ruby_block)
         end
 
-
-    #     # Converts the reference to a low-level name reference.
-    #     def to_low
-    #         # Build the path of the reference.
-    #         path = []
-    #         cur = @object
-    #         while(!High.top_user.user_deep?(cur)) do
-    #             puts "first cur=#{cur}"
-    #             cur = cur.owner if cur.respond_to?(:owner)
-    #             puts "cur=#{cur}", "name=#{cur.name}"
-    #             path << cur.name
-    #             cur = cur.parent
-    #             # cur = cur.scope if cur.respond_to?(:scope)
-    #             puts " parent=#{cur} found? #{High.top_user.user_deep?(cur)}"
-    #         end
-    #         # puts "path=#{path}"
-    #         # Build the references from the path.
-    #         ref = this.to_low
-    #         path.each { |name| ref = HDLRuby::Low::RefName.new(ref,name) }
-    #         return ref
-    #     end
     end
 
 
@@ -3428,11 +2534,6 @@ module HDLRuby::High
 
         # Converts the concat reference to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::RefConcat.new(
-            #     self.each_ref.lazy.map do |ref|
-            #         ref.to_low
-            #     end
-            # )
             return HDLRuby::Low::RefConcat.new(self.type.to_low,
                 self.each_ref.map do |ref|
                     ref.to_low
@@ -3472,7 +2573,6 @@ module HDLRuby::High
 
         # Converts the range reference to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::RefRange.new(self.ref.to_low,self.range.to_low)
             return HDLRuby::Low::RefRange.new(self.type.to_low,
                 self.ref.to_low,self.range.to_low)
         end
@@ -3491,7 +2591,6 @@ module HDLRuby::High
         # Converts the name reference to HDLRuby::Low.
         def to_low
             # puts "To low for ref with name=#{self.name} and subref=#{self.ref}"
-            # return HDLRuby::Low::RefName.new(self.ref.to_low,self.name)
             return HDLRuby::Low::RefName.new(self.type.to_low,
                                              self.ref.to_low,self.name)
         end
@@ -3502,10 +2601,6 @@ module HDLRuby::High
     class RefThis < Low::RefThis
         High = HDLRuby::High
         include HRef
-       
-        # Deactivated since incompatible with the parent features.
-        # # The only useful instance of RefThis.
-        # This = RefThis.new
 
         # Converts to a new reference.
         def to_ref
@@ -3545,7 +2640,6 @@ module HDLRuby::High
     class Event < Low::Event
         # Converts to a new event.
         def to_event
-            # return self
             return Event.new(self.type,self.ref.to_ref)
         end
 
@@ -3593,7 +2687,6 @@ module HDLRuby::High
             # Remove the transission from the block.
             High.top_user.delete_statement!(self)
             # Generate an expression.
-            # return Binary.new(:<=,self.left.to_expr,self.right.to_expr)
             return Binary.new(
                 self.left.to_expr.type.send(:<=,self.right.to_expr.type),
                 :<=,self.left.to_expr,self.right.to_expr)
@@ -3700,8 +2793,6 @@ module HDLRuby::High
             value = value.to_expr if value
             # Initialize the type structure.
             super(name,type,value)
-            # # Save the Location for debugging information
-            # @location = caller_locations
 
             unless name.empty? then
                 # Named signal, set the hdl-like access to the signal.
@@ -3711,7 +2802,6 @@ module HDLRuby::High
 
             # Hierarchical type allows access to sub references, so generate
             # the corresponding methods.
-            # if type.respond_to?(:each_name) then
             if type.struct? then
                 type.each_name do |name|
                     self.define_singleton_method(name) do
@@ -3762,11 +2852,6 @@ module HDLRuby::High
             return Event.new(:edge,self.to_ref)
         end
 
-        # # Creates a change event from the signal.
-        # def change
-        #     return Event.new(:change,self.to_ref)
-        # end
-
         # Converts to a new reference.
         def to_ref
             return RefObject.new(this,self)
@@ -3806,8 +2891,6 @@ module HDLRuby::High
             end
             # Initialize the type structure.
             super(name,type,value)
-            # # Save the Location for debugging information
-            # @location = caller_locations
 
             unless name.empty? then
                 # Named signal, set the hdl-like access to the signal.
@@ -3817,7 +2900,6 @@ module HDLRuby::High
 
             # Hierarchical type allows access to sub references, so generate
             # the corresponding methods.
-            # if type.respond_to?(:each_name) then
             if type.struct? then
                 type.each_name do |name|
                     self.define_singleton_method(name) do
@@ -3864,13 +2946,6 @@ module HDLRuby::High
 
         # Build the block by executing +ruby_block+.
         def build(&ruby_block)
-            # # # High-level blocks can include inner signals.
-            # # @inners ||= {}
-            # Already there
-            # # And therefore require a namespace.
-            # @namespace ||= Namespace.new(self)
-            # Build the block.
-            # High.space_push(self)
             High.space_push(@namespace)
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
@@ -3886,86 +2961,9 @@ module HDLRuby::High
         end
 
         include HScope_missing
-        # include Hmissing
-        # alias_method :h_missing, :method_missing
 
-        # # Missing methods are looked for in the private namespace.
-        # # 
-        # # NOTE: it is ok to use the private namespace because the scope
-        # # can only be accessed if it is available from its systemT.
-        # def method_missing(m, *args, &ruby_block)
-        #     # print "method_missing in class=#{self.class} with m=#{m}\n"
-        #     if self.namespace.respond_to?(m) then
-        #         self.namespace.send(m,*args,&ruby_block)
-        #     else
-        #         h_missing(m,*args,&ruby_block)
-        #     end
-        # end
-
-        # # Adds inner signal +signal+.
-        # def add_inner(signal)
-        #     # Checks and add the signal.
-        #     unless signal.is_a?(SignalI)
-        #         raise AnyError, "Invalid class for a signal instance: #{signal.class}"
-        #     end
-        #     if @inners.has_key?(signal.name) then
-        #         raise AnyError, "SignalI #{signal.name} already present."
-        #     end
-        #     @inners[signal.name] = signal
-        # end
-
-        # # Creates and adds a set of inners typed +type+ from a list of +names+.
-        # #
-        # # NOTE: a name can also be a signal, is which case it is duplicated. 
-        # def make_inners(type, *names)
-        #     names.each do |name|
-        #         if name.respond_to?(:to_sym) then
-        #             self.add_inner(SignalI.new(name,type,:inner))
-        #         else
-        #             signal = name.clone
-        #             signal.dir = :inner
-        #             self.add_inner(signal)
-        #         end
-        #     end
-        # end
-
-        # # Iterates over the inner signals.
-        # #
-        # # Returns an enumerator if no ruby block is given.
-        # def each_inner(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_inner) unless ruby_block
-        #     # A block? Apply it on each inner signal instance.
-        #     @inners.each_value(&ruby_block)
-        # end
-        # alias_method :each_signal, :each_inner
-
-        # ## Gets an inner signal by +name+.
-        # def get_inner(name)
-        #     return @inners[name]
-        # end
-        # alias_method :get_signal, :get_inner
-
-        # # Declares high-level bit inner signals named +names+.
-        # def inner(*names)
-        #     self.make_inners(bit,*names)
-        # end
-        
-        # # Iterates over all the signals of the block and its sub block's ones.
-        # def each_signal_deep(&ruby_block)
-        #     # No ruby block? Return an enumerator.
-        #     return to_enum(:each_signal_deep) unless ruby_block
-        #     # A block?
-        #     # First, apply on the signals of the block.
-        #     self.each_signal(&ruby_block)
-        #     # Then apply on each sub block. 
-        #     self.each_block_deep do |block|
-        #         block.each_signal_deep(&ruby_block)
-        #     end
-        # end
-
-        # Creates and adds a new block executed in +mode+, with possible +name+
-        # and built by executing +ruby_block+.
+        # Creates and adds a new block executed in +mode+, with possible
+        # +name+ and built by executing +ruby_block+.
         def add_block(mode = nil, name = :"", &ruby_block)
             # Creates the block.
             block = High.make_block(mode,name,&ruby_block)
@@ -4006,7 +3004,8 @@ module HDLRuby::High
         include Hmux
 
         # Creates a new if statement with a +condition+ that when met lead
-        # to the execution of the block in +mode+ generated by the +ruby_block+.
+        # to the execution of the block in +mode+ generated by the
+        # +ruby_block+.
         #
         # NOTE: the else part is defined through the helse method.
         def hif(condition, mode = nil, &ruby_block)
@@ -4086,8 +3085,6 @@ module HDLRuby::High
         def initialize(mode, name=:"", &ruby_block)
             # Initialize the block.
             super(mode,name)
-            # # Save the Location for debugging information
-            # @location = caller_locations
 
             unless name.empty? then
                 # Named block, set the hdl-like access to the block.
@@ -4142,8 +3139,6 @@ module HDLRuby::High
         def initialize(type, name = :"", &ruby_block)
             # Initialize the block.
             super(type,name)
-            # # Save the Location for debugging information
-            # @location = caller_locations
 
             unless name.empty? then
                 # Named block, set the hdl-like access to the block.
@@ -4166,7 +3161,6 @@ module HDLRuby::High
         # loop content is built using +ruby_block+.
         def repeat(delay, mode = nil, &ruby_block)
             # Build the content block.
-            # content = High.make_block(:par,&ruby_block)
             content = High.make_block(mode,&ruby_block)
             # Create and add the statement.
             self.add_statement(TimeRepeat.new(content,delay))
@@ -4206,10 +3200,8 @@ module HDLRuby::High
             end
         end
         if top_user.is_a?(TimeBlock) then
-            # return TimeBlock.new(mode,from_users(:block_extensions),&ruby_block)
             return TimeBlock.new(mode,name,&ruby_block)
         else
-            # return Block.new(mode,from_users(:block_extensions),&ruby_block)
             return Block.new(mode,name,&ruby_block)
         end
     end
@@ -4230,7 +3222,6 @@ module HDLRuby::High
                 mode = :par
             end
         end
-        # return TimeBlock.new(mode,top_user.block_extensions,&ruby_block)
         return TimeBlock.new(mode,name,&ruby_block)
     end
 
@@ -4239,34 +3230,11 @@ module HDLRuby::High
     class Behavior < Low::Behavior
         High = HDLRuby::High
 
-        # # Creates a new behavior executing +block+ activated on a list of
-        # # +events+, and built by executing +ruby_block+.
-        # def initialize(*events,&ruby_block)
-        #     # Initialize the behavior
-        #     super()
-        #     # Add the events.
-        #     events.each { |event| self.add_event(event) }
-        #     # Create a default par block for the behavior.
-        #     block = High.make_block(:par,&ruby_block)
-        #     self.add_block(block)
-        #     # # Build the block by executing the ruby block in context.
-        #     # High.space_push(block)
-        #     # High.top_user.instance_eval(&ruby_block)
-        #     # High.space_pop
-        # end
-
         # Creates a new behavior executing +block+ activated on a list of
         # +events+, and built by executing +ruby_block+.
         # +mode+ can be either :seq or :par for respectively sequential or
         # parallel.
         def initialize(mode,*events,&ruby_block)
-            # Create a default par block for the behavior.
-            # block = High.make_block(:par,&ruby_block)
-            # mode = nil
-            # if events.last.respond_to?(:to_sym) then
-            #     # A mode is given, use it.
-            #     mode = events.pop.to_sym
-            # end
             # Initialize the behavior with it.
             super(nil)
             # # Save the Location for debugging information
@@ -4303,22 +3271,6 @@ module HDLRuby::High
     class TimeBehavior < Low::TimeBehavior
         High = HDLRuby::High
 
-        # # Creates a new timed behavior built by executing +ruby_block+.
-        # def initialize(&ruby_block)
-        #     # Initialize the behavior
-        #     super()
-        #     # Create and add a default par block for the behavior.
-        #     # NOTE: this block is forced to TimeBlock, so do not use
-        #     # block(:par).
-        #     block = High.make_time_block(:par,&ruby_block)
-        #     # block = make_changer(TimeBlock).new(:par,&ruby_block)
-        #     self.add_block(block)
-        #     # # Build the block by executing the ruby block in context.
-        #     # High.space_push(block)
-        #     # High.top_user.instance_eval(&ruby_block)
-        #     # High.space_pop
-        # end
-
         # Creates a new timed behavior built by executing +ruby_block+.
         # +mode+ can be either :seq or :par for respectively sequential or
         def initialize(mode, &ruby_block)
@@ -4326,8 +3278,6 @@ module HDLRuby::High
             block = High.make_time_block(mode,&ruby_block)
             # Initialize the behavior with it.
             super(block)
-            # # Save the Location for debugging information
-            # @location = caller_locations
         end
 
         # Converts the time behavior to HDLRuby::Low.
@@ -4344,15 +3294,6 @@ module HDLRuby::High
     end
 
 
-
-    # # Ensures constants defined is this module are prioritary.
-    # # @!visibility private
-    # def self.included(base) # :nodoc:
-    #     if base.const_defined?(:SignalI) then
-    #         base.send(:remove_const,:SignalI)
-    #         base.const_set(:SignalI,HDLRuby::High::SignalI)
-    #     end
-    # end
 
 
 
@@ -4383,9 +3324,6 @@ module HDLRuby::High
     def self.space_push(namespace)
         # Emsure namespace is really a namespace.
         namespace = namespace.to_namespace
-        # # Concat the current top to namespace so that it has access to the
-        # # existing hardware constructs.
-        # # namespace.concat_namespace(Namespaces[-1])
         # Adds the namespace to the top.
         Namespaces.push(namespace)
     end
@@ -4464,9 +3402,7 @@ module HDLRuby::High
             raise AnyError, "Not within a system type."
         else
             return Namespaces.reverse_each.find do |space|
-                # space.user.is_a?(SystemT)
                 space.user.is_a?(Scope) and space.user.parent.is_a?(SystemT)
-            # end.user
             end.user.parent
         end
     end
@@ -4476,14 +3412,6 @@ module HDLRuby::High
 
     # Gets the enclosing behavior if any.
     def self.cur_behavior
-        # # Gets the enclosing system type.
-        # systemT = self.cur_system
-        # # Gets the current behavior from it.
-        # unless systemT.each_behavior.any? then
-        #     raise AnyError, "Not within a behavior."
-        # end
-        # # return systemT.each.reverse_each.first
-        # return systemT.last_behavior
         return @@cur_behavior
     end
 
@@ -4497,12 +3425,6 @@ module HDLRuby::High
     # NOTE: +level+ allows to get an upper block of the currently enclosing
     #       block.
     def self.cur_block(level = 0)
-        # if Namespaces[-1-level].user.is_a?(Block)
-        #     return Namespaces[-1-level].user
-        # else
-        #     raise AnyError, 
-        #           "Not within a block: #{Namespaces[-1-level].user.class}"
-        # end
         if Namespaces[-1-level].user.is_a?(Scope) then
             raise AnyError, 
                   "Not within a block: #{Namespaces[-1-level].user.class}"
@@ -4516,12 +3438,6 @@ module HDLRuby::High
     # Registers hardware referencing method +name+ to the current namespace.
     def self.space_reg(name,&ruby_block)
         # print "registering #{name} in #{Namespaces[-1]}\n"
-        # # Register it in the top object of the namespace stack.
-        # if Namespaces[-1].respond_to?(:define_method) then
-        #     Namespaces[-1].send(:define_method,name.to_sym,&ruby_block)
-        # else
-        #     Namespaces[-1].send(:define_singleton_method,name.to_sym,&ruby_block)
-        # end
         Namespaces[-1].add_method(name,&ruby_block)
     end
 
@@ -4543,11 +3459,6 @@ module HDLRuby::High
                 return space.user.send(name,*args,&ruby_block)
             end
         end
-        # Look in the top namespace.
-        # if Namespaces[-1].respond_to?(name) then
-        #     # Found.
-        #     return Namespaces[-1].send(name,*args,&ruby_block)
-        # end
         # Look in the global methods.
         if HDLRuby::High.respond_to?(name) then
             # Found.
@@ -4569,13 +3480,6 @@ module HDLRuby::High
 
     # Extends the Numeric class for conversion to a high-level expression.
     class ::Numeric
-
-        # to_expr is to be defined in the subclasses of ::Numeric
-        # # Converts to a new high-level expression.
-        # def to_expr
-        #     # return Value.new(numeric,self)
-        #     return Value.new(TypeNumeric.new(:"",self),self)
-        # end
 
         # Tell if the expression can be converted to a value.
         def to_value?
@@ -4612,16 +3516,6 @@ module HDLRuby::High
             return Delay.new(self,:s)
         end
     end
-
-    # Moved to hruby_tools
-    # # Extends the Integer class for computing the bit width.
-    # class ::Integer
-
-    #     # Gets the bit width
-    #     def width
-    #         return Math.log2(self+1).ceil
-    #     end
-    # end
 
     # Extends the Fixnum class for computing for conversion to expression.
     class ::Fixnum
@@ -4832,21 +3726,6 @@ module HDLRuby::High
             end
         end
 
-        # # Create an array of instances obtained by instantiating the elements
-        # # using +args+ as argument and register the result to +name+.
-        # #
-        # # NOTE: the instances are unnamed since it is the resulting array
-        # # that is registered.
-        # def make(name,*args)
-        #     # Instantiate the types.
-        #     instances = self.map { |elem| elem.instantiate(:"",*args) }
-        #     # Add them to the top system
-        #     High.space_top.user.add_groupI(name,*instances)
-        #     # Register and return the result.
-        #     High.space_reg(name) { High.space_top.user.get_groupI(name) }
-        #     return High.space_top.user.get_groupI(name)
-        # end
-
         # Create an array of instances of system +name+, using +args+ as
         # arguments.
         #
@@ -4879,21 +3758,6 @@ module HDLRuby::High
     # Extends the symbol class for auto declaration of input or output.
     class ::Symbol
         High = HDLRuby::High
-
-        # # Converts to a new high-level expression.
-        # def to_expr
-        #     self.to_ref
-        # end
-
-        # # Converts to a new high-level reference refering to an unbounded signal.
-        # def to_ref
-        #     # Create the unbounded signal and add it to the upper system type.
-        #     signal = SignalI.new(self,void,:no)
-        #     High.cur_system.add_unbound(signal)
-        #     # Convert it to a reference and return the result.
-        #     return signal.to_ref
-        # end
-        # alias_method :+@, :to_ref
 
         # Tell if the expression can be converted to a value.
         def to_value?
@@ -4948,24 +3812,12 @@ module HDLRuby::High
             when "b" then
                 # base 2, compute the width
                 width = width ? width.to_i : value.size
-                # # Check the value
-                # if value.match(/^[0-1]+$/) then
-                #     # Numeric value, compute the corresponding integer
-                #     value = value.to_i(2)
-                # elsif !value.match(/^[0-1zxZX]+$/) then
-                #     # Invalid value.
-                #     return nil
-                # end
                 # Check the value
                 return nil unless value.match(/^[0-1zxZX]+$/)
             when "o" then
                 # base 8, compute the width
                 width = width ? width.to_i : value.size * 3
                 # Check the value
-                # if value.match(/^[0-7]+$/) then
-                #     # Numeric value, compute the corresponding integer
-                #     value = value.to_i(8)
-                # elsif value.match(/^[0-7xXzZ]+$/) then
                 if value.match(/^[0-7xXzZ]+$/) then
                     # 4-state value, conpute the correspondig bit string.
                     value = value.each_char.map do |c|
@@ -4991,10 +3843,6 @@ module HDLRuby::High
                 # base 16, compute the width
                 width = width ? width.to_i : value.size * 4
                 # Check the value
-                # if value.match(/^[0-9a-fA-F]+$/) then
-                #     # Numeric value, compute the corresponding integer
-                #     value = value.to_i(16)
-                # elsif value.match(/^[0-9a-fA-FxXzZ]+$/) then
                 if value.match(/^[0-9a-fA-FxXzZ]+$/) then
                     # 4-state value, conpute the correspondig bit string.
                     value = value.each_char.map do |c|
@@ -5027,7 +3875,6 @@ module HDLRuby::High
             end
             # puts "type=#{type}, value=#{value}"
             # Create and return the value.
-            # return Value.new(type,HDLRuby::BitString.new(value))
             return Value.new(type,value)
         end
 
@@ -5058,20 +3905,6 @@ module HDLRuby::High
             (first..last).each(&ruby_block)
         end
     end
-
-
-    # Moved to hruby_tools.rb
-    # # Method and attribute for generating an absolute uniq name.
-    # # Such names cannot be used in HDLRuby::High code, but can be used
-    # # to generate such code.
-
-    # @@absoluteCounter = -1 # The absolute name counter.
-
-    # # Generates an absolute uniq name.
-    # def self.uniq_name
-    #     @@absoluteCounter += 1
-    #     return ":#{@@absoluteCounter}".to_sym
-    # end
 
 
 
@@ -5110,9 +3943,6 @@ module HDLRuby::High
     def self.names_create(base)
         base = base.to_s.clone
         # Create a non-conflicting name
-        # while(self.names_has?(base)) do
-        #     base << "_"
-        # end
         if self.names_has?(base) then
             count = 0
             while (self.names_has?(base + count.to_s)) do
@@ -5171,8 +4001,6 @@ def self.configure_high
     end
 
     # Generate the standard signals
-    # $clk = SignalI.new(:__universe__clk__,Bit,:inner)
-    # $rst = SignalI.new(:__universe__rst__,Bit,:inner)
     $clk = Universe.scope.inner :__universe__clk__
     $rst = Universe.scope.inner :__universe__rst__
 
