@@ -48,21 +48,21 @@ module HDLRuby
     FIELDS_TO_EXCLUDE.default = [ :@parent ]
 
     # The list of fields that correspond to reference.
-    FIELDS_OF_REF     = { Low::SystemI => [ :@systemT ] }
+    FIELDS_OF_REF     = { Low::SystemI => [ :@systemT,:@systemTs ] }
     FIELDS_OF_REF.default = [ :@type ]
 
     # The name of the reference argument if any.
-    REF_ARG_NAMES = { Low::SystemI    => "systemT",
-                      Low::SignalI    => "type",
-                      Low::TypeVector => "base",
-                      Low::TypeTuple  => "types",
-                      Low::RefThis    => "type",
-                      Low::RefName    => "type",
-                      Low::RefIndex   => "type",
-                      Low::Unary      => "type",
-                      Low::Binary     => "type",
-                      Low::Select     => "type",
-                      Low::Value      => "type"
+    REF_ARG_NAMES = { Low::SystemI    => ["systemT","systemTs"],
+                      Low::SignalI    => ["type"],
+                      Low::TypeVector => ["base"],
+                      Low::TypeTuple  => ["types"],
+                      Low::RefThis    => ["type"],
+                      Low::RefName    => ["type"],
+                      Low::RefIndex   => ["type"],
+                      Low::Unary      => ["type"],
+                      Low::Binary     => ["type"],
+                      Low::Select     => ["type"],
+                      Low::Value      => ["type"]
                     }
 
     # The table of the object that can be refered to, used when deserializing.
@@ -187,12 +187,13 @@ module HDLRuby
                     # puts "ref=#{ref} k=#{k} v=#{v}"
                     elem = basic_to_value(v)
                     # puts "elem=#{elem}"
-                    if ref == k and elem.is_a?(String) then
+                    # if ref == k and elem.is_a?(String) then
+                    if ref and ref.include?(k) and elem.is_a?(String) then
                         # The argument is actually a reference, get the
                         # corresponding object.
                         elem = FROM_BASICS_REFS[elem.to_sym]
                     end
-                    # puts "elem=#{elem}"
+                    # puts "now elem=#{elem}"
                     elem
                 end
                 # Build the object with the processed arguments.
@@ -206,17 +207,27 @@ module HDLRuby
                     add_meth = ("add_" + k)[0..-2].to_sym
                     # Treat the values a an array.
                     v = v.values if v.is_a?(Hash)
+                    # puts "v=#{v}"
                     v.each do |elem|
                         # object.send(add_meth, *basic_to_value(elem) )
                         elem = basic_to_value(elem)
                         # puts "ref=#{ref}, k=#{k}"
-                        if ref == k and elem.is_a?(String) then
+                        # puts "to add elem=#{elem}"
+                        # if ref == k and elem.is_a?(String) then
+                        if ref and ref.include?(k) and elem.is_a?(String) then
                             # The argument is actually a reference, get the
                             # corresponding object.
                             elem = FROM_BASICS_REFS[elem.to_sym]
                         end
-                        # puts "elem=#{elem}"
-                        object.send(add_meth, *elem )
+                        # puts "adding elem=#{elem} to object=#{object}" if elem.is_a?(SystemT)
+                        # In general it is enough to add the element to
+                        # the object. However, in the case of a systemI,
+                        # the main systemT is added to the list at
+                        # the creation of the SystemI and is therefore
+                        # not to be added.
+                        if !object.is_a?(SystemI) || object.systemT != elem
+                            object.send(add_meth, *elem )
+                        end
                     end
                 end
                 # Store the objects if it is named.
@@ -279,6 +290,12 @@ module HDLRuby
         #   current context.
         def to_basic(top = true, ref = false, types = {}, generated = [[]])
             # if !top and TO_BASICS_TYPES.include?(self.class) and
+            # Ensure it is a initial ref: if the object has no name
+            # it is the case.
+            if ref then
+                ref = self.respond_to?(:name) && !self.name.empty? 
+            end
+            # Process the object
             if !top and ref then
                 # Refered object, but not the top, add it to the types list
                 # without converting it if not already generated.
@@ -319,8 +336,9 @@ module HDLRuby
                 # Sets the content.
                 # content[var_sym] = HDLRuby.value_to_basic(var_val,types)
                 value = HDLRuby.value_to_basic(
-                    FIELDS_OF_REF[self.class].include?(var_sym) && 
-                    var_val.respond_to?(:name) && !var_val.name.empty?,
+                    # FIELDS_OF_REF[self.class].include?(var_sym) && 
+                    # var_val.respond_to?(:name) && !var_val.name.empty?,
+                    FIELDS_OF_REF[self.class].include?(var_sym),
                     var_val, types,generated)
                 # Remove the @ from the symbol.
                 var_sym = var_sym.to_s[1..-1]

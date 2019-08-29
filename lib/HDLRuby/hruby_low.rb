@@ -2104,6 +2104,12 @@ module HDLRuby::Low
 
     ## 
     # Describes a system instance.
+    # 
+    # NOTE: an instance can actually represented muliple layers
+    #       of systems, the first one being the one actually instantiated
+    #       in the final RTL code.
+    #       This layring can be used for describing software or partial
+    #       reconfiguration.
     class SystemI
 
         include Hparent
@@ -2122,7 +2128,12 @@ module HDLRuby::Low
             if !systemT.is_a?(SystemT) then
                 raise AnyError, "Invalid class for a system type: #{systemT.class}"
             end
+            # Sets the instantiated system.
             @systemT = systemT
+
+            # Initialize the list of system layers, the first one
+            # being the instantiated system.
+            @systemTs = [ @systemT ]
         end
 
         # Comparison for hash: structural comparison.
@@ -2144,7 +2155,23 @@ module HDLRuby::Low
         def name=(name)
             @name = name.to_sym
         end
-        # protected :name=
+
+        ## Adds a system layer.
+        def add_systemT(systemT)
+            # Check and add the systemT.
+            if !systemT.is_a?(SystemT) then
+                raise AnyError, "Invalid class for a system type: #{systemT.class}"
+            end
+            @systemTs << systemT
+        end
+
+        ## Iterates over the system layers.
+        def each_systemT(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemT) unless ruby_block
+            # A ruby block? Apply it on the system layers.
+            @systemTs.each(&ruby_block)
+        end
 
         # Delegate inner accesses to the system type.
         extend Forwardable
