@@ -378,7 +378,10 @@ module HDLRuby::Low
             # And recurse on the systemT accessible through the instances.
             self.scope.each_scope_deep do |scope|
                 scope.each_systemI do |systemI|
-                    systemI.systemT.each_systemT_deep(&ruby_block)
+                    # systemI.systemT.each_systemT_deep(&ruby_block)
+                    systemI.each_systemT do |systemT|
+                        systemT.each_systemT_deep(&ruby_block)
+                    end
                 end
             end
         end
@@ -2158,6 +2161,7 @@ module HDLRuby::Low
 
         ## Adds a system layer.
         def add_systemT(systemT)
+            # puts "add_systemT #{systemT.name} to systemI #{self.name}"
             # Check and add the systemT.
             if !systemT.is_a?(SystemT) then
                 raise AnyError, "Invalid class for a system type: #{systemT.class}"
