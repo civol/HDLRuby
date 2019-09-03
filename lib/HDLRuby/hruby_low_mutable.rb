@@ -1071,7 +1071,7 @@ module HDLRuby::Low
                         reassign = node2reassign[node][1].clone
                         blk.add_statement(Transmit.new(reassign,node.clone))
                     end
-                    blk.add_statement(statement)
+                    blk.add_statement(statement.clone)
                     blk
                 else
                     statement
