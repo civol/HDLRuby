@@ -75,7 +75,7 @@ module HDLRuby::High::Std
         # building a channel, its reader or its writer.
         attr_reader :namespace
 
-        ## Creates a new channel type with +name+ built from +ruby_block+
+        ## Creates a new channel instance with +name+ built from +ruby_block+.
         def initialize(name,&ruby_block)
             # Check and set the name
             @name = name.to_sym
