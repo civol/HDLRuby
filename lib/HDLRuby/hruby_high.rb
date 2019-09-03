@@ -499,13 +499,12 @@ module HDLRuby::High
             @instance_procs.each(&ruby_block)
         end
 
-        # Expands the system with possible arugments +agrs+ to a new system
+        # Expands the system with possible arugments +args+ to a new system
         # named +name+.
         def expand(name, *args)
             # puts "expand #{self.name} to #{name}"
             # Create the new system.
             expanded = self.class.new(name.to_s) {}
-
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| expanded.scope.include(system) }
 
@@ -1823,6 +1822,8 @@ module HDLRuby::High
             else
                 # No, perform a connection is order of declaration
                 connects.each.with_index do |csig,i|
+                    # puts "csig=#{csig} i=#{i}"
+                    # puts "systemT inputs=#{systemT.each_input.to_a.size}"
                     # Gets i-est signal to connect
                     ssig = self.systemT.get_interface_with_included(i)
                     # Check if it is an output.
@@ -1887,8 +1888,13 @@ module HDLRuby::High
             # Converts the system of the instance to HDLRuby::Low
             systemTlow = self.systemT.to_low
             # Creates the resulting HDLRuby::Low instance
-            return HDLRuby::Low::SystemI.new(High.names_create(name),
+            systemIlow = HDLRuby::Low::SystemI.new(High.names_create(name),
                                              systemTlow)
+            # Adds the other systemTs.
+            self.each_systemT do |systemT|
+                systemIlow.add_systemT(systemT.to_low) unless systemT == self.systemT
+            end
+            return systemIlow
         end
     end
 
