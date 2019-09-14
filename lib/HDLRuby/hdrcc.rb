@@ -5,6 +5,7 @@ require 'HDLRuby'
 require 'HDLRuby/hruby_check.rb'
 require 'ripper'
 require 'HDLRuby/hruby_low2high'
+require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
 require 'HDLRuby/hruby_low_without_outread'
 require 'HDLRuby/hruby_low_with_bool'
@@ -15,6 +16,7 @@ require 'HDLRuby/hruby_low_without_bit2vector'
 require 'HDLRuby/hruby_low_with_port'
 require 'HDLRuby/hruby_low_with_var'
 require 'HDLRuby/hruby_low_without_concat'
+require 'HDLRuby/hruby_low_without_connection'
 require 'HDLRuby/hruby_low_cleanup'
 
 require 'HDLRuby/hruby_verilog.rb'
@@ -183,6 +185,10 @@ if __FILE__ == $0 then
         opts.on("-r", "--hdr","Output in HDLRuby format") do |v|
             $options[:hdr] = v
         end
+        opts.on("-C", "--clang","Output in C format (simulator)") do |v|
+            $options[:clang] = v
+            $options[:multiple] = v
+        end
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             $options[:verilog] = v
             $options[:multiple] = v
@@ -326,6 +332,74 @@ if __FILE__ == $0 then
         #     $output << systemT.to_high
         # end
         $output << $top_instance.to_low.systemT.to_high
+    elsif $options[:clang] then
+        top_system = $top_instance.to_low.systemT
+        # Generate the C.
+        if $options[:multiple] then
+            # Get the base name of the input file, it will be used for
+            # generating the main name of the multiple result files.
+            basename = File.basename($input,File.extname($input))
+            basename = $output + "/" + basename
+            # File name counter.
+            count = 0
+
+            # Converts the connections to behaviors (C generation does not
+            # support connections).
+            top_system.each_systemT_deep do |systemT|
+                systemT.connections_to_behaviors!
+            end
+
+            # Multiple files generation mode.
+            # Generate the h files.
+            hnames = []
+            top_system.each_systemT_deep do |systemT|
+                # For the h file.
+                hname = $output + 
+                    HDLRuby::Low::Low2C.c_name(systemT.name) +
+                    ".h"
+                hnames << File.basename(hname)
+                # Open the file for current systemT
+                output = File.open(hname,"w")
+                # Generate the H code in to.
+                output << systemT.to_ch
+                # Close the file.
+                output.close
+                # Clears the name.
+                hname = nil
+            end
+
+            # Prepare the initial name for the main file.
+            name = basename + ".c"
+            # Generate the code for it.
+            main = File.open(name,"w")
+            main << HDLRuby::Low::Low2C.main(top_system,
+                            top_system.each_systemT_deep.to_a.reverse,hnames)
+            main.close
+
+            top_system.each_systemT_deep do |systemT|
+                # For the c file.
+                name = $output + 
+                    HDLRuby::Low::Low2C.c_name(systemT.name) +
+                    ".c"
+                # Open the file for current systemT
+                output = File.open(name,"w")
+                # Generate the C code in to.
+                output << systemT.to_c(0,*hnames)
+                # Close the file.
+                output.close
+                # Clears the name.
+                name = nil
+            end
+        else
+            # Single file generation mode.
+            top_system.each_systemT_deep.reverse_each do |systemT|
+                $output << systemT.to_ch
+                $output << systemT.to_c
+            end
+            # Adds the main code.
+            $output << HDLRuby::Low::Low2C.main(top_system,
+                                    *top_system.each_systemT_deep.to_a)
+        end
     elsif $options[:verilog] then
         # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
         top_system = $top_instance.to_low.systemT

@@ -1381,6 +1381,11 @@ module HDLRuby::Low
             return [super,@base,@range].hash
         end
 
+        # Gets the size of the type in number of base elements.
+        def size
+            return (@range.first.to_i - @range.last.to_i).abs + 1
+        end
+
         # Gets the bitwidth of the type, nil for undefined.
         #
         # NOTE: must be redefined for specific types.

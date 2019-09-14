@@ -1,0 +1,116 @@
+require "HDLRuby/hruby_error"
+
+
+
+##
+# Adds methods for finding objects through names.
+#
+# NOTE: For now only resolve name reference.
+#
+########################################################################
+module HDLRuby::Low
+
+    ##
+    #  Extends SystemT with the capability of finding one of its inner object
+    #  by name.
+    class SystemT
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            # Ensure the name is a symbol.
+            name = name.to_sym
+            # Look in the interface.
+            found = self.get_signal(name)
+            return found if found
+            # Maybe it is the scope.
+            return self.scope if self.scope.name == name
+            # Look in the scope.
+            return self.scope.get_by_name(name)
+        end
+    end
+
+
+    ##
+    #  Extends Scope with the capability of finding one of its inner object
+    #  by name.
+    class Scope
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            # Ensure the name is a symbol.
+            name = name.to_sym
+            # Look in the signals.
+            found = self.get_inner(name)
+            return found if found
+            # Look in the instances.
+            found = self.each_systemI.find { |systemI| systemI.name == name }
+            return found if found
+            # Maybe it is a sub scope.
+            return self.each_scope.find { |scope| scope.name == name }
+        end
+    end
+
+
+    ##
+    #  Extends SystemI with the capability of finding one of its inner object
+    #  by name.
+    class SystemI
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            # Look into the eigen system.
+            return self.systemT.get_by_name(name)
+        end
+    end
+
+
+    ##
+    #  Extends Block with the capability of finding one of its inner object
+    #  by name.
+    class Block
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            # Ensure the name is a symbol.
+            name = name.to_sym
+            # Look in the signals.
+            return self.get_inner(name)
+        end
+    end
+
+    
+    ##
+    #  Extends RefName with the capability of finding the object it
+    #  refered to.
+    class RefName
+
+        ## Resolves the name of the reference and return the
+        #  corresponding object.
+        #  NOTE: return nil if could not resolve.
+        def resolve
+            # puts "Resolve with #{self} and name=#{self.name}"
+            # First resolve the sub reference if possible.
+            if self.ref.is_a?(RefName) then
+                obj = self.ref.resolve
+                # Look into the object for the name.
+                return obj.get_by_name(self.name)
+            else
+                # Look in the parent hierachy for the name.
+                parent = self.parent
+                while parent
+                    if parent.respond_to?(:get_by_name) then
+                        found = parent.get_by_name(self.name)
+                        return found if found
+                    end
+                    parent = parent.parent
+                end
+                # Not found.
+                return nil
+            end
+        end
+    end
+end
