@@ -2018,6 +2018,8 @@ module HDLRuby::Low
                 raise AnyError, "Invalid class for a reference: #{ref.class}"
             end
             @ref = ref
+            # And set the parent of ref.
+            ref.parent = self
         end
 
         # Comparison for hash: structural comparison.
@@ -3775,7 +3777,6 @@ module HDLRuby::Low
         # def initialize(operator,left,right)
         def initialize(type,operator,left,right)
             # Initialize as a general operation.
-            # super(operator)
             super(type,operator)
             # Check and set the children.
             unless left.is_a?(Expression)
