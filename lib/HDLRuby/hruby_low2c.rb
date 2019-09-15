@@ -518,6 +518,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object and
         # +time+ is a flag telling if the behavior is timed or not.
         def to_c(level = 0, time = false)
+            # puts "For behavior: #{self}"
             # The resulting string.
             res = ""
 
@@ -580,12 +581,13 @@ module HDLRuby::Low
                 # Keep only one ref per signal.
                 refs.uniq! { |node| node.name }
                 # Generate the event.
-                events = refs.map {|ref| Event.new(:anyedge,ref) }
+                events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
                 # Add them to the behavior for further processing.
                 events.each {|event| self.add_event(event) }
             end
             # Finaly can process the events.
             events.each_with_index do |event,i|
+                # puts "for event=#{event}"
                 # Add the event.
                 res << " " * (level+1)*3
                 res << "behavior->events[#{i}] = #{event.to_c};\n"
@@ -1211,7 +1213,7 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
-            case self.opertor
+            case self.operator
             when :~ then
                 return "not_value(#{self.child.to_c(level)})"
             when :-@ then
