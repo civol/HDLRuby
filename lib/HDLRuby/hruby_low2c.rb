@@ -91,6 +91,17 @@ module HDLRuby::Low
             return "#{obj.to_s.upcase}"
         end
 
+        ## Generates a prototype from a function +name+.
+        def self.prototype(name)
+            return "void #{name}();\n"
+        end
+
+        ## Generates the code of a thread calling +name+ function
+        #  and register it to the simulator.
+        def self.thread(name)
+
+        end
+
 
         ## Generates the main for making the objects of +objs+ and
         #  for starting the simulation and including the files from +hnames+
@@ -326,8 +337,10 @@ module HDLRuby::Low
             self.each_systemI { |systemI| res << systemI.to_c(level) }
             # Generates the code for making sub scopes if any.
             self.each_scope { |scope| res << self.scope.to_c(level) }
-            # Generate the code for makeing the behaviors.
+            # Generate the code for making the behaviors.
             self.each_behavior { |behavior| res << behavior.to_c(level) }
+            # Generate the code for making the non-HDLRuby codes.
+            self.each_code { |code| res << code.to_c(level) }
 
             # Generate the code of the scope.
             
@@ -405,6 +418,18 @@ module HDLRuby::Low
                        "#{Low2C.make_name(behavior)}();\n"
             end
 
+            # Add the non-HDLRuby codes.
+            res << " " * (level+1)*3
+            res << "scope->num_codes = #{self.each_code.to_a.size};\n"
+            res << " " * (level+1)*3
+            res << "scope->codes = calloc(sizeof(Code)," +
+                   "scope->num_codes);\n"
+            self.each_code.with_index do |code,i|
+                res << " " * (level+1)*3
+                res << "scope->codes[#{i}] = " +
+                       "#{Low2C.make_name(code)}();\n"
+            end
+
             # Generate the Returns of the result.
             res << "\n"
             res << " " * (level+1)*3
@@ -436,6 +461,9 @@ module HDLRuby::Low
 
             # Generate the access to the behaviors.
             self.each_behavior { |behavior| res << behavior.to_ch }
+
+            # Generate the access to the non-HDLRuby code.
+            self.each_behavior { |code| res << code.to_ch }
 
             return res;
         end
@@ -604,9 +632,9 @@ module HDLRuby::Low
                 res << "#{sigad}->num_#{field} += 1;\n"
                 res << " " * (level+1)*3
                 res << "#{sigad}->#{field} = realloc(#{sigad}->#{field}," +
-                       "#{sigad}->num_#{field}*sizeof(Behavior));\n"
+                       "#{sigad}->num_#{field}*sizeof(Object));\n"
                 res << "#{sigad}->#{field}[#{sigad}->num_#{field}-1] = " +
-                       "behavior;\n"
+                       "(Object)behavior;\n"
             end
 
             # Adds the block.
@@ -837,6 +865,128 @@ module HDLRuby::Low
     end
 
 
+    # Extend the Chunk cass with generation of text code.
+    class HDLRuby::Low::Chunk
+
+        # Generates the text of the equivalent HDLRuby::High code.
+        # +level+ is the hierachical level of the object.
+        def to_c(level = 0)
+            res = " " * level
+            res << self.each_lump.map do |lump|
+                if !lump.is_a?(String) then
+                    lump.respond_to?(:to_c) ? lump.to_c(level+1) : lump.to_s
+                else
+                    lump
+                end
+            end.join
+            return res
+        end
+    end
+
+
+    ## Extends the SystemI class with generation of HDLRuby::High text.
+    class Code
+        # Generates the text of the equivalent HDLRuby::High code.
+        # +level+ is the hierachical level of the object.
+        def to_c(level = 0)
+            # puts "For behavior: #{self}"
+            # The resulting string.
+            res = ""
+
+            # Declare the global variable holding the behavior.
+            res << "Code #{Low2C.obj_name(self)};\n\n"
+
+            # Generate the code of the behavior.
+            
+            # The header of the behavior.
+            res << " " * level*3
+            res << "Code #{Low2C.make_name(self)}() {\n"
+            res << " " * (level+1)*3
+
+            # Allocate the code.
+            res << "Code code = malloc(sizeof(CodeS));\n"
+            res << " " * (level+1)*3
+            res << "code->kind = CODE;\n";
+
+            # Sets the global variable of the code.
+            res << "\n"
+            res << " " * (level+1)*3
+            res << "#{Low2C.obj_name(self)} = code;\n"
+
+            # Set the owner if any.
+            if self.parent then
+                res << " " * (level+1)*3
+                res << "code->owner = (Object)" + 
+                       "#{Low2C.obj_name(self.parent)};\n"
+            else
+                res << "code->owner = NULL;\n"
+            end
+
+            # Add the events and register the code as activable
+            # on them.
+            res << " " * (level+1)*3
+            res << "code->num_events = #{self.each_event.to_a.size};\n"
+            res << " " * (level+1)*3
+            res << "code->events = calloc(sizeof(Event)," +
+                   "code->num_events);\n"
+            # Process the events.
+            events = self.each_event.to_a
+            events.each_with_index do |event,i|
+                # puts "for event=#{event}"
+                # Add the event.
+                res << " " * (level+1)*3
+                res << "code->events[#{i}] = #{event.to_c};\n"
+                
+                # Register the behavior as activable on this event.
+                # Select the active field.
+                field = "any"
+                field = "pos" if event.type == :posedge
+                field = "neg" if event.type == :negedge
+                # Get the target signal access
+                sigad = event.ref.resolve.to_c_access
+                # Add the code to the relevant field.
+                res << " " * (level+1)*3
+                res << "#{sigad}->num_#{field} += 1;\n"
+                res << " " * (level+1)*3
+                res << "#{sigad}->#{field} = realloc(#{sigad}->#{field}," +
+                       "#{sigad}->num_#{field}*sizeof(Object));\n"
+                res << "#{sigad}->#{field}[#{sigad}->num_#{field}-1] = " +
+                       "(Object)code;\n"
+            end
+
+            # Adds the function to execute.
+            function = self.each_chunk.find { |chunk| chunk.name == :sim }
+            res << " " * (level+1)*3
+            res << "code->function = &#{function.to_c};\n"
+
+            # Generate the Returns of the result.
+            res << "\n"
+            res << " " * (level+1)*3
+            res << "return code;\n"
+
+            # Close the behavior makeing.
+            res << " " * level*3
+            res << "}\n\n"
+            return res
+        end
+
+        ## Generates the content of the h file.
+        def to_ch
+            res = ""
+            # Declare the global variable holding the signal.
+            res << "extern Behavior #{Low2C.obj_name(self)};\n\n"
+
+            # Generate the access to the function making the behavior.
+            res << "extern Behavior #{Low2C.make_name(self)}();\n\n"
+
+            # Generate the accesses to the block of the behavior.
+            res << self.block.to_ch
+
+            return res;
+        end
+    end
+
+
     ## Extends the Statement class with generation of HDLRuby::High text.
     class Statement
 
@@ -1052,7 +1202,7 @@ module HDLRuby::Low
 
             # Sets the execution function.
             res << " " * (level+1)*3
-            res << "block->code = &#{Low2C.code_name(self)};\n"
+            res << "block->function = &#{Low2C.code_name(self)};\n"
 
             # Generate the Returns of the result.
             res << "\n"
@@ -1094,16 +1244,6 @@ module HDLRuby::Low
         # TimeBlock is identical to Block in C
     end
 
-
-    ## Extends the Code class with generation of HDLRuby::High text.
-    class Code
-
-        # Generates the text of the equivalent HDLRuby::High code.
-        # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            raise "Code constructs cannot be converted into C."
-        end
-    end
 
     ## Extends the Connection class with generation of HDLRuby::High text.
     class Connection

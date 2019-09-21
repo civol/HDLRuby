@@ -188,6 +188,7 @@ typedef struct SignalIS_   SignalIS;
 typedef struct ScopeS_     ScopeS;
 typedef struct BehaviorS_  BehaviorS;
 typedef struct SystemIS_   SystemIS;
+typedef struct CodeS_  CodeS;
 typedef struct BlockS_     BlockS;
 typedef struct EventS_     EventS;
 
@@ -197,12 +198,13 @@ typedef struct SignalIS_*  SignalI;
 typedef struct ScopeS_*    Scope;
 typedef struct BehaviorS_* Behavior;
 typedef struct SystemIS_*  SystemI;
+typedef struct CodeS_* Code;
 typedef struct BlockS_*    Block;
 typedef struct EventS_*    Event;
 
 /* The kinds of HDLRuby objects. */
 typedef enum { 
-    SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, BLOCK, EVENT 
+    SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT 
 } Kind;
 
 /*  The kinds of HDLRuby event edge. */
@@ -244,11 +246,11 @@ typedef struct SignalIS_ {
     Value f_value;      /* The future (next) value of the signal. */
 
     int num_any;        /* The number of behavior activated on any edge. */
-    Behavior* any;      /* The behaviors activated on any edge. */
+    Object* any;        /* The objects activated on any edge. */
     int num_pos;        /* The number of behavior activated on pos edge. */
-    Behavior* pos;      /* The behaviors actvated on pos edge. */
+    Object* pos;        /* The objects actvated on pos edge. */
     int num_neg;        /* The number of behavior activated on neg edge. */
-    Behavior* neg;      /* The behaviors actvated on neg edge. */
+    Object* neg;        /* The objects actvated on neg edge. */
 } SignalIS;
 
 
@@ -275,7 +277,9 @@ typedef struct ScopeS_ {
     int num_scopes;     /* The number of sub scopes. */
     Scope *scopes;      /* The sub scopes of the scope. */
     int num_behaviors;  /* The number of behaviors. */
-    Behavior* behaviors; /* The behaviors of the scope. */
+    Behavior* behaviors;/* The behaviors of the scope. */
+    int num_codes;      /* The number of non-HDLRuby codes. */
+    Code* codes;        /* The non-HDLRuby codes of the scope. */
 } ScopeS;
 
 
@@ -294,6 +298,17 @@ typedef struct BehaviorS_ {
 } BehaviorS;
 
 
+/** The C model of non-HDLRuby code. */
+typedef struct CodeS_ {
+    Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner if any. */
+
+    int num_events;     /* The number of events. */
+    Event* events;      /* The events of the behavior. */
+    void (*function)(); /* The function to execute for the code. */
+} CodeS;
+
+
 /** The C model of a Scope. */
 typedef struct BlockS_ {
     Kind kind;          /* The kind of object. */
@@ -301,7 +316,7 @@ typedef struct BlockS_ {
 
     int num_inners;     /* The number of inners. */
     SignalI* inners;    /* The inners of the scope. */
-    void (*code)();     /* The code of the block. */
+    void (*function)(); /* The function to execute for the block. */
 } BlockS;
 
 

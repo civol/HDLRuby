@@ -29,7 +29,7 @@ module HDLRuby
 
 
 
-    # Class for loading hdr files.
+    # Class for loading HDLRuby files.
     class HDRLoad
 
         # TOP_NAME = "__hdr_top_instance__"
@@ -90,9 +90,9 @@ module HDLRuby
         end
 
         # Displays the syntax tree of all the files.
-        def show_all(output = $stdout)
+        def show_all(outfile = $stdout)
             # puts "@checks.size=#{@checks.size}"
-            @checks.each { |check| check.show(output) }
+            @checks.each { |check| check.show(outfile) }
         end
 
         # Gets the (first) top system.
@@ -122,7 +122,7 @@ module HDLRuby
         end
 
 
-        # Load the hdlruby structure from an instance of the top module.
+        # Load the HDLRuby structure from an instance of the top module.
         def parse
             # Is there a top system specified yet?
             if @top_system == "" then
@@ -157,6 +157,32 @@ module HDLRuby
             end
         end
     end
+
+
+    # Extend the Code class with generation of file for the content.
+    class HDLRuby::Low::Code
+
+        ## Creates a file in +path+ containing the content of the code.
+        def to_file(path = "")
+            self.each_chunk do |chunk|
+                # Process the lumps of the chunk.
+                # NOTE: for now use the C code generation of Low2C
+                content = chunk.to_c
+                # Dump to a file.
+                if chunk.name != :sim then 
+                    # The chunk is to be dumbed to a file.
+                    # puts "Outputing chunk:#{HDLRuby::Low::Low2C.obj_name(chunk)}"
+                    outfile = File.open(path + "/" +
+                                       HDLRuby::Low::Low2C.obj_name(chunk) + "." +
+                                       chunk.name.to_s,"w")
+                    outfile << content
+                    outfile.close
+                end
+            end
+        end
+    end
+
+
 end
 
 
@@ -188,6 +214,11 @@ if __FILE__ == $0 then
         opts.on("-C", "--clang","Output in C format (simulator)") do |v|
             $options[:clang] = v
             $options[:multiple] = v
+        end
+        opts.on("-S", "--sim","Output in C format (simulator)") do |v|
+            $options[:clang] = v
+            $options[:multiple] = v
+            $options[:sim] = v
         end
         opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
             $options[:verilog] = v
@@ -322,18 +353,37 @@ if __FILE__ == $0 then
     end
 
     # Generate the result.
+    # Get the top systemT.
+    $top_system = $top_instance.to_low.systemT
+    
+    # Gather the non-HDLRuby code.
+    $non_hdlruby = []
+    $top_system.each_systemT_deep do |systemT|
+        systemT.scope.each_scope_deep do |scope|
+            scope.each_code do |code|
+                $non_hdlruby << code
+            end
+        end
+    end
+    # Generates its code.
+    $non_hdlruby.each {|code| code.to_file($output) }
+
+    # The HDLRuby code
     if $options[:yaml] then
-        $output << $top_instance.to_low.systemT.to_yaml
+        # $output << $top_instance.to_low.systemT.to_yaml
+        $output << $top_system.to_yaml
     elsif $options[:hdr] then
         if $options[:multiple] then
             raise "Multiple files generation mode not supported for HDLRuby output yet."
         end
-        # $top_instance.to_low.systemT.each_systemT_deep.reverse_each do |systemT|
+        # $top_system.each_systemT_deep.reverse_each do |systemT|
         #     $output << systemT.to_high
         # end
-        $output << $top_instance.to_low.systemT.to_high
+        # $output << $top_instance.to_low.systemT.to_high
+        $output << $top_system.to_high
     elsif $options[:clang] then
-        top_system = $top_instance.to_low.systemT
+        # top_system = $top_instance.to_low.systemT
+        top_system = $top_system
         # Generate the C.
         if $options[:multiple] then
             # Get the base name of the input file, it will be used for
@@ -350,43 +400,59 @@ if __FILE__ == $0 then
             end
 
             # Multiple files generation mode.
-            # Generate the h files.
-            hnames = []
+            # Generate the h file.
+            hname = $output + "/hruby_sim_gen.h"
+            hnames = [ File.basename(hname) ]
+            outfile = File.open(hname,"w")
+            # Adds the generated globals
             top_system.each_systemT_deep do |systemT|
                 # For the h file.
-                hname = $output + 
-                    HDLRuby::Low::Low2C.c_name(systemT.name) +
-                    ".h"
-                hnames << File.basename(hname)
-                # Open the file for current systemT
-                output = File.open(hname,"w")
+                # hname = $output + "/" +
+                #     HDLRuby::Low::Low2C.c_name(systemT.name) +
+                #     ".h"
+                # hnames << File.basename(hname)
+                # # Open the file for current systemT
+                # output = File.open(hname,"w")
                 # Generate the H code in to.
-                output << systemT.to_ch
-                # Close the file.
-                output.close
-                # Clears the name.
-                hname = nil
+                outfile << systemT.to_ch
+                # # Close the file.
+                # output.close
+                # # Clears the name.
+                # hname = nil
             end
+            # Adds the globals from the non-HDLRuby code
+            $non_hdlruby.each do |code|
+                code.each_chunk do |chunk|
+                    if chunk.name == :sim then
+                        outfile << "extern " + 
+                            HDLRuby::Low::Low2C.prototype(chunk.to_c)
+                    end
+                end
+            end
+            outfile.close
 
             # Prepare the initial name for the main file.
             name = basename + ".c"
             # Generate the code for it.
             main = File.open(name,"w")
+           
+            # Generate the code of the main function.
+            # HDLRuby start code
             main << HDLRuby::Low::Low2C.main(top_system,
                             top_system.each_systemT_deep.to_a.reverse,hnames)
             main.close
 
             top_system.each_systemT_deep do |systemT|
                 # For the c file.
-                name = $output + 
+                name = $output + "/" +
                     HDLRuby::Low::Low2C.c_name(systemT.name) +
                     ".c"
                 # Open the file for current systemT
-                output = File.open(name,"w")
+                outfile = File.open(name,"w")
                 # Generate the C code in to.
-                output << systemT.to_c(0,*hnames)
+                outfile << systemT.to_c(0,*hnames)
                 # Close the file.
-                output.close
+                outfile.close
                 # Clears the name.
                 name = nil
             end
@@ -400,9 +466,17 @@ if __FILE__ == $0 then
             $output << HDLRuby::Low::Low2C.main(top_system,
                                     *top_system.each_systemT_deep.to_a)
         end
+        if $options[:sim] then
+            # Simulation mode, compile and exectute.
+            # Path of the simulator core files.
+            simdir = File.dirname(__FILE__) + "/sim/"
+            # Generate and execute the simulation commands.
+            Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
+        end
     elsif $options[:verilog] then
         # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
-        top_system = $top_instance.to_low.systemT
+        # top_system = $top_instance.to_low.systemT
+        top_system = $top_system
         # Make description compatible with verilog generation.
         top_system.each_systemT_deep do |systemT|
             systemT.to_upper_space!
@@ -431,11 +505,11 @@ if __FILE__ == $0 then
                         ".v"
                 end
                 # Open the file for current systemT
-                output = File.open(name,"w")
+                outfile = File.open(name,"w")
                 # Generate the VHDL code in to.
-                output << systemT.to_verilog
+                outfile << systemT.to_verilog
                 # Close the file.
-                output.close
+                outfile.close
                 # Clears the name.
                 name = nil
             end
@@ -446,7 +520,8 @@ if __FILE__ == $0 then
             end
         end
     elsif $options[:vhdl] then
-        top_system = $top_instance.to_low.systemT
+        # top_system = $top_instance.to_low.systemT
+        top_system = $top_system
         # Make description compatible with vhdl generation.
         top_system.each_systemT_deep do |systemT|
             systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
@@ -481,11 +556,11 @@ if __FILE__ == $0 then
                         ".vhd"
                 end
                 # Open the file for current systemT
-                output = File.open(name,"w")
+                outfile = File.open(name,"w")
                 # Generate the VHDL code in to.
-                output << systemT.to_vhdl
+                outfile << systemT.to_vhdl
                 # Close the file.
-                output.close
+                outfile.close
                 # Clears the name.
                 name = nil
             end

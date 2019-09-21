@@ -138,12 +138,13 @@ module HDLRuby::Low
         end
 
 
+
         # Handling the signals.
 
         # Adds input +signal+.
         def add_input(signal)
             # print "add_input with signal: #{signal.name}\n"
-            # Checks and add the signal.
+            # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
@@ -161,7 +162,7 @@ module HDLRuby::Low
 
         # Adds output +signal+.
         def add_output(signal)
-            # Checks and add the signal.
+            # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
@@ -179,7 +180,7 @@ module HDLRuby::Low
 
         # Adds inout +signal+.
         def add_inout(signal)
-            # Checks and add the signal.
+            # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
@@ -411,6 +412,8 @@ module HDLRuby::Low
             @inners  = HashName.new
             # Initialize the system instances list.
             @systemIs = HashName.new
+            # Initialize the non-HDLRuby code chunks list.
+            @codes = []
             # Initialize the connections list.
             @connections = []
             # Initialize the behaviors lists.
@@ -475,7 +478,7 @@ module HDLRuby::Low
         # Adds system instance +systemT+.
         def add_systemT(systemT)
             # puts "add_systemT with name #{systemT.name}"
-            # Checks and add the systemT.
+            # Check and add the systemT.
             unless systemT.is_a?(SystemT)
                 raise AnyError,
                       "Invalid class for a system type: #{systemT.class}"
@@ -527,7 +530,7 @@ module HDLRuby::Low
         # Adds system instance +type+.
         def add_type(type)
             # puts "add_type with name #{type.name}"
-            # Checks and add the type.
+            # Check and add the type.
             unless type.is_a?(Type)
                 raise AnyError,
                       "Invalid class for a type: #{type.class}"
@@ -580,7 +583,7 @@ module HDLRuby::Low
         
         # Adds a new +scope+.
         def add_scope(scope)
-            # Checks and add the scope.
+            # Check and add the scope.
             unless scope.is_a?(Scope)
                 raise AnyError,
                       "Invalid class for a system instance: #{scope.class}"
@@ -636,7 +639,7 @@ module HDLRuby::Low
         # Adds system instance +systemI+.
         def add_systemI(systemI)
             # puts "add_systemI with name #{systemI.name}"
-            # Checks and add the systemI.
+            # Check and add the systemI.
             unless systemI.is_a?(SystemI)
                 raise AnyError,
                       "Invalid class for a system instance: #{systemI.class}"
@@ -682,12 +685,53 @@ module HDLRuby::Low
         #     end
         #     systemI
         # end
+        #
+        # Handling the non-HDLRuby code chunks.
+
+        # Adds code chunk +code+.
+        def add_code(code)
+            # Check and add the code chunk.
+            unless code.is_a?(Code)
+                raise AnyError,
+                      "Invalid class for a non-hDLRuby code chunk: #{code.class}"
+            end
+            if @codes.include?(code) then
+                raise AnyError, "Code #{code.name} already present."
+            end
+            # Set the parent of the code chunk.
+            code.parent = self
+            # puts "code = #{code}, parent=#{self}"
+            # Add the code chunk.
+            @codes << code
+            code
+        end
+
+        # Iterates over the non-HDLRuby code chunks.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_code(&ruby_block)
+            # puts "each_code from scope=#{self}"
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_code) unless ruby_block
+            # A ruby block? Apply it on each system instance.
+            @codes.each(&ruby_block)
+        end
+
+        # Tells if there is any non-HDLRuby code chunk.
+        def has_code?
+            return !@codes.empty?
+        end
+
+        # Gets a code chunk by +name+.
+        def get_code(name)
+            return @codes[name]
+        end
 
         # Handling the signals.
         
         # Adds inner signal +signal+.
         def add_inner(signal)
-            # Checks and add the signal.
+            # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
@@ -2244,6 +2288,144 @@ module HDLRuby::Low
     end
 
 
+    ##
+    # Describes a non-HDLRuby code chunk.
+    class Chunk
+
+        include Hparent
+
+        # The name of the code chunk.
+        attr_reader :name
+
+        ## Creates new code chunk +name+ with made of +lumps+ piece of text.
+        def initialize(name,*lumps)
+            # Check and set the name.
+            @name = name.to_sym
+            # Set the content.
+            @lumps = []
+            lumps.each { |lump| self.add_lump(lump) }
+        end
+
+        # Adds a +lump+ of code, it is ment to become an expression or
+        # some text.
+        def add_lump(lump)
+            # Set its parent if relevant.
+            lump.parent = self if lump.respond_to?(:parent)
+            # And add it
+            @lumps << lump
+            return lump
+        end
+
+        # Iterates over the code lumps.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_lump(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_lump) unless ruby_block
+            # A ruby block? Apply it on each lump.
+            @lumps.each(&ruby_block)
+        end
+    end
+
+
+    ##
+    # Decribes a set of non-HDLRuby code chunks.
+    class Code
+
+        include Hparent
+
+        # Creates a new chunk of code.
+        def initialize
+            # Initialize the set of events.
+            @events = []
+            # Initialize the content.
+            @chunks = HashName.new
+        end
+
+        # Adds a +chunk+ to the sensitivity list.
+        def add_chunk(chunk)
+            # Check and add the chunk.
+            unless chunk.is_a?(Chunk)
+                raise AnyError,
+                      "Invalid class for a code chunk: #{chunk.class}"
+            end
+            # if @chunks.has_key?(chunk.name) then
+            if @chunks.include?(chunk) then
+                raise AnyError, "Code chunk #{chunk.name} already present."
+            end
+            # Set its parent.
+            chunk.parent = self
+            # And add it
+            @chunks.add(chunk)
+        end
+
+        # Iterates over the code chunks.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_chunk(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_chunk) unless ruby_block
+            # A ruby block? Apply it on each chunk.
+            @chunks.each(&ruby_block)
+        end
+
+        # Adds an +event+ to the sensitivity list.
+        def add_event(event)
+            unless event.is_a?(Event)
+                raise AnyError, "Invalid class for a event: #{event.class}"
+            end
+            # Set the event's parent.
+            event.parent = self
+            # And add the event.
+            @events << event
+            event
+        end
+
+        # Iterates over the events of the sensitivity list.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_event(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_event) unless ruby_block
+            # A ruby block? Apply it on each event.
+            @events.each(&ruby_block)
+        end
+
+        # Tells if there is any event.
+        def has_event?
+            return !@events.empty?
+        end
+
+        # Tells if there is a positive or negative edge event.
+        def on_edge?
+            @events.each do |event|
+                return true if event.on_edge?
+            end
+            return false
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Code)
+            idx = 0
+            obj.each_event do |event|
+                return false unless @events[idx].eql?(event)
+                idx += 1
+            end
+            idx = 0
+            obj.each_chunk do |chunk|
+                return false unless @chunks[idx].eql?(chunk)
+                idx += 1
+            end
+            return true
+        end
+
+        # Hash function.
+        def hash
+            return [@events,@chunk].hash
+        end
+    end
+
 
     ## 
     # Describes a statement.
@@ -2713,7 +2895,7 @@ module HDLRuby::Low
             value.parent = self
             # Checks and set the default case if any.
             self.default = default if default
-            # Checks and add the whens.
+            # Check and add the whens.
             @whens = []
             whens.each { |w| self.add_when(w) }
         end
@@ -3133,7 +3315,7 @@ module HDLRuby::Low
 
         # Adds inner signal +signal+.
         def add_inner(signal)
-            # Checks and add the signal.
+            # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
@@ -3332,43 +3514,6 @@ module HDLRuby::Low
         # Hash function.
         def hash
             return super
-        end
-    end
-
-
-    ##
-    # Decribes a piece of software code.
-    class Code
-
-        include Hparent
-
-        ## The type of code.
-        attr_reader :type
-
-        ## The content of the code.
-        attr_reader :content
-
-        # Creates a new piece of +type+ code from +content+.
-        def initialize(type,&content)
-            # Check and set type.
-            @type = type.to_sym
-            # Set the content.
-            @content = content
-            # Freeze it to avoid dynamic tempering of the hardware.
-            content.freeze
-        end
-
-        # Comparison for hash: structural comparison.
-        def eql?(obj)
-            return false unless obj.is_a?(Code)
-            return false unless @type.eql?(obj.type)
-            return false unless @content.eql?(obj.content)
-            return true
-        end
-
-        # Hash function.
-        def hash
-            return [@type,@content].hash
         end
     end
 

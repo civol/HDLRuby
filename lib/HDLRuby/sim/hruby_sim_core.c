@@ -95,22 +95,48 @@ void hruby_sim_update_signals() {
             /* Any edge activation. */
             int i;
             for(i=0; i<sig->num_any; ++i) {
-                Behavior beh = sig->any[i];
-                // printf("Signal: %p Behavior: %p\n",sig,beh);
-                beh->block->code();
+                Object obj = sig->any[i];
+                if (obj->kind == BEHAVIOR) {
+                    /* Behavior case. */
+                    Behavior beh = (Behavior)obj;
+                    // printf("Signal: %p Behavior: %p\n",sig,beh);
+                    beh->block->function();
+                } else {
+                    /* Other code case. */
+                    Code cod = (Code)obj;
+                    cod->function();
+                }
             }
             /* Positive edge activation. */
             if (!zero_value(sig->c_value)) {
                 for(i=0; i<sig->num_pos; ++i) {
-                    Behavior beh = sig->pos[i];
-                    beh->block->code();
+                    Object obj = sig->pos[i];
+                    if (obj->kind == BEHAVIOR) {
+                        /* Behavior case. */
+                        Behavior beh = (Behavior)obj;
+                        // printf("Signal: %p Behavior: %p\n",sig,beh);
+                        beh->block->function();
+                    } else {
+                        /* Other code case. */
+                        Code cod = (Code)obj;
+                        cod->function();
+                    }
                 }
             }
             /* Negative edge activation. */
             if (zero_value(sig->c_value)) {
                 for(i=0; i<sig->num_neg; ++i) {
-                    Behavior beh = sig->neg[i];
-                    beh->block->code();
+                    Object obj = sig->neg[i];
+                    if (obj->kind == BEHAVIOR) {
+                        /* Behavior case. */
+                        Behavior beh = (Behavior)obj;
+                        // printf("Signal: %p Behavior: %p\n",sig,beh);
+                        beh->block->function();
+                    } else {
+                        /* Other code case. */
+                        Code cod = (Code)obj;
+                        cod->function();
+                    }
                 }
             }
         }
@@ -195,7 +221,7 @@ void* behavior_run(void* arg) {
     pthread_mutex_unlock(&hruby_sim_mutex);
     // printf("#2\n");
     /* Now can start the execution of the behavior. */
-    behavior->block->code();
+    behavior->block->function();
     /* Stops the behavior. */
     pthread_mutex_lock(&hruby_sim_mutex);
     num_active_behaviors -= 1;

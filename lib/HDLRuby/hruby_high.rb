@@ -962,6 +962,42 @@ module HDLRuby::High
             self.parent.inout(*names)
         end
 
+        # Declares a non-HDLRuby set of code chunks described by +content+ and
+        # completed from +ruby_block+ execution result.
+        # NOTE: content includes the events to activate the code on and
+        #       a description of the code as a hash assotiating names
+        #       to code text.
+        def code(*content, &ruby_block)
+            # Process the content.
+            # Separate events from code chunks descriptions.
+            events, chunks = content.partition {|elem| elem.is_a?(Event) }
+            # Generates a large hash from the code.
+            chunks = chunks.reduce(:merge)
+            # Adds the result of the ruby block if any.
+            if ruby_block then
+                chunks.merge(HDLRuby::High.top_user.instance_eval(&ruby_block))
+            end
+            # Create the chunk objects.
+            chunks = chunks.each.map do |name,content|
+                content = [*content]
+                # Process the lumps
+                content.map! do |lump|
+                    lump.respond_to?(:to_expr) ? lump.to_expr : lump
+                end
+                Chunk.new(name,*content)
+            end
+            # Create the code object.
+            res = Code.new
+            # Adds the events.
+            events.each(&res.method(:add_event))
+            # Adds the chunks.
+            chunks.each(&res.method(:add_chunk))
+            # Adds the resulting code to the current scope.
+            HDLRuby::High.top_user.add_code(res)
+            # Return the resulting code
+            return res
+        end
+
         # Declares a sub scope with possible +name+ and built from +ruby_block+.
         def sub(name = :"", &ruby_block)
             # Creates the new scope.
@@ -1164,6 +1200,8 @@ module HDLRuby::High
                     scopeLow.add_systemT(systemI_low.systemT)
                 }
             end
+            # Adds the code chunks.
+            self.each_code { |code| scopeLow.add_code(code.to_low) }
             # Adds the connections.
             self.each_connection { |connection|
                 # puts "connection=#{connection}"
@@ -1895,6 +1933,37 @@ module HDLRuby::High
                 systemIlow.add_systemT(systemT.to_low) unless systemT == self.systemT
             end
             return systemIlow
+        end
+    end
+
+
+
+    ##
+    # Describes a non-HDLRuby code chunk.
+    class Chunk < HDLRuby::Low::Chunk
+        # Converts the if to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Chunk.new(self.name,
+                                           *self.each_lump.map do |lump|
+                lump = lump.respond_to?(:to_low) ? lump.to_low : lump.to_s
+                lump
+            end)
+        end
+    end
+
+    ##
+    # Decribes a set of non-HDLRuby code chunks.
+    class Code < HDLRuby::Low::Code
+        # Converts the if to HDLRuby::Low.
+        def to_low
+            # Create the resulting code.
+            res = HDLRuby::Low::Code.new
+            # Add the low-level events.
+            self.each_event { |event| res.add_event(event.to_low) }
+            # Add the low-level code chunks.
+            self.each_chunk { |chunk| res.add_chunk(chunk.to_low) }
+            # Return the resulting code.
+            return res
         end
     end
 

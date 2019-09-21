@@ -88,6 +88,30 @@ module HDLRuby::Low
     #  refered to.
     class RefName
 
+        ## Tells if it is a reference to a systemI signal.
+        def from_systemI?
+            # puts "from_systemI? for #{self.name}"
+            # Look for the owner from the name hierarchy.
+            if self.ref.is_a?(RefName) then
+                # Look in the parent hierachy for the sub reference name.
+                parent = self.parent
+                while parent
+                    if parent.respond_to?(:get_by_name) then
+                        found = parent.get_by_name(self.ref.name)
+                        # puts "found is a :#{found.class}"
+                        return found.is_a?(SystemI)
+                    end
+                    parent = parent.parent
+                end
+                # Not found, look further in the reference hierarchy.
+                return self.ref.from_systemI?
+            end
+            # Not from a systemI.
+            # puts "Not from systemI for #{self.name}"
+            return false
+        end
+
+
         ## Resolves the name of the reference and return the
         #  corresponding object.
         #  NOTE: return nil if could not resolve.
