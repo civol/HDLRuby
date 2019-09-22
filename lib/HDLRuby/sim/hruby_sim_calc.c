@@ -509,3 +509,25 @@ int same_content_values(Value value0, Value value1) {
     return 1;
 }
 
+
+/* Access and conversion functions. */
+
+/** Read and convert to 8-bit a value.
+ *  @param value the value to read */
+char read8(Value value) {
+    return value->data[0] & 0xFF;
+}
+
+/** Write 8 bits to a value
+ *  @param data the data to write
+ *  @param value the target value */
+void write8(char data, Value value) {
+    /* Get the actual target value from: it should be the future value
+     * (f_value) is case it is a signal value. */
+    SignalI signal = value->signal;
+    if (signal) value = signal->f_value;
+    /* Sets the value. */
+    value->data[0] = (value->data[0] & 0xFFFFFF00ULL) | data;
+    /* Touch the corresponding signal (if any). */
+    if (signal) touch_signal(signal);
+}

@@ -751,7 +751,11 @@ module HDLRuby::Low
             res << " " * (level+1)*3
             res << "signalI->c_value = make_value(signalI->type);\n"
             res << " " * (level+1)*3
+            res << "signalI->c_value->signal = signalI;\n"
+            res << " " * (level+1)*3
             res << "signalI->f_value = make_value(signalI->type);\n"
+            res << " " * (level+1)*3
+            res << "signalI->f_value->signal = signalI;\n"
             if self.value then
                 # There is an initial value.
                 res << " " * (level+1)*3

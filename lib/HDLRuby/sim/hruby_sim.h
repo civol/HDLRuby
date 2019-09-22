@@ -6,10 +6,47 @@
 #include <pthread.h>
 
 
+/* The interface to the HDLRuby objects C models. */
+
+typedef struct TypeS_      TypeS;
+typedef struct ValueS_     ValueS;
+typedef struct ObjectS_    ObjectS;
+typedef struct SystemTS_   SystemTS;
+typedef struct SignalIS_   SignalIS;
+typedef struct ScopeS_     ScopeS;
+typedef struct BehaviorS_  BehaviorS;
+typedef struct SystemIS_   SystemIS;
+typedef struct CodeS_  CodeS;
+typedef struct BlockS_     BlockS;
+typedef struct EventS_     EventS;
+
+typedef struct TypeS_*     Type;
+typedef struct ValueS_*     Value;
+typedef struct ObjectS_*   Object;
+typedef struct SystemTS_*  SystemT;
+typedef struct SignalIS_*  SignalI;
+typedef struct ScopeS_*    Scope;
+typedef struct BehaviorS_* Behavior;
+typedef struct SystemIS_*  SystemI;
+typedef struct CodeS_* Code;
+typedef struct BlockS_*    Block;
+typedef struct EventS_*    Event;
+
+/* The kinds of HDLRuby objects. */
+typedef enum { 
+    SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT 
+} Kind;
+
+/*  The kinds of HDLRuby event edge. */
+typedef enum {
+    ANYEDGE, POSEDGE, NEGEDGE
+} Edge;
+
+
 /* The interface to the type engine. */
 
 /** The type structure. */
-typedef struct {
+typedef struct TypeS_ {
     unsigned long long base;   /* The size in bits of the base elements. */
     unsigned long long size;   /* The number of elements of the type. */
     struct {
@@ -17,7 +54,6 @@ typedef struct {
     } flags;
 } TypeS;
 
-typedef TypeS *Type;
 
 /** Computes the width in bits of a type.
  *  @param type the type to compute the width
@@ -40,16 +76,14 @@ extern Type make_type_vector(Type base, unsigned int size);
 /* The interface to the value computation engine. */
 
 /* The structure of a value. */
-typedef struct {
+typedef struct ValueS_ {
     Type type;                   /* The type of the value. */
     unsigned long long size;     /* The size in words of the value. */
     unsigned long long capacity; /* The capacity in words of the data. */
-    int numeral;         /* Tell if the value is a numeral or a bitstring. */    
+    int numeral;         /* Tell if the value is a numeral or a bitstring. */ 
     unsigned int* data;  /* The data of the value. */
+    SignalI signal;      /* The signal associated with the value if any. */
 } ValueS;
-
-/* The type of a value. */
-typedef ValueS* Value;
 
 /** Creates a new value.
  *  @param type the type of the value
@@ -180,37 +214,6 @@ extern void add_list(List list, Elem elem);
 extern Elem remove_list(List list);
 
 
-/* The interface to the HDLRuby objects C models. */
-
-typedef struct ObjectS_    ObjectS;
-typedef struct SystemTS_   SystemTS;
-typedef struct SignalIS_   SignalIS;
-typedef struct ScopeS_     ScopeS;
-typedef struct BehaviorS_  BehaviorS;
-typedef struct SystemIS_   SystemIS;
-typedef struct CodeS_  CodeS;
-typedef struct BlockS_     BlockS;
-typedef struct EventS_     EventS;
-
-typedef struct ObjectS_*   Object;
-typedef struct SystemTS_*  SystemT;
-typedef struct SignalIS_*  SignalI;
-typedef struct ScopeS_*    Scope;
-typedef struct BehaviorS_* Behavior;
-typedef struct SystemIS_*  SystemI;
-typedef struct CodeS_* Code;
-typedef struct BlockS_*    Block;
-typedef struct EventS_*    Event;
-
-/* The kinds of HDLRuby objects. */
-typedef enum { 
-    SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT 
-} Kind;
-
-/*  The kinds of HDLRuby event edge. */
-typedef enum {
-    ANYEDGE, POSEDGE, NEGEDGE
-} Edge;
 
 /** An HDLRuby object. */
 typedef struct ObjectS_ {
@@ -407,3 +410,16 @@ extern void println_signal(SignalI signal);
 /** The simulation core function.
  *  @param limit the time limit in fs. */
 void hruby_sim_core(unsigned long long limit);
+
+
+
+/* Access and conversion functions. */
+
+/** Read and convert to 8-bit a value.
+ *  @param value the value to read */
+char read8(Value value);
+
+/** Write 8 bits to a value
+ *  @param data the data to write
+ *  @param value the target value */
+void write8(char data, Value value);

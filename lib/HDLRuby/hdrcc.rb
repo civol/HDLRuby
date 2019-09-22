@@ -21,6 +21,9 @@ require 'HDLRuby/hruby_low_cleanup'
 
 require 'HDLRuby/hruby_verilog.rb'
 
+require 'HDLRuby/backend/hruby_allocator'
+require 'HDLRuby/backend/hruby_c_allocator'
+
 ##
 # HDLRuby compiler interface program
 #####################################
@@ -215,6 +218,9 @@ if __FILE__ == $0 then
             $options[:clang] = v
             $options[:multiple] = v
         end
+        opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
+            $options[:allocate] = v
+        end
         opts.on("-S", "--sim","Output in C format (simulator)") do |v|
             $options[:clang] = v
             $options[:multiple] = v
@@ -363,6 +369,20 @@ if __FILE__ == $0 then
             scope.each_code do |code|
                 $non_hdlruby << code
             end
+        end
+    end
+    # Applies the allocators if required.
+    $allocate_range = $options[:allocate]
+    if $allocate_range then
+        # Get the allocation characteristics.
+        $allocate_range = $allocate_range.split(",")
+        $allocate_range = [$allocate_range[0]..$allocate_range[1],
+                           $allocate_range[2]].compact
+        # Create the allocator.
+        allocator = HDLRuby::Low::Allocator.new(*$allocate_range)
+        $non_hdlruby.each do |code|
+            # Try the C allocator.
+            code.c_code_allocate(allocator)
         end
     end
     # Generates its code.
