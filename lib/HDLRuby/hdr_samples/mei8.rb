@@ -5,7 +5,7 @@ include HDLRuby::High::Std
 # A simple implementation of the MEI8 processor.
 #
 # In this implementation, the program is hard-coded in an internal ROM
-system :mei8 do
+system :mei8 do |prog_file = "./prog.obj"|
     # Clock and reset.
     input :clk, :rst
     # Bus.
@@ -26,7 +26,8 @@ system :mei8 do
         [7..0].input  :addr          # The address bus
         [7..0].output :instr         # The instruction bus
         bit[7..0][-256].constant content: # The content of the memory
-            File.readlines("./prog.obj").map {|l| l.split[0].to_i(2)}
+            # File.readlines("./prog.obj").map {|l| l.split[0].to_i(2)}
+            File.readlines(prog_file).map {|l| l.split[0].to_i(2)}
         instr <= content[addr]       # The access procedure
     end
 
