@@ -9,6 +9,7 @@
 /* The interface to the HDLRuby objects C models. */
 
 typedef struct TypeS_      TypeS;
+typedef struct FlagsS_     FlagsS;
 typedef struct ValueS_     ValueS;
 typedef struct ObjectS_    ObjectS;
 typedef struct SystemTS_   SystemTS;
@@ -16,21 +17,25 @@ typedef struct SignalIS_   SignalIS;
 typedef struct ScopeS_     ScopeS;
 typedef struct BehaviorS_  BehaviorS;
 typedef struct SystemIS_   SystemIS;
-typedef struct CodeS_  CodeS;
+typedef struct CodeS_      CodeS;
 typedef struct BlockS_     BlockS;
 typedef struct EventS_     EventS;
 
+typedef struct RefRangeS_  RefRangeS;
+
 typedef struct TypeS_*     Type;
-typedef struct ValueS_*     Value;
+typedef struct ValueS_*    Value;
 typedef struct ObjectS_*   Object;
 typedef struct SystemTS_*  SystemT;
 typedef struct SignalIS_*  SignalI;
 typedef struct ScopeS_*    Scope;
 typedef struct BehaviorS_* Behavior;
 typedef struct SystemIS_*  SystemI;
-typedef struct CodeS_* Code;
+typedef struct CodeS_*     Code;
 typedef struct BlockS_*    Block;
 typedef struct EventS_*    Event;
+
+typedef struct RefRangeS_*  RefRange;
 
 /* The kinds of HDLRuby objects. */
 typedef enum { 
@@ -44,14 +49,16 @@ typedef enum {
 
 
 /* The interface to the type engine. */
+typedef struct FlagsS_ {
+    unsigned int all;
+    unsigned int sign : 1; /* Tells if the type is signed or not. */
+} FlagsS;
 
 /** The type structure. */
 typedef struct TypeS_ {
     unsigned long long base;   /* The size in bits of the base elements. */
-    unsigned long long size;   /* The number of elements of the type. */
-    struct {
-        unsigned int sign : 1; /* Tells if the type is signed or not. */
-    } flags;
+    unsigned long long number; /* The number of elements of the type. */
+    FlagsS flags;              /* The features of the type. */
 } TypeS;
 
 
@@ -67,9 +74,14 @@ extern Type get_type_bit();
 extern Type get_type_signed();
 
 /** Creates a new type from a HDLRuby TypeVector.
- *  @param base the base type
- *  @size the size of the vector in number of base elements */
-extern Type make_type_vector(Type base, unsigned int size);
+ *  @param base the type of an element
+ *  @param number the number of base elements */
+extern Type make_type_vector(Type base, unsigned long long number);
+
+/** Gets a vector type by size and base.
+ *  @param base the type of an element
+ *  @param number the number of base elements */
+extern Type get_type_vector(Type base, unsigned long long number);
 
 
 
@@ -84,6 +96,13 @@ typedef struct ValueS_ {
     unsigned int* data;  /* The data of the value. */
     SignalI signal;      /* The signal associated with the value if any. */
 } ValueS;
+
+/* The tructure of a reference to a range in a value. */
+typedef struct RefRangeS_ {
+    SignalI signal;           /* The refered signal. */
+    unsigned long long first; /* The first index in the range. */
+    unsigned long long last;  /* The last index in the range. */
+} RefRangeS;
 
 /** Creates a new value.
  *  @param type the type of the value
@@ -103,48 +122,89 @@ extern void set_value(Value value, int numeral, void* data);
 extern Value make_set_value(Type type, int numeral, void* data);
 
 
-/** Computes the neg of a value and put the result in the accumulator.
+/** Computes the neg of a value.// and put the result in the accumulator.
  *  @param src the source value of the neg
- *  @return the accumulator */
-extern Value neg_value(Value src);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value neg_value(Value src);
+extern Value neg_value(Value src, Value dst);
 
-/** Computes the addition of two values and put the result in the
- *  accumulator.
+/** Computes the addition of two values.// and put the result in the accumulator.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
- *  @return the accumulator */
-extern Value add_value(Value src0, Value src1);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value add_value(Value src0, Value src1);
+extern Value add_value(Value src0, Value src1, Value dst);
 
-/** Computes the subtraction of two values and put the result in the
- *  accumulator.
+/** Computes the subtraction of two values.// and put the result in the accumulator.
  *  @param src0 the first source value of the subtraction
  *  @param src1 the second source value of the subtraction
- *  @return the accumulator */
-extern Value sub_value(Value src0, Value src1);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value sub_value(Value src0, Value src1);
+extern Value sub_value(Value src0, Value src1, Value dst);
 
-/** Computes the not of a value and put the result in the accumulator.
+/** Computes the not of a value.// and put the result in the accumulator.
  *  @param src the source value of the not
- *  @return the accumulator */
-extern Value not_value(Value src);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value not_value(Value src);
+extern Value not_value(Value src, Value dst);
 
-/** Computes the AND of two values and put the result in the accumulator.
+/** Computes the AND of two values.// and put the result in the accumulator.
  *  @param src0 the first source value of the and
  *  @param src1 the second source value of the and
- *  @return the accumulator */
-extern Value and_value(Value src0, Value src1);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value and_value(Value src0, Value src1);
+extern Value and_value(Value src0, Value src1, Value dst);
 
-/** Computes the OR of two values and put the result in the accumulator.
+/** Computes the OR of two values.// and put the result in the accumulator.
  *  @param src0 the first source value of the or
  *  @param src1 the second source value of the or
- *  @return the accumulator */
-extern Value or_value(Value src0, Value src1);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value or_value(Value src0, Value src1);
+extern Value or_value(Value src0, Value src1, Value dst);
 
-/** Computes the XOR of two values and put the result in the accumulator.
+/** Computes the XOR of two values.// and put the result in the accumulator.
  *  @param src0 the first source value of the or
  *  @param src1 the second source value of the or
- *  @return the accumulator */
-extern Value xor_value(Value src0, Value src1);
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value xor_value(Value src0, Value src1);
+extern Value xor_value(Value src0, Value src1, Value dst);
 
+/** Computes the equal (NXOR) of two values.// and put the result in the accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value equal_value(Value src0, Value src1);
+extern Value equal_value(Value src0, Value src1, Value dst);
+
+/** Selects a value depending on a condition.
+ *  @param cond   the condition to use for selecting a value
+ *  @param num    the number of values for the selection
+ *  @return the selected value */
+extern Value select_value(Value cond, unsigned int num, ...);
+
+/** Concat multiple values to a single one.// in the accumulator.
+ *  @param num the number of values to concat
+ *  // @return the accumulator.
+ *  @param dst the destination value
+ *  @return dst */
+// extern Value concat_value(int num, ...);
+extern Value concat_value(int num, Value dst, ...);
 
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value
@@ -160,7 +220,24 @@ extern int zero_value(Value value);
  *  @param value0 the first value to compare
  *  @param value1 the second value to compare
  *  @return 1 if same content. */
-extern int same_content_values(Value value0, Value value1);
+extern int same_content_value(Value value0, Value value1);
+
+/** Testing if two values have the same content (the type is not checked).
+ *  @param value0 the first value to compare
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param value1 the second value to compare
+ *  @return 1 if same content. */
+extern int same_content_value_range(Value value0, unsigned long long first,
+        unsigned long long last, Value value1);
+
+/** Creates a reference to a range inside a signal.
+ *  @param signal the signal to refer
+ *  @param first the start index of the range
+ *  @param last the end index of the range
+ *  @return the resulting reference */
+extern RefRangeS make_ref_rangeS(SignalI signal, unsigned long long first,
+        unsigned long long last);
 
 
 /* The interface for the lists. */
@@ -214,6 +291,20 @@ extern void add_list(List list, Elem elem);
 extern Elem remove_list(List list);
 
 
+/* The interface for the pool of values. */
+
+/** Get a fresh value. */
+extern Value get_value();
+
+/** Frees the last value of the pool. */
+extern void free_value();
+
+/** Gets the current state of the value pool. */
+extern unsigned int get_value_pos();
+
+/** Restores the state of the value pool.
+ *  @param pos the new position in the pool */
+extern void set_value_pos(unsigned int pos);
 
 /** An HDLRuby object. */
 typedef struct ObjectS_ {
@@ -362,6 +453,12 @@ extern void touch_signal(SignalI signal);
  *  @param signal the signal to transmit the value to. */
 extern void transmit_to_signal(Value value, SignalI signal);
 
+/** Transmit a value to a range within a signal.
+ *  @param value the value to transmit
+ *  @param ref the reference to the range in the signal to transmit the
+ *         value to. */
+extern void transmit_to_signal_range(Value value, RefRangeS ref);
+
 /** Creates an event.
  *  @param edge the edge of the event
  *  @param signal the signal of the event */
@@ -409,17 +506,76 @@ extern void println_signal(SignalI signal);
 
 /** The simulation core function.
  *  @param limit the time limit in fs. */
-void hruby_sim_core(unsigned long long limit);
+extern void hruby_sim_core(unsigned long long limit);
 
 
 
 /* Access and conversion functions. */
 
 /** Read and convert to 8-bit a value.
- *  @param value the value to read */
-char read8(Value value);
+ *  @param value the value to read
+ *  @return the resulting 8-bit value */
+extern char read8(Value value);
 
-/** Write 8 bits to a value
+/** Reads and convert to 16-bit a value.
+ *  @param value the value to read 
+ *  @return the resulting 16-bit value */
+extern short read16(Value value);
+
+/** Reads and convert to 32-bit a value.
+ *  @param value the value to read 
+ *  @return the resulting 32-bit value */
+extern int read32(Value value);
+
+/** Reads and convert to 64-bit a value.
+ *  @param value the value to read
+ *  @return the resulting 64-bit value */
+extern long long read64(Value value);
+
+/** Converts a value to an int.
+ *  @param value the value to convert
+ *  @return the resulting unsigned int. */
+extern int value2int(Value value);
+
+/** Converts a value to an long long.
+ *  @param value the value to convert
+ *  @return the resulting unsigned int. */
+extern long long value2longlong(Value value);
+
+/** Reads a range from a value. 
+ *  @param value the value to read
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param base the type of the elements
+ // *  @return the accumulator
+ *  @param dst the destination value */
+// extern Value read_range(Value value, long long first, long long last, Type base);
+extern void read_range(Value value, long long first, long long last, Type base,
+                       Value dst);
+
+/** Writes 8 bits to a value
  *  @param data the data to write
  *  @param value the target value */
-void write8(char data, Value value);
+extern void write8(char data, Value value);
+
+/** Writes 16 bits to a value
+ *  @param data the data to write
+ *  @param value the target value */
+extern void write16(short data, Value value);
+
+/** Writes 32 bits to a value
+ *  @param data the data to write
+ *  @param value the target value */
+extern void write32(int data, Value value);
+
+/** Writes 64 bits to a value
+ *  @param data the data to write
+ *  @param value the target value */
+extern void write64(long long data, Value value);
+
+/** Writes to a range within a value. 
+ *  @param src the source value
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param dst the destination value */
+extern void write_range(Value src, long long first, long long last, Value dst);
