@@ -344,9 +344,27 @@ void touch_signal(SignalI signal) {
 void transmit_to_signal(Value value, SignalI signal) {
     /* Only transmit if the value and the signal f_value contents are
      * different. */
-    if (!same_content_values(value,signal->f_value)) {
+    if (!same_content_value(value,signal->f_value)) {
         /* Can transmit, copy the content. */
         copy_value(value,signal->f_value);
+        /* And touch the signal. */
+        touch_signal(signal);
+    }
+}
+
+/** Transmit a value to a range within a signal.
+ *  @param value the value to transmit
+ *  @param ref the reference to the range in the signal to transmit the
+ *         value to. */
+void transmit_to_signal_range(Value value, RefRangeS ref) {
+    SignalI signal = ref.signal;
+    unsigned long long first = ref.first;
+    unsigned long long last = ref.last;
+    /* Only transmit if the value and the signal f_value contents are
+     * different. */
+    if (!same_content_value_range(value,first,last,signal->f_value)) {
+        /* Can transmit, copy the content. */
+        write_range(value,first,last,signal->f_value);
         /* And touch the signal. */
         touch_signal(signal);
     }
