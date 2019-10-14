@@ -82,6 +82,30 @@ module HDLRuby::Low
         end
     end
 
+
+    ##
+    #  Extends RefIndex with the capability of finding the object it
+    #  refered to.
+    class RefIndex
+
+        ## Tells if it is a reference to a systemI signal.
+        def from_systemI?
+            return self.ref.from_systemI
+        end
+    end
+
+
+    ##
+    #  Extends RefRange with the capability of finding the object it
+    #  refered to.
+    class RefRange
+
+        ## Tells if it is a reference to a systemI signal.
+        def from_systemI?
+            return self.ref.from_systemI
+        end
+    end
+
     
     ##
     #  Extends RefName with the capability of finding the object it
