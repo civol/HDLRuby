@@ -957,18 +957,34 @@ module HDLRuby::Low
             return @behaviors[-1]
         end
 
+        # BROKEN
+        #
+        # # Iterates over all the behaviors of the system type and its system
+        # # instances.
+        # def each_behavior_deep(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_behavior_deep) unless ruby_block
+        #     # A ruby block?
+        #     # First iterate over current system type's behavior.
+        #     self.each_behavior(&ruby_block)
+        #     # Then recurse on the system instances.
+        #     self.each_systemI do |systemI|
+        #         systemI.systemT.each_behavior_deep(&ruby_block)
+        #     end
+        # end
+        
         # Iterates over all the behaviors of the system type and its system
         # instances.
         def each_behavior_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_behavior_deep) unless ruby_block
             # A ruby block?
-            # First iterate over current system type's behavior.
-            self.each_behavior(&ruby_block)
-            # Then recurse on the system instances.
-            self.each_systemI do |systemI|
-                systemI.systemT.each_behavior_deep(&ruby_block)
+            # First recurse on the sub scopes.
+            self.each_scope_deep do |scope|
+                scope.each_behavior(&ruby_block)
             end
+            # Then iterate over current system type's behavior.
+            self.each_behavior(&ruby_block)
         end
 
         # Tells if there is any inner.
@@ -992,11 +1008,28 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_block_deep) unless ruby_block
             # A ruby block?
-            # Then apply it on each behavior's block deeply.
+            # Then apply on each sub scope.
+            self.each_scope do |scope|
+                scope.each_block_deep(&ruby_block)
+            end
+            # And apply it on each behavior's block deeply.
             self.each_behavior do |behavior|
                 behavior.each_block_deep(&ruby_block)
             end
         end
+
+        # Broken
+        # # Iterates over all the stamements of the system type and its system
+        # # instances.
+        # def each_statement_deep(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_statement_deep) unless ruby_block
+        #     # A ruby block?
+        #     # Apply it on each block deeply.
+        #     self.each_block do |block|
+        #         block.each_statement_deep(&ruby_block)
+        #     end
+        # end
 
         # Iterates over all the stamements of the system type and its system
         # instances.
@@ -1004,57 +1037,79 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_statement_deep) unless ruby_block
             # A ruby block?
-            # Apply it on each block deeply.
-            self.each_block do |block|
-                block.each_statement_deep(&ruby_block)
+            # Then apply on each sub scope.
+            self.each_scope do |scope|
+                scope.each_statement_deep(&ruby_block)
+            end
+            # And apply it on each behavior's block deeply.
+            self.each_behavior do |behavior|
+                behavior.each_statement_deep(&ruby_block)
             end
         end
 
-        # Iterates over all the statements and connections of the system type
-        # and its system instances.
-        def each_arrow_deep(&ruby_block)
+        # Iterates over all the nodes of the system type and its system
+        # instances.
+        def each_node_deep(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_arrow_deep) unless ruby_block
+            return to_enum(:each_node_deep) unless ruby_block
             # A ruby block?
-            # First, apply it on each connection.
-            self.each_connection do |connection|
-                ruby_block.call(connection)
+            # Then apply on each sub scope.
+            self.each_scope do |scope|
+                scope.each_node_deep(&ruby_block)
             end
-            # Then recurse over its blocks.
+            # And apply it on each behavior's block deeply.
             self.each_behavior do |behavior|
-                behavior.each_block_deep(&ruby_block)
-            end
-            # Finally recurse on its system instances.
-            self.each_systemI do |systemI|
-                systemI.each_arrow_deep(&ruby_block)
+                behavior.each_node_deep(&ruby_block)
             end
         end
 
-        # Iterates over all the object executed when a specific event is
-        # activated (they include the behaviors and the connections).
-        #
-        # NOTE: the arguments of the ruby block are the object and an enumerator
-        # over the set of events it is sensitive to.
-        def each_sensitive_deep(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each_sensitive_deep) unless ruby_block
-            # A ruby block?
-            # First iterate over the current system type's connections.
-            self.each_connection do |connection|
-                ruby_block.call(connection,
-                                connection.each_ref_deep.lazy.map do |ref|
-                    Event.new(:change,ref)
-                end)
-            end
-            # First iterate over the current system type's behaviors.
-            self.each_behavior do |behavior|
-                ruby_block.call(behavior,behavior.each_event)
-            end
-            # Then recurse on the system instances.
-            self.each_systemI do |systemI|
-                systemI.each_sensitive_deep(&ruby_block)
-            end
-        end
+        # Broken
+        # # Iterates over all the statements and connections of the system type
+        # # and its system instances.
+        # def each_arrow_deep(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_arrow_deep) unless ruby_block
+        #     # A ruby block?
+        #     # First, apply it on each connection.
+        #     self.each_connection do |connection|
+        #         ruby_block.call(connection)
+        #     end
+        #     # Then recurse over its blocks.
+        #     self.each_behavior do |behavior|
+        #         behavior.each_block_deep(&ruby_block)
+        #     end
+        #     # Finally recurse on its system instances.
+        #     self.each_systemI do |systemI|
+        #         systemI.each_arrow_deep(&ruby_block)
+        #     end
+        # end
+
+        # Broken
+        # # Iterates over all the object executed when a specific event is
+        # # activated (they include the behaviors and the connections).
+        # #
+        # # NOTE: the arguments of the ruby block are the object and an enumerator
+        # # over the set of events it is sensitive to.
+        # def each_sensitive_deep(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_sensitive_deep) unless ruby_block
+        #     # A ruby block?
+        #     # First iterate over the current system type's connections.
+        #     self.each_connection do |connection|
+        #         ruby_block.call(connection,
+        #                         connection.each_ref_deep.lazy.map do |ref|
+        #             Event.new(:change,ref)
+        #         end)
+        #     end
+        #     # First iterate over the current system type's behaviors.
+        #     self.each_behavior do |behavior|
+        #         ruby_block.call(behavior,behavior.each_event)
+        #     end
+        #     # Then recurse on the system instances.
+        #     self.each_systemI do |systemI|
+        #         systemI.each_sensitive_deep(&ruby_block)
+        #     end
+        # end
 
     end
 
@@ -1974,6 +2029,16 @@ module HDLRuby::Low
             # A ruby block?
             # Recurse.
             @block.each_block_deep(&ruby_block)
+        end
+
+        # Iterates over all the nodes of the system type and its system
+        # instances.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block?
+            # Recurse on the block.
+            @block.each_node_deep(&ruby_block)
         end
 
         # Short cuts to the enclosed block.
