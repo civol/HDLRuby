@@ -92,7 +92,7 @@ typedef struct ValueS_ {
     Type type;                   /* The type of the value. */
     unsigned long long size;     /* The size in words of the value. */
     unsigned long long capacity; /* The capacity in words of the data. */
-    int numeral;         /* Tell if the value is a numeral or a bitstring. */ 
+    int numeric;         /* Tell if the value is numeric or a bitstring. */ 
     unsigned int* data;  /* The data of the value. */
     SignalI signal;      /* The signal associated with the value if any. */
 } ValueS;
@@ -111,15 +111,15 @@ extern Value make_value(Type type);
 
 /** Sets a value with data.
  *  @param value the value to fill
- *  @param numeral tell if the value is in numeral form or in bitstring form
+ *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
-extern void set_value(Value value, int numeral, void* data);
+extern void set_value(Value value, int numeric, void* data);
 
 /** Makes and sets a value with data.
  *  @param type the type of the value
- *  @param numeral tell if the value is in numeral form or in bitstring form
+ *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
-extern Value make_set_value(Type type, int numeral, void* data);
+extern Value make_set_value(Type type, int numeric, void* data);
 
 
 /** Computes the neg of a value.// and put the result in the accumulator.

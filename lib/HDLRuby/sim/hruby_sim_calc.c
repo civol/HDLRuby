@@ -226,20 +226,20 @@ void resize_value(Value value, int size) {
 
 /** Sets a value with data.
  *  @param value the value to fill
- *  @param numeral tell if the value is in numeral form or in bitstring form
+ *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
-void set_value(Value value, int numeral, void* data) {
-    value->numeral = numeral ? 1 : 0;
+void set_value(Value value, int numeric, void* data) {
+    value->numeric = numeric ? 1 : 0;
     memcpy(value->data,data,value->size*sizeof(int));
 }
 
 /** Makes and sets a value with data.
  *  @param type the type of the value
- *  @param numeral tell if the value is in numeral form or in bitstring form
+ *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
-Value make_set_value(Type type, int numeral, void* data) {
+Value make_set_value(Type type, int numeric, void* data) {
     Value value = make_value(type);
-    set_value(value,numeral,data);
+    set_value(value,numeric,data);
     return value;
 }
 
@@ -248,465 +248,19 @@ Value make_set_value(Type type, int numeral, void* data) {
 
 /* The interface to the value computation engine. */
 
+/* ################### Value-kind independant computations. ############## */
 
-
-
-/** Computes the neg of a value. // and put the result in the accumulator.
- *  @param src the source value of the not
-// *  @return the accumulator 
- *  @param dst the destination value
- *  @return dst */
-// Value neg_value(Value src) {
-Value neg_value(Value src, Value dst) {
-    /* Get the size of the result from the source. */
-    unsigned long long size = src->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,size);
-    // /* set the type and size of the accumulator the the type of the source. */
-    // accumulator->type = src->type;
-    // accumulator->size = src->size;
-    // accumulator->numeral = src->numeral;
-    /* set the type and size of the destination the the type of the source. */
-    dst->type = src->type;
-    dst->size = src->size;
-    dst->numeral = src->numeral;
-
-    /* Get access to the data of the source. */
-    unsigned int *src_data = src->data;
-    /* Get access to the data of the destination. */
-    // unsigned int *dst_data = accumulator->data;
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise subtraction. */
-    unsigned long long count;
-    unsigned int carry = 0;
-    for(count = 0; count < size; ++count) {
-        /* Performs the subtraction, double size for the carry. */
-        unsigned long long d = src_data[count];
-        unsigned long long res = - d + (1-carry);
-        /* Compute the next carry. */
-        carry = res >> (INT_BIT);
-        /* Set the data of the accumulator. */
-        dst_data[count] = res;
+/** Set a value to numeric (numerical) state if possible.
+ *  @param value the value to process
+ *  @return 1 in case of success, 0 otherwise */
+int set_numeric_value(Value value) {
+    if (value->numeric) {
+        /* The value is already numeric. */
+        return 1;
     }
-    // /* Return the accumulator as result. */
-    // return accumulator;
-    /* Return the destination. */
-    return dst;
+    /* Not even trying to convert! */
+    return 0;
 }
-
-
-/** Computes the addition of two values. // and put the result in the accumulator.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
-// *  @return the accumulator
- *  @param dst the destination value
- *  @return dst */
-// Value add_value(Value src0, Value src1) {
-Value add_value(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,src0_size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = src0->type;
-    // accumulator->size = src0_size;
-    // accumulator->numeral = src0->numeral;
-    /* set the type and size of the destination to the type first source. */
-    dst->type = src0->type;
-    dst->size = src0_size;
-    dst->numeral = src0->numeral;
-
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    // /* Get access to the data of the accumulator. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise addition. */
-    unsigned long long count;
-    unsigned int carry = 0;
-    unsigned long long ext = word_extL(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the addition, double size for the carry. */
-        unsigned long long d0 = src0_data[count];
-        unsigned long long d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned long long res = d0 + d1 + carry;
-        /* Compute the next carry. */
-        carry = res >> (INT_BIT);
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Computes the subtrasction of two values.// and put the result in the accumulator.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
- // *  @return the accumulator
- *  @param dst the destination value
- *  @return dst */
-// Value sub_value(Value src0, Value src1) {
-Value sub_value(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,src0_size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = src0->type;
-    // accumulator->size = src0_size;
-    // accumulator->numeral = src0->numeral;
-    /* set the type and size of the accumulator to the type first source. */
-    dst->type = src0->type;
-    dst->size = src0_size;
-    dst->numeral = src0->numeral;
-
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    // /* Get access to the data of the accumulator. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the accumulator. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise subtraction. */
-    unsigned long long count;
-    unsigned int carry = 0;
-    unsigned long long ext = word_extL(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the subtraction, double size for the carry. */
-        unsigned long long d0 = src0_data[count];
-        unsigned long long d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned long long res = d0 - d1 + (1-carry);
-        /* Compute the next carry. */
-        carry = res >> (INT_BIT);
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Computes the NOT of a value.// and put the result in the accumulator.
- *  @param src the source value of the not
- // *  @return the accumulator
- *  @param dst the destination value
- *  @return the destination value */
-// Value not_value(Value src) {
-Value not_value(Value src, Value dst) {
-    /* Get the size of the result from the source. */
-    unsigned long long size = src->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,size);
-    // /* set the type and size of the accumulator the the type of the source. */
-    // accumulator->type = src->type;
-    // accumulator->size = src->size;
-    // accumulator->numeral = src->numeral;
-    /* set the type and size of the destination the the type of the source. */
-    dst->type = src->type;
-    dst->size = src->size;
-    dst->numeral = src->numeral;
-
-    /* Get access to the data of the source. */
-    unsigned int *src_data = src->data;
-    // /* Get access to the data of the destination. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise NOT. */
-    unsigned long long count;
-    for(count = 0; count < size; ++count) {
-        /* Performs the subtraction, double size for the carry. */
-        unsigned long long d = src_data[count];
-        unsigned long long res = ~d;
-        /* Set the data of the accumulator. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator as result. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Computes the AND of two values.// and put the result in the accumulator.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
- // *  @return the accumulator
- *  @param dst the destination value
- *  @return dst */
-// Value and_value(Value src0, Value src1) {
-Value and_value(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,src0_size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = src0->type;
-    // accumulator->size = src0_size;
-    // accumulator->numeral = src0->numeral;
-    /* set the type and size of the destination to the type first source. */
-    dst->type = src0->type;
-    dst->size = src0_size;
-    dst->numeral = src0->numeral;
-
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    // /* Get access to the data of the accumulator. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise AND. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the AND, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = d0 & d1;
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Computes the OR of two values.// and put the result in the accumulator.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
- // *  @return the accumulator
- *  @param dst the destination
- *  @return dst */
-// Value or_value(Value src0, Value src1) {
-Value or_value(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,src0_size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = src0->type;
-    // accumulator->size = src0_size;
-    // accumulator->numeral = src0->numeral;
-    /* set the type and size of the destination to the type first source. */
-    dst->type = src0->type;
-    dst->size = src0_size;
-    dst->numeral = src0->numeral;
-
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    // /* Get access to the data of the accumulator. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise OR. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the OR, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = d0 | d1;
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Computes the XOR of two values.// and put the result in the accumulator.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
- // *  @return the accumulator
- *  @param dst the destination
- *  @return dst */
-// Value xor_value(Value src0, Value src1) {
-Value xor_value(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,src0_size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = src0->type;
-    // accumulator->size = src0_size;
-    // accumulator->numeral = src0->numeral;
-    /* set the type and size of the destination to the type first source. */
-    dst->type = src0->type;
-    dst->size = src0_size;
-    dst->numeral = src0->numeral;
-
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    // /* Get access to the data of the accumulator. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise XOR. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the OR, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = d0 ^ d1;
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Computes the equal (NXOR) of two values.// and put the result in the  accumulator.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
- // *  @return the accumulator
- *  @param dst the destination value
- *  @return the destination value */
-// Value equal_value(Value src0, Value src1) {
-Value equal_value(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,src0_size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = src0->type;
-    // accumulator->size = src0_size;
-    // accumulator->numeral = src0->numeral;
-    /* set the type and size of the destination to the type first source. */
-    dst->type = src0->type;
-    dst->size = src0_size;
-    dst->numeral = src0->numeral;
-
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    // /* Get access to the data of the accumulator. */
-    // unsigned int *dst_data = accumulator->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise XOR. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the OR, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = ~(d0 ^ d1);
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    // /* Return the accumulator. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
-
-/** Selects a value depending on a condition.
- *  @param cond   the condition to use for selecting a value
- *  @param num    the number of values for the selection
- *  @return the selected value */
-Value select_value(Value cond, unsigned int num, ...) {
-    int cond_i = read32(cond);
-    int i;
-    Value selected;
-    va_list args;
-    va_start(args,num);
-
-    for(i=0;i <= cond_i; ++i) {
-        selected = va_arg(args,Value);
-    }
-    return selected;
-}
-
-/** Concat multiple values to a single one.// in the accumulator.
- *  @param num the number of values to concat
- // *  @return the accumulator.
- *  @param dst the destination value
- *  @return dst */
-// Value concat_value(int num, ...) {
-Value concat_value(int num, Value dst, ...) {
-    unsigned long long width = 0;/* The width of the resulting value. */
-    unsigned long long pos = 0;  /* Current position in the resulting value.*/
-    unsigned long long i;
-    va_list args;
-    // va_start(args,num);
-    va_start(args,dst);
-    /* Fills the accumulator with each value. */
-    for(i=0; i<num; ++i) {
-        Value value = va_arg(args,Value);
-        unsigned long long cw = type_width(value->type);
-        // write_range(value,pos,pos+cw,accumulator);
-        write_range(value,pos,pos+cw,dst);
-        pos += cw;
-    }
-    // /* Sets the type of the resulting value: it is necesserily an
-    //  * unsigned bit string. */
-    // accumulator->type = get_type_vector(get_type_bit(),width);
-    /* Sets the type of the resulting value: it is necesserily an
-     * unsigned bit string. */
-    dst->type = get_type_vector(get_type_bit(),width);
-    // /* Return the accumulator as result. */
-    // return accumulator;
-    /* Return the destination value. */
-    return dst;
-}
-
 
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value
@@ -720,8 +274,8 @@ void copy_value(Value src, Value dst) {
 
     // printf("dst_size=%llu, src_size=%llu, small=%llu\n",dst_size,src_size,small);
 
-    /* Update the kind of destination value: numeral or bitstring. */
-    dst->numeral = src->numeral;
+    /* Update the kind of destination value: numeric or bitstring. */
+    dst->numeric = src->numeric;
 
     /* Get access to the data of each value. */
     unsigned int *src_data = src->data;
@@ -755,10 +309,473 @@ void copy_value(Value src, Value dst) {
 }
 
 
-/** Testing if a value is 0.
+/* ############# Start of the computation of unnumeric values. ############## */
+/* ############# End of the computation of unnumeric values.   ############## */
+
+/* ############# Start of the computation of numeric values. ################ */
+
+
+/** Computes the neg of a numeric value. // and put the result in the accumulator.
+ *  @param src the source value of the not
+// *  @return the accumulator 
+ *  @param dst the destination value
+ *  @return dst */
+// Value neg_value(Value src) {
+static Value neg_value_numeric(Value src, Value dst) {
+    /* Get the size of the result from the source. */
+    unsigned long long size = src->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,size);
+    // /* set the type and size of the accumulator the the type of the source. */
+    // accumulator->type = src->type;
+    // accumulator->size = src->size;
+    // accumulator->numeric = src->numeric;
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src->type;
+    dst->size = src->size;
+    dst->numeric = src->numeric;
+
+    /* Get access to the data of the source. */
+    unsigned int *src_data = src->data;
+    /* Get access to the data of the destination. */
+    // unsigned int *dst_data = accumulator->data;
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise subtraction. */
+    unsigned long long count;
+    unsigned int carry = 0;
+    for(count = 0; count < size; ++count) {
+        /* Performs the subtraction, double size for the carry. */
+        unsigned long long d = src_data[count];
+        unsigned long long res = - d + (1-carry);
+        /* Compute the next carry. */
+        carry = res >> (INT_BIT);
+        /* Set the data of the accumulator. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator as result. */
+    // return accumulator;
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the addition of two numeric values. // and put the result in the accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+// *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// Value add_value(Value src0, Value src1) {
+static Value add_value_numeric(Value src0, Value src1, Value dst) {
+    /* Get the sizes of the sources. */
+    unsigned long long src0_size = src0->size;
+    unsigned long long src1_size = src1->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,src0_size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,src0_size);
+    // /* set the type and size of the accumulator to the type first source. */
+    // accumulator->type = src0->type;
+    // accumulator->size = src0_size;
+    // accumulator->numeric = src0->numeric;
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->size = src0_size;
+    dst->numeric = src0->numeric;
+
+    /* Get access to the data of each source. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    // /* Get access to the data of the accumulator. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise addition. */
+    unsigned long long count;
+    unsigned int carry = 0;
+    unsigned long long ext = word_extL(src1);
+    for(count = 0; count < src0_size; ++count) {
+        /* Performs the addition, double size for the carry. */
+        unsigned long long d0 = src0_data[count];
+        unsigned long long d1 = count <= src1_size ? src1_data[count] : ext;
+        unsigned long long res = d0 + d1 + carry;
+        /* Compute the next carry. */
+        carry = res >> (INT_BIT);
+        /* Set the data of the destination. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the subtrasction of two numeric values.// and put the result in the accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// Value sub_value(Value src0, Value src1) {
+static Value sub_value_numeric(Value src0, Value src1, Value dst) {
+    /* Get the sizes of the sources. */
+    unsigned long long src0_size = src0->size;
+    unsigned long long src1_size = src1->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,src0_size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,src0_size);
+    // /* set the type and size of the accumulator to the type first source. */
+    // accumulator->type = src0->type;
+    // accumulator->size = src0_size;
+    // accumulator->numeric = src0->numeric;
+    /* set the type and size of the accumulator to the type first source. */
+    dst->type = src0->type;
+    dst->size = src0_size;
+    dst->numeric = src0->numeric;
+
+    /* Get access to the data of each source. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    // /* Get access to the data of the accumulator. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the accumulator. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise subtraction. */
+    unsigned long long count;
+    unsigned int carry = 0;
+    unsigned long long ext = word_extL(src1);
+    for(count = 0; count < src0_size; ++count) {
+        /* Performs the subtraction, double size for the carry. */
+        unsigned long long d0 = src0_data[count];
+        unsigned long long d1 = count <= src1_size ? src1_data[count] : ext;
+        unsigned long long res = d0 - d1 + (1-carry);
+        /* Compute the next carry. */
+        carry = res >> (INT_BIT);
+        /* Set the data of the destination. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the NOT of a numeric value.// and put the result in the accumulator.
+ *  @param src the source value of the not
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return the destination value */
+// Value not_value(Value src) {
+static Value not_value_numeric(Value src, Value dst) {
+    /* Get the size of the result from the source. */
+    unsigned long long size = src->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,size);
+    // /* set the type and size of the accumulator the the type of the source. */
+    // accumulator->type = src->type;
+    // accumulator->size = src->size;
+    // accumulator->numeric = src->numeric;
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src->type;
+    dst->size = src->size;
+    dst->numeric = src->numeric;
+
+    /* Get access to the data of the source. */
+    unsigned int *src_data = src->data;
+    // /* Get access to the data of the destination. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise NOT. */
+    unsigned long long count;
+    for(count = 0; count < size; ++count) {
+        /* Performs the subtraction, double size for the carry. */
+        unsigned long long d = src_data[count];
+        unsigned long long res = ~d;
+        /* Set the data of the accumulator. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator as result. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the AND of two numeric values.// and put the result in the accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return dst */
+// Value and_value(Value src0, Value src1) {
+static Value and_value_numeric(Value src0, Value src1, Value dst) {
+    /* Get the sizes of the sources. */
+    unsigned long long src0_size = src0->size;
+    unsigned long long src1_size = src1->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,src0_size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,src0_size);
+    // /* set the type and size of the accumulator to the type first source. */
+    // accumulator->type = src0->type;
+    // accumulator->size = src0_size;
+    // accumulator->numeric = src0->numeric;
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->size = src0_size;
+    dst->numeric = src0->numeric;
+
+    /* Get access to the data of each source. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    // /* Get access to the data of the accumulator. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise AND. */
+    unsigned long long count;
+    unsigned int ext = word_ext(src1);
+    for(count = 0; count < src0_size; ++count) {
+        /* Performs the AND, double size for the carry. */
+        unsigned int d0 = src0_data[count];
+        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
+        unsigned int res = d0 & d1;
+        /* Set the data of the destination. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the OR of two numeric values.// and put the result in the accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ // *  @return the accumulator
+ *  @param dst the destination
+ *  @return dst */
+// Value or_value(Value src0, Value src1) {
+static Value or_value_numeric(Value src0, Value src1, Value dst) {
+    /* Get the sizes of the sources. */
+    unsigned long long src0_size = src0->size;
+    unsigned long long src1_size = src1->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,src0_size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,src0_size);
+    // /* set the type and size of the accumulator to the type first source. */
+    // accumulator->type = src0->type;
+    // accumulator->size = src0_size;
+    // accumulator->numeric = src0->numeric;
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->size = src0_size;
+    dst->numeric = src0->numeric;
+
+    /* Get access to the data of each source. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    // /* Get access to the data of the accumulator. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise OR. */
+    unsigned long long count;
+    unsigned int ext = word_ext(src1);
+    for(count = 0; count < src0_size; ++count) {
+        /* Performs the OR, double size for the carry. */
+        unsigned int d0 = src0_data[count];
+        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
+        unsigned int res = d0 | d1;
+        /* Set the data of the destination. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the XOR of two numeric values.// and put the result in the accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ // *  @return the accumulator
+ *  @param dst the destination
+ *  @return dst */
+// Value xor_value(Value src0, Value src1) {
+static Value xor_value_numeric(Value src0, Value src1, Value dst) {
+    /* Get the sizes of the sources. */
+    unsigned long long src0_size = src0->size;
+    unsigned long long src1_size = src1->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,src0_size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,src0_size);
+    // /* set the type and size of the accumulator to the type first source. */
+    // accumulator->type = src0->type;
+    // accumulator->size = src0_size;
+    // accumulator->numeric = src0->numeric;
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->size = src0_size;
+    dst->numeric = src0->numeric;
+
+    /* Get access to the data of each source. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    // /* Get access to the data of the accumulator. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise XOR. */
+    unsigned long long count;
+    unsigned int ext = word_ext(src1);
+    for(count = 0; count < src0_size; ++count) {
+        /* Performs the OR, double size for the carry. */
+        unsigned int d0 = src0_data[count];
+        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
+        unsigned int res = d0 ^ d1;
+        /* Set the data of the destination. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the equal (NXOR) of two numeric values.// and put the result in the  accumulator.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ // *  @return the accumulator
+ *  @param dst the destination value
+ *  @return the destination value */
+// Value equal_value(Value src0, Value src1) {
+static Value equal_value_numeric(Value src0, Value src1, Value dst) {
+    /* Get the sizes of the sources. */
+    unsigned long long src0_size = src0->size;
+    unsigned long long src1_size = src1->size;
+
+    // /* Update the accumulator capacity if required. */
+    // resize_value(accumulator,src0_size);
+    /* Update the destination capacity if required. */
+    resize_value(dst,src0_size);
+    // /* set the type and size of the accumulator to the type first source. */
+    // accumulator->type = src0->type;
+    // accumulator->size = src0_size;
+    // accumulator->numeric = src0->numeric;
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->size = src0_size;
+    dst->numeric = src0->numeric;
+
+    /* Get access to the data of each source. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    // /* Get access to the data of the accumulator. */
+    // unsigned int *dst_data = accumulator->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Perform the word-wise XOR. */
+    unsigned long long count;
+    unsigned int ext = word_ext(src1);
+    for(count = 0; count < src0_size; ++count) {
+        /* Performs the OR, double size for the carry. */
+        unsigned int d0 = src0_data[count];
+        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
+        unsigned int res = ~(d0 ^ d1);
+        /* Set the data of the destination. */
+        dst_data[count] = res;
+    }
+    // /* Return the accumulator. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Selects a value depending on a numeric condition.
+ *  @param cond   the condition to use for selecting a value
+ *  @param num    the number of values for the selection
+ *  @return the selected value */
+static Value select_value_numeric(Value cond, unsigned int num, va_list args) {
+    int cond_i = read32(cond);
+    int i;
+    Value selected;
+    // va_list args;
+    // va_start(args,num);
+
+    for(i=0;i <= cond_i; ++i) {
+        selected = va_arg(args,Value);
+    }
+    return selected;
+}
+
+/** Concat multiple numeric values to a single one.// in the accumulator.
+ *  @param num the number of values to concat
+ // *  @return the accumulator.
+ *  @param dst the destination value
+ *  @return dst */
+// Value concat_value(int num, ...) {
+static Value concat_value_numeric(int num, Value dst, va_list args) {
+    unsigned long long width = 0;/* The width of the resulting value. */
+    unsigned long long pos = 0;  /* Current position in the resulting value.*/
+    unsigned long long i;
+    // va_list args;
+    // // va_start(args,num);
+    // va_start(args,dst);
+    /* Fills the accumulator with each value. */
+    for(i=0; i<num; ++i) {
+        Value value = va_arg(args,Value);
+        unsigned long long cw = type_width(value->type);
+        // write_range(value,pos,pos+cw,accumulator);
+        write_range(value,pos,pos+cw,dst);
+        pos += cw;
+    }
+    // /* Sets the type of the resulting value: it is necesserily an
+    //  * unsigned bit string. */
+    // accumulator->type = get_type_vector(get_type_bit(),width);
+    /* Sets the type of the resulting value: it is necesserily an
+     * unsigned bit string. */
+    dst->type = get_type_vector(get_type_bit(),width);
+    // /* Return the accumulator as result. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Testing if a numeric value is 0.
  *  @param value the value to check 
  *  @return 1 if 0 and 0 otherwize */
-int zero_value(Value value) {
+static int zero_value_numeric(Value value) {
     unsigned long long i;
     unsigned long long size = value->size;
     
@@ -772,11 +789,11 @@ int zero_value(Value value) {
 }
 
 
-/** Testing if two values have the same content (the type is not checked).
+/** Testing if two numeric values have the same content (the type is not checked).
  *  @param value0 the first value to compare
  *  @param value1 the second value to compare
  *  @return 1 if same content. */
-int same_content_value(Value value0, Value value1) {
+static unsigned int same_content_value_numeric(Value value0, Value value1) {
     unsigned long long i;
     unsigned long long size = value0->size;
     /* Compare the sizes. */
@@ -794,14 +811,14 @@ int same_content_value(Value value0, Value value1) {
 }
 
 
-/** Testing if two values have the same content (the type is not checked).
+/** Testing if two numeric values have the same content (the type is not checked).
  *  @param value0 the first value to compare
  *  @param first the first index of the range
  *  @param last the last index of the range
  *  @param value1 the second value to compare
  *  @return 1 if same content. */
-int same_content_value_range(Value value0, unsigned long long first,
-        unsigned long long last, Value value1) {
+static int same_content_value_range_numeric(Value value0,
+        unsigned long long first, unsigned long long last, Value value1) {
     unsigned long long i;
     /* Get the types. */
     Type typ0 = value0->type;
@@ -870,6 +887,226 @@ int same_content_value_range(Value value0, unsigned long long first,
     /* Identical. */
     return 1;
 }
+
+/* ############# End of the computation of numeric values. ################ */
+
+/* ############# Start of the computation of general values. ################ */
+
+
+/** Computes the neg of a general value.
+ *  @param src the source value of the not
+ *  @param dst the destination value
+ *  @return dst */
+Value neg_value(Value src, Value dst) {
+    if (set_numeric_value(src)) {
+        /* The source is now numeric. */
+        return neg_value_numeric(src,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the addition of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+Value add_value(Value src0, Value src1, Value dst) {
+    if (set_numeric_value(src0) && set_numeric_value(src1)) {
+        /* Both sources are now numeric. */
+        return add_value_numeric(src0,src1,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the subtrasction of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+Value sub_value(Value src0, Value src1, Value dst) {
+    if (set_numeric_value(src0) && set_numeric_value(src1)) {
+        /* Both sources are now numeric. */
+        return sub_value_numeric(src0,src1,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the NOT of a general value.
+ *  @param src the source value of the not
+ *  @param dst the destination value
+ *  @return the destination value */
+Value not_value(Value src, Value dst) {
+    if (set_numeric_value(src)) {
+        /* The source is now numeric. */
+        return not_value_numeric(src,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the AND of two general values. 
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+Value and_value(Value src0, Value src1, Value dst) {
+    if (set_numeric_value(src0) && set_numeric_value(src1)) {
+        /* Both sources are now numeric. */
+        return and_value_numeric(src0,src1,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the OR of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+Value or_value(Value src0, Value src1, Value dst) {
+    if (set_numeric_value(src0) && set_numeric_value(src1)) {
+        /* Both sources are now numeric. */
+        return or_value_numeric(src0,src1,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the XOR of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+Value xor_value(Value src0, Value src1, Value dst) {
+    if (set_numeric_value(src0) && set_numeric_value(src1)) {
+        /* Both sources are now numeric. */
+        return xor_value_numeric(src0,src1,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Computes the equal (NXOR) of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+Value equal_value(Value src0, Value src1, Value dst) {
+    if (set_numeric_value(src0) && set_numeric_value(src1)) {
+        /* Both sources are now numeric. */
+        return equal_value_numeric(src0,src1,dst);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Selects a value depending on a general condition.
+ *  @param cond   the condition to use for selecting a value
+ *  @param num    the number of values for the selection
+ *  @return the selected value */
+Value select_value(Value cond, unsigned int num, ...) {
+    va_list args;
+    va_start(args,num);
+    if (set_numeric_value(cond)) {
+        /* The condition is now numeric. */
+        return select_value_numeric(cond,num,args);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+/** Concat multiple general values to a single one.
+ *  @param num the number of values to concat
+ *  @param dst the destination value
+ *  @return dst */
+Value concat_value(int num, Value dst, ...) {
+    int numeric = 1, i;
+    va_list args;
+    va_start(args,dst);
+    /* Try to obtained numeric sub values. */
+    for(i=0; i<num; ++i) {
+        if (!set_numeric_value(va_arg(args,Value))) numeric = 0;
+    }
+    /* Reinitialize the access to the variadic arguments for further
+     * accesses. */
+    va_start(args,dst);
+    if (numeric) {
+        /* The sub values are now numeric. */
+        return concat_value_numeric(num,dst,args);
+    } else {
+        /* Will crash (on purpose). */
+        return NULL;
+    }
+}
+
+
+/** Testing if a general value is 0.
+ *  @param value the value to check 
+ *  @return 1 if 0 and 0 otherwize */
+int zero_value(Value value) {
+    if (set_numeric_value(value)) {
+        /* The value is now numeric. */
+        return zero_value_numeric(value);
+    } else {
+        return 0;
+    }
+}
+
+
+/** Testing if two general values have the same content (the type is not checked).
+ *  @param value0 the first value to compare
+ *  @param value1 the second value to compare
+ *  @return 1 if same content. */
+int same_content_value(Value value0, Value value1) {
+    if (set_numeric_value(value0) && set_numeric_value(value1)) {
+        /* Both values are now numeric. */
+        return same_content_value_numeric(value0,value1);
+    } else {
+        return 0;
+    }
+}
+
+
+/** Testing if two general values have the same content (the type is not checked).
+ *  @param value0 the first value to compare
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param value1 the second value to compare
+ *  @return 1 if same content. */
+int same_content_value_range(Value value0,
+        unsigned long long first, unsigned long long last, Value value1) {
+    if (set_numeric_value(value0) && set_numeric_value(value1)) {
+        /* Both values are now numeric. */
+        return same_content_value_range_numeric(value0,first,last,value1);
+    } else {
+        return 0;
+    }
+}
+
+
+/* ############# End of the computation of general values.   ################ */
+
+
 
 
 
@@ -997,11 +1234,11 @@ void read_range(Value value, long long first, long long last, Type base,
     // /* set the type and size of the accumulator to the type first source. */
     // accumulator->type = get_type_vector(base,number);
     // accumulator->size = size;
-    // accumulator->numeral = value->numeral;
+    // accumulator->numeric = value->numeric;
     /* set the type and size of the destination to the type first source. */
     dst->type = get_type_vector(base,number);
     dst->size = size;
-    dst->numeral = value->numeral;
+    dst->numeric = value->numeric;
 
     /* Perform the copy. */
     for(i=0; i<size; ++i) {
