@@ -1043,9 +1043,14 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
+            # Save the state of the value pool.
+            res = (" " * ((level)*3))
+            res << "{\n"
+            res << (" " * ((level+1)*3))
+            res << "unsigned int pool_state = get_value_pos();\n"
             # Perform the copy and the touching only if the new content
             # is different.
-            res = " " * level*3
+            res << (" " * ((level+1)*3))
             if (self.left.is_a?(RefName)) then
                 # Direct assignment to a signal, simple transmission.
                 res << "transmit_to_signal(#{self.right.to_c(level)},"+
@@ -1055,6 +1060,11 @@ module HDLRuby::Low
                 res << "transmit_to_signal_range(#{self.right.to_c(level)},"+
                     "#{self.left.to_c_signal(level)});\n"
             end
+            # Restore the value pool state.
+            res << (" " * ((level+1)*3))
+            res << "set_value_pos(pool_state);\n"
+            res << (" " * ((level)*3))
+            res << "}\n"
             return res
         end
     end
