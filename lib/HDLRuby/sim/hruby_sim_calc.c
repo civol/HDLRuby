@@ -282,21 +282,21 @@ void copy_value(Value src, Value dst) {
     unsigned int *dst_data = dst->data;
     // printf("src_data=%p dst_data=%p\n",src_data,dst_data);
 
-    /* Perform the word-wise subtraction. */
+    /* Perform the word-wise copy. */
     unsigned long long count;
     for(count = 0; count < small; ++count) {
-        /* Performs the subtraction, double size for the carry. */
+        /* Performs the copy, double size for the carry. */
         unsigned int d = src_data[count];
         /* Set the data of the destination. */
         dst_data[count] = d;
     }
     // printf("count=%llu\n",count);
 
-    /* Performs the extra subtractions if required. */
+    /* Performs the extra copies if required. */
     if (count == dst_size) return; /* End here. */
     else {
         /* Words of the source have been fully used. */
-        /* Go on with the subraction using the sign extension of the
+        /* Go on with the copy using the sign extension of the
          * source. */
         unsigned int ext = word_ext(src);
         for(;count < dst_size; ++count) {
@@ -309,10 +309,680 @@ void copy_value(Value src, Value dst) {
 }
 
 
-/* ############# Start of the computation of unnumeric values. ############## */
-/* ############# End of the computation of unnumeric values.   ############## */
+/* ############# Start of the computation of bitstring values. ############ */
 
-/* ############# Start of the computation of numeric values. ################ */
+/** Creates a bitstring value from a numeric value.
+ *  @param src the numeric source value
+ *  @param dst the destination value
+ *  @return dst. */
+static Value set_bitstring_value(Value src, Value dst) {
+    /* Compute the width in bits of the result. */
+    unsigned long long width = type_width(src->type);
+    unsigned long long i;
+    /* Compute the size in int of the result. */
+    unsigned long long size = width/INT_BIT;
+    if (width % INT_BIT) size += 1;
+    /* Resize dst to match the size. */
+    resize_value(dst,size);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src->type;
+    dst->size = src->size;
+    dst->numeric = src->numeric;
+
+    /* Access the data of the source and the destination. */
+    unsigned int* src_data = src->data;
+    char* dst_data = (char*)(dst->data);
+
+    /* Make the conversion. */
+    for(i=0; i < width; ++i) {
+        /* Get the bit from the source. */
+        unsigned long long wp = i / size;
+        unsigned int mask = 1 << (i % size);
+        char bit = src_data[wp]&mask ? '1' : '0';
+        /* And write it. */
+        dst_data[i] = bit;
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the neg of a bitstring value.
+ *  @param src the source value of the not
+ *  @param dst the destination value
+ *  @return dst */
+static Value neg_value_bitstring(Value src, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size = src->size;
+    /* Compute the width of the result in bits. */
+    unsigned long long width = type_width(src->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src->type;
+    dst->size = src->size;
+    dst->numeric = 0;
+
+    /* Access the source and destination data. */
+    char* src_data = (char*)(src->data);
+    char* dst_data = (char*)(dst->data);
+
+    /* Performs the negation. */
+    unsigned long long count;
+    char carry = 1;
+    for(count = 0; count < width; ++count) {
+        /* Performs the negation. */
+        char d = ((char*)src_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        if (d == (d&1)) { /* d is defined. */
+            res = d ^ carry;
+            carry = d & carry;
+        } else {
+            /* Undefined, end here. */
+            break;
+        }
+        ((char*)dst_data)[count] = res;
+    }
+    /* The remaining bits are undefined. */
+    for(;count < size*INT_BIT; ++count) {
+        ((char*)dst_data)[count] = 'x';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the addition of two bitstring values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+static Value add_value_bitstring(Value src0, Value src1, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size0 = src0->size;
+    /* Compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size0);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src0->type;
+    dst->size = src0->size;
+    dst->numeric = 0;
+
+    /* Get access to the data of the sources. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
+    /* Perform the addition. */
+    unsigned long long count;
+    char carry = 0;
+    for(count = 0; count < width0; ++count) {
+        /* Performs the addition. */
+        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        if (count < width1) {
+            char d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            if ((d0 == (d0&1)) && (d1 == (d1&1))) {
+                /* d0 and d1 are defined. */
+                res = d0 ^ d1 ^ carry;
+                carry = (d0&d1) | (d0&carry) | (d1&carry);
+            } else {
+                /* Either input bit is undefined, end here. */
+                break;
+            }
+        } else {
+            /* All the bit of source 1 are used, go on using the sign
+             * extension. */
+            if (ext != (ext&1)) {
+                /* The sign extension is undefined, end here. */
+                break;
+            }
+            if (d0 == (d0&1)) {
+                /* d0 is defined. */
+                res = d0 ^ ext ^ carry;
+                carry = (d0&ext) | (d0&carry) | (ext&carry);
+            } else {
+                /* d0 is undefined. */
+                break;
+            }
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* The remaining bits are undefined. */
+    for(;count < width0; ++count) {
+        ((char*)dst_data)[count] = 'x';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the subtraction of two bitstring values.
+ *  @param src0 the first source value of the subtraction
+ *  @param src1 the second source value of the subtraction
+ *  @param dst the destination value
+ *  @return dst */
+static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size0 = src0->size;
+    /* Compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size0);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src0->type;
+    dst->size = src0->size;
+    dst->numeric = 0;
+
+    /* Get access to the data of the sources. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
+    ext = !ext; /* For the subtraction: a + ~b + 1 */
+    /* Perform the subtraction. */
+    unsigned long long count;
+    char carry = 1; /* For the subtraction: a + ~b + 1 */
+    for(count = 0; count < width0; ++count) {
+        /* Performs the subtraction. */
+        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        if (count < width1) {
+            char d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            if ((d0 == (d0&1)) && (d1 == (d1&1))) {
+                d1 = !d1; /* For the subtraction: a + ~b + 1 */
+                /* d0 and d1 are defined. */
+                res = d0 ^ (d1) ^ carry;
+                carry = (d0&d1) | (d0&carry) | (d1&carry);
+            } else {
+                /* Either input bit is undefined, end here. */
+                break;
+            }
+        } else {
+            /* All the bit of source 1 are used, go on using the sign
+             * extension. */
+            if (ext != (ext&1)) {
+                /* The sign extension is undefined, end here. */
+                break;
+            }
+            if (d0 == (d0&1)) {
+                /* d0 is defined. */
+                res = d0 ^ ext ^ carry;
+                carry = (d0&ext) | (d0&carry) | (ext&carry);
+            } else {
+                /* d0 is undefined. */
+                break;
+            }
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* The remaining bits are undefined. */
+    for(;count < width0; ++count) {
+        ((char*)dst_data)[count] = 'x';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the NOT of a bitstring value.
+ *  @param src the source value of the not
+ *  @param dst the destination value
+ *  @return the destination value */
+static Value not_value_bitstring(Value src, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size = src->size;
+    /* Compute the width of the result in bits. */
+    unsigned long long width = type_width(src->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src->type;
+    dst->size = src->size;
+    dst->numeric = 0;
+
+    /* Get access to the source and destination data. */
+    char* src_data = (char*)(src->data);
+    char* dst_data = (char*)(dst->data);
+
+    /* Performs the not. */
+    unsigned long long count;
+    for(count = 0; count < width; ++count) {
+        /* Performs the not. */
+        char d = ((char*)src_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        if (d == (d&1)) { /* d is defined. */
+            res = !d;
+        } else {
+            /* res is undefined. */
+            res = 'x' - '0';
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the and of two bitstring values.
+ *  @param src0 the first source value of the and
+ *  @param src1 the second source value of the and
+ *  @param dst the destination value
+ *  @return dst */
+static Value and_value_bitstring(Value src0, Value src1, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size0 = src0->size;
+    /* Compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size0);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src0->type;
+    dst->size = src0->size;
+    dst->numeric = 0;
+
+    /* Get access to the data of the sources. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
+
+    /* Perform the and. */
+    unsigned long long count;
+    for(count = 0; count < width0; ++count) {
+        /* Performs the and. */
+        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        char d1;
+        if (count < width1) {
+            /* Still within source 1. */
+            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+        } else {
+            /* Outside source 1, use the sign extension. */
+            d1 = ext;
+        }
+        if (d0 == (d0&1)) {
+            /* d0 is defined. */
+            if (d1 == (d1&1)) {
+                /* d1 is also defined. */
+                res = d0 & d1;
+            } else if (d0 == 0) {
+                /* d1 is not defined but d0 is 0. */
+                res = 0;
+            } else {
+                /* res is undefined. */
+                res = 'x'-'0';
+            }
+        } else {
+            /* d0 is undefined. */
+            if (d1 == 0) {
+                /* But d1 is 0. */
+                res = 0;
+            } else {
+                /* res is undefined. */
+                res = 'x'-'0';
+            }
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the or of two bitstring values.
+ *  @param src0 the first source value of the and
+ *  @param src1 the second source value of the and
+ *  @param dst the destination value
+ *  @return dst */
+static Value or_value_bitstring(Value src0, Value src1, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size0 = src0->size;
+    /* Compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size0);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src0->type;
+    dst->size = src0->size;
+    dst->numeric = 0;
+
+    /* Get access to the data of the sources. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
+
+    /* Perform the or. */
+    unsigned long long count;
+    for(count = 0; count < width0; ++count) {
+        /* Performs the or. */
+        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        char d1;
+        if (count < width1) {
+            /* Still within source 1. */
+            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+        } else {
+            /* Outside source 1, use the sign extension. */
+            d1 = ext;
+        }
+        if (d0 == (d0&1)) {
+            /* d0 is defined. */
+            if (d1 == (d1&1)) {
+                /* d1 is also defined. */
+                res = d0 | d1;
+            } else if (d0 == 1) {
+                /* d1 is not defined but d0 is 1. */
+                res = 1;
+            } else {
+                /* res is undefined. */
+                res = 'x'-'0';
+            }
+        } else {
+            /* d0 is undefined. */
+            if (d1 == 1) {
+                /* But d1 is 1. */
+                res = 1;
+            } else {
+                /* res is undefined. */
+                res = 'x'-'0';
+            }
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the xor of two bitstring values.
+ *  @param src0 the first source value of the and
+ *  @param src1 the second source value of the and
+ *  @param dst the destination value
+ *  @return dst */
+static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size0 = src0->size;
+    /* Compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size0);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src0->type;
+    dst->size = src0->size;
+    dst->numeric = 0;
+
+    /* Get access to the data of the sources. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
+
+    /* Perform the xor. */
+    unsigned long long count;
+    for(count = 0; count < width0; ++count) {
+        /* Performs the xor. */
+        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        char d1;
+        if (count < width1) {
+            /* Still within source 1. */
+            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+        } else {
+            /* Outside source 1, use the sign extension. */
+            d1 = ext;
+        }
+        if (d0 == (d0&1)) {
+            /* d0 is defined. */
+            if (d1 == (d1&1)) {
+                /* d1 is also defined. */
+                res = d0 ^ d1;
+            } else  {
+                /* res is undefined. */
+                res = 'x'-'0';
+            }
+        } else {
+            /* res is undefined. */
+            res = 'x'-'0';
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the equal (NXOR) of two bitstring values.
+ *  @param src0 the first source value of the and
+ *  @param src1 the second source value of the and
+ *  @param dst the destination value
+ *  @return dst */
+static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
+    /* Get the size of the result from the sources. */
+    unsigned long long size0 = src0->size;
+    /* Compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size0);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src0->type;
+    dst->size = src0->size;
+    dst->numeric = 0;
+
+    /* Get access to the data of the sources. */
+    unsigned int *src0_data = src0->data;
+    unsigned int *src1_data = src1->data;
+    /* Get access to the data of the destination. */
+    unsigned int *dst_data = dst->data;
+
+    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
+
+    /* Perform the nxor. */
+    unsigned long long count;
+    for(count = 0; count < width0; ++count) {
+        /* Performs the nxor. */
+        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char res;
+        char d1;
+        if (count < width1) {
+            /* Still within source 1. */
+            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+        } else {
+            /* Outside source 1, use the sign extension. */
+            d1 = ext;
+        }
+        if (d0 == (d0&1)) {
+            /* d0 is defined. */
+            if (d1 == (d1&1)) {
+                /* d1 is also defined. */
+                res = (d0 == d1);
+            } else  {
+                /* res is undefined. */
+                res = 'x'-'0';
+            }
+        } else {
+            /* res is undefined. */
+            res = 'x'-'0';
+        }
+        ((char*)dst_data)[count] = res + '0';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Selects a value depending on a bitstring condition.
+ *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value (used only if new value is created).
+ *  @param num    the number of values for the selection
+ *  @return the selected value */
+static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
+        va_list args) 
+{
+    /* Get the first alternative for sizing the result. */
+    Value src = va_arg(args,Value);
+    /* Get the size of the result from the sources. */
+    unsigned long long size = src->size;
+    /* Compute the width of the result in bits. */
+    unsigned long long width = type_width(src->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,size);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = src->type;
+    dst->size = src->size;
+    dst->numeric = 0;
+    unsigned int *dst_data = dst->data;
+
+    /* Sets the destination as undefined. */
+    unsigned long long count;
+    for(count = 0; count < width; ++count) {
+        dst_data[count] = 'x';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Concat multiple bitstring values to a single one.
+ *  @param num the number of values to concat
+ *  @param dst the destination value
+ *  @param args the values to concat
+ *  @return dst */
+static Value concat_value_bitstring_array(int num, Value dst, Value* args) {
+    unsigned long long pos = 0;  /* Current position in the resulting value.*/
+    unsigned long long i;
+
+    /* Compute the size of the destination. */
+    unsigned long long size = 0;
+    for(i=0; i<num; ++i) {
+        size += args[i]->size;
+    }
+    /* Resize the destination accordignly. */
+    resize_value(dst,size);
+
+    /* Access the data of the destination. */
+    char* dst_data = (char*)(dst->data);
+
+    /* Fills the destination with each value. */
+    for(i=0; i<num; ++i) {
+        Value value = args[i];
+        unsigned long long cw = type_width(value->type);
+        memcpy(dst_data+pos,value->data,cw);
+        // write_range(value,pos,pos+cw,accumulator);
+        write_range(value,pos,pos+cw,dst);
+        pos += cw;
+    }
+    // /* Sets the type of the resulting value: it is necesserily an
+    //  * unsigned bit string. */
+    // accumulator->type = get_type_vector(get_type_bit(),width);
+    /* Sets the type of the resulting value: it is necesserily an
+     * unsigned bit string. */
+    dst->type = get_type_vector(get_type_bit(),pos);
+    // /* Return the accumulator as result. */
+    // return accumulator;
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Testing if two bitstring values have the same content (the type is not checked).
+ *  @param value0 the first value to compare
+ *  @param value1 the second value to compare
+ *  @return 1 if same content. */
+static unsigned int same_content_value_bitstring(Value value0, Value value1) {
+    unsigned long long i;
+    unsigned long long width = type_width(value0->type);
+    /* Compare the sizes. */
+    if (type_width(value1->type) != width) return 0;
+    /* Compare the data. */
+    char* data0 = (char*)(value0->data);
+    char* data1 = (char*)(value1->data);
+    for(i=0; i<width; ++i) {
+        if (data0[i] != data1[i])
+            /* The contents are different. */
+            return 0;
+    }
+    /* The values have the same content. */
+    return 1;
+}
+
+
+/** Testing if two bitstring values have the same content (the type is not checked).
+ *  @param value0 the first value to compare
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param value1 the second value to compare
+ *  @return 1 if same content. */
+static int same_content_value_range_bitstring(Value value0,
+        unsigned long long first, unsigned long long last, Value value1) {
+    unsigned long long i;
+    unsigned long long width0 = type_width(value0->type);
+    unsigned long long width1 = type_width(value1->type);
+    /* Get access to the data of both values. */
+    char* data0 = (char*)(value0->data);
+    char* data1 = (char*)(value1->data);
+    /* Compare within the range. */
+    for(i=first; i<=last; ++i) {
+        if (i>=width0) {
+            if (i>=width1) {
+                /* Both values are out of range. */
+                return 1;
+            } else {
+                /* Only value 0 is out of range. */
+                return 0;
+            }
+        } else if (i>width1) {
+            /* Only value 1 is out of range. */
+            return 0;
+        } else {
+            if (data0[i] != data1[i])  {
+                /* Values are different within the range. */
+                return 0;
+            }
+        }
+    }
+    /* Values are identical in the range. */
+    return 1;
+}
+
+
+
+/* ############# End of the computation of bitstring values. ############## */
+
+/* ############# Start of the computation of numeric values. ############## */
 
 
 /** Computes the neg of a numeric value. // and put the result in the accumulator.
@@ -344,11 +1014,11 @@ static Value neg_value_numeric(Value src, Value dst) {
     // unsigned int *dst_data = accumulator->data;
     unsigned int *dst_data = dst->data;
 
-    /* Perform the word-wise subtraction. */
+    /* Perform the word-wise negation. */
     unsigned long long count;
     unsigned int carry = 0;
     for(count = 0; count < size; ++count) {
-        /* Performs the subtraction, double size for the carry. */
+        /* Performs the negation, double size for the carry. */
         unsigned long long d = src_data[count];
         unsigned long long res = - d + (1-carry);
         /* Compute the next carry. */
@@ -723,14 +1393,13 @@ static Value equal_value_numeric(Value src0, Value src1, Value dst) {
 
 /** Selects a value depending on a numeric condition.
  *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value (used only if new value is created).
  *  @param num    the number of values for the selection
  *  @return the selected value */
-static Value select_value_numeric(Value cond, unsigned int num, va_list args) {
+static Value select_value_numeric(Value cond, Value dst, unsigned int num, va_list args) {
     int cond_i = read32(cond);
     int i;
     Value selected;
-    // va_list args;
-    // va_start(args,num);
 
     for(i=0;i <= cond_i; ++i) {
         selected = va_arg(args,Value);
@@ -745,13 +1414,20 @@ static Value select_value_numeric(Value cond, unsigned int num, va_list args) {
  *  @return dst */
 // Value concat_value(int num, ...) {
 static Value concat_value_numeric(int num, Value dst, va_list args) {
-    unsigned long long width = 0;/* The width of the resulting value. */
     unsigned long long pos = 0;  /* Current position in the resulting value.*/
     unsigned long long i;
     // va_list args;
-    // // va_start(args,num);
-    // va_start(args,dst);
-    /* Fills the accumulator with each value. */
+    /* Compute the size of the destination. */
+    unsigned long long size = 0;
+    va_list args0;
+    va_copy(args0,args);
+    for(i=0; i<num; ++i) {
+        size += va_arg(args0,Value)->size;
+    }
+    /* Resize the destination accordignly. */
+    resize_value(dst,size);
+
+    /* Fills the destination with each value. */
     for(i=0; i<num; ++i) {
         Value value = va_arg(args,Value);
         unsigned long long cw = type_width(value->type);
@@ -764,7 +1440,7 @@ static Value concat_value_numeric(int num, Value dst, va_list args) {
     // accumulator->type = get_type_vector(get_type_bit(),width);
     /* Sets the type of the resulting value: it is necesserily an
      * unsigned bit string. */
-    dst->type = get_type_vector(get_type_bit(),width);
+    dst->type = get_type_vector(get_type_bit(),pos);
     // /* Return the accumulator as result. */
     // return accumulator;
     /* Return the destination value. */
@@ -898,12 +1574,12 @@ static int same_content_value_range_numeric(Value value0,
  *  @param dst the destination value
  *  @return dst */
 Value neg_value(Value src, Value dst) {
-    if (set_numeric_value(src)) {
-        /* The source is now numeric. */
+    if (src->numeric) {
+        /* The source is numeric. */
         return neg_value_numeric(src,dst);
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* The source cannot be numeric, compute bitsitrings. */
+        return neg_value_bitstring(src,dst);
     }
 }
 
@@ -914,13 +1590,31 @@ Value neg_value(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value add_value(Value src0, Value src1, Value dst) {
-    if (set_numeric_value(src0) && set_numeric_value(src1)) {
-        /* Both sources are now numeric. */
-        return add_value_numeric(src0,src1,dst);
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return add_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
     }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = add_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
 }
 
 
@@ -930,13 +1624,31 @@ Value add_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value sub_value(Value src0, Value src1, Value dst) {
-    if (set_numeric_value(src0) && set_numeric_value(src1)) {
-        /* Both sources are now numeric. */
-        return sub_value_numeric(src0,src1,dst);
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return sub_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
     }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = sub_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
 }
 
 
@@ -945,12 +1657,12 @@ Value sub_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return the destination value */
 Value not_value(Value src, Value dst) {
-    if (set_numeric_value(src)) {
-        /* The source is now numeric. */
+    if (src->numeric) {
+        /* The source is numeric. */
         return not_value_numeric(src,dst);
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* The source cannot be numeric, compute bitsitrings. */
+        return not_value_bitstring(src,dst);
     }
 }
 
@@ -961,13 +1673,31 @@ Value not_value(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value and_value(Value src0, Value src1, Value dst) {
-    if (set_numeric_value(src0) && set_numeric_value(src1)) {
-        /* Both sources are now numeric. */
-        return and_value_numeric(src0,src1,dst);
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return and_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
     }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = and_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
 }
 
 
@@ -977,13 +1707,31 @@ Value and_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination
  *  @return dst */
 Value or_value(Value src0, Value src1, Value dst) {
-    if (set_numeric_value(src0) && set_numeric_value(src1)) {
-        /* Both sources are now numeric. */
-        return or_value_numeric(src0,src1,dst);
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return or_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
     }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = or_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
 }
 
 
@@ -993,13 +1741,31 @@ Value or_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination
  *  @return dst */
 Value xor_value(Value src0, Value src1, Value dst) {
-    if (set_numeric_value(src0) && set_numeric_value(src1)) {
-        /* Both sources are now numeric. */
-        return xor_value_numeric(src0,src1,dst);
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return xor_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
     }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = xor_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
 }
 
 
@@ -1009,30 +1775,51 @@ Value xor_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return the destination value */
 Value equal_value(Value src0, Value src1, Value dst) {
-    if (set_numeric_value(src0) && set_numeric_value(src1)) {
-        /* Both sources are now numeric. */
-        return equal_value_numeric(src0,src1,dst);
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return equal_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
     }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = equal_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
 }
 
 
 /** Selects a value depending on a general condition.
  *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value (used only if new value is created).
  *  @param num    the number of values for the selection
  *  @return the selected value */
-Value select_value(Value cond, unsigned int num, ...) {
+Value select_value(Value cond, Value dst, unsigned int num, ...) {
     va_list args;
     va_start(args,num);
     if (set_numeric_value(cond)) {
         /* The condition is now numeric. */
-        return select_value_numeric(cond,num,args);
+        dst = select_value_numeric(cond,dst,num,args);
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* The sources cannot be numeric, compute bitsitrings. */
+        dst = select_value_bitstring(cond,dst,num,args);
     }
+    va_end(args);
+    return dst;
 }
 
 /** Concat multiple general values to a single one.
@@ -1040,23 +1827,44 @@ Value select_value(Value cond, unsigned int num, ...) {
  *  @param dst the destination value
  *  @return dst */
 Value concat_value(int num, Value dst, ...) {
+    /* Might allocate new values so save the state of the value pool. */
     int numeric = 1, i;
     va_list args;
+    va_list args1;
+    Value* bvalues = NULL; /* The values converted to bitstring if required. */
     va_start(args,dst);
-    /* Try to obtained numeric sub values. */
+    va_copy(args1,args);
+    /* check if all the sub values are numeric. */
     for(i=0; i<num; ++i) {
-        if (!set_numeric_value(va_arg(args,Value))) numeric = 0;
+        if (!va_arg(args,Value)->numeric) {
+            numeric = 0;
+            break;
+        }
     }
     /* Reinitialize the access to the variadic arguments for further
      * accesses. */
-    va_start(args,dst);
     if (numeric) {
-        /* The sub values are now numeric. */
-        return concat_value_numeric(num,dst,args);
+        /* The sub values are all numeric. */
+        concat_value_numeric(num,dst,args1);
     } else {
-        /* Will crash (on purpose). */
-        return NULL;
+        /* Some sub values are not numeric, convert the numeric ones to
+         * bitstring and perform a bitstring concatenation. */
+        bvalues = alloca(sizeof(Value)*num);
+        va_copy(args1,args);
+        for(i=0;i<num; ++i) {
+            Value value = va_arg(args1,Value);
+            if (value->numeric) {
+                bvalues[i] = set_bitstring_value(value,get_value());
+            } else {
+                bvalues[i] = value;
+            }
+        }
+
+        /* The sub values are now all bitstrings. */
+        concat_value_bitstring_array(num,dst,bvalues);
     }
+    va_end(args);
+    return dst;
 }
 
 
@@ -1064,10 +1872,11 @@ Value concat_value(int num, Value dst, ...) {
  *  @param value the value to check 
  *  @return 1 if 0 and 0 otherwize */
 int zero_value(Value value) {
-    if (set_numeric_value(value)) {
-        /* The value is now numeric. */
+    if (value->numeric) {
+        /* The value is numeric. */
         return zero_value_numeric(value);
     } else {
+        /* The value cannot be reduced to numeric: cannot be 0. */
         return 0;
     }
 }
@@ -1078,11 +1887,20 @@ int zero_value(Value value) {
  *  @param value1 the second value to compare
  *  @return 1 if same content. */
 int same_content_value(Value value0, Value value1) {
-    if (set_numeric_value(value0) && set_numeric_value(value1)) {
-        /* Both values are now numeric. */
-        return same_content_value_numeric(value0,value1);
-    } else {
+    if (value0->numeric) {
+        if (value1->numeric) {
+            /* Both values are numeric. */
+            return same_content_value_numeric(value0,value1);
+        } else {
+            /* One value is numeric, the othert is not, different. */
+            return 0;
+        }
+    } else if (value1->numeric) {
+        /* One value is numeric, the othert is not, different. */
         return 0;
+    } else {
+        /* Both values are bitstring. */
+        return same_content_value_bitstring(value0,value1);
     }
 }
 
@@ -1095,11 +1913,20 @@ int same_content_value(Value value0, Value value1) {
  *  @return 1 if same content. */
 int same_content_value_range(Value value0,
         unsigned long long first, unsigned long long last, Value value1) {
-    if (set_numeric_value(value0) && set_numeric_value(value1)) {
-        /* Both values are now numeric. */
-        return same_content_value_range_numeric(value0,first,last,value1);
-    } else {
+    if (value0->numeric) {
+        if (value1->numeric) {
+            /* Both values are numeric. */
+            return same_content_value_range_numeric(value0,first,last,value1);
+        } else {
+            /* One value is numeric the other is not, different. */
+            return 0;
+        }
+    } else if (value1->numeric) {
+        /* One value is numeric, the other is not, different. */
         return 0;
+    } else {
+        /* Both values are bitstring. */
+        return same_content_value_range_bitstring(value0,first,last,value1);
     }
 }
 

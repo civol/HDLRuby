@@ -16,19 +16,19 @@ system :dff_bench do
     timed do
         clk <= 0
         rst <= 0
-        d   <= 0
+        d   <= _z
         !10.ns
         clk <= 1
         rst <= 0
-        d   <= 0
+        d   <= _z
         !10.ns
         clk <= 0
         rst <= 1
-        d   <= 0
+        d   <= _z
         !10.ns
         clk <= 1
         rst <= 1
-        d   <= 0
+        d   <= _z
         !10.ns
         clk <= 0
         rst <= 0

@@ -18,7 +18,7 @@ system :adder_bench do
         y <= 0
         !10.ns
         x <= 1
-        y <= 0
+        y <= _zzzzzzzzzzzzzzzz
         !10.ns
         x <= 2
         y <= 1

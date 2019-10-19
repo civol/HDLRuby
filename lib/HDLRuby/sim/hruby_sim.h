@@ -194,9 +194,10 @@ extern Value equal_value(Value src0, Value src1, Value dst);
 
 /** Selects a value depending on a condition.
  *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value
  *  @param num    the number of values for the selection
  *  @return the selected value */
-extern Value select_value(Value cond, unsigned int num, ...);
+extern Value select_value(Value cond, Value dst, unsigned int num, ...);
 
 /** Concat multiple values to a single one.// in the accumulator.
  *  @param num the number of values to concat
