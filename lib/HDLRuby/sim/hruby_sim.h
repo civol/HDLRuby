@@ -122,74 +122,58 @@ extern void set_value(Value value, int numeric, void* data);
 extern Value make_set_value(Type type, int numeric, void* data);
 
 
-/** Computes the neg of a value.// and put the result in the accumulator.
+/** Computes the neg of a value.
  *  @param src the source value of the neg
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value neg_value(Value src);
 extern Value neg_value(Value src, Value dst);
 
-/** Computes the addition of two values.// and put the result in the accumulator.
+/** Computes the addition of two values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value add_value(Value src0, Value src1);
 extern Value add_value(Value src0, Value src1, Value dst);
 
-/** Computes the subtraction of two values.// and put the result in the accumulator.
+/** Computes the subtraction of two values.
  *  @param src0 the first source value of the subtraction
  *  @param src1 the second source value of the subtraction
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value sub_value(Value src0, Value src1);
 extern Value sub_value(Value src0, Value src1, Value dst);
 
-/** Computes the not of a value.// and put the result in the accumulator.
+/** Computes the not of a value.
  *  @param src the source value of the not
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value not_value(Value src);
 extern Value not_value(Value src, Value dst);
 
-/** Computes the AND of two values.// and put the result in the accumulator.
+/** Computes the AND of two values.
  *  @param src0 the first source value of the and
  *  @param src1 the second source value of the and
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value and_value(Value src0, Value src1);
 extern Value and_value(Value src0, Value src1, Value dst);
 
-/** Computes the OR of two values.// and put the result in the accumulator.
+/** Computes the OR of two values.
  *  @param src0 the first source value of the or
  *  @param src1 the second source value of the or
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value or_value(Value src0, Value src1);
 extern Value or_value(Value src0, Value src1, Value dst);
 
-/** Computes the XOR of two values.// and put the result in the accumulator.
+/** Computes the XOR of two values.
  *  @param src0 the first source value of the or
  *  @param src1 the second source value of the or
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value xor_value(Value src0, Value src1);
 extern Value xor_value(Value src0, Value src1, Value dst);
 
-/** Computes the equal (NXOR) of two values.// and put the result in the accumulator.
+/** Computes the equal (NXOR) of two values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
- // *  @return the accumulator
  *  @param dst the destination value
  *  @return dst */
-// extern Value equal_value(Value src0, Value src1);
 extern Value equal_value(Value src0, Value src1, Value dst);
 
 /** Selects a value depending on a condition.
@@ -199,13 +183,18 @@ extern Value equal_value(Value src0, Value src1, Value dst);
  *  @return the selected value */
 extern Value select_value(Value cond, Value dst, unsigned int num, ...);
 
-/** Concat multiple values to a single one.// in the accumulator.
+/** Concat multiple values to a single one.
  *  @param num the number of values to concat
- *  // @return the accumulator.
  *  @param dst the destination value
  *  @return dst */
-// extern Value concat_value(int num, ...);
 extern Value concat_value(int num, Value dst, ...);
+
+/** Casts a value to another type.
+ *  @param src the source value
+ *  @param type the type to cast to
+ *  @param dst the destination value
+ *  @return dst */
+extern Value cast_value(Value src, Type type, Value dst);
 
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value

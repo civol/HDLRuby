@@ -1437,10 +1437,30 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
-            return "cast_value(#{self.type.to_c(level+1)}," +
-                   "#{self.child.to_c(level+1)})"
+            res = "({\n"
+            # Overrides the upper src0 and dst...
+            res << (" " * ((level+1)*3))
+            res << "Value src0, dst;\n"
+            # Save the state of the value pool.
+            res << (" " * ((level+1)*3))
+            res << "unsigned int pool_state = get_value_pos();\n"
+            # Compute the child.
+            res << (" " * ((level+1)*3))
+            res << "src0 = #{self.child.to_c(level+2)};\n"
+            res << (" " * ((level+1)*3))
+            res += "dst = cast_value(#{self.child.to_c(level+1)}," +
+                "#{self.type.to_c(level+1)},get_value());\n"
+            # Restore the value pool state.
+            res << (" " * ((level+1)*3))
+            res << "set_value_pos(pool_state);\n"
+            # Close the computation
+            res << (" " * (level*3))
+            res << "dst; })"
+
+            return res
         end
     end
+
 
     ## Extends the Operation class with generation of HDLRuby::High text.
     class Operation
@@ -1474,7 +1494,6 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
-            # res = " " * (level*3)
             res = "({\n"
             # Overrides the upper src0 and dst...
             res << (" " * ((level+1)*3))
@@ -1491,6 +1510,7 @@ module HDLRuby::Low
             # Compute the child.
             res << (" " * ((level+1)*3))
             res << "src0 = #{self.child.to_c(level+2)};\n"
+            res << (" " * ((level+1)*3))
             case self.operator
             when :~ then
                 res += "dst = not_value(src0,dst);\n"
@@ -1501,11 +1521,6 @@ module HDLRuby::Low
             else
                 raise "Invalid unary operator: #{self.operator}."
             end
-            # # Free src0 unless the operator is +@
-            # if operator != :+@ then
-            #     res << (" " * ((level+1)*3))
-            #     res << "free_value();\n"
-            # end
             # Restore the value pool state.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
