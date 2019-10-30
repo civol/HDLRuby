@@ -94,12 +94,13 @@ void hruby_sim_update_signals() {
             delete_element(e);
             /* Any edge activation. */
             int i;
+            // printf("Signal: %s(%p)...\n",sig->name,sig);
             for(i=0; i<sig->num_any; ++i) {
                 Object obj = sig->any[i];
                 if (obj->kind == BEHAVIOR) {
                     /* Behavior case. */
                     Behavior beh = (Behavior)obj;
-                    // printf("Signal: %p Behavior: %p\n",sig,beh);
+                    // printf("       any Behavior: %p\n",beh);
                     beh->block->function();
                 } else {
                     /* Other code case. */
@@ -114,7 +115,7 @@ void hruby_sim_update_signals() {
                     if (obj->kind == BEHAVIOR) {
                         /* Behavior case. */
                         Behavior beh = (Behavior)obj;
-                        // printf("Signal: %p Behavior: %p\n",sig,beh);
+                        // printf("       pos Behavior: %p\n",beh);
                         beh->block->function();
                     } else {
                         /* Other code case. */
@@ -342,6 +343,7 @@ void touch_signal(SignalI signal) {
  *  @param value the value to transmit
  *  @param signal the signal to transmit the value to. */
 void transmit_to_signal(Value value, SignalI signal) {
+    // printf("Tansmit to signal: %s(%p)\n",signal->name,signal);
     /* Only transmit if the value and the signal f_value contents are
      * different. */
     if (!same_content_value(value,signal->f_value)) {
@@ -360,6 +362,7 @@ void transmit_to_signal_range(Value value, RefRangeS ref) {
     SignalI signal = ref.signal;
     unsigned long long first = ref.first;
     unsigned long long last = ref.last;
+    // printf("Tansmit to signal range: %s(%p)\n",signal->name,signal);
     /* Only transmit if the value and the signal f_value contents are
      * different. */
     if (!same_content_value_range(value,first,last,signal->f_value)) {

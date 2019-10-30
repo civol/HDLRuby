@@ -39,7 +39,7 @@ typedef struct RefRangeS_*  RefRange;
 
 /* The kinds of HDLRuby objects. */
 typedef enum { 
-    SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT 
+    OBJECT, SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT 
 } Kind;
 
 /*  The kinds of HDLRuby event edge. */
@@ -90,11 +90,11 @@ extern Type get_type_vector(Type base, unsigned long long number);
 /* The structure of a value. */
 typedef struct ValueS_ {
     Type type;                   /* The type of the value. */
-    unsigned long long size;     /* The size in words of the value. */
-    unsigned long long capacity; /* The capacity in words of the data. */
-    int numeric;         /* Tell if the value is numeric or a bitstring. */ 
-    unsigned int* data;  /* The data of the value. */
-    SignalI signal;      /* The signal associated with the value if any. */
+    int numeric;         /* Tell if the value is numeric or a bitstring. */
+    unsigned long long capacity; /* The capacity in char of the bit string. */
+    char* data_str;             /* The bit string data if not numeric. */
+    unsigned long long data_int;/* The integer data if numeric. */
+    SignalI signal;         /* The signal associated with the value if any. */
 } ValueS;
 
 /* The tructure of a reference to a range in a value. */
@@ -106,8 +106,9 @@ typedef struct RefRangeS_ {
 
 /** Creates a new value.
  *  @param type the type of the value
+ *  @param numeric tells if the value is numeric or not
  *  @return the resulting value */
-extern Value make_value(Type type);
+extern Value make_value(Type type,int numeric);
 
 /** Sets a value with data.
  *  @param value the value to fill
@@ -169,6 +170,20 @@ extern Value or_value(Value src0, Value src1, Value dst);
  *  @return dst */
 extern Value xor_value(Value src0, Value src1, Value dst);
 
+/** Computes the left shift of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+Value shift_left_value(Value src0, Value src1, Value dst);
+
+/** Computes the right shift of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+Value shift_right_value(Value src0, Value src1, Value dst);
+
 /** Computes the equal (NXOR) of two values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
@@ -198,13 +213,19 @@ extern Value cast_value(Value src, Type type, Value dst);
 
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value
- *  @param dst the destination value */
-extern void copy_value(Value src, Value dst);
+ *  @param dst the destination value
+ *  @return dst */
+extern Value copy_value(Value src, Value dst);
 
 /** Testing if a value is 0.
  *  @param value the value to check 
  *  @return 1 if 0 and 0 otherwize */
 extern int zero_value(Value value);
+
+/** Testing if a value is defined or not.
+ *  @param value the value to check
+ *  @return 1 if defined and 0 otherwize */
+extern int is_defined_value(Value value);
 
 /** Testing if two values have the same content (the type is not checked).
  *  @param value0 the first value to compare
@@ -502,70 +523,25 @@ extern void hruby_sim_core(unsigned long long limit);
 
 /* Access and conversion functions. */
 
-/** Read and convert to 8-bit a value.
- *  @param value the value to read
- *  @return the resulting 8-bit value */
-extern char read8(Value value);
-
-/** Reads and convert to 16-bit a value.
- *  @param value the value to read 
- *  @return the resulting 16-bit value */
-extern short read16(Value value);
-
-/** Reads and convert to 32-bit a value.
- *  @param value the value to read 
- *  @return the resulting 32-bit value */
-extern int read32(Value value);
-
-/** Reads and convert to 64-bit a value.
- *  @param value the value to read
- *  @return the resulting 64-bit value */
-extern long long read64(Value value);
-
-/** Converts a value to an int.
+/** Converts a value to a long long int.
  *  @param value the value to convert
  *  @return the resulting unsigned int. */
-extern int value2int(Value value);
-
-/** Converts a value to an long long.
- *  @param value the value to convert
- *  @return the resulting unsigned int. */
-extern long long value2longlong(Value value);
+extern unsigned long long value2integer(Value value);
 
 /** Reads a range from a value. 
  *  @param value the value to read
  *  @param first the first index of the range
  *  @param last the last index of the range
  *  @param base the type of the elements
- // *  @return the accumulator
- *  @param dst the destination value */
-// extern Value read_range(Value value, long long first, long long last, Type base);
-extern void read_range(Value value, long long first, long long last, Type base,
-                       Value dst);
-
-/** Writes 8 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-extern void write8(char data, Value value);
-
-/** Writes 16 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-extern void write16(short data, Value value);
-
-/** Writes 32 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-extern void write32(int data, Value value);
-
-/** Writes 64 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-extern void write64(long long data, Value value);
+ *  @param dst the destination value
+ *  @return dst */
+extern Value read_range(Value value, long long first, long long last,
+                        Type base, Value dst);
 
 /** Writes to a range within a value. 
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
- *  @param dst the destination value */
-extern void write_range(Value src, long long first, long long last, Value dst);
+ *  @param dst the destination value
+ *  @return dst */
+extern Value write_range(Value src, long long first, long long last, Value dst);

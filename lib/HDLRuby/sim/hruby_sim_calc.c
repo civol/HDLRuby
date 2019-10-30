@@ -16,6 +16,7 @@
 
 /* The number of bits in an int. */
 #define INT_BIT (sizeof(int)*CHAR_BIT)
+#define LONG_LONG_BIT (sizeof(long long)*CHAR_BIT)
 
 /** The min between two values. */
 #define min2(a,b) \
@@ -33,17 +34,17 @@
 /** Get the bit used for extending a bitstring value. */
 #define bitstring_ext(v) \
     ({ __typeof__ (v) _v = (v); \
-       _v->type->flags.sign ? _v->data[type_width(v->type)-1] - '0' : 0; })
+       _v->type->flags.sign ? _v->data_str[type_width(v->type)-1] - '0' : 0; })
 
-/** Get the word used for extending a value in unsigned unsigned long long. */
-#define word_extL(v) \
-    ({ __typeof__ (v) _v = (v); \
-       _v->type->flags.sign ? (_v->data[_v->size-1] >> (INT_BIT-1)) ? ULLONG_MAX : 0 : 0; })
-
-/** Get the word used for extending a value in unsigned unsigned int. */
-#define word_ext(v) \
-    ({ __typeof__ (v) _v = (v); \
-       _v->type->flags.sign ? (_v->data[_v->size-1] >> (INT_BIT-1)) ?  UINT_MAX : 0 : 0; })
+// /** Get the word used for extending a value in unsigned unsigned long long. */
+// #define word_extL(v) \
+//     ({ __typeof__ (v) _v = (v); \
+//        _v->type->flags.sign ? (_v->data[_v->size-1] >> (INT_BIT-1)) ? ULLONG_MAX : 0 : 0; })
+// 
+// /** Get the word used for extending a value in unsigned unsigned int. */
+// #define word_ext(v) \
+//     ({ __typeof__ (v) _v = (v); \
+//        _v->type->flags.sign ? (_v->data[_v->size-1] >> (INT_BIT-1)) ?  UINT_MAX : 0 : 0; })
 
 /* The type engine: each type is simplified to a vector of X elements
  * of Y bits. */
@@ -125,13 +126,13 @@ unsigned long long type_width(Type type) {
 
 /** Gets the single bit type. */
 Type get_type_bit() {
-    static TypeS type_bit = { 1, 1, { 0 } };
+    static TypeS type_bit = { 1ULL, 1ULL, { 0 } };
     return &type_bit;
 }
 
 /** Gets the single signed bit type. */
 Type get_type_signed() {
-    static TypeS type_sign = { 1, 1, { 1 } };
+    static TypeS type_sign = { 1ULL, 1ULL, { 1 } };
     return &type_sign;
 }
 
@@ -140,7 +141,7 @@ Type get_type_signed() {
  *  @number the number of elements */
 Type make_type_vector(Type base, unsigned long long number) {
     /* Create the type. */
-    Type type = calloc(sizeof(TypeS),0);
+    Type type = calloc(sizeof(TypeS),1);
     type->base = type_width(base);
     type->number = number;
     type->flags = base->flags;
@@ -183,30 +184,32 @@ Type get_type_vector(Type base, unsigned long long number) {
 
 /* The calculation engine. */
 
-// /* The accumulator. */
-// ValueS accumulator_content = { NULL, 0, 0, 0, NULL };
-// Value accumulator = &accumulator_content;
 
 /* Creating and fill values. */
 
 /** Creates a new value.
  *  @param type the type of the value
+ *  @param numeric tells if the value is numeric or not
  *  @return the resulting value */
-Value make_value(Type type) {
+Value make_value(Type type, int numeric) {
     /* Compute the size in words of the data contained in the value. */
     unsigned long long width = type_width(type);
-    unsigned long long size = width / INT_BIT;
-    if (width % INT_BIT != 0) size += 1;
-
     /* Allocate the value. */
     Value res = calloc(sizeof(ValueS),1);
     /* Allocates the data of the value. */
-    res->data = calloc(sizeof(int),size);
+    if (!numeric) {
+        /* Allocate the bit string and fill it with x (undefined) by default. */
+        res->data_str = malloc(sizeof(char)*width);
+        memset(res->data_str,'x',width);
+        /* And set its capacity to the type width. */
+        res->capacity = width;
+    } else {
+        res->capacity = 0;
+    }
 
     /* Initialize it. */
     res->type = type;
-    res->size = size;
-    res->capacity = size;
+    res->numeric = numeric;
 
     return res;
 }
@@ -221,9 +224,9 @@ void resize_value(Value value, int size) {
         /* Resizing required, to limit frequent resize, double the
          * required new capacity. */
         /* Free the former data. */
-        free(value->data);
+        free(value->data_str);
         /* Reallocate it. */
-        value->data = calloc(sizeof(int),size*2);
+        value->data_str = calloc(sizeof(char),size*2);
         /* Update the size. */
         value->capacity = size*2;
     }
@@ -234,8 +237,11 @@ void resize_value(Value value, int size) {
  *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
 void set_value(Value value, int numeric, void* data) {
-    value->numeric = numeric ? 1 : 0;
-    memcpy(value->data,data,value->size*sizeof(int));
+    value->numeric = numeric;
+    if (numeric)
+        value->data_int = *((unsigned long long*)data);
+    else 
+        memcpy(value->data_str,data,type_width(value->type)*sizeof(char));
 }
 
 /** Makes and sets a value with data.
@@ -243,7 +249,7 @@ void set_value(Value value, int numeric, void* data) {
  *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
 Value make_set_value(Type type, int numeric, void* data) {
-    Value value = make_value(type);
+    Value value = make_value(type,numeric);
     set_value(value,numeric,data);
     return value;
 }
@@ -269,48 +275,25 @@ int set_numeric_value(Value value) {
 
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value
- *  @param dst the destination value */
-void copy_value(Value src, Value dst) {
-    /* compute the sallest size, it will be the limite of the word-wise
-     * computation. */
-    unsigned long long dst_size = dst->size;
-    unsigned long long src_size = src->size;
-    unsigned long long small = min2(src_size,dst_size);
-
-    // printf("dst_size=%llu, src_size=%llu, small=%llu\n",dst_size,src_size,small);
-
-    /* Update the kind of destination value: numeric or bitstring. */
+ *  @param dst the destination value
+ *  @return dst */
+Value copy_value(Value src, Value dst) {
+    /* set the status of the destination from the source. */
+    // dst->type = src->type;
     dst->numeric = src->numeric;
-
-    /* Get access to the data of each value. */
-    unsigned int *src_data = src->data;
-    unsigned int *dst_data = dst->data;
-    // printf("src_data=%p dst_data=%p\n",src_data,dst_data);
-
-    /* Perform the word-wise copy. */
-    unsigned long long count;
-    for(count = 0; count < small; ++count) {
-        /* Performs the copy, double size for the carry. */
-        unsigned int d = src_data[count];
-        /* Set the data of the destination. */
-        dst_data[count] = d;
+    /* Copy the data. */
+    if (src->numeric) {
+        /* Numeric copy. */
+        dst->data_int = src->data_int;
+    } else {
+        /* Resize the destination if required. */
+        // resize_value(dst,type_width(src->type));
+        resize_value(dst,type_width(dst->type));
+        /* Bitstring copy up to the end of dst or src. */
+        unsigned long long width = min2(type_width(src->type),type_width(dst->type));
+        memcpy(dst->data_str,src->data_str,width);
     }
-    // printf("count=%llu\n",count);
-
-    /* Performs the extra copies if required. */
-    if (count == dst_size) return; /* End here. */
-    else {
-        /* Words of the source have been fully used. */
-        /* Go on with the copy using the sign extension of the
-         * source. */
-        unsigned int ext = word_ext(src);
-        for(;count < dst_size; ++count) {
-            /* Set the data of the destination. */
-            dst_data[count] = ext;
-        }
-        /* End of the computation. */
-        return;
-    }
+    return dst;
 }
 
 
@@ -324,28 +307,22 @@ static Value set_bitstring_value(Value src, Value dst) {
     /* Compute the width in bits of the result. */
     unsigned long long width = type_width(src->type);
     unsigned long long i;
-    /* Compute the size in int of the result. */
-    unsigned long long size = width/INT_BIT;
-    if (width % INT_BIT) size += 1;
-    /* Resize dst to match the size. */
-    resize_value(dst,size);
+    /* Resize dst to match the width. */
+    resize_value(dst,width);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src->type;
-    dst->size = src->size;
     dst->numeric = 0;
 
     /* Access the data of the source and the destination. */
-    unsigned int* src_data = src->data;
-    char* dst_data = (char*)(dst->data);
+    unsigned long long data_int = src->data_int;
+    char* data_str = dst->data_str;
 
     /* Make the conversion. */
     for(i=0; i < width; ++i) {
         /* Get the bit from the source. */
-        unsigned long long wp = i / size;
-        unsigned int mask = 1 << (i % size);
-        char bit = src_data[wp]&mask ? '1' : '0';
+        char bit = (data_int >> i) & 1;
         /* And write it. */
-        dst_data[i] = bit;
+        data_str[i] = bit + '0';
     }
     /* Return the destination. */
     return dst;
@@ -357,28 +334,25 @@ static Value set_bitstring_value(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value neg_value_bitstring(Value src, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size = src->size;
     /* Compute the width of the result in bits. */
     unsigned long long width = type_width(src->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size);
+    resize_value(dst,width);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src->type;
-    dst->size = src->size;
     dst->numeric = 0;
 
     /* Access the source and destination data. */
-    char* src_data = (char*)(src->data);
-    char* dst_data = (char*)(dst->data);
+    char* src_data = src->data_str;
+    char* dst_data = dst->data_str;
 
     /* Performs the negation. */
     unsigned long long count;
     char carry = 1;
     for(count = 0; count < width; ++count) {
         /* Performs the negation. */
-        char d = ((char*)src_data)[count] - '0'; /* Get and convert to bit. */
+        char d = src_data[count] - '0'; /* Get and convert to bit. */
         char res;
         if (d == (d&1)) { /* d is defined. */
             res = d ^ carry;
@@ -387,11 +361,11 @@ static Value neg_value_bitstring(Value src, Value dst) {
             /* Undefined, end here. */
             break;
         }
-        ((char*)dst_data)[count] = res;
+        dst_data[count] = res;
     }
     /* The remaining bits are undefined. */
-    for(;count < size*INT_BIT; ++count) {
-        ((char*)dst_data)[count] = 'x';
+    for(;count < width; ++count) {
+        dst_data[count] = 'x';
     }
     /* Return the destination. */
     return dst;
@@ -404,24 +378,21 @@ static Value neg_value_bitstring(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value add_value_bitstring(Value src0, Value src1, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size0 = src0->size;
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size0);
+    resize_value(dst,width0);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src0->type;
-    dst->size = src0->size;
     dst->numeric = 0;
 
     /* Get access to the data of the sources. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
     // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
@@ -431,10 +402,10 @@ static Value add_value_bitstring(Value src0, Value src1, Value dst) {
     char carry = 0;
     for(count = 0; count < width0; ++count) {
         /* Performs the addition. */
-        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
         char res;
         if (count < width1) {
-            char d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            char d1 = src1_data[count] - '0';/* Get and convert to bit. */
             if ((d0 == (d0&1)) && (d1 == (d1&1))) {
                 /* d0 and d1 are defined. */
                 res = d0 ^ d1 ^ carry;
@@ -459,11 +430,11 @@ static Value add_value_bitstring(Value src0, Value src1, Value dst) {
                 break;
             }
         }
-        ((char*)dst_data)[count] = res + '0';
+        dst_data[count] = res + '0';
     }
     /* The remaining bits are undefined. */
     for(;count < width0; ++count) {
-        ((char*)dst_data)[count] = 'x';
+        dst_data[count] = 'x';
     }
     /* Return the destination. */
     return dst;
@@ -476,24 +447,21 @@ static Value add_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size0 = src0->size;
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size0);
+    resize_value(dst,width0);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src0->type;
-    dst->size = src0->size;
     dst->numeric = 0;
 
     /* Get access to the data of the sources. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
     // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
@@ -504,10 +472,10 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
     char carry = 1; /* For the subtraction: a + ~b + 1 */
     for(count = 0; count < width0; ++count) {
         /* Performs the subtraction. */
-        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
         char res;
         if (count < width1) {
-            char d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            char d1 = src1_data[count] - '0';/* Get and convert to bit. */
             if ((d0 == (d0&1)) && (d1 == (d1&1))) {
                 d1 = !d1; /* For the subtraction: a + ~b + 1 */
                 /* d0 and d1 are defined. */
@@ -533,11 +501,11 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
                 break;
             }
         }
-        ((char*)dst_data)[count] = res + '0';
+        dst_data[count] = res + '0';
     }
     /* The remaining bits are undefined. */
     for(;count < width0; ++count) {
-        ((char*)dst_data)[count] = 'x';
+        dst_data[count] = 'x';
     }
     /* Return the destination. */
     return dst;
@@ -549,27 +517,24 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return the destination value */
 static Value not_value_bitstring(Value src, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size = src->size;
     /* Compute the width of the result in bits. */
     unsigned long long width = type_width(src->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size);
+    resize_value(dst,width);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src->type;
-    dst->size = src->size;
     dst->numeric = 0;
 
     /* Get access to the source and destination data. */
-    char* src_data = (char*)(src->data);
-    char* dst_data = (char*)(dst->data);
+    char* src_data = src->data_str;
+    char* dst_data = dst->data_str;
 
     /* Performs the not. */
     unsigned long long count;
     for(count = 0; count < width; ++count) {
         /* Performs the not. */
-        char d = ((char*)src_data)[count] - '0'; /* Get and convert to bit. */
+        char d = src_data[count] - '0'; /* Get and convert to bit. */
         char res;
         if (d == (d&1)) { /* d is defined. */
             res = !d;
@@ -577,7 +542,7 @@ static Value not_value_bitstring(Value src, Value dst) {
             /* res is undefined. */
             res = 'x' - '0';
         }
-        ((char*)dst_data)[count] = res + '0';
+        dst_data[count] = res + '0';
     }
     /* Return the destination. */
     return dst;
@@ -590,24 +555,21 @@ static Value not_value_bitstring(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value and_value_bitstring(Value src0, Value src1, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size0 = src0->size;
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size0);
+    resize_value(dst,width0);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src0->type;
-    dst->size = src0->size;
     dst->numeric = 0;
 
     /* Get access to the data of the sources. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
     // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
@@ -617,12 +579,12 @@ static Value and_value_bitstring(Value src0, Value src1, Value dst) {
     unsigned long long count;
     for(count = 0; count < width0; ++count) {
         /* Performs the and. */
-        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
         char res;
         char d1;
         if (count < width1) {
             /* Still within source 1. */
-            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            d1 = src1_data[count] - '0';/* Get and convert to bit. */
         } else {
             /* Outside source 1, use the sign extension. */
             d1 = ext;
@@ -649,7 +611,7 @@ static Value and_value_bitstring(Value src0, Value src1, Value dst) {
                 res = 'x'-'0';
             }
         }
-        ((char*)dst_data)[count] = res + '0';
+        dst_data[count] = res + '0';
     }
     /* Return the destination. */
     return dst;
@@ -662,24 +624,21 @@ static Value and_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value or_value_bitstring(Value src0, Value src1, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size0 = src0->size;
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size0);
+    resize_value(dst,width0);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src0->type;
-    dst->size = src0->size;
     dst->numeric = 0;
 
     /* Get access to the data of the sources. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
     // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
@@ -689,12 +648,12 @@ static Value or_value_bitstring(Value src0, Value src1, Value dst) {
     unsigned long long count;
     for(count = 0; count < width0; ++count) {
         /* Performs the or. */
-        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
         char res;
         char d1;
         if (count < width1) {
             /* Still within source 1. */
-            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            d1 = src1_data[count] - '0';/* Get and convert to bit. */
         } else {
             /* Outside source 1, use the sign extension. */
             d1 = ext;
@@ -721,7 +680,7 @@ static Value or_value_bitstring(Value src0, Value src1, Value dst) {
                 res = 'x'-'0';
             }
         }
-        ((char*)dst_data)[count] = res + '0';
+        dst_data[count] = res + '0';
     }
     /* Return the destination. */
     return dst;
@@ -734,24 +693,21 @@ static Value or_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size0 = src0->size;
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size0);
+    resize_value(dst,width0);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src0->type;
-    dst->size = src0->size;
     dst->numeric = 0;
 
     /* Get access to the data of the sources. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
     // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
@@ -761,12 +717,12 @@ static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
     unsigned long long count;
     for(count = 0; count < width0; ++count) {
         /* Performs the xor. */
-        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
+        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
         char res;
         char d1;
         if (count < width1) {
             /* Still within source 1. */
-            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            d1 = src1_data[count] - '0';/* Get and convert to bit. */
         } else {
             /* Outside source 1, use the sign extension. */
             d1 = ext;
@@ -784,52 +740,192 @@ static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
             /* res is undefined. */
             res = 'x'-'0';
         }
-        ((char*)dst_data)[count] = res + '0';
+        dst_data[count] = res + '0';
     }
     /* Return the destination. */
     return dst;
 }
 
 
-/** Computes the equal (NXOR) of two bitstring values.
+/** Computes the left shift of a bitstring value by a numeric value.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+static Value shift_left_value_bitstring_numeric(Value src0, Value src1, Value dst) {
+    unsigned long long count;
+    /* Get the widths of the first source. */
+    unsigned long long width0 = type_width(src0->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,width0);
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->numeric = 0;
+
+    /* Get access to the data of the source. */
+    char *src0_data = src0->data_str;
+    /* Get access to the data of the destination. */
+    char *dst_data = dst->data_str;
+
+    /* Compute the amount of shift. */
+    // unsigned int ext = word_ext(src1);
+    long long sh  = value2integer(src1);
+    // if (ext && (sh > 0)) sh = -sh; /* Ensure the shift sign is right. */
+    /* Cleans the destination for a clean shift result. */
+    for(count = 0; count < width0; ++count) {
+        dst_data[count] = '0';
+    }
+    /* Perform the bit-wise shift. */
+    for(count = 0; count < width0; ++count) {
+        /* Access the source bit. */
+        char d0 = src0_data[count];
+        /* Set it to the destination at the right place. */
+        unsigned long long pos = count + sh;
+        if ((pos>0) && (pos<width0)) {
+            dst_data[pos] = d0;
+        }
+    }
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the right shift of a bitstring value by a numeric value.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+static Value shift_right_value_bitstring_numeric(Value src0, Value src1, Value dst) {
+    unsigned long long count;
+    /* Get the widths of the first source. */
+    unsigned long long width0 = type_width(src0->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,width0);
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->numeric = 0;
+
+    /* Get access to the data of the source. */
+    char *src0_data = src0->data_str;
+    /* Get access to the data of the destination. */
+    char *dst_data = dst->data_str;
+
+    /* Compute the amount of shift. */
+    // unsigned int ext = word_ext(src1);
+    long long sh  = -value2integer(src1);
+    // if (ext && (sh > 0)) sh = -sh; /* Ensure the shift sign is right. */
+    /* Cleans the destination for a clean shift result. */
+    for(count = 0; count < width0; ++count) {
+        dst_data[count] = '0';
+    }
+    /* Perform the bit-wise shift. */
+    for(count = 0; count < width0; ++count) {
+        /* Access the source bit. */
+        char d0 = src0_data[count];
+        /* Set it to the destination at the right place. */
+        unsigned long long pos = count + sh;
+        if ((pos>0) && (pos<width0)) {
+            dst_data[pos] = d0;
+        }
+    }
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the left shift of two bitstring values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+static Value shift_left_value_bitstring(Value src0, Value src1, Value dst) {
+    unsigned long long count;
+    /* Get the widths of the first source. */
+    unsigned long long width0 = type_width(src0->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,width0);
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->numeric = 0;
+
+    /* Get access to the data of the destination. */
+    char *dst_data = dst->data_str;
+
+    /* Unknow shift, fills the destination with x. */
+    for(count = 0; count < width0; ++count) {
+        dst_data[count] = 'x';
+    }
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the right shift of two bitstring values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+static Value shift_right_value_bitstring(Value src0, Value src1, Value dst) {
+    unsigned long long count;
+    /* Get the widths of the first source. */
+    unsigned long long width0 = type_width(src0->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,width0);
+    /* set the type and size of the destination to the type first source. */
+    dst->type = src0->type;
+    dst->numeric = 0;
+
+    /* Get access to the data of the destination. */
+    char *dst_data = dst->data_str;
+
+    /* Unknow shift, fills the destination with x. */
+    for(count = 0; count < width0; ++count) {
+        dst_data[count] = 'x';
+    }
+    /* Return the destination value. */
+    return dst;
+}
+
+
+/** Computes the equal (!XOR) of two bitstring values.
  *  @param src0 the first source value of the and
  *  @param src1 the second source value of the and
  *  @param dst the destination value
  *  @return dst */
 static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
-    /* Get the size of the result from the sources. */
-    unsigned long long size0 = src0->size;
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size0);
+    resize_value(dst,width0);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src0->type;
-    dst->size = src0->size;
     dst->numeric = 0;
 
     /* Get access to the data of the sources. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
-    // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
     int ext = bitstring_ext(src1);
 
-    /* Perform the nxor. */
+    /* Perform the !xor. */
     unsigned long long count;
+    /* Check if values are the same. */
+    char same = '1';
     for(count = 0; count < width0; ++count) {
-        /* Performs the nxor. */
-        char d0 = ((char*)src0_data)[count] - '0'; /* Get and convert to bit. */
-        char res;
+        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
         char d1;
         if (count < width1) {
             /* Still within source 1. */
-            d1 = ((char*)src1_data)[count] - '0';/* Get and convert to bit. */
+            d1 = src1_data[count] - '0';/* Get and convert to bit. */
         } else {
             /* Outside source 1, use the sign extension. */
             d1 = ext;
@@ -838,16 +934,25 @@ static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
             /* d0 is defined. */
             if (d1 == (d1&1)) {
                 /* d1 is also defined. */
-                res = (d0 == d1);
+                if (d0 != d1) {
+                    same = '0';
+                    break;
+                }
             } else  {
-                /* res is undefined. */
-                res = 'x'-'0';
+                /* Undefined. */
+                same = 'x';
+                break;
             }
         } else {
-            /* res is undefined. */
-            res = 'x'-'0';
+            /* Undefined. */
+            same = 'x';
+            break;
         }
-        ((char*)dst_data)[count] = res + '0';
+    }
+    /* Set the destination to 0 or 1 depending of different. */
+    dst_data[0] = same;
+    for(count = 1; count < width0; ++count) {
+        dst_data[count] = '0';
     }
     /* Return the destination. */
     return dst;
@@ -864,18 +969,16 @@ static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
 {
     /* Get the first alternative for sizing the result. */
     Value src = va_arg(args,Value);
-    /* Get the size of the result from the sources. */
-    unsigned long long size = src->size;
     /* Compute the width of the result in bits. */
     unsigned long long width = type_width(src->type);
+    // printf("select width=%llu\n",width);
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size);
+    resize_value(dst,width);
     /* set the type and size of the destination the the type of the source. */
     dst->type = src->type;
-    dst->size = src->size;
     dst->numeric = 0;
-    unsigned int *dst_data = dst->data;
+    char *dst_data = dst->data_str;
 
     /* Sets the destination as undefined. */
     unsigned long long count;
@@ -897,23 +1000,21 @@ static Value concat_value_bitstring_array(int num, Value dst, Value* args) {
     unsigned long long i;
 
     /* Compute the size of the destination. */
-    unsigned long long size = 0;
+    unsigned long long width = 0;
     for(i=0; i<num; ++i) {
-        size += args[i]->size;
+        width += type_width(args[i]->type);
     }
     /* Resize the destination accordignly. */
-    resize_value(dst,size);
+    resize_value(dst,width);
 
     /* Access the data of the destination. */
-    char* dst_data = (char*)(dst->data);
+    char* dst_data = dst->data_str;
 
     /* Fills the destination with each value. */
     for(i=0; i<num; ++i) {
         Value value = args[i];
         unsigned long long cw = type_width(value->type);
-        memcpy(dst_data+pos,value->data,cw);
-        // write_range(value,pos,pos+cw,accumulator);
-        write_range(value,pos,pos+cw,dst);
+        memcpy(dst_data+pos,value->data_str,cw);
         pos += cw;
     }
     /* Sets the type of the resulting value: it is necesserily an
@@ -935,20 +1036,17 @@ static Value cast_value_bitstring(Value src, Type type, Value dst) {
     unsigned long long swidth = type_width(src->type);
     /* Get the size of the result from the target type. */
     unsigned long long width = type_width(type);
-    unsigned long long size = width / INT_BIT;
-    if (width % INT_BIT) size += 1;
 
     /* Update the destination capacity if required. */
-    resize_value(dst,size);
+    resize_value(dst,width);
     /* set the type and size of the destination the the type of the source. */
     dst->type = type;
-    dst->size = size;
     dst->numeric = 0;
 
     /* Get access to the data of the source. */
-    char *src_data = (char*)(src->data);
+    char *src_data = src->data_str;
     /* Get access to the data of the destination. */
-    char *dst_data = (char*)(dst->data);
+    char *dst_data = dst->data_str;
     /* Get the sign extension. */
     unsigned int ext = bitstring_ext(src) + '0';
 
@@ -971,12 +1069,17 @@ static Value cast_value_bitstring(Value src, Type type, Value dst) {
  *  @return 1 if same content. */
 static unsigned int same_content_value_bitstring(Value value0, Value value1) {
     unsigned long long i;
-    unsigned long long width = type_width(value0->type);
-    /* Compare the sizes. */
-    if (type_width(value1->type) != width) return 0;
-    /* Compare the data. */
-    char* data0 = (char*)(value0->data);
-    char* data1 = (char*)(value1->data);
+    // unsigned long long width = type_width(value0->type);
+    // printf("same_content_value_bitstring.\n");
+    // print_value(value0); printf(" "); print_value(value1); printf("\n");
+    // printf("width0=%llu width1=%llu\n",type_width(value0->type),
+    //         type_width(value1->type));
+    // /* Compare the sizes. */
+    // if (type_width(value1->type) != width) return 0;
+    unsigned long long width = min2(type_width(value0->type),type_width(value1->type));
+    /* Compare the data up to the widths. */
+    char* data0 = value0->data_str;
+    char* data1 = value1->data_str;
     for(i=0; i<width; ++i) {
         if (data0[i] != data1[i])
             /* The contents are different. */
@@ -995,12 +1098,18 @@ static unsigned int same_content_value_bitstring(Value value0, Value value1) {
  *  @return 1 if same content. */
 static int same_content_value_range_bitstring(Value value0,
         unsigned long long first, unsigned long long last, Value value1) {
+    /* Ensure first is the smaller. */
+    if (first > last) {
+        long long tmp = last;
+        last = first;
+        first = tmp;
+    }
     unsigned long long i;
     unsigned long long width0 = type_width(value0->type);
     unsigned long long width1 = type_width(value1->type);
     /* Get access to the data of both values. */
-    char* data0 = (char*)(value0->data);
-    char* data1 = (char*)(value1->data);
+    char* data0 = value0->data_str;
+    char* data1 = value1->data_str;
     /* Compare within the range. */
     for(i=first; i<=last; ++i) {
         if (i>=width0) {
@@ -1011,7 +1120,7 @@ static int same_content_value_range_bitstring(Value value0,
                 /* Only value 0 is out of range. */
                 return 0;
             }
-        } else if (i>width1) {
+        } else if (i>=width1) {
             /* Only value 1 is out of range. */
             return 0;
         } else {
@@ -1027,6 +1136,77 @@ static int same_content_value_range_bitstring(Value value0,
 
 
 
+/** Reads a range from a bitstring value. 
+ *  @param value the value to read
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param base the type of the elements
+ *  @param dst the destination value
+ *  @return dst */
+Value read_range_bitstring(Value src, long long first, long long last,
+        Type base, Value dst) {
+    /* Ensure first is the smaller. */
+    if (first > last) {
+        long long tmp = last;
+        last = first;
+        first = tmp;
+    }
+    /* Compute the number of elements to read. */
+    long long length = last-first+1;
+    /* Compute the elements size. */
+    unsigned long long bw = type_width(base);
+    /* Scale the range according to the base type. */
+    first *= bw;
+    length *= bw;
+    // printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,length);
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = make_type_vector(get_type_bit(),length);
+    dst->numeric = 0;
+
+    /* Performs the read. */
+    memcpy(dst->data_str,src->data_str + first, length);
+
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Writes to a range within a bitstring value. 
+ *  NOTE: the type of the destination is NOT changed!
+ *  @param src the source value
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param dst the destination value
+ *  @return dst */
+Value write_range_bitstring(Value src, long long first, long long last,
+        Value dst) {
+    unsigned long long i;
+    /* Ensure first is the smaller. */
+    if (first > last) {
+        long long tmp = last;
+        last = first;
+        first = tmp;
+    }
+    /* Get the widths of the source and the desintation. */
+    unsigned long long src_width = type_width(src->type);
+    unsigned long long dst_width = type_width(dst->type);
+    /* scale the range according to the base type. */
+    unsigned long long bw = dst->type->base;
+    first *= bw;
+    last *=  bw;
+    /* Access the source and destination bitstring data. */
+    char* dst_data = dst->data_str;
+    char* src_data = src->data_str;
+    /* Perform the copy. */
+    for(i=0; (i+first<=last) && (i<src_width) && (i+first<dst_width); ++i) {
+        dst_data[i+first] = src_data[i];
+    }
+    return dst;
+}
+
 /* ############# End of the computation of bitstring values. ############## */
 
 /* ############# Start of the computation of numeric values. ############## */
@@ -1037,35 +1217,12 @@ static int same_content_value_range_bitstring(Value value0,
  *  @param dst the destination value
  *  @return dst */
 static Value neg_value_numeric(Value src, Value dst) {
-    /* Get the size of the result from the source. */
-    unsigned long long size = src->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,size);
-    /* set the type and size of the destination the the type of the source. */
+    /* Sets state of the destination using the source. */
     dst->type = src->type;
-    dst->size = src->size;
     dst->numeric = 1;
 
-    /* Get access to the data of the source. */
-    unsigned int *src_data = src->data;
-    /* Get access to the data of the destination. */
-    // unsigned int *dst_data = accumulator->data;
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise negation. */
-    unsigned long long count;
-    unsigned int carry = 0;
-    for(count = 0; count < size; ++count) {
-        /* Performs the negation, double size for the carry. */
-        unsigned long long d = src_data[count];
-        unsigned long long res = - d + (1-carry);
-        /* Compute the next carry. */
-        carry = res >> (INT_BIT);
-        /* Set the data of the accumulator. */
-        dst_data[count] = res;
-    }
-    /* Return the destination. */
+    /* Perform the negation. */
+    dst->data_int = -src->data_int;
     return dst;
 }
 
@@ -1076,38 +1233,12 @@ static Value neg_value_numeric(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value add_value_numeric(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    /* set the type and size of the destination to the type first source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src0->type;
-    dst->size = src0_size;
     dst->numeric = 1;
 
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise addition. */
-    unsigned long long count;
-    unsigned int carry = 0;
-    unsigned long long ext = word_extL(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the addition, double size for the carry. */
-        unsigned long long d0 = src0_data[count];
-        unsigned long long d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned long long res = d0 + d1 + carry;
-        /* Compute the next carry. */
-        carry = res >> (INT_BIT);
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the addition. */
+    dst->data_int = src0->data_int + src1->data_int;
     return dst;
 }
 
@@ -1118,38 +1249,12 @@ static Value add_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value sub_value_numeric(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    /* set the type and size of the accumulator to the type first source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src0->type;
-    dst->size = src0_size;
     dst->numeric = 1;
 
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    /* Get access to the data of the accumulator. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise subtraction. */
-    unsigned long long count;
-    unsigned int carry = 0;
-    unsigned long long ext = word_extL(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the subtraction, double size for the carry. */
-        unsigned long long d0 = src0_data[count];
-        unsigned long long d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned long long res = d0 - d1 + (1-carry);
-        /* Compute the next carry. */
-        carry = res >> (INT_BIT);
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the subtraction. */
+    dst->data_int = src0->data_int - src1->data_int;
     return dst;
 }
 
@@ -1159,31 +1264,12 @@ static Value sub_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return the destination value */
 static Value not_value_numeric(Value src, Value dst) {
-    /* Get the size of the result from the source. */
-    unsigned long long size = src->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,size);
-    /* set the type and size of the destination the the type of the source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src->type;
-    dst->size = src->size;
     dst->numeric = 1;
 
-    /* Get access to the data of the source. */
-    unsigned int *src_data = src->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise NOT. */
-    unsigned long long count;
-    for(count = 0; count < size; ++count) {
-        /* Performs the subtraction, double size for the carry. */
-        unsigned long long d = src_data[count];
-        unsigned long long res = ~d;
-        /* Set the data of the accumulator. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the not. */
+    dst->data_int = !src->data_int;
     return dst;
 }
 
@@ -1194,35 +1280,12 @@ static Value not_value_numeric(Value src, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value and_value_numeric(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    /* set the type and size of the destination to the type first source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src0->type;
-    dst->size = src0_size;
     dst->numeric = 1;
 
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise AND. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the AND, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = d0 & d1;
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the AND. */
+    dst->data_int = src0->data_int & src1->data_int;
     return dst;
 }
 
@@ -1233,35 +1296,12 @@ static Value and_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination
  *  @return dst */
 static Value or_value_numeric(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    /* set the type and size of the destination to the type first source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src0->type;
-    dst->size = src0_size;
     dst->numeric = 1;
 
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise OR. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the OR, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = d0 | d1;
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the OR. */
+    dst->data_int = src0->data_int | src1->data_int;
     return dst;
 }
 
@@ -1272,74 +1312,60 @@ static Value or_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination
  *  @return dst */
 static Value xor_value_numeric(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    /* set the type and size of the destination to the type first source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src0->type;
-    dst->size = src0_size;
     dst->numeric = 1;
 
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise XOR. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the OR, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = d0 ^ d1;
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the XOR. */
+    dst->data_int = src0->data_int ^ src1->data_int;
     return dst;
 }
 
 
-/** Computes the equal (NXOR) of two numeric values.
+/** Computes the left shift of two numeric values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+static Value shift_left_value_numeric(Value src0, Value src1, Value dst) {
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    /* Perform the left shift. */
+    dst->data_int = src0->data_int << src1->data_int;
+    return dst;
+}
+
+
+/** Computes the right shift of two numeric values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+static Value shift_right_value_numeric(Value src0, Value src1, Value dst) {
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    /* Perform the right shift. */
+    dst->data_int = src0->data_int >> src1->data_int;
+    return dst;
+}
+
+
+/** Computes the equal (!XOR) of two numeric values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
  *  @param dst the destination value
  *  @return the destination value */
 static Value equal_value_numeric(Value src0, Value src1, Value dst) {
-    /* Get the sizes of the sources. */
-    unsigned long long src0_size = src0->size;
-    unsigned long long src1_size = src1->size;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,src0_size);
-    /* set the type and size of the destination to the type first source. */
+    /* Sets state of the destination using the first source. */
     dst->type = src0->type;
-    dst->size = src0_size;
     dst->numeric = 1;
 
-    /* Get access to the data of each source. */
-    unsigned int *src0_data = src0->data;
-    unsigned int *src1_data = src1->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-
-    /* Perform the word-wise XOR. */
-    unsigned long long count;
-    unsigned int ext = word_ext(src1);
-    for(count = 0; count < src0_size; ++count) {
-        /* Performs the OR, double size for the carry. */
-        unsigned int d0 = src0_data[count];
-        unsigned int d1 = count <= src1_size ? src1_data[count] : ext;
-        unsigned int res = ~(d0 ^ d1);
-        /* Set the data of the destination. */
-        dst_data[count] = res;
-    }
-    /* Return the destination value. */
+    /* Perform the !XOR. */
+    dst->data_int = (src0->data_int == src1->data_int);
     return dst;
 }
 
@@ -1349,45 +1375,52 @@ static Value equal_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst    the destination value (used only if new value is created).
  *  @param num    the number of values for the selection
  *  @return the selected value */
-static Value select_value_numeric(Value cond, Value dst, unsigned int num, va_list args) {
-    int cond_i = read32(cond);
-    int i;
-    Value selected;
-
-    for(i=0;i <= cond_i; ++i) {
-        selected = va_arg(args,Value);
+static Value select_value_numeric(Value cond, Value dst, unsigned int num,
+        va_list args) {
+    unsigned int i;
+    /* Select the value corresponding to the condition and copy it to
+     * the destination. */
+    for(i = 0; i<num;  ++i) {
+        Value value = va_arg(args,Value);
+        if (i == value2integer(cond)) {
+            /* The right value is reached, copy it. */
+            copy_value(value,dst);
+            return dst;
+        }
     }
-    return selected;
+    /* Should never be here. */
+    return NULL;
 }
 
 /** Concat multiple numeric values to a single one.
  *  @param num the number of values to concat
  *  @param dst the destination value
  *  @return dst */
-static Value concat_value_numeric(int num, Value dst, va_list args) {
-    unsigned long long pos = 0;  /* Current position in the resulting value.*/
-    unsigned long long i;
-    /* Compute the size of the destination. */
-    unsigned long long size = 0;
-    va_list args0;
-    va_copy(args0,args);
-    for(i=0; i<num; ++i) {
-        size += va_arg(args0,Value)->size;
-    }
-    /* Resize the destination accordignly. */
-    resize_value(dst,size);
+static Value concat_value_numeric_array(int num, Value dst, Value* args) {
+    unsigned int i,pos;
+    /* Compute the bit width of the destination. */
+    unsigned int width = 0;
+    for(i=0; i<num; ++i) width += type_width(args[i]->type);
 
-    /* Fills the destination with each value. */
+    /* Sets state of the destination using the bit width. */
+    dst->type = make_type_vector(get_type_bit(),width);
+    dst->numeric = 1;
+
+    /* Perform the concatenation. */
+    dst->data_int = 0;
+    pos = 0;
     for(i=0; i<num; ++i) {
-        Value value = va_arg(args,Value);
-        unsigned long long cw = type_width(value->type);
-        write_range(value,pos,pos+cw,dst);
-        pos += cw;
+        /* Compute the read mask. */
+        unsigned long long arg_width = type_width(args[i]->type);
+        unsigned long long read_mask = ~((-1LL) << arg_width);
+        /* Read from the value to concatenate. */
+        unsigned long long arg_data = args[i]->data_int & read_mask;
+        /* Write it. */
+        dst->data_int |= arg_data << pos;
+        /* Update the write position. */
+        pos += arg_width;
     }
-    /* Sets the type of the resulting value: it is necesserily an
-     * unsigned bit string. */
-    dst->type = get_type_vector(get_type_bit(),pos);
-    /* Return the destination value. */
+    /* Return the destination. */
     return dst;
 }
 
@@ -1398,37 +1431,12 @@ static Value concat_value_numeric(int num, Value dst, va_list args) {
  *  @param dst the destination value
  *  @return dst */
 static Value cast_value_numeric(Value src, Type type, Value dst) {
-    unsigned long long i;
-    /* Get the size of the source. */
-    unsigned long long ssize = src->size;
-    /* Get the size of the result from the target type. */
-    unsigned long long width = type_width(type);
-    unsigned long long size = width / INT_BIT;
-    if (width % INT_BIT) size += 1;
-
-    /* Update the destination capacity if required. */
-    resize_value(dst,size);
-    /* set the type and size of the destination the the type of the source. */
+    /* Copy the source to the destination. */
+    dst->data_int = src->data_int;
+    /* Update the destination type to the cast. */
     dst->type = type;
-    dst->size = size;
     dst->numeric = 1;
-
-    /* Get access to the data of the source. */
-    unsigned int *src_data = src->data;
-    /* Get access to the data of the destination. */
-    unsigned int *dst_data = dst->data;
-    /* Get the sign extension. */
-    unsigned int ext = word_ext(src);
-
-    /* Copy the source to the destination as long as there is enough room. */
-    for(i=0; i<size && i<ssize; ++i) {
-        dst_data[i] = src_data[i];
-    }
-    /* Add the extension for the remaining bits. */
-    for(;i<size; ++i) {
-        dst_data[i] = ext;
-    }
-    /* Return the destination value. */
+    /* Return the destination. */
     return dst;
 }
 
@@ -1437,17 +1445,9 @@ static Value cast_value_numeric(Value src, Type type, Value dst) {
  *  @param value the value to check 
  *  @return 1 if 0 and 0 otherwize */
 static int zero_value_numeric(Value value) {
-    unsigned long long i;
-    unsigned long long size = value->size;
-    
-    for(i=0; i<size; ++i) {
-        if (value->data[i] != 0)
-            /* The value is not 0. */
-            return 0;
-    }
-    /* The value is 0. */
-    return 1;
+    return value->data_int == 0;
 }
+
 
 
 /** Testing if two numeric values have the same content (the type is not checked).
@@ -1455,24 +1455,12 @@ static int zero_value_numeric(Value value) {
  *  @param value1 the second value to compare
  *  @return 1 if same content. */
 static unsigned int same_content_value_numeric(Value value0, Value value1) {
-    unsigned long long i;
-    unsigned long long size = value0->size;
-    /* Compare the sizes. */
-    if (value1->size != size) return 0;
-    /* Compare the data. */
-    unsigned int* data0 = value0->data;
-    unsigned int* data1 = value1->data;
-    for(i=0; i<size; ++i) {
-        if (data0[i] != data1[i])
-            /* The contents are different. */
-            return 0;
-    }
-    /* The values have the same content. */
-    return 1;
+    return value0->data_int == value1->data_int;
 }
 
 
-/** Testing if two numeric values have the same content (the type is not checked).
+/** Testing if two numeric values have the same content in a given
+ *  range (the type is not checked).
  *  @param value0 the first value to compare
  *  @param first the first index of the range
  *  @param last the last index of the range
@@ -1480,74 +1468,97 @@ static unsigned int same_content_value_numeric(Value value0, Value value1) {
  *  @return 1 if same content. */
 static int same_content_value_range_numeric(Value value0,
         unsigned long long first, unsigned long long last, Value value1) {
-    unsigned long long i;
-    /* Get the types. */
-    Type typ0 = value0->type;
-    Type typ1 = value1->type;
-    /* Get the base width. */
-    unsigned long long bw = typ0->base;
-    /* Compute the word shift. */
-    // unsigned int ws = (first*bw) / INT_BIT;
-    /* Compute the bit shift. */
-    // unsigned int bs = (first*bw) % INT_BIT;
-    /* Compute the higher bits clearing mask for the destination. */
-    // unsigned int dst_mask_high = ~((1UL << bs) - 1UL);
-    /* Compute the lower bits clearing mask for the destination. */
-    // unsigned int dst_mask_low = ~dst_mask_high;
-    // /* Compute the lower bits selection mask for the source. */
-    // unsigned int src_mask_low = dst_mask_high;
-    /* Compute the higher bits selection mask for the source. */
-    // unsigned int src_mask_high = dst_mask_low;
-    /* Get the number of elements. */
-    unsigned long long num0 = typ0->number;
-    unsigned long long num1 = typ1->number;
-    /* Check if the elements are compatible. */
-    if (value1->type->base != bw) {
-        /* Not compatible. */
-        return 0;
+    /* Ensure first is the smaller index. */
+    if (first>last) {
+        unsigned long long tmp = first;
+        first = last;
+        last = tmp;
     }
-    /* Check if the range is valid. */
-    if (last >= num0 || last >= num1) {
-        /* Invalid range. */
-        return 0;
-    }
-
-    /* Access the data. */
-    unsigned int* data0 = value0->data;
-    /* Access the data. */
-    unsigned int* data1 = value1->data;
-
-    /* Perform the comparison. */
-    for(i=first; i<last; ++i) {
-        /* Access the elements to compare. */
-        unsigned long long idx_low = i/INT_BIT;
-        unsigned long long idx_high = (i+bw)/INT_BIT;
-        unsigned int mask_low = ~((1 << (i%INT_BIT)) - 1);
-        unsigned int mask_high = ((1 << ((i+bw)%INT_BIT)) -1);
-        if (idx_low == idx_high) {
-            /* Inside a data. */
-            unsigned int mask = mask_low & mask_high;
-            /* Compare. */
-            if ((data0[idx_low] & mask) != (data1[idx_low] & mask)) {
-                /* Different. */
-                return 0;
-            }
-        } else {
-            /* Between two data. */
-            /* Compare. */
-            if ((data0[idx_low] & mask_low) != (data1[idx_low] & mask_low)) {
-                /* Different. */
-                return 0;
-            }
-            if ((data0[idx_high] & mask_high) != (data1[idx_high] & mask_high)) {
-                /* Different. */
-                return 0;
-            }
-        }
-    }
-    /* Identical. */
-    return 1;
+    /* Compute the mask from the range. */
+    unsigned long long mask = ((-1LL) << first) & ~((-1LL) << last);
+    /* Compare using the mask. */
+    return (value0->data_int & mask) == (value1->data_int & mask);
 }
+
+
+/** Reads a range from a numeric value. 
+ *  @param value the value to read
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param base the type of the elements
+ *  @param dst the destination value
+ *  @return dst */
+Value read_range_numeric(Value value, long long first, long long last,
+        Type base, Value dst) {
+    /* Ensure first is the smaller. */
+    if (first > last) {
+        long long tmp = last;
+        last = first;
+        first = tmp;
+    }
+    /* Compute the number of elements to read. */
+    long long length = last-first+1;
+    /* Compute the elements size. */
+    unsigned long long bw = type_width(base);
+    /* Scale the range according to the base type. */
+    first *= bw;
+    length *= bw;
+    // printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length);
+
+    /* set the type and size of the destination the the type of the source. */
+    dst->type = make_type_vector(get_type_bit(),length);
+    dst->numeric = 1;
+
+    /* Compute the read mask. */
+    unsigned long long mask = ((-1LL) << first) & (~((-1LL) << last));
+    /* Performs the read. */
+    unsigned long long data = (value->data_int & mask) >> first;
+    /* Write it to the destination. */
+    dst->data_int = data;
+
+    /* Return the destination. */
+    return dst;
+}
+
+/** Writes to a range within a numeric value. 
+ *  NOTE: the type of the destination is NOT changed!
+ *  @param src the source value
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param dst the destination value
+ *  @return dst */
+Value write_range_numeric(Value src, long long first, long long last,
+        Value dst) {
+    /* Ensure first is the smaller. */
+    if (first > last) {
+        long long tmp = last;
+        last = first;
+        first = tmp;
+    }
+    /* Get the widths of the source and the desintation. */
+    unsigned long long src_width = type_width(src->type);
+    unsigned long long dst_width = type_width(dst->type);
+    /* scale the range according to the base type of the destination. */
+    unsigned long long bw = dst->type->base;
+    first *= bw;
+    last *= bw;
+    /* If first is too large, end here. */
+    if (first>dst_width) return dst;
+    /* Adjust the last to fit the source and destination range. */
+    if (last >= dst_width) last = dst_width-1;
+    if (last-first >= src_width) last = src_width + first - 1;
+    /* Copy from the source. */
+    unsigned long long src_data = src->data_int & ~((-1LL) << (last-first));
+    /* Cleans the destination where to place the data. */
+    unsigned long long mask = ((-1LL) << first) & ~((-1LL) << last);
+    unsigned long long dst_data = dst->data_int & mask;
+    /* Write the data. */
+    dst_data |= src_data << first;
+    dst->data_int = dst_data;
+    /* Return the destination. */
+    return dst;
+}
+
 
 /* ############# End of the computation of numeric values. ################ */
 
@@ -1590,7 +1601,7 @@ Value add_value(Value src0, Value src1, Value dst) {
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
-            /* src0 is numeric, convert it to bitstring. */
+            /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }
     }
@@ -1624,7 +1635,7 @@ Value sub_value(Value src0, Value src1, Value dst) {
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
-            /* src0 is numeric, convert it to bitstring. */
+            /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }
     }
@@ -1673,7 +1684,7 @@ Value and_value(Value src0, Value src1, Value dst) {
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
-            /* src0 is numeric, convert it to bitstring. */
+            /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }
     }
@@ -1707,7 +1718,7 @@ Value or_value(Value src0, Value src1, Value dst) {
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
-            /* src0 is numeric, convert it to bitstring. */
+            /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }
     }
@@ -1741,7 +1752,7 @@ Value xor_value(Value src0, Value src1, Value dst) {
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
-            /* src0 is numeric, convert it to bitstring. */
+            /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }
     }
@@ -1754,7 +1765,75 @@ Value xor_value(Value src0, Value src1, Value dst) {
 }
 
 
-/** Computes the equal (NXOR) of two general values.
+/** Computes the left shift of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+Value shift_left_value(Value src0, Value src1, Value dst) {
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return shift_left_value_numeric(src0,src1,dst);
+        } else {
+            /* src0 is numeric, convert it to bitstring. */
+            src0 = set_bitstring_value(src1,get_value());
+        }
+    } else {
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is not numeric, but src1. */
+            return shift_left_value_bitstring_numeric(src0,src1,dst);
+        }
+    }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = shift_left_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the right shift of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination
+ *  @return dst */
+Value shift_right_value(Value src0, Value src1, Value dst) {
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return shift_right_value_numeric(src0,src1,dst);
+        } else {
+            /* src0 is numeric, convert it to bitstring. */
+            src0 = set_bitstring_value(src1,get_value());
+        }
+    } else {
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            /* src0 is not numeric, but src1. */
+            return shift_right_value_bitstring_numeric(src0,src1,dst);
+        }
+    }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = shift_right_value_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the equal (!XOR) of two general values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
  *  @param dst the destination value
@@ -1775,7 +1854,7 @@ Value equal_value(Value src0, Value src1, Value dst) {
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
-            /* src0 is numeric, convert it to bitstring. */
+            /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }
     }
@@ -1812,41 +1891,45 @@ Value select_value(Value cond, Value dst, unsigned int num, ...) {
  *  @param dst the destination value
  *  @return dst */
 Value concat_value(int num, Value dst, ...) {
-    /* Might allocate new values so save the state of the value pool. */
+    unsigned long long width = 0;
     int numeric = 1, i;
     va_list args;
-    va_list args1;
-    Value* bvalues = NULL; /* The values converted to bitstring if required. */
+    Value* values = alloca(num*sizeof(Value)); /* The values to concatenate. */
     va_start(args,dst);
-    va_copy(args1,args);
+    /* Copy the arguments to values for easier processing. */
+    for(i=0; i<num; ++i) {
+        values[i] = va_arg(args,Value);
+    }
     /* check if all the sub values are numeric. */
     for(i=0; i<num; ++i) {
-        if (!va_arg(args,Value)->numeric) {
+        if (!values[i]->numeric) {
             numeric = 0;
             break;
         }
+    }
+    /* Compute the resulting width to see if it first in a numeric. */
+    if (numeric) {
+        for(i = 0; i<num; ++i) {
+            width += type_width(values[i]->type);
+        }
+        if (width > LONG_LONG_BIT) { numeric = 0; }
     }
     /* Reinitialize the access to the variadic arguments for further
      * accesses. */
     if (numeric) {
         /* The sub values are all numeric. */
-        concat_value_numeric(num,dst,args1);
+        concat_value_numeric_array(num,dst,values);
     } else {
-        /* Some sub values are not numeric, convert the numeric ones to
-         * bitstring and perform a bitstring concatenation. */
-        bvalues = alloca(sizeof(Value)*num);
-        va_copy(args1,args);
+        /* Cannot perfrom a numeric concatenation, do it for bitstrings. */
+        /* First convert the numeric values to bitstrings. */
         for(i=0;i<num; ++i) {
-            Value value = va_arg(args1,Value);
-            if (value->numeric) {
-                bvalues[i] = set_bitstring_value(value,get_value());
-            } else {
-                bvalues[i] = value;
-            }
+            if (values[i]->numeric) {
+                values[i] = set_bitstring_value(values[i],get_value());
+            } 
         }
 
         /* The sub values are now all bitstrings. */
-        concat_value_bitstring_array(num,dst,bvalues);
+        concat_value_bitstring_array(num,dst,values);
     }
     va_end(args);
     return dst;
@@ -1883,11 +1966,38 @@ int zero_value(Value value) {
 }
 
 
+/** Testing if a value is defined or not.
+ *  @param value the value to check
+ *  @return 1 if defined and 0 otherwize */
+int is_defined_value(Value value) {
+    if (value->numeric) {
+        /* Numeric values are defined by definition. */
+        return 1;
+    } else {
+        /* Ensures the value contains only '0' and '1'. */
+        unsigned long long width = type_width(value->type);
+        unsigned long long i;
+        char* data = value->data_str;
+        for(i=0; i<width; ++i) {
+            char bit = data[i];
+            if ((bit != '0') && (bit != '1')) {
+                /* Not defined. */
+                return 0;
+            }
+        }
+        /* Defined. */
+        return 1;
+    }
+}
+
+
 /** Testing if two general values have the same content (the type is not checked).
  *  @param value0 the first value to compare
  *  @param value1 the second value to compare
  *  @return 1 if same content. */
 int same_content_value(Value value0, Value value1) {
+    // printf("same_content_value with value0=%p value1=%p\n",value0,value1);
+    // print_value(value0); printf(" "); print_value(value1); printf("\n");
     if (value0->numeric) {
         if (value1->numeric) {
             /* Both values are numeric. */
@@ -1956,66 +2066,69 @@ RefRangeS make_ref_rangeS(SignalI signal, unsigned long long first,
 
 /* Access and conversion functions. */
 
-/** Read and convert to 8-bit a value.
- *  @param value the value to read
- *  @return the resulting 8-bit value */
-char read8(Value value) {
-    return value->data[0] & 0xFF;
-}
+// /** Read and convert to 8-bit a value.
+//  *  @param value the value to read
+//  *  @return the resulting 8-bit value */
+// char read8(Value value) {
+//     return value->data[0] & 0xFF;
+// }
+// 
+// /** Read and convert to 16-bit a value.
+//  *  @param value the value to read
+//  *  @return the resulting 16-bit value */
+// short read16(Value value) {
+//     return value->data[0] & 0xFFFF;
+// }
+// 
+// /** Read and convert to 32-bit a value.
+//  *  @param value the value to read 
+//  *  @return the resulting 32-bit value */
+// int read32(Value value) {
+//     return value->data[0] & 0xFFFFFFFF;
+// }
+// 
+// /** Read and convert to 64-bit a value.
+//  *  @param value the value to read 
+//  *  @return the resulting 64-bit value */
+// long long read64(Value value) {
+//     return value->data[0];
+// }
 
-/** Read and convert to 16-bit a value.
- *  @param value the value to read
- *  @return the resulting 16-bit value */
-short read16(Value value) {
-    return value->data[0] & 0xFFFF;
-}
-
-/** Read and convert to 32-bit a value.
- *  @param value the value to read 
- *  @return the resulting 32-bit value */
-int read32(Value value) {
-    return value->data[0] & 0xFFFFFFFF;
-}
-
-/** Read and convert to 64-bit a value.
- *  @param value the value to read 
- *  @return the resulting 64-bit value */
-long long read64(Value value) {
-    return value->data[0];
-}
-
-/** Converts a value to an int.
+/** Converts a value to a long long int.
  *  @param value the value to convert
  *  @return the resulting int. */
-int value2int(Value value) {
+unsigned long long value2integer(Value value) {
+    /* If the value is numeric, just return its data as is. */
+    if (value->numeric) {
+        return value->data_int;
+    }
+    /* Otherwise convert the bitstring to an integer if possible,
+     * but return 0 in case of failure. */
     /* Gets the width of the value. */
     unsigned long long width = type_width(value->type);
-    /* Compute the mask for removing the extra bits. */
-    unsigned int mask = width < 32 ? (1UL << width)-1 : 0xFFFFFFFF;
-    /* Gets the sign of the value. */
-    unsigned int sign = value->type->flags.sign;
-    /* Extract 32 bits from the value. */
-    int result = read32(value) & mask;
-    /* Extends the sign if required. */
-    if (sign && (result >> width)) result |= ~mask;
-    return result;
-}
-
-/** Converts a value to a long long.
- *  @param value the value to convert
- *  @return the resulting int. */
-long long value2longlong(Value value) {
-    /* Gets the width of the value. */
-    unsigned long long width = type_width(value->type);
-    /* Compute the mask for removing the extra bits. */
-    unsigned long long mask = width < 64 ? (1UL << width)-1 : 0xFFFFFFFFFFFFFFFF;
-    /* Gets the sign of the value. */
-    unsigned int sign = value->type->flags.sign;
-    /* Extract 64 bits from the value. */
-    int result = read64(value) & mask;
-    /* Extends the sign if required. */
-    if (sign && (result >> width)) result |= ~mask;
-    return result;
+    unsigned long long res = 0;
+    unsigned long long i;
+    char bit;
+    /* Access the bitstring data. */
+    char* data_str = value->data_str;
+    /* Copy the bits. */
+    for (i=0; i<width && i<LONG_LONG_BIT; ++i) {
+        /* Get the bit. */
+        bit = data_str[i]-'0';
+        if ((bit != 0) && (bit != 1)) {
+            /* Cannot convert, return 0. */
+            return 0;
+        }
+        /* Write the bit. */
+        res = (res << 1) | bit;
+    }
+    /* Perform the sign extension if required. */
+    if (i>=width && value->type->flags.sign) {
+        for(; i<LONG_LONG_BIT; ++i) {
+            res = (res << 1) | bit;
+        }
+    }
+    return res;
 }
 
 /** Reads a range from a value. 
@@ -2023,160 +2136,101 @@ long long value2longlong(Value value) {
  *  @param first the first index of the range
  *  @param last the last index of the range
  *  @param base the type of the elements
- // *  @return the accumulator
- *  @param dst the destination value */
-// Value read_range(Value value, long long first, long long last, Type base) {
-void read_range(Value value, long long first, long long last, Type base,
+ *  @param dst the destination value
+ *  @return dst */
+Value read_range(Value value, long long first, long long last, Type base,
                 Value dst) {
-    unsigned long long i;
-    /* Compute the word shift. */
-    unsigned int bw = type_width(base);
-    unsigned int ws = (first*bw) / INT_BIT;
-    /* Compute the bit shift. */
-    unsigned int bs = (first*bw) % INT_BIT;
-    /* Compute the higher bits clearing mask for the destination. */
-    unsigned int dst_mask_high = ~((1UL << bs) - 1UL);
-    /* Compute the lower bits clearing mask for the destination. */
-    unsigned int dst_mask_low = ~dst_mask_high;
-    // /* Compute the lower bits selection mask for the source. */
-    // unsigned int src_mask_low = dst_mask_high;
-    /* Compute the higher bits selection mask for the source. */
-    unsigned int src_mask_high = dst_mask_low;
-
-    /* Access the source data. */
-    unsigned int* src_data = value->data;
-    // /* Access the destination data. */
-    //  unsigned int* dst_data = accumulator->data;
-    /* Access the destination data. */
-    unsigned int* dst_data = dst->data;
-
-    /* Compute the size of the result in long long. */
-    unsigned long long number = last-first+1;
-    unsigned long long size = (number*bw) / INT_BIT;
-    if ((number*bw) % INT_BIT != 0) size += 1;
-
-    // /* Update the accumulator capacity if required. */
-    // resize_value(accumulator,size);
-    /* Update the destination capacity if required. */
-    resize_value(dst,size);
-    // /* set the type and size of the accumulator to the type first source. */
-    // accumulator->type = get_type_vector(base,number);
-    // accumulator->size = size;
-    // accumulator->numeric = value->numeric;
-    /* set the type and size of the destination to the type first source. */
-    dst->type = get_type_vector(base,number);
-    dst->size = size;
-    dst->numeric = value->numeric;
-
-    /* Perform the copy. */
-    for(i=0; i<size; ++i) {
-        /* Copy the lower bits. */
-        dst_data[i] &= dst_mask_low;
-        dst_data[i] |= src_data[i+ws] >> bs;
-        /* Copy the higher bits. */
-        dst_data[i] &= dst_mask_high;
-        dst_data[i] |= (src_data[i+ws] & src_mask_high) << (INT_BIT-bs);
+    /* Is the value numeric? */
+    if (value->numeric) {
+        /* Yes, do a numeric range read. */
+        return read_range_numeric(value,first,last,base,dst);
+    } else {
+        /* No, do a bitstring range read. */
+        return read_range_bitstring(value,first,last,base,dst);
     }
-
-    // /* Return the accumulator. */
-    // return accumulator;
 }
 
-/** Writes 8 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-void write8(char data, Value value) {
-    /* Get the actual target value from: it should be the future value
-     * (f_value) is case it is a signal value. */
-    SignalI signal = value->signal;
-    if (signal) value = signal->f_value;
-    /* Sets the value. */
-    value->data[0] = (value->data[0] & 0xFFFFFFFFFFFFFF00ULL) | data;
-    /* Touch the corresponding signal (if any). */
-    if (signal) touch_signal(signal);
-}
 
-/** Writes 16 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-void write16(short data, Value value) {
-    /* Get the actual target value from: it should be the future value
-     * (f_value) is case it is a signal value. */
-    SignalI signal = value->signal;
-    if (signal) value = signal->f_value;
-    /* Sets the value. */
-    value->data[0] = (value->data[0] & 0xFFFFFFFFFFFF0000ULL) | data;
-    /* Touch the corresponding signal (if any). */
-    if (signal) touch_signal(signal);
-}
-
-/** Writes 32 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-void write32(int data, Value value) {
-    /* Get the actual target value from: it should be the future value
-     * (f_value) is case it is a signal value. */
-    SignalI signal = value->signal;
-    if (signal) value = signal->f_value;
-    /* Sets the value. */
-    value->data[0] = (value->data[0] & 0xFFFFFFFF00000000ULL) | data;
-    /* Touch the corresponding signal (if any). */
-    if (signal) touch_signal(signal);
-}
-
-/** Writes 64 bits to a value
- *  @param data the data to write
- *  @param value the target value */
-void write64(long long data, Value value) {
-    /* Get the actual target value from: it should be the future value
-     * (f_value) is case it is a signal value. */
-    SignalI signal = value->signal;
-    if (signal) value = signal->f_value;
-    /* Sets the value. */
-    value->data[0] = data;
-    /* Touch the corresponding signal (if any). */
-    if (signal) touch_signal(signal);
-}
+// /** Writes 8 bits to a value
+//  *  @param data the data to write
+//  *  @param value the target value */
+// void write8(char data, Value value) {
+//     /* Get the actual target value from: it should be the future value
+//      * (f_value) is case it is a signal value. */
+//     SignalI signal = value->signal;
+//     if (signal) value = signal->f_value;
+//     /* Sets the value. */
+//     value->data[0] = (value->data[0] & 0xFFFFFFFFFFFFFF00ULL) | data;
+//     /* Touch the corresponding signal (if any). */
+//     if (signal) touch_signal(signal);
+// }
+// 
+// /** Writes 16 bits to a value
+//  *  @param data the data to write
+//  *  @param value the target value */
+// void write16(short data, Value value) {
+//     /* Get the actual target value from: it should be the future value
+//      * (f_value) is case it is a signal value. */
+//     SignalI signal = value->signal;
+//     if (signal) value = signal->f_value;
+//     /* Sets the value. */
+//     value->data[0] = (value->data[0] & 0xFFFFFFFFFFFF0000ULL) | data;
+//     /* Touch the corresponding signal (if any). */
+//     if (signal) touch_signal(signal);
+// }
+// 
+// /** Writes 32 bits to a value
+//  *  @param data the data to write
+//  *  @param value the target value */
+// void write32(int data, Value value) {
+//     /* Get the actual target value from: it should be the future value
+//      * (f_value) is case it is a signal value. */
+//     SignalI signal = value->signal;
+//     if (signal) value = signal->f_value;
+//     /* Sets the value. */
+//     value->data[0] = (value->data[0] & 0xFFFFFFFF00000000ULL) | data;
+//     /* Touch the corresponding signal (if any). */
+//     if (signal) touch_signal(signal);
+// }
+// 
+// /** Writes 64 bits to a value
+//  *  @param data the data to write
+//  *  @param value the target value */
+// void write64(long long data, Value value) {
+//     /* Get the actual target value from: it should be the future value
+//      * (f_value) is case it is a signal value. */
+//     SignalI signal = value->signal;
+//     if (signal) value = signal->f_value;
+//     /* Sets the value. */
+//     value->data[0] = data;
+//     /* Touch the corresponding signal (if any). */
+//     if (signal) touch_signal(signal);
+// }
 
 /** Writes to a range within a value. 
+ *  NOTE: the type of the destination is NOT changed!
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
- *  @param dst the destination value */
-void write_range(Value src, long long first, long long last, Value dst) {
-    unsigned long long i;
-    /* Compute the word shift. */
-    unsigned int dw = type_width(dst->type);
-    unsigned int ws = (first*dw) / INT_BIT;
-    /* Compute the bit shift. */
-    unsigned int bs = (first*dw) % INT_BIT;
-    /* Compute the higher bits clearing mask for the destination. */
-    unsigned int dst_mask_high = ~((1UL << (INT_BIT-bs)) - 1UL);
-    /* Compute the lower bits clearing mask for the destination. */
-    unsigned int dst_mask_low = ~dst_mask_high;
-    // /* Compute the lower bits selection mask for the source. */
-    // unsigned int src_mask_low = dst_mask_high;
-    /* Compute the higher bits selection mask for the source. */
-    unsigned int src_mask_high = dst_mask_low;
-
-    /* Access the source data. */
-    unsigned int* src_data = src->data;
-    /* Access the destination data. */
-    unsigned int* dst_data = dst->data;
-
-    /* Compute the size of the result in long long. */
-    unsigned long long bw = src->type->base;
-    unsigned long long number = last-first+1;
-    unsigned long long size = (number*bw) / INT_BIT;
-    if ((number*dw) % INT_BIT != 0) size += 1;
-
-    /* Perform the copy. */
-    for(i=0; i<size; ++i) {
-        /* Copy the lower bits. */
-        dst_data[i] &= dst_mask_low;
-        dst_data[i] |= src_data[i+ws] >> bs;
-        /* Copy the higher bits. */
-        dst_data[i] &= dst_mask_high;
-        dst_data[i] |= (src_data[i+ws] & src_mask_high) << (INT_BIT-bs);
+ *  @param dst the destination value
+ *  @return dst */
+Value write_range(Value src, long long first, long long last, Value dst) {
+    /* Is the value numeric? */
+    if ((src->numeric) && (dst->numeric)) {
+        /* Yes, do a numeric range read. */
+        return write_range_numeric(src,first,last,dst);
+    } else {
+        /* No, do a bitstring range read. */
+        if (dst->numeric) {
+            /* Need to convert the destination to a bitstring. */
+            dst = set_bitstring_value(dst,get_value());
+        } else if (src->numeric) {
+            /* Need to convert the source to a bitstring. */
+            src = set_bitstring_value(src,get_value());
+        }
+        return write_range_bitstring(src,first,last,dst);
     }
 }
+
+
+

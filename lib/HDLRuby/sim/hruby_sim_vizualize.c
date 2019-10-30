@@ -50,25 +50,27 @@ void print_name(Object object) {
  *  @param value the value to print */
 void print_value(Value value) {
     if (value->numeric) {
-        /* Display a numeric value. */
-        int i;
-        int size = value->size;
-        unsigned int* data = value->data;
-        if (data == NULL) {
-            /* The value is not defined yet. */
-            for(i=size; i>0; --i) {
-                printf("UUUU");
-            }
-        } else for(i=size; i>0; --i) {
-            printf("%04x",data[i-1]);
+        unsigned long long width = type_width(value->type);
+        unsigned long long mask = 1ULL << (width-1);
+        for(; mask > 0; mask >>= 1) {
+            printf("%d",(value->data_int & mask) != 0);
         }
     } else {
         /* Display a bitstring value. */
         int i;
         int width = type_width(value->type);
-        char* data = (char*)(value->data);
-        for(i=width; i>0; --i) {
-            printf("%c",data[i-1]);
+        char* data = value->data_str;
+        if (value->capacity == 0) {
+            /* The value is empty, therefore undefined. */
+            for(i=width; i>0; --i) {
+                printf("x");
+            }
+        }
+        else {
+            /* The value is not empty. */
+            for(i=width; i>0; --i) {
+                printf("%c",data[i-1]);
+            } 
         }
     }
 }
