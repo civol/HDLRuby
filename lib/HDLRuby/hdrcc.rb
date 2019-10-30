@@ -404,6 +404,13 @@ if __FILE__ == $0 then
     elsif $options[:clang] then
         # top_system = $top_instance.to_low.systemT
         top_system = $top_system
+        # Preprocess the HW description for valid C generation.
+        top_system.each_systemT_deep do |systemT|
+            # Converts the connections to behaviors.
+            systemT.connections_to_behaviors!
+            # Break the RefConcat.
+            systemT.break_concat_assigns! 
+        end
         # Generate the C.
         if $options[:multiple] then
             # Get the base name of the input file, it will be used for
@@ -413,11 +420,11 @@ if __FILE__ == $0 then
             # File name counter.
             count = 0
 
-            # Converts the connections to behaviors (C generation does not
-            # support connections).
-            top_system.each_systemT_deep do |systemT|
-                systemT.connections_to_behaviors!
-            end
+            # # Converts the connections to behaviors (C generation does not
+            # # support connections).
+            # top_system.each_systemT_deep do |systemT|
+            #     systemT.connections_to_behaviors!
+            # end
 
             # Multiple files generation mode.
             # Generate the h file.
