@@ -149,6 +149,7 @@ module HDLRuby::Low
             else
                 # Look in the parent hierachy for the name.
                 parent = self.parent
+                # puts "parent=#{parent}"
                 while parent
                     if parent.respond_to?(:get_by_name) then
                         found = parent.get_by_name(self.name)
