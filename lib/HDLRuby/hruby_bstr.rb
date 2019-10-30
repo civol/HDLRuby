@@ -76,9 +76,9 @@ module HDLRuby
             end
         end
 
-        # Gets the bitwidth (sign bit is not comprised).
+        # Gets the bitwidth.
         def width
-            return @str.size - 1
+            return @str.size
         end
         alias_method :size, :width
 
