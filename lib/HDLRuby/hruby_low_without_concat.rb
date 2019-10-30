@@ -87,16 +87,18 @@ module HDLRuby::Low
                     # block that will contain the new assignements.
                     block = Block.new(:seq)
                     # Create an intermediate signal for storing the
-                    # right value. Put it in the top block of the behavior.
-                    top = self.top_block
-                    aux = top.add_inner(
+                    # right value. Put it in the top scope.
+                    top_block = self.top_block
+                    top_scope = top_block.top_scope
+                    aux = top_scope.add_inner(
                         SignalI.new(HDLRuby.uniq_name,self.right.type) )
+                    # puts "new signal: #{aux.name}"
                     aux = RefName.new(aux.type,RefThis.new,aux.name)
                     # Is a default value required to avoid latch generation?
-                    unless top.parent.each_event.
+                    unless top_block.parent.each_event.
                             find {|ev| ev.type!=:change} then
                         # Yes, generate it.
-                        top.insert_statement!(0,
+                        top_block.insert_statement!(0,
                             Transmit.new(aux.clone,Value.new(aux.type,0)))
                     end
                     # Replace the concat in the copy of the left value.
@@ -104,7 +106,7 @@ module HDLRuby::Low
                         # node was the top of left, replace here.
                         nleft = aux
                     else
-                        # node was insied left, replace within left.
+                        # node was inside left, replace within left.
                         nleft = self.left.clone
                         nleft.each_node_deep do |ref|
                             ref.map_nodes! do |sub|
