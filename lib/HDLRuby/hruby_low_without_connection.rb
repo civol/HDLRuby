@@ -86,7 +86,7 @@ module HDLRuby::Low
                             outputs_blk.add_statement(
                                 Transmit.new(left.clone,right.clone))
                         else
-                            puts "left/right is inout"
+                            # puts "left/right is inout"
                             if (left.is_a?(Ref)) then
                                 inputs_blk.add_statement(
                                     Transmit.new(left.clone,right.clone))
