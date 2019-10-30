@@ -3622,6 +3622,17 @@ module HDLRuby::High
         end
     end
 
+    # Extends the String class for computing conversion to expression.
+    class ::String
+        # Converts to a new high-level expression.
+        def to_expr
+            # Convert the string to a bit string.
+            bstr = BitString.new(self)
+            # Use it to create the new value.
+            return Value.new(Bit[bstr.width],self)
+        end
+    end
+
 
     # Extends the Hash class for declaring signals of structure types.
     class ::Hash
