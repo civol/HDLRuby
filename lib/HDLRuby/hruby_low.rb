@@ -1111,6 +1111,12 @@ module HDLRuby::Low
         #     end
         # end
 
+        # Gets the top scope, i.e. the first scope of the current system.
+        def top_scope
+            return self.parent.is_a?(SystemT) ? self : self.parent.top_scope
+        end
+
+
     end
 
     
@@ -2062,6 +2068,10 @@ module HDLRuby::Low
             @block.last_statement
         end
 
+        # Gets the top scope, i.e. the first scope of the current system.
+        def top_scope
+            return parent.top_scope
+        end
     end
 
 
@@ -2529,6 +2539,11 @@ module HDLRuby::Low
         # Gets the top block, i.e. the first block of the current behavior.
         def top_block
             return self.parent.is_a?(Behavior) ? self : self.parent.top_block
+        end
+
+        # Gets the top scope, i.e. the first scope of the current system.
+        def top_scope
+            return self.top_block.parent.top_scope
         end
     end
 
