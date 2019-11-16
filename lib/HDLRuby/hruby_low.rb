@@ -1182,6 +1182,12 @@ module HDLRuby::Low
             end
         end
 
+        # Get the direction of the type, little or big endian.
+        def direction
+            # By default, little endian.
+            return :little
+        end
+
         # Tells if the type has a range.
         def range?
             return false
@@ -1500,6 +1506,11 @@ module HDLRuby::Low
             return @base.width * ((first-last).abs + 1)
         end
 
+        # Get the direction of the type, little or big endian.
+        def direction
+            return @range.first < @range.last ? :big : :little
+        end
+
         # Gets the direction of the range.
         def dir
             return (@range.last - @range.first)
@@ -1604,11 +1615,17 @@ module HDLRuby::Low
     ##
     # Describes a tuple type.
     class TypeTuple < Type
-        # Creates a new tuple type named +name+ whose sub types are given
-        # by +content+.
-        def initialize(name,*content)
+        # Creates a new tuple type named +name+ width +direction+ and whose
+        # sub types are given by +content+.
+        def initialize(name,direction,*content)
             # Initialize the type.
             super(name)
+
+            # Set the direction.
+            @direction = direction.to_sym
+            unless [:little, :big].include?(@direction)
+                raise AnyError, "Invalid direction for a type: #{direction}"
+            end
 
             # Check and set the content.
             content.each do |sub|
@@ -1710,6 +1727,11 @@ module HDLRuby::Low
             return @types.reduce(0) { |sum,type| sum + type.width }
         end
 
+        # Get the direction of the type, little or big endian.
+        def direction
+            return @direction
+        end
+
         # Gets the range of the type.
         #
         # NOTE: only valid if the tuple is regular (i.e., all its sub types 
@@ -1758,11 +1780,17 @@ module HDLRuby::Low
     ##
     # Describes a structure type.
     class TypeStruct < Type
-        # Creates a new structure type named +name+ whose hierachy is given
-        # by +content+.
-        def initialize(name,content)
+        # Creates a new structure type named +name+ with +direction+ and 
+        # whose hierachy is given by +content+.
+        def initialize(name,direction,content)
             # Initialize the type.
             super(name)
+
+            # Set the direction.
+            @direction = direction.to_sym
+            unless [:little, :big].include?(@direction)
+                raise AnyError, "Invalid direction for a type: #{direction}"
+            end
 
             # Check and set the content.
             content = Hash[content]
@@ -4620,6 +4648,13 @@ module HDLRuby::Low
             ref.parent = self
             # Check and set the symbol.
             @name = name.to_sym
+        end
+
+        # Get the full name of the reference, i.e. including the sub ref
+        # names if any.
+        def full_name
+            name = self.ref.respond_to?(:full_name) ? self.ref.full_name : :""
+            return :"#{name}::#{self.name}"
         end
 
         # Comparison for hash: structural comparison.
