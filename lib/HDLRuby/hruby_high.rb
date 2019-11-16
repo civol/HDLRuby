@@ -1682,7 +1682,7 @@ module HDLRuby::High
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            return HDLRuby::Low::TypeTuple.new(name,
+            return HDLRuby::Low::TypeTuple.new(name,self.direction,
                                *@types.map { |type| type.to_low } )
         end
     end
@@ -1697,7 +1697,7 @@ module HDLRuby::High
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            return HDLRuby::Low::TypeStruct.new(name,
+            return HDLRuby::Low::TypeStruct.new(name,self.direction,
                                 @types.map { |name,type| [name,type.to_low] } )
         end
     end
@@ -1710,7 +1710,7 @@ module HDLRuby::High
 
     # Creates an unnamed structure type from a +content+.
     def struct(content)
-        return TypeStruct.new(:"",content)
+        return TypeStruct.new(:"",:little,content)
     end
 
     # Methods for declaring types
@@ -3639,7 +3639,7 @@ module HDLRuby::High
 
         # Converts to a new type.
         def to_type
-            return TypeStruct.new(:"",self)
+            return TypeStruct.new(:"",:little,self)
         end
 
         # Declares a new type definition with +name+ equivalent to current one.
@@ -3654,7 +3654,8 @@ module HDLRuby::High
             res = nil
             names.each do |name|
                 res = HDLRuby::High.top_user.
-                    add_input(SignalI.new(name,TypeStruct.new(:"",self),:input))
+                    add_input(SignalI.new(name,
+                                    TypeStruct.new(:"",:little,self),:input))
             end
             return res
         end
@@ -3667,7 +3668,8 @@ module HDLRuby::High
             res = nil
             names.each do |name|
                 res = HDLRuby::High.top_user.
-                    add_output(SignalI.new(name,TypeStruct.new(:"",self),:output))
+                    add_output(SignalI.new(name,
+                                    TypeStruct.new(:"",:little,self),:output))
             end
             return res
         end
@@ -3680,7 +3682,8 @@ module HDLRuby::High
             res = nil
             names.each do |name|
                 res = HDLRuby::High.top_user.
-                    add_inout(SignalI.new(name,TypeStruct.new(:"",self),:inout))
+                    add_inout(SignalI.new(name,
+                                    TypeStruct.new(:"",:little,self),:inout))
             end
             return res
         end
@@ -3693,7 +3696,8 @@ module HDLRuby::High
             res = nil
             names.each do |name|
                 res = HDLRuby::High.top_user.
-                    add_inner(SignalI.new(name,TypeStruct.new(:"",self),:inner))
+                    add_inner(SignalI.new(name,
+                                    TypeStruct.new(:"",:little,self),:inner))
             end
             return res
         end
@@ -3707,7 +3711,7 @@ module HDLRuby::High
             hsh.each do |name,value|
                 res = HDLRuby::High.top_user.
                     add_inner(SignalC.new(name,
-                              TypeStruct.new(:"",self),:inner,value))
+                              TypeStruct.new(:"",:little,self),:inner,value))
             end
             return res
         end
@@ -3721,7 +3725,7 @@ module HDLRuby::High
         # Converts to a new high-level expression.
         def to_expr
             # expr = Concat.new
-            expr = Concat.new(TypeTuple.new(:"",*self.map do |elem|
+            expr = Concat.new(TypeTuple.new(:"",:little,*self.map do |elem|
                 elem.to_expr.type
             end))
             self.each {|elem| expr.add_expression(elem.to_expr) }
@@ -3731,7 +3735,7 @@ module HDLRuby::High
         # Converts to a new high-level reference.
         def to_ref
             # expr = RefConcat.new
-            expr = RefConcat.new(TypeTuple.new(:"",*self.map do |elem|
+            expr = RefConcat.new(TypeTuple.new(:"",:little,*self.map do |elem|
                 elem.to_ref.type
             end))
             self.each {|elem| expr.add_ref(elem.to_ref) }
@@ -3746,7 +3750,7 @@ module HDLRuby::High
                 return bit[*self]
             else
                 # Tuple type case.
-                return TypeTuple.new(:"",*self)
+                return TypeTuple.new(:"",:little,*self)
             end
         end
 
@@ -3959,7 +3963,7 @@ module HDLRuby::High
                 # Unknown type
                 return nil
             end
-            # puts "type=#{type}, value=#{value}"
+            # puts "type.width=#{type.width}, value=#{value}"
             # Create and return the value.
             return Value.new(type,value)
         end
