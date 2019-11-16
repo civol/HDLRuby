@@ -463,6 +463,16 @@ module HDLRuby::Low
             end
         end
 
+        # Sets the value.
+        def set_value!(value)
+            # Check and set teh value.
+            unless value.is_a?(Expression) then
+                raise AnyError, "Invalid class for a constant: #{val.class}"
+            end
+            @value = value
+            value.parent = self
+        end
+
     end
 
 
@@ -633,8 +643,7 @@ module HDLRuby::Low
         # Maps on the noifs.
         def map_noifs!(&ruby_block)
             @noifs.map! do |cond,stmnt|
-                cond  = ruby_block.call(cond)
-                stmnt = ruby_block.call(stmnt)
+                cond,stmnt  = ruby_block.call(cond,stmnt)
                 cond.parent  = self unless cond.parent
                 stmnt.parent = self unless stmnt.parent
                 [cond,stmnt]

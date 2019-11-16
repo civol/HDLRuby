@@ -261,17 +261,27 @@ Value make_set_value(Type type, int numeric, void* data) {
 
 /* ################### Value-kind independant computations. ############## */
 
-/** Set a value to numeric (numerical) state if possible.
- *  @param value the value to process
- *  @return 1 in case of success, 0 otherwise */
-int set_numeric_value(Value value) {
-    if (value->numeric) {
-        /* The value is already numeric. */
-        return 1;
-    }
-    /* Not even trying to convert! */
-    return 0;
-}
+// /** Check if a value can be converted to a numeric.
+//  *  @param value the value to process
+//  *  @return 1 in case of success, 0 otherwise */
+// int is_numeric_value(Value value) {
+//     if (value->numeric) {
+//         /* The value is already numeric. */
+//         return 1;
+//     } else {
+//         /* Check if the value contains only 0 and 1. */
+//         unsigned long long width = type_width(value->type);
+//         unsigned long long i;
+//         char* data_str = value->data_str;
+//         for(i=0; i<width; ++i) {
+//             if (data_str[i] != '0' && data_str[i] != '1')
+//                 /* Cannot be converted. */
+//                 return 0;
+//         }
+//         /* Can convert so do it. */
+//         return 1;
+//     }
+// }
 
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value
@@ -967,6 +977,7 @@ static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
 static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
         va_list args) 
 {
+    printf("select_value_bitstring with cond=%s\n",cond->data_str);
     /* Get the first alternative for sizing the result. */
     Value src = va_arg(args,Value);
     /* Compute the width of the result in bits. */
@@ -992,12 +1003,15 @@ static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
 
 /** Concat multiple bitstring values to a single one.
  *  @param num the number of values to concat
+ *  @param dir the direction of concatenation
  *  @param dst the destination value
  *  @param args the values to concat
  *  @return dst */
-static Value concat_value_bitstring_array(int num, Value dst, Value* args) {
+static Value concat_value_bitstring_array(int num, int dir,
+                                          Value dst, Value* args) {
     unsigned long long pos = 0;  /* Current position in the resulting value.*/
     unsigned long long i;
+    // printf("concat_value_bitstring with dir=%d\n",dir);
 
     /* Compute the size of the destination. */
     unsigned long long width = 0;
@@ -1012,11 +1026,15 @@ static Value concat_value_bitstring_array(int num, Value dst, Value* args) {
 
     /* Fills the destination with each value. */
     for(i=0; i<num; ++i) {
-        Value value = args[i];
+        /* The access index denpend on the concat direction. */
+        unsigned int idx = dir ? (num-i-1) : i;
+        Value value = args[idx];
         unsigned long long cw = type_width(value->type);
+        // printf("value=%s cw=%llu\n",value->data_str,cw);
         memcpy(dst_data+pos,value->data_str,cw);
         pos += cw;
     }
+    // printf("Result=%s\n",dst->data_str);
     /* Sets the type of the resulting value: it is necesserily an
      * unsigned bit string. */
     dst->type = get_type_vector(get_type_bit(),pos);
@@ -1032,6 +1050,7 @@ static Value concat_value_bitstring_array(int num, Value dst, Value* args) {
  *  @return dst */
 static Value cast_value_bitstring(Value src, Type type, Value dst) {
     unsigned long long i;
+    // printf("cast_value_bitstring with src=%s to width=%llu\n",src->data_str,type_width(type));
     /* Get the width of the source. */
     unsigned long long swidth = type_width(src->type);
     /* Get the size of the result from the target type. */
@@ -1145,6 +1164,7 @@ static int same_content_value_range_bitstring(Value value0,
  *  @return dst */
 Value read_range_bitstring(Value src, long long first, long long last,
         Type base, Value dst) {
+    // printf("read_range_bitstring with first=%lld last=%lld src=%s\n",first,last,src->data_str);
     /* Ensure first is the smaller. */
     if (first > last) {
         long long tmp = last;
@@ -1158,7 +1178,6 @@ Value read_range_bitstring(Value src, long long first, long long last,
     /* Scale the range according to the base type. */
     first *= bw;
     length *= bw;
-    // printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length);
 
     /* Update the destination capacity if required. */
     resize_value(dst,length);
@@ -1394,12 +1413,15 @@ static Value select_value_numeric(Value cond, Value dst, unsigned int num,
 
 /** Concat multiple numeric values to a single one.
  *  @param num the number of values to concat
+ *  @param dir the direction of the concatenation.
  *  @param dst the destination value
  *  @return dst */
-static Value concat_value_numeric_array(int num, Value dst, Value* args) {
+static Value concat_value_numeric_array(int num, int dir,
+                                        Value dst, Value* args) {
     unsigned int i,pos;
     /* Compute the bit width of the destination. */
     unsigned int width = 0;
+    // printf("concat_value_numeric with dir=%d\n",dir);
     for(i=0; i<num; ++i) width += type_width(args[i]->type);
 
     /* Sets state of the destination using the bit width. */
@@ -1410,11 +1432,13 @@ static Value concat_value_numeric_array(int num, Value dst, Value* args) {
     dst->data_int = 0;
     pos = 0;
     for(i=0; i<num; ++i) {
+        /* The access index depend on the concatenation direction. */
+        unsigned int idx = dir ? (num-i-1) : i;
         /* Compute the read mask. */
-        unsigned long long arg_width = type_width(args[i]->type);
+        unsigned long long arg_width = type_width(args[idx]->type);
         unsigned long long read_mask = ~((-1LL) << arg_width);
         /* Read from the value to concatenate. */
-        unsigned long long arg_data = args[i]->data_int & read_mask;
+        unsigned long long arg_data = args[idx]->data_int & read_mask;
         /* Write it. */
         dst->data_int |= arg_data << pos;
         /* Update the write position. */
@@ -1510,7 +1534,7 @@ Value read_range_numeric(Value value, long long first, long long last,
     dst->numeric = 1;
 
     /* Compute the read mask. */
-    unsigned long long mask = ((-1LL) << first) & (~((-1LL) << last));
+    unsigned long long mask = ((-1LL) << first) & (~((-1LL) << (last+1)));
     /* Performs the read. */
     unsigned long long data = (value->data_int & mask) >> first;
     /* Write it to the destination. */
@@ -1875,8 +1899,8 @@ Value equal_value(Value src0, Value src1, Value dst) {
 Value select_value(Value cond, Value dst, unsigned int num, ...) {
     va_list args;
     va_start(args,num);
-    if (set_numeric_value(cond)) {
-        /* The condition is now numeric. */
+    if (is_defined_value(cond)) {
+        /* The condition can be made numeric. */
         dst = select_value_numeric(cond,dst,num,args);
     } else {
         /* The sources cannot be numeric, compute bitsitrings. */
@@ -1887,10 +1911,11 @@ Value select_value(Value cond, Value dst, unsigned int num, ...) {
 }
 
 /** Concat multiple general values to a single one.
+ *  @param dir the direction of the concatenation.
  *  @param num the number of values to concat
  *  @param dst the destination value
  *  @return dst */
-Value concat_value(int num, Value dst, ...) {
+Value concat_value(int num, int dir, Value dst, ...) {
     unsigned long long width = 0;
     int numeric = 1, i;
     va_list args;
@@ -1918,7 +1943,7 @@ Value concat_value(int num, Value dst, ...) {
      * accesses. */
     if (numeric) {
         /* The sub values are all numeric. */
-        concat_value_numeric_array(num,dst,values);
+        concat_value_numeric_array(num,dir,dst,values);
     } else {
         /* Cannot perfrom a numeric concatenation, do it for bitstrings. */
         /* First convert the numeric values to bitstrings. */
@@ -1929,7 +1954,7 @@ Value concat_value(int num, Value dst, ...) {
         }
 
         /* The sub values are now all bitstrings. */
-        concat_value_bitstring_array(num,dst,values);
+        concat_value_bitstring_array(num,dir,dst,values);
     }
     va_end(args);
     return dst;
@@ -2114,7 +2139,7 @@ unsigned long long value2integer(Value value) {
     /* Copy the bits. */
     for (i=0; i<width && i<LONG_LONG_BIT; ++i) {
         /* Get the bit. */
-        bit = data_str[i]-'0';
+        bit = data_str[width-i-1]-'0';
         if ((bit != 0) && (bit != 1)) {
             /* Cannot convert, return 0. */
             return 0;

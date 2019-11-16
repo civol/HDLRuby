@@ -200,9 +200,10 @@ extern Value select_value(Value cond, Value dst, unsigned int num, ...);
 
 /** Concat multiple values to a single one.
  *  @param num the number of values to concat
+ *  @param dir the direction of concatenation
  *  @param dst the destination value
  *  @return dst */
-extern Value concat_value(int num, Value dst, ...);
+extern Value concat_value(int num, int dir, Value dst, ...);
 
 /** Casts a value to another type.
  *  @param src the source value
@@ -397,6 +398,8 @@ typedef struct BehaviorS_ {
     Event* events;      /* The events of the behavior. */
     Block block;        /* The block of the behavior. */
 
+    int activated;      /* Tells if the behavior is activated or not. */
+
     int timed;          /* Tell if the behavior is timed or not. */
     unsigned long long active_time; /* The next time the behavior has to be activated. */
     pthread_t thread;   /* The thread assotiated with the behavior (if any).*/
@@ -411,6 +414,8 @@ typedef struct CodeS_ {
     int num_events;     /* The number of events. */
     Event* events;      /* The events of the behavior. */
     void (*function)(); /* The function to execute for the code. */
+
+    int activated;      /* Tells if the code is activated or not. */
 } CodeS;
 
 
@@ -469,6 +474,23 @@ extern void transmit_to_signal(Value value, SignalI signal);
  *  @param ref the reference to the range in the signal to transmit the
  *         value to. */
 extern void transmit_to_signal_range(Value value, RefRangeS ref);
+
+
+/** Touch a signal. in case of a sequential execution model.
+ *  @param signal the signal to touch  */
+extern void touch_signal_seq(SignalI signal);
+
+/** Transmit a value to a signal in case of a sequential execution model.
+ *  @param value the value to transmit
+ *  @param signal the signal to transmit the value to. */
+extern void transmit_to_signal_seq(Value value, SignalI signal);
+
+/** Transmit a value to a range within a signal in case of sequential
+ *  execution model.
+ *  @param value the value to transmit
+ *  @param ref the reference to the range in the signal to transmit the
+ *         value to. */
+extern void transmit_to_signal_range_seq(Value value, RefRangeS ref);
 
 /** Creates an event.
  *  @param edge the edge of the event

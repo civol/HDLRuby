@@ -610,6 +610,10 @@ module HDLRuby::Low
                 res << "behavior->owner = NULL;\n"
             end
 
+            # Set the behavior as inactive. */
+            res << " " * (level+1)*3
+            res << "behavior->activated = 0;\n"
+
             # Tells if the behavior is timed or not.
             res << " " * (level+1)*3
             res << "behavior->timed = #{time ? 1 : 0};\n"
@@ -625,7 +629,7 @@ module HDLRuby::Low
                         !node.parent.is_a?(RefName) 
                 end.to_a
                 # Keep only one ref per signal.
-                refs.uniq! { |node| node.name }
+                refs.uniq! { |node| node.full_name }
                 # Generate the event.
                 events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
                 # Add them to the behavior for further processing.
@@ -953,6 +957,10 @@ module HDLRuby::Low
                 res << "code->owner = NULL;\n"
             end
 
+            # Set the code as inactive. */
+            res << " " * (level+1)*3
+            res << "code->activated = 0;\n"
+
             # Add the events and register the code as activable
             # on them.
             res << " " * (level+1)*3
@@ -1054,13 +1062,16 @@ module HDLRuby::Low
             # Perform the copy and the touching only if the new content
             # is different.
             res << (" " * ((level+1)*3))
+            # Is it a sequential execution model?
+            seq = self.block.mode == :seq ? "_seq" : ""
+            # Generate the assignment.
             if (self.left.is_a?(RefName)) then
                 # Direct assignment to a signal, simple transmission.
-                res << "transmit_to_signal(#{self.right.to_c(level)},"+
+                res << "transmit_to_signal#{seq}(#{self.right.to_c(level)},"+
                     "#{self.left.to_c_signal(level)});\n"
             else
                 # Assignment inside a signal (RefIndex or RefRange).
-                res << "transmit_to_signal_range(#{self.right.to_c(level)},"+
+                res << "transmit_to_signal_range#{seq}(#{self.right.to_c(level)},"+
                     "#{self.left.to_c_signal(level)});\n"
             end
             # Restore the value pool state.
@@ -1425,6 +1436,7 @@ module HDLRuby::Low
                 res << " };\n"
                 # Create the value.
                 res << " " * (level+1)*3
+                # puts "str=#{str} type width=#{self.type.width}"
                 res << "return make_set_value(#{self.type.to_c(level+1)},1," +
                        "data);\n" 
             else
@@ -1454,7 +1466,7 @@ module HDLRuby::Low
             res = "({\n"
             # Overrides the upper src0 and dst...
             res << (" " * ((level+1)*3))
-            res << "Value src0, dst;\n"
+            res << "Value src0, dst = get_value();\n"
             # Save the state of the value pool.
             res << (" " * ((level+1)*3))
             res << "unsigned int pool_state = get_value_pos();\n"
@@ -1462,8 +1474,8 @@ module HDLRuby::Low
             res << (" " * ((level+1)*3))
             res << "src0 = #{self.child.to_c(level+2)};\n"
             res << (" " * ((level+1)*3))
-            res += "dst = cast_value(#{self.child.to_c(level+1)}," +
-                "#{self.type.to_c(level+1)},get_value());\n"
+            res += "dst = cast_value(src0," +
+                "#{self.type.to_c(level+1)},dst);\n"
             # Restore the value pool state.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
@@ -1489,21 +1501,6 @@ module HDLRuby::Low
 
     ## Extends the Unary class with generation of HDLRuby::High text.
     class Unary
-
-        # # Generates the C text of the equivalent HDLRuby::High code.
-        # # +level+ is the hierachical level of the object.
-        # def to_c(level = 0)
-        #     case self.operator
-        #     when :~ then
-        #         return "not_value(#{self.child.to_c(level)})"
-        #     when :-@ then
-        #         return "neg_value(#{self.child.to_c(level)})"
-        #     when :+@ then
-        #         return self.child.to_c(level)
-        #     else
-        #         raise "Invalid unary operator: #{self.operator}."
-        #     end
-        # end
 
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1746,17 +1743,6 @@ module HDLRuby::Low
     ## Extends the Concat class with generation of HDLRuby::High text.
     class Concat
 
-        # # Generates the C text of the equivalent HDLRuby::High code.
-        # # +level+ is the hierachical level of the object.
-        # def to_c(level = 0)
-        #     # The resulting string.
-        #     res = "concat_value(#{self.each_expression.to_a.size}"
-        #     self.each_expression do |expression|
-        #         res << ",#{expression.to_c(level)}"
-        #     end
-        #     res << ")"
-        #     return res
-        # end
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
@@ -1781,9 +1767,11 @@ module HDLRuby::Low
                 res << (" " * ((level+1)*3))
                 res << "src#{i} = #{expr.to_c(level+2)};\n"
             end
+            # Compute the direction.
             # Compute the resulting concatenation.
             res << (" " * ((level+1)*3))
-            res << "concat_value(#{expressions.size},dst,"
+            res << "concat_value(#{expressions.size},"
+            res << "#{self.type.direction == :little ? 1 : 0},dst,"
             res << "#{expressions.size.times.map { |i| "src#{i}" }.join(",")}"
             res << ");\n"
             # Restore the state of the value pool.

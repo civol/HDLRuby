@@ -12,13 +12,20 @@
  *  hruby_low2c. 
  *  */
 
+/** The total list of signals. */
+
 /** The list of touched signals. */
 static ListS touched_signals_content = { NULL, NULL };
 static List touched_signals = &touched_signals_content;
 
-/** The list of activating signals. */
-static ListS activate_signals_content = { NULL, NULL }; 
-static List activate_signals = &activate_signals_content;
+/** The list of touched signals in the sequential execution model. */
+static ListS touched_signals_seq_content = { NULL, NULL };
+static List touched_signals_seq = &touched_signals_seq_content;
+
+
+/** The list of activated code. */
+static ListS activate_codes_content = { NULL, NULL }; 
+static List activate_codes = &activate_codes_content;
 
 /** The number of timed behaviors. */
 static int num_timed_behaviors = 0;
@@ -74,38 +81,40 @@ void register_timed_behavior(Behavior behavior) {
 void hruby_sim_update_signals() {
     // printf("hruby_sim_update_signals...\n");
     /* As long as the list of touched signals is not empty go on computing. */
-    while(!empty_list(touched_signals)) {
+    while(!empty_list(touched_signals) || !empty_list(touched_signals_seq)) {
         // printf("## Checking touched signals.\n");
         /* Sets the new signals values and mark the signals as activating. */
+        /* For the case of the parallel execution model. */
         while(!empty_list(touched_signals)) {
             Elem e = remove_list(touched_signals);
             SignalI sig = e->data;
-            // printf("Touched signal: %p\n",sig);
+            delete_element(e);
+            /* Is there a change? */
+            if (same_content_value(sig->c_value,sig->f_value)) continue;
+            /* Yes, process the signal. */
+            println_signal(sig);
+            // printf("c_value="); print_value(sig->c_value);
+            // printf("\nf_value="); print_value(sig->f_value); printf("\n");
+            // printf("Touched signal: %p (%s)\n",sig,sig->name);
             /* Update the current value of the signal. */
             copy_value(sig->f_value,sig->c_value);
-            /* Mark the signal as activated. */
-            add_list(activate_signals,e);
-        }
-        // printf("## Checking activate signals.\n");
-        /* Execute the behaviors activated by the signals. */
-        while(!empty_list(activate_signals)) {
-            Elem e = remove_list(activate_signals);
-            SignalI sig = e->data;
-            delete_element(e);
+            // /* Mark the signal as activated. */
+            // add_list(activate_signals,e);
+            /* Mark the corresponding code as activated. */
             /* Any edge activation. */
             int i;
-            // printf("Signal: %s(%p)...\n",sig->name,sig);
             for(i=0; i<sig->num_any; ++i) {
                 Object obj = sig->any[i];
                 if (obj->kind == BEHAVIOR) {
                     /* Behavior case. */
                     Behavior beh = (Behavior)obj;
-                    // printf("       any Behavior: %p\n",beh);
-                    beh->block->function();
+                    beh->activated = 1;
+                    add_list(activate_codes,get_element(beh));
                 } else {
                     /* Other code case. */
                     Code cod = (Code)obj;
-                    cod->function();
+                    cod->activated = 1;
+                    add_list(activate_codes,get_element(cod));
                 }
             }
             /* Positive edge activation. */
@@ -115,12 +124,13 @@ void hruby_sim_update_signals() {
                     if (obj->kind == BEHAVIOR) {
                         /* Behavior case. */
                         Behavior beh = (Behavior)obj;
-                        // printf("       pos Behavior: %p\n",beh);
-                        beh->block->function();
+                        beh->activated = 1;
+                        add_list(activate_codes,get_element(beh));
                     } else {
                         /* Other code case. */
                         Code cod = (Code)obj;
-                        cod->function();
+                        cod->activated = 1;
+                        add_list(activate_codes,get_element(cod));
                     }
                 }
             }
@@ -131,13 +141,104 @@ void hruby_sim_update_signals() {
                     if (obj->kind == BEHAVIOR) {
                         /* Behavior case. */
                         Behavior beh = (Behavior)obj;
-                        // printf("Signal: %p Behavior: %p\n",sig,beh);
-                        beh->block->function();
+                        beh->activated = 1;
+                        add_list(activate_codes,get_element(beh));
                     } else {
                         /* Other code case. */
                         Code cod = (Code)obj;
-                        cod->function();
+                        cod->activated = 1;
+                        add_list(activate_codes,get_element(cod));
                     }
+                }
+            }
+        }
+        /* And fdor the case of the sequential execution model
+         * (no more content check nor update of current value necessary). */
+        while(!empty_list(touched_signals_seq)) {
+            Elem e = remove_list(touched_signals_seq);
+            SignalI sig = e->data;
+            delete_element(e);
+            /* Yes, process the signal. */
+            println_signal(sig);
+            /* Update the current value of the signal. */
+            /* Mark the corresponding code as activated. */
+            /* Any edge activation. */
+            int i;
+            for(i=0; i<sig->num_any; ++i) {
+                Object obj = sig->any[i];
+                if (obj->kind == BEHAVIOR) {
+                    /* Behavior case. */
+                    Behavior beh = (Behavior)obj;
+                    beh->activated = 1;
+                    add_list(activate_codes,get_element(beh));
+                } else {
+                    /* Other code case. */
+                    Code cod = (Code)obj;
+                    cod->activated = 1;
+                    add_list(activate_codes,get_element(cod));
+                }
+            }
+            /* Positive edge activation. */
+            if (!zero_value(sig->c_value)) {
+                for(i=0; i<sig->num_pos; ++i) {
+                    Object obj = sig->pos[i];
+                    if (obj->kind == BEHAVIOR) {
+                        /* Behavior case. */
+                        Behavior beh = (Behavior)obj;
+                        beh->activated = 1;
+                        add_list(activate_codes,get_element(beh));
+                    } else {
+                        /* Other code case. */
+                        Code cod = (Code)obj;
+                        cod->activated = 1;
+                        add_list(activate_codes,get_element(cod));
+                    }
+                }
+            }
+            /* Negative edge activation. */
+            if (zero_value(sig->c_value)) {
+                for(i=0; i<sig->num_neg; ++i) {
+                    Object obj = sig->neg[i];
+                    if (obj->kind == BEHAVIOR) {
+                        /* Behavior case. */
+                        Behavior beh = (Behavior)obj;
+                        beh->activated = 1;
+                        add_list(activate_codes,get_element(beh));
+                    } else {
+                        /* Other code case. */
+                        Code cod = (Code)obj;
+                        cod->activated = 1;
+                        add_list(activate_codes,get_element(cod));
+                    }
+                }
+            }
+        }
+
+        // printf("## Checking activate codes.\n");
+        /* Execute the behaviors activated by the signals. */
+        while(!empty_list(activate_codes)) {
+            Elem e = remove_list(activate_codes);
+            Object obj = e->data;
+            delete_element(e);
+            if (obj->kind == BEHAVIOR) {
+                /* Behavior case. */
+                Behavior beh = (Behavior)obj;
+                /* Is the code really activated? */
+                if (beh->activated) {
+                    /* Yes, execute it. */
+                    beh->block->function();
+                    /* And deactivate it. */
+                    beh->activated = 0;
+                }
+            } else {
+                /* Other code case. */
+                Code cod = (Code)obj;
+                /* Is the code really activated? */
+                if (cod->activated) {
+                    /* Yes, execute it. */
+                    cod->function();
+                    /* And deactivate it. */
+                    cod->activated = 0;
                 }
             }
         }
@@ -335,7 +436,7 @@ void hw_wait(unsigned long long delay, Behavior behavior) {
 void touch_signal(SignalI signal) {
     // printf("touching signal: %p\n",signal);
     add_list(touched_signals,get_element(signal));
-    println_signal(signal);
+    // println_signal(signal);
 }
 
 
@@ -344,14 +445,10 @@ void touch_signal(SignalI signal) {
  *  @param signal the signal to transmit the value to. */
 void transmit_to_signal(Value value, SignalI signal) {
     // printf("Tansmit to signal: %s(%p)\n",signal->name,signal);
-    /* Only transmit if the value and the signal f_value contents are
-     * different. */
-    if (!same_content_value(value,signal->f_value)) {
-        /* Can transmit, copy the content. */
-        copy_value(value,signal->f_value);
-        /* And touch the signal. */
-        touch_signal(signal);
-    }
+    /* Copy the content. */
+    copy_value(value,signal->f_value);
+    /* And touch the signal. */
+    touch_signal(signal);
 }
 
 /** Transmit a value to a range within a signal.
@@ -363,16 +460,54 @@ void transmit_to_signal_range(Value value, RefRangeS ref) {
     unsigned long long first = ref.first;
     unsigned long long last = ref.last;
     // printf("Tansmit to signal range: %s(%p)\n",signal->name,signal);
-    /* Only transmit if the value and the signal f_value contents are
-     * different. */
-    if (!same_content_value_range(value,first,last,signal->f_value)) {
-        /* Can transmit, copy the content. */
-        write_range(value,first,last,signal->f_value);
-        /* And touch the signal. */
-        touch_signal(signal);
-    }
+    /* Can transmit, copy the content. */
+    write_range(value,first,last,signal->f_value);
+    /* And touch the signal. */
+    touch_signal(signal);
 }
 
+
+
+/** Touch a signal in case of sequential execution model. 
+ *  @param signal the signal to touch  */
+void touch_signal_seq(SignalI signal) {
+    // printf("touching signal seq: %p\n",signal);
+    /* Is there a difference between the present and future value? */ 
+    if (same_content_value(signal->c_value,signal->f_value)) return;
+    /* Yes, add the signal to the list of touched sequential ones and update
+     * its current value. */
+    add_list(touched_signals_seq,get_element(signal));
+    copy_value(signal->f_value,signal->c_value);
+    // println_signal(signal);
+}
+
+
+/** Transmit a value to a signal in case of a sequential execution model.
+ *  @param value the value to transmit
+ *  @param signal the signal to transmit the value to. */
+void transmit_to_signal_seq(Value value, SignalI signal) {
+    // printf("Tansmit to signal seq: %s(%p)\n",signal->name,signal);
+    /* Copy the content. */
+    copy_value(value,signal->f_value);
+    /* And touch the signal. */
+    touch_signal_seq(signal);
+}
+
+/** Transmit a value to a range within a signal in case of sequential
+ *  execution model.
+ *  @param value the value to transmit
+ *  @param ref the reference to the range in the signal to transmit the
+ *         value to. */
+void transmit_to_signal_range_seq(Value value, RefRangeS ref) {
+    SignalI signal = ref.signal;
+    unsigned long long first = ref.first;
+    unsigned long long last = ref.last;
+    // printf("Tansmit to signal range: %s(%p)\n",signal->name,signal);
+    /* Can transmit, copy the content. */
+    write_range(value,first,last,signal->f_value);
+    /* And touch the signal. */
+    touch_signal_seq(signal);
+}
 
 /** Creates an event.
  *  @param edge the edge of the event
