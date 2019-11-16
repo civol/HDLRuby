@@ -7,6 +7,7 @@ require 'ripper'
 require 'HDLRuby/hruby_low2high'
 require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
+require 'HDLRuby/hruby_low_fix_types'
 require 'HDLRuby/hruby_low_without_outread'
 require 'HDLRuby/hruby_low_with_bool'
 require 'HDLRuby/hruby_low_bool2select'
@@ -410,6 +411,8 @@ if __FILE__ == $0 then
             systemT.connections_to_behaviors!
             # Break the RefConcat.
             systemT.break_concat_assigns! 
+            # Explicits the types.
+            systemT.explicit_types!
         end
         # Generate the C.
         if $options[:multiple] then
