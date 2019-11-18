@@ -644,6 +644,7 @@ module HDLRuby::Low
         def map_noifs!(&ruby_block)
             @noifs.map! do |cond,stmnt|
                 cond,stmnt  = ruby_block.call(cond,stmnt)
+                # cond, stmnt  = ruby_block.call(cond), ruby_block.call(stmnt)
                 cond.parent  = self unless cond.parent
                 stmnt.parent = self unless stmnt.parent
                 [cond,stmnt]
@@ -654,7 +655,9 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             @condition = ruby_block.call(@condition)
             @yes = ruby_block.call(@yes)
-            self.map_noifs!(&ruby_block)
+            self.map_noifs! do |cond,stmnt|
+                [ruby_block.call(cond), ruby_block.call(stmnt)]
+            end
             # @noifs.map! do |cond,stmnt|
             #     cond  = ruby_block.call(cond)
             #     stmnt = ruby_block.call(stmnt)
