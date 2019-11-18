@@ -135,10 +135,10 @@ system :mei8 do |prog_file = "./prog.obj"|
                                     alu.(7,0xFC)  }       
                 entry("11110ooo") { wf <= 1; alu.([_1,o],a) } # unary alu
                 entry("111110os") { st <= s; ld <= ~s     # ++--ld / ++--st
-                                    alu.([_0001,o],g); dst <= 6 }
+                                    alu.([_001,o],g); dst <= 6 }
                 entry("1111110i") { branch <= i
                                     st <= ~i; ld <= i
-                                    alu.([_1,~i],h)
+                                    alu.([_001,~i],h)
                                     dst <= 7; io_out <= pc } # push / pop pc
                 # Format 3
                 entry("11cccsii") { branch <= cc; wr <= 0
