@@ -198,7 +198,7 @@ Value make_value(Type type, int numeric) {
     Value res = calloc(sizeof(ValueS),1);
     /* Allocates the data of the value. */
     if (!numeric) {
-        /* Allocate the bit string and fill it with x (undefined) by default. */
+        /* Allocate the bit string and fill it with u (undefined) by default. */
         res->data_str = malloc(sizeof(char)*width);
         memset(res->data_str,'x',width);
         /* And set its capacity to the type width. */
@@ -240,8 +240,9 @@ void set_value(Value value, int numeric, void* data) {
     value->numeric = numeric;
     if (numeric)
         value->data_int = *((unsigned long long*)data);
-    else 
+    else  {
         memcpy(value->data_str,data,type_width(value->type)*sizeof(char));
+    }
 }
 
 /** Makes and sets a value with data.
@@ -289,7 +290,8 @@ Value make_set_value(Type type, int numeric, void* data) {
  *  @return dst */
 Value copy_value(Value src, Value dst) {
     /* set the status of the destination from the source. */
-    // dst->type = src->type;
+    if (dst->type == NULL)
+        dst->type = src->type;
     dst->numeric = src->numeric;
     /* Copy the data. */
     if (src->numeric) {
@@ -297,11 +299,49 @@ Value copy_value(Value src, Value dst) {
         dst->data_int = src->data_int;
     } else {
         /* Resize the destination if required. */
-        // resize_value(dst,type_width(src->type));
         resize_value(dst,type_width(dst->type));
         /* Bitstring copy up to the end of dst or src. */
         unsigned long long width = min2(type_width(src->type),type_width(dst->type));
         memcpy(dst->data_str,src->data_str,width);
+    }
+    return dst;
+}
+
+/* Declared afterward. */
+static Value set_bitstring_value(Value src, Value dst);
+
+/** Copies a value to another but without overwritting with Z, the type of 
+ *  the destination is preserved.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+extern Value copy_value_no_z(Value src, Value dst) {
+    /* set the status of the destination from the source. */
+    // dst->type = src->type;
+    /* Copy the data. */
+    if (src->numeric) {
+        /* Numeric copy. */
+        dst->data_int = src->data_int;
+        dst->numeric = 1;
+    } else {
+        /* Convert the destination to a bitstring. */
+        if (dst->numeric) {
+            dst = set_bitstring_value(dst,dst);
+        }
+        /* Bitstring copy up to the end of dst or src. */
+        unsigned long long width = min2(type_width(src->type),type_width(dst->type));
+        unsigned long long i;
+        /* Access the data. */
+        char* src_data = src->data_str;
+        char* dst_data = dst->data_str;
+        // printf("src_data=%s dst_data=%s\n",src_data,dst_data);
+        /* Perform the copy skipping the Z values. */
+        for(i=0; i<width; ++i) {
+            char b = src_data[i];
+            if (b!='z') dst_data[i] = b;
+            else if (dst_data[i] == 'x') dst_data[i] = b;
+        }
+        // printf("dst_data=%s\n",dst_data);
     }
     return dst;
 }
@@ -1222,6 +1262,42 @@ Value write_range_bitstring(Value src, long long first, long long last,
     /* Perform the copy. */
     for(i=0; (i+first<=last) && (i<src_width) && (i+first<dst_width); ++i) {
         dst_data[i+first] = src_data[i];
+    }
+    return dst;
+}
+
+
+/** Writes to a range within a bitstring value without overwritting with Z.
+ *  NOTE: the type of the destination is NOT changed!
+ *  @param src the source value
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param dst the destination value
+ *  @return dst */
+Value write_range_bitstring_no_z(Value src, long long first, long long last,
+        Value dst) {
+    unsigned long long i;
+    /* Ensure first is the smaller. */
+    if (first > last) {
+        long long tmp = last;
+        last = first;
+        first = tmp;
+    }
+    /* Get the widths of the source and the desintation. */
+    unsigned long long src_width = type_width(src->type);
+    unsigned long long dst_width = type_width(dst->type);
+    /* scale the range according to the base type. */
+    unsigned long long bw = dst->type->base;
+    first *= bw;
+    last *=  bw;
+    /* Access the source and destination bitstring data. */
+    char* dst_data = dst->data_str;
+    char* src_data = src->data_str;
+    /* Perform the copy. */
+    for(i=0; (i+first<=last) && (i<src_width) && (i+first<dst_width); ++i) {
+        char b = src_data[i];
+        if (b != 'z') 
+            dst_data[i+first] = src_data[i];
     }
     return dst;
 }
@@ -2254,6 +2330,31 @@ Value write_range(Value src, long long first, long long last, Value dst) {
             src = set_bitstring_value(src,get_value());
         }
         return write_range_bitstring(src,first,last,dst);
+    }
+}
+
+/** Writes to a range within a value without overwriting with Z. 
+ *  NOTE: the type of the destination is NOT changed!
+ *  @param src the source value
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param dst the destination value
+ *  @return dst */
+Value write_range_no_z(Value src, long long first, long long last, Value dst) {
+    /* Is the value numeric? */
+    if ((src->numeric) && (dst->numeric)) {
+        /* Yes, do a numeric range read. */
+        return write_range_numeric(src,first,last,dst);
+    } else {
+        /* No, do a bitstring range read. */
+        if (dst->numeric) {
+            /* Need to convert the destination to a bitstring. */
+            dst = set_bitstring_value(dst,get_value());
+        } else if (src->numeric) {
+            /* Need to convert the source to a bitstring. */
+            src = set_bitstring_value(src,get_value());
+        }
+        return write_range_bitstring_no_z(src,first,last,dst);
     }
 }
 

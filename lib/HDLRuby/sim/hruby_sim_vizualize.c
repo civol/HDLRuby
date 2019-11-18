@@ -63,7 +63,7 @@ void print_value(Value value) {
         if (value->capacity == 0) {
             /* The value is empty, therefore undefined. */
             for(i=width; i>0; --i) {
-                printf("x");
+                printf("u");
             }
         }
         else {

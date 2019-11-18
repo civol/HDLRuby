@@ -218,6 +218,13 @@ extern Value cast_value(Value src, Type type, Value dst);
  *  @return dst */
 extern Value copy_value(Value src, Value dst);
 
+/** Copies a value to another but without overwritting with Z, the type of 
+ *  the destination is preserved.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+extern Value copy_value_no_z(Value src, Value dst);
+
 /** Testing if a value is 0.
  *  @param value the value to check 
  *  @return 1 if 0 and 0 otherwize */
@@ -351,6 +358,8 @@ typedef struct SignalIS_ {
     Value c_value;      /* The current value of the signal. */
     Value f_value;      /* The future (next) value of the signal. */
 
+    int fading;         /* Tell if the signal can be overwritten by Z. */
+
     int num_any;        /* The number of behavior activated on any edge. */
     Object* any;        /* The objects activated on any edge. */
     int num_pos;        /* The number of behavior activated on pos edge. */
@@ -447,8 +456,12 @@ typedef struct EventS_ {
 typedef enum { S, MS, US, NS, FS } Unit;
 
 /** Adds a timed behavior for processing. 
- *  @param the timed behavior to add */
+ *  @param behavior the timed behavior to register */
 extern void register_timed_behavior(Behavior behavior);
+
+/** Adds a signal for global processing. 
+ *  @param signal the signal to register  */
+extern void register_signal(SignalI signal);
 
 /** Makes the behavior wait for a given time.
  *  @param delay the delay to wait in fs.
@@ -567,3 +580,11 @@ extern Value read_range(Value value, long long first, long long last,
  *  @param dst the destination value
  *  @return dst */
 extern Value write_range(Value src, long long first, long long last, Value dst);
+
+/** Writes to a range within a value but without overwrite with Z. 
+ *  @param src the source value
+ *  @param first the first index of the range
+ *  @param last the last index of the range
+ *  @param dst the destination value
+ *  @return dst */
+extern Value write_range_no_z(Value src, long long first, long long last, Value dst);

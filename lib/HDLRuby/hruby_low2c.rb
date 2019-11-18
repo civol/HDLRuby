@@ -794,6 +794,10 @@ module HDLRuby::Low
                        "signalI->c_value);\n"
             end
 
+            # Initially the signal can be overwritten by anything.
+            res << " " * (level+1)*3
+            res << "signalI->fading = 1;\n"
+
             # Initialize the lists of behavior activated on this signal to 0.
             res << " " * (level+1)*3
             res << "signalI->num_any = 0;\n"
@@ -807,6 +811,10 @@ module HDLRuby::Low
             res << "signalI->num_neg = 0;\n"
             res << " " * (level+1)*3
             res << "signalI->neg = NULL;\n"
+
+            # Register the signal for global processing.
+            res << " " * (level+1)*3
+            res << "register_signal(signalI);\n"
 
 
             # Generate the return of the signal.
