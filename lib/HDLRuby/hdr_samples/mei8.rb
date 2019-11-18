@@ -135,7 +135,7 @@ system :mei8 do |prog_file = "./prog.obj"|
                                     alu.(7,0xFC)  }       
                 entry("11110ooo") { wf <= 1; alu.([_1,o],a) } # unary alu
                 entry("111110os") { st <= s; ld <= ~s     # ++--ld / ++--st
-                                    alu.([_1,o],g); dst <= 6 }
+                                    alu.([_0001,o],g); dst <= 6 }
                 entry("1111110i") { branch <= i
                                     st <= ~i; ld <= i
                                     alu.([_1,~i],h)
