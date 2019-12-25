@@ -5,7 +5,7 @@ systems.
 
 __Warning__: 
 
- - This is very preliminary work which may  (will) change a lot before we release a stable version.
+ - This is still preliminary work which may change a before we release a stable version.
  - It is highly recommended to have both basic knowledge of the Ruby language and hardware description languages before using HDLRuby.
 
 
@@ -13,69 +13,73 @@ __Warning__:
 
 ## Using the HDLRuby compiler
 
-'hdrcc.rb' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL or a YAML low-level descriptions of a HW components.
+'hdrcc.rb' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL or a YAML low-level descriptions of a HW components but also simulate the input description.
 
 
 __Usage__:
 
 ```
-hdrcc.rb [options] <input file> [<output file>]
+hdrcc.rb [options] <input file> <output directory>
 ```
 
 Where:
 
  * `options` is a list of options
  * `<input file>` is the initial file to compile (mandatory)
- *  `<output file>` is the output file
+ *  `<output directory>` is the directory where the generated files will be put
 
 |  Options         |          |
 |:------------------|:-----------------------------------------------------|
 | `-y, --yaml`      | Output in YAML format                                |
 | `-v, --verilog`   | Output in Verlog HDL format                          |
-| `-s, --syntax`    | Output the Ruby syntax tree |
+| `-V, --vhdl`      | Output in VHDL format                                |
+| `-s, --syntax`    | Output the Ruby syntax tree                          |
+| `-C, --clang`     | Output the C code of the simulator                   |
+| `-S, --sim`       | Output the executable simulator and execute it       |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
 | `-D, --debug`     | Set the HDLRuby debug mode |
 | `-t, --top system`| Specify the top system describing the circuit to compile |
-| `-p, --param x,y,z`     | Specify the generic parameters
+| `-p, --param x,y,z`     | Specify the generic parameters                 |
 | `-h, --help`      | Show the help message                                    |
 
-__Notice__:
+__Notes__:
 
 * If no top system is given, it is automatically looked for from the input file.
 * If no option is given, simply checks the input file.
-* If no output file is given, the result is given through the standard output.
 
 __Examples__:
 
-* Compile system named `adder` from `adder.rb` input file and generate `adder.yaml` low-level YAML description:
+* Compile system named `adder` from `adder.rb` input file and generate a low-level YAML description into directory `adder`:
 
 ```
-hdrcc.rb --yaml --top adder adder.rb adder.yaml
+hdrcc.rb --yaml --top adder adder.rb adder
 ```
 
-* Compile `adder.rb` input file and generate `adder.v` low-level Verilog HDL description:
+* Compile `adder.rb` input file and generate a low-level Verilog HDL description into directory `adder`:
 
 ```
-hdrcc.rb --verilog adder.rb adder.v
+hdrcc.rb -v adder.rb adder
 ```
-
-* Check the validity of `adder.hrd` input file:
   
-  ```
-  hdrcc.rb adder.rb
-  ```
-  
-* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:
+* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit low-level VHDL description into directory `adder`:
 
 ```
-hdrcc -v -t adder --param 16 adder_gen.rb
+hdrcc.rb -V -t adder --param 16 adder_gen.rb adder
 ```
 
-* Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`
+* Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description into directory `multer`:
 
 ```
-hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer_gen.yaml 
+hdrcc.rb -y -t multer -p 16,16,32 multer_gen.rb multer
 ```
+
+* Simulate the circuit described in file `counter_bench.rb` using directory `counter` for
+  storing the simulator's files:
+
+```
+hdrcc.rb -S counter_bench.rb counter
+```
+
 
 ## Using HDLRuby within Ruby
 
@@ -105,11 +109,11 @@ From there a low-level description of the circuit is generated using the `to_low
 circuitL = circuitI.to_low
 ```
 
-This low-level description can then be converted to a YAML format using 'to_yaml' or to a Verilog HDL format using 'to_verilog' as follows:
+This low-level description can then be converted to a YAML format using 'to_yaml' or to a VHDL format using 'to_vhd' as follows:
 
 ```ruby
 circuitY = circuitL.to_yaml
-circuitV = circuitL.to_verilog
+circuitV = circuitL.to_vhdl
 ```
 
 In the above examples, 'cricuitY' and 'cricuitV' are Ruby variables referring to the strings containing the respective YAML and Verilog HDL code.
@@ -171,8 +175,86 @@ system :dff do
 end
 ```
 
-As it can be seen in the code above, `system` is the keyword used for describing a digital circuit. This keyword is an equivalent of the Verilog HDL `module`. In such a system, signals are declared using a `<type>.<direction>` construct where `type` is the data type of the signal (e.g., `bit` as in the
-code above) and `direction` indicates if the signal is an input, an output, an inout or an inner one; and executable blocks (similar to `always` block of Verilog HDL) are described using the `par` keyword when they are parallel and `seq` when they are sequential (i.e, with respectively non-blocking and blocking assignments).
+As it can be seen in the code above, `system` is the keyword used for describing a digital circuit. This keyword is an equivalent of the Verilog HDL `module`. In such a system, signals are declared using a `<type>.<direction>` construct where `type` is the data type of the signal (e.g., `bit` as in the code above) and `direction` indicates if the signal is an input, an output, an inout or an inner one; and executable blocks (similar to `always` block of Verilog HDL) are described using the `par` keyword when they are parallel and `seq` when they are sequential (i.e, with respectively non-blocking and blocking assignments).
+
+After such a system has been defined, it can be instantiated. For axample a single instance of the `dff` system named `dff0` can be declared as follows:
+
+```ruby
+dff :dff0
+```
+
+The ports of this instance can then be accessed to be used like any other signals, e.g., `dff0.d` for access the `d` input of the FF.
+
+Several instances can also be declared in a single statement. For example, a 2-bit counter based on the previous `dff` circuits can be described as follows:
+
+```ruby
+system :counter2 do
+   input :clk,:rst
+   output :q
+
+   dff [ :dff0, :dff1 ]
+
+   dff0.clk <= clk
+   dff0.rst <= rst
+   dff0.d   <= ~dff0.q
+
+   dff1.clk <= ~dff0.q 
+   dff1.rst <= rst
+   dff1.d   <= ~dff1.q
+
+   q <= dff1.q
+end
+
+The instances can also be connected while being declared. For example the code above can be rewritten as follows:
+
+```ruby
+system :counter2 do
+   input :clk, :rst
+   output :q
+
+   dff(:dff0).(clk: clk, rst: rst, d: ~dff0.q)
+   dff(:dff1).(~dff0.q, rst, ~dff1.q, q)
+end
+```
+
+In the code above, two possible connection methods are shown: for `dff0` ports are connected by name, and for `dff1` ports are connected by declaration order. Please notice that it is also possible to connect only a subset of the ports while declaring and to reconnect already connected ports in further statements.
+
+While a circuit can be generated from the code given above, a benchmark must
+be provided to test it. Such benchmark as described by constructs called
+timed behavior that give the evolution of signals depending of the time.
+For example the following code simulates the previous D-FF for 4 cycles
+of 20ns each, with reset on the first cycle, set of signal `d` to 1 for
+the third cycle and set of this signal to 0 for the last.
+
+```ruby
+system :dff_bench do
+   
+   dff :dff0
+
+   timed do
+      dff0.clk <= 0
+      dff0.rst <= 1
+      !10.ns
+      dff0.clk <= 1
+      !10.ns
+      dff0.clk <= 0
+      dff0.rst <= 0
+      dff0.d   <= 1
+      !10.ns
+      dff0.clk <= 1
+      !10.ns
+      dff0.clk <= 0
+      !10.ns
+      dff0.clk <= 1
+      !10.ns
+      dff0.clk <= 0
+      dff0.d   <= 1
+      !10.ns
+      dff0.clk <= 1
+      !10.ns
+   end
+end
+```
 
 ---
 
@@ -188,6 +270,22 @@ system :dff do
    (q <= d & ~rst).at(clk.posedge)
 end
 ```
+
+Then, it often happens that a system will end up with only one instance.
+In such a case, the system declaration can be omitted and an instance
+can be directly declared as follows:
+
+```ruby
+instance :dff_single do
+   input :clk, :rst, :d
+   output :q
+
+   (q <= d & ~rst).at(clk.posedge)
+end
+```
+
+In the example above, `dff_single` is an instance describing, again, a
+D-FF, but whose system is anonymous.
 
 Furthermore, generic parameters can be used for anything in HDLRuby.
 For instance, the following code describes an 8-bit register without any parameterization:
@@ -377,7 +475,7 @@ With HDLRuby functions, the result of the last statement in the return value, in
       hif(res>1000) { res <= 1000 }
 ```
 
-With functions, it is enough to change their content to obtained a new kind of circuit without change the main code. This approach suffers for two drawbacks though: first, the level of saturation is hardcoded in the function, second, it would be preferable to be able to select the function to execute instead of modifying its code. For the first problem a simple approach is to add an argument to the function given the saturation level. Such an add function would therefore be as follows:
+With functions, it is enough to change their content to obtained a new kind of circuit without change the main code. This approach suffers for two drawbacks though: first, the level of saturation is hard-coded in the function, second, it would be preferable to be able to select the function to execute instead of modifying its code. For the first problem a simple approach is to add an argument to the function given the saturation level. Such an add function would therefore be as follows:
 
 ```ruby
 function :add do |max, x, y|
@@ -391,7 +489,7 @@ end
 
 It would however be necessary to add this argument when invoking the function, e.g., `add(1000,sum,mult(...))`. While this argument is relevant for addition with saturation, it is not for the other kind of addition operations, and hence, the code of `sumprod` is not general any longer.
 
-HDLRuby provides two ways to address such issues. First, it is possible to pass code as argument. In the case of `sumprod` it would then be enough to add two arguments that perform the required addition and multipliction. The example is bellow:
+HDLRuby provides two ways to address such issues. First, it is possible to pass code as argument. In the case of `sumprod` it would then be enough to add two arguments that perform the required addition and multiplication. The example is bellow:
 
 ```ruby
 system :sumprod_proc do |add,mult,typ,coefs|
@@ -473,6 +571,29 @@ sumprod(sat(16,1000),
         [3,78,43,246, 3,67,1,8,
          47,82,99,13, 5,77,2,4]).(:my_circuit)
 ```
+
+
+As final note, HDLRuby is also a language with supports reflection for
+all its constructs. For example, the system of an instance can be accessed
+using the `systemT` method, and this latter can be used to create
+other instances. For example, previously, `dff_single` was declared with
+an anonymous system (i.e., it cannot be accessed by name). This system
+can however be used as follows to generate another instance:
+
+```ruby
+dff_single.systemT.instantiate(:dff_not_single)
+```
+
+In the above example, `dff_not_single` is declared to be an instance
+of the same system as `dff_single`.
+
+This reflection capability can also be used for instance for accessing the
+data type of a signal (`sig.type`), but also the current basic block
+(`cur_block`), the current process (`cur_behavior`) and so on.
+The standard library of HDLRuby, that includes several hardware constructs
+like final state machine descriptors, is mainly based on using these
+reflection features.
+
 
 
 ## How does HDLRuby work
@@ -1185,22 +1306,9 @@ end
 
 ### Type compatibility and conversion
 
-HDLRuby is strongly typed which means that when two types are not compatible together, operations, connection or transmission between two expressions of these types are not permitted. The compatibility rules between two types are the followings:
+The basis of all the types in HDLRuby is the vector of bits (bitvector) where each bit can have four values: 0, 1, Z and X (for undefined).  Bit vectors are by default unsigned but can be set to be signed.  When performing computations between signals of different bitvector type, the shorter signal is extended to the size of the larger one preserving its sign if it is signed.
 
-1. The basic types are not compatible with one another.
-
-2. Two vector types are compatible if and only if they have the same range and the same subtype (i.e., the type of their elements).
-
-4. Hierarchical types are compatible if and only if they have the same subtypes names and each subtype of same name are compatible together.
-
-The type an expression can be converted to one with another type using a conversion operator. Please refer to section [Conversion operators](#conversion) for more details about such an operator.
-
-__Note__:
-
-- For the unambiguous cases, conversion operators will be implicitly added, please refer to section about [implicit conversions](#implicit) for more details.
-
-
-
+While the underlying structure of any HDLRuby type is the bitvector, complex types can be be defined. When using such types in computational expressions and assignments they are first implicitly converted to an unsigned bit vector of the same size.
 
 ## Expressions
 <a name="expressions"></a>
@@ -1218,7 +1326,7 @@ The vector type specifiers are the followings:
  
  - `b`: `bit` type, can be omitted,
   
- - `u`: `unsigned` type,
+ - `u`: `unsigned` type, (equivalent to `b` and can be used for avoiding confusion with the binary specifier),
 
  - `s`: `signed` type, the last figure is sign extended if required by the binary, octal and hexadecimal bases, but not for the decimal base.
 
@@ -2132,7 +2240,7 @@ In order to get information about the current state of the hardware description 
 | `is_clocked?`  | bit            | tells if current behavior is clocked (activated on a sole rising or falling edge of a signal) |
 | `cur_block`    | block          | gets the current block                     |
 | `cur_behavior` | behavior       | gets the current behavior                  |
-| `cur_system`   | system         | gets the current system                    |
+| `cur_systemT`  | system         | gets the current system                    |
 | `one_up`       | block/system   | gets the upper construct (block or system) |
 | `last_one`     | any            | last declared construct                    |
 
@@ -2160,8 +2268,6 @@ In order to ease the design of standardized libraries, the following global sign
 | `$reset`    | bit         | global reset                          |
 | `$resetb`   | bit         | global reset complement               |
 | `$clk`      | bit         | global clock                          |
-| `$err`      | bit         | used to indicate if an error occurred |
-| `$errno`    | bit[7..0]   | indicates the error number            |
 
 __Note__:
  
@@ -2172,8 +2278,7 @@ __Note__:
 ### Defining and executing Ruby methods within HDLRuby constructs
 <a name="method"></a>
 
-Like with any Ruby program it is possible to define and execute methods anywhere in HDLRuby using the standard Ruby syntax. When defined, a method is attached to the enclosing HDLRuby construct. For instance, when defining a method when declaring a system, it will be usable within this system, while when defining a method outside any construct, it will
-be usable everywhere in the HDLRuby description.
+Like with any Ruby program it is possible to define and execute methods anywhere in HDLRuby using the standard Ruby syntax. When defined, a method is attached to the enclosing HDLRuby construct. For instance, when defining a method when declaring a system, it will be usable within this system, while when defining a method outside any construct, it will be usable everywhere in the HDLRuby description.
 
 A method can include HDLRuby code in which case the resulting hardware is appended to the current construct. For example the following code adds a connection between `sig0` and `sig1` in system `sys0`, and transmission between `sig0` and `sig1` in the behavior of `sys1`.
 
@@ -2203,8 +2308,7 @@ __Warning__:
 
 - In the above example, the semantic of `some_arrow` changes depending on where it is invoked from: within a system, it is a connection, within a behavior it is a transmission.
 
-- Using Ruby methods for describing hardware might lead to weak code, for example the in following code, the method declares `in0` as input signal.
-  Hence, while used in `sys0` no problems happens, an exception will be raised for `sys1` because a signal `in0` is already declare, and will also be raised for `sys2` because it is not possible to declare an input from within a behavior.
+- Using Ruby methods for describing hardware might lead to weak code, for example the in following code, the method declares `in0` as input signal.  Hence, while used in `sys0` no problems happens, an exception will be raised for `sys1` because a signal `in0` is already declare, and will also be raised for `sys2` because it is not possible to declare an input from within a behavior.
 
   ```ruby
   def in_decl
@@ -2444,23 +2548,206 @@ After the libraries are loaded, the module `Std` must be included as follows:
 include HDLRuby::High::Std
 ```
 
-## Channel
-<a name="channel"></a>
-
-This library provides a unified interface to complex communication protocols.
-The interface consists of channel objects that can be written or read for transmission.
-
 
 
 ## Clocks
 <a name="clocks"></a>
 
-This library provides utilities for an easier handling of clock synchronizations.
+The `clocks` library provides utilities for an easier handling of clock synchronizations.
+
+It adds the possibility to multiply events by integer. The result is a new event whose frequency is divided by the integer multiplicand. For example the following code describes a D-FF that memorizes each three clock cycle.
+
+```ruby
+require 'std/clocks'
+include HDLRuby::High::Std
+
+system :dff_slow do
+   input :clk, :rst
+   input :d
+   output :q
+
+   ( q <= d & ~rst ).at(clk.posedge * 3)
+end
+```
+
+__Note__: this library does generate all the RTL code for the circuit handling the division of the frequency. 
 
 ## Counters
 <a name="counters"></a>
 
-This library provides various construct with implicit counters for implementing synthesizable wait statements.
+This library provides two new constructs for implementing synthesizable wait statements.
+
+The first construct is the `after` statement that activates a block after a given number of clocks cycles is passed. Its syntax is the following:
+
+```ruby
+after(<number>,<clock>,<reset>)
+```
+
+Where:
+ * `<number>` is the number of cycles to wait.
+ * `<clock>` is the clock to use, this argument can be omitted.
+ * `<reset>` is the signal used to reset the counter used for waiting, this argument can be omitted.
+
+This statement can be used both inside or outside a clocked behavior. When used within a clocked behavior, the clock event of the behavior is used for the counter unless specified otherwise. When used outside such a behavior, the clock is the global default clock `$clk`. In both cases, the reset is the global reset `$rst` unless specified otherwise.
+
+The second construct is the `before` statement that activates a block until a given number of clocks cycles is passed. Its syntax and usage is identical to the `after` statement.
+
+
+## Decoder
+<a name="decoder"></a>
+
+This library provides a new set of control statements for easily describing an instruction decoder.
+
+A decoder can be declared anywhere in the code describing a system using the `decoder` keyword as follows:
+
+```ruby
+decoder(<signal>) <block>
+```
+
+Where `signal` is the signal to decode and `block` is a procedure block (i.e., Ruby `proc`) describing the decoding procedure. This procedure block can contain any code supported by a standard behavior, but also supports the `entry` statement that describes a pattern of a bit vector to decode and the corresponding action to perform when the signal matches this pattern. The syntax of the `entry` statement is the following:
+
+```ruby
+entry(<pattern>) <block>
+```
+
+Where `pattern` is a string describing the pattern to match for the entry, and `block` is a procedure block describing the actions (some HDLRuby code) that are performed when the entry matches. The string describing the pattern can include `0` and `1` characters for specifying a specific value for the corresponding bit, or any alphabetical character for specifying a field in the pattern. The fields in the pattern can then be used by name in the block describing the action. When a letter is used several times within a pattern, the corresponding bits are concatenated, and are used as a signal multi-bit signal in the block.
+
+For example, the following code describes a decoder for signal `ir` with two entries, the first one computing the sum of fields `x` and `y` and assigning the result to signal `s` and the second one computing the sum of fields `x` `y` and `z` and assigning the result to signal `s`:
+
+```ruby
+decoder(ir) do
+   entry("000xx0yy") { s <= x + y }
+   entry("10zxxzyy") { s <= x + y + z }
+end
+```
+
+In can be noticed for field `z` in the example above that the bits of are not required to be contiguous.
+
+## FSM
+<a name="fsm"></a>
+
+This library provides a new set of control statements for easily describing a finite state machine (FSM).
+
+A finite state machine can be declared anywhere provided it is outside a behavior using the `fsm` keyword as follows:
+
+```ruby
+fsm(<event>,<reset>,<mode>) <block>
+```
+
+Where `event` is the event (rising falling edge of a signal) activating the state transitions, `rst` is the reset signal, and `mode` is the default execution mode and `block` is the execution block describing the states of the FSM. This last parameter can be either `:sync` for synchronous (Moore type) or `:async` for asynchronous (Mealy type).
+
+The states of a FSM are described follows:
+
+```ruby
+<kind>(<name>) <block>
+```
+
+Where `kind` is the kind of state, `name` is the name of the state, and `block` is the actions to execute for the corresponding state. The kinds of states are the followings:
+
+ * reset: the state reached when resetting the FSM. This state can be forced to be asynchronous by setting the `name` argument to `:async` and forced to be synchronous by setting the `name` argument to `:sync`. By default the `name` argument is to be omitted.
+ * state: the default kind of state, it will be synchronous if the FSM is synchronous or asynchronous otherwise.
+ * sync:  the synchronous kind of state, it will be synchronous whatever the kind of FSM is used.
+ * async: the asynchronous kind of state, it will be asynchronous whatever the kind of FSM is used.
+
+In addition, it is possible to define a default action that will be executed whatever the state is using the following statement:
+
+```ruby
+default <block>
+```
+
+Where `block` is the action to execute.
+
+State transitions are by default set to be from one state to the following in the description order. If no more transition is declared the next one is the first declared transition. A specific transition is defined using the `goto` statement as last statement of the action block as follows:
+
+```ruby
+goto(<condition>,<names>)
+```
+
+Where `condition` is a signal whose value is used as index for selection the target state among the ones specified  in the `names` list. For example the following statement indicate to go to state named `st_a` if the `cond` is 0, `st_b` if condition is 1 and `st_c` if condition is 2, otherwise this specific transition is ignored:
+
+```ruby
+goto(cond,:st_a,:st_b,:st_c)
+```
+
+Several goto statements can be used, the last one having priority provided it is taken (i.e., its condition correspond to one of the target state). If no goto is taken, the next transition is the next declared one.
+
+For example the following code describes a FSM describing a circuit that checks if two buttons (`but_a` and `but_b`) are pressed and released in sequence for activating an output signal (`ok`):
+
+```ruby
+fsm(clk.posedge,rst,:sync) do
+   default { ok <= 0 }
+   reset do
+      goto(but_a, :reset, but_a_on)
+   end
+   state(:but_a_on) do
+      goto(but_a, :but_a_off, :but_a_on)
+   end
+   state(:but_a_off) do
+      goto(but_b, :but_a_off, :but_b_on)
+   end
+   state(:but_b_on) do
+      goto(but_b, :but_b_off, :but_b_on)
+   end
+   state(:but_b_off) do
+      ok <= 1
+      goto(:but_b_off)
+   end
+end
+```
+
+## Channel
+<a name="channel"></a>
+
+This library provides a unified interface to complex communication protocols. It provides a new kind of component called the channel that abstracts the details of a communication protocol. The channels an be used similarly to the ports of a system and are used through a unified interface so that changing the kind of channel, i.e., the communication protocol, does not require any modification of the code.
+
+A channel is used similarly to a pipe: it has an input where data can be written and an output where data can be read. The ordering of the data and the synchronisation depend on the internals of the channel, .e.g., a channel can be FIFO or LIFO. The interaction with the channel is done using the following methods:
+ 
+ * `writer_ports`: generate ports in the system for writing to the channel. This method is used without any argument.
+ 
+ * `reader_ports`: generate ports in the system for reading from the channel. This method is used without any argument.
+
+ * `write(<value>) <block>`: write `value` to the channel and execute `block` when `write` completes. Both `value` and `block` may be omitted depending on the kind of channel.
+
+ * `read(<target>) <block>`: read the channel, assign the result to signal `target` and execute `block` when the read completes. Both `target` and `block` may be omitted depending on the kind of channel.
+
+For example a system sending successive 8 bit values through a channel can be described as follows:
+
+```ruby
+system :producer8 do |channel|
+    # Inputs of the producer: clock and reset.
+    input :clk, :rst
+    # Instantiate the channel ports
+    channel.writer_ports
+    # Inner 8-bit counter for generating values.
+    [8].inner :counter
+
+    # The value production process
+    par(clk.posedge) do
+        hif(rst) { counter <= 0 }
+        helse do
+            channel.write(counter) { counter <= counter + 1 }
+        end
+    end
+end
+```
+
+__Note__: In the code above, the channel is passed as generic argument of the system.
+
+A new channel is declared like using the keyword `channel` as follows:
+
+```ruby
+channel <name> <block>
+```
+
+Where `name` is the name of the channel and `block` is a procedure block describing the channel. This block can contain any HDLRuby code, and is actually similar to the content of a block describing a system with the difference that it does not have standard input, output and inout ports are declared differently and that it supports following additional keywords:
+
+ * srgg
+
+## Reconf
+<a name="reconf"></a>
+
+This library provides a unified interface to partially (or dynamically)
+reconfigurable devices.
 
 ## Pipeline
 <a name="pipeline"></a>
