@@ -192,413 +192,418 @@ end
 
 
 if __FILE__ == $0 then
-    require 'optparse'
-    # Used standalone, check the files given in the standard input.
-    include HDLRuby
+    $hdr_dir = File.dirname(__FILE__)
+else
+    $hdr_dir = File.dirname($0).chomp("exe")
+end
 
-    # Process the command line options
-    $options = {}
-    $optparse = OptionParser.new do |opts|
-        opts.banner = "Usage: hdrcc.rb [options] <input file> [<output file>]"
- 
-        opts.separator ""
-        opts.separator "Where:"
-        opts.separator "* `options` is a list of options"
-        opts.separator "* `<input file>` is the initial file to compile (mandatory)"
-        opts.separator "* `<output file>` is the output file"
-        opts.separator ""
-        opts.separator "Options:"
+require 'optparse'
+# Used standalone, check the files given in the standard input.
+include HDLRuby
 
-        opts.on("-y", "--yaml", "Output in YAML format") do |y|
-            $options[:yaml] = y
-        end
-        opts.on("-r", "--hdr","Output in HDLRuby format") do |v|
-            $options[:hdr] = v
-        end
-        opts.on("-C", "--clang","Output in C format (simulator)") do |v|
-            $options[:clang] = v
-            $options[:multiple] = v
-        end
-        opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
-            $options[:allocate] = v
-        end
-        opts.on("-S", "--sim","Output in C format (simulator)") do |v|
-            $options[:clang] = v
-            $options[:multiple] = v
-            $options[:sim] = v
-        end
-        opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
-            $options[:verilog] = v
-            $options[:multiple] = v
-        end
-        opts.on("-V", "--vhdl","Output in VHDL format") do |v|
-            HDLRuby::Low::Low2VHDL.vhdl08 = false
-            $options[:vhdl] = v
-            $options[:multiple] = v
-            $options[:vhdl08] = false
-        end
-        opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
-            HDLRuby::Low::Low2VHDL.vhdl08 = false
-            HDLRuby::Low::Low2VHDL.alliance = true
-            $options[:vhdl] = v
-            $options[:alliance] = v
-            $options[:multiple] = v
-            $options[:vhdl08] = false
-        end
-        opts.on("-U", "--vhdl08","Output in VHDL'08 format") do |v|
-            HDLRuby::Low::Low2VHDL.vhdl08 = true
-            $options[:vhdl] = v
-            $options[:multiple] = v
-            $options[:vhdl08] = true
-        end
-        opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
-            $options[:syntax] = s
-        end
-        opts.on("-m", "--multiple", "Produce multiple files for the result.\nThe output name is then interpreted as a directory name.") do |v|
-            $options[:multiple] = v
-        end
-        opts.on("-d", "--directory dir","Specify the base directory for loading the hdr files") do |d|
-            $options[:directory] = d
-        end
-        opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
-            $options[:debug] = d
-        end
-        opts.on("-t", "--top system", "Specify the top system to process") do|t|
-            $options[:top] = t
-        end
-        opts.on("-p", "--param x,y,z", "Specify the generic parameters") do |p|
-            $options[:param] = p
-        end
-        opts.on_tail("-h", "--help", "Show this message") do
-            puts opts
-            exit
-        end
-        opts.separator ""
-        opts.separator "Notice:"
-        opts.separator "* If no output option is given, simply checks the input file"
-        opts.separator "* If no output file is given, the result is given through the standard output."
-        opts.separator "* If no top system is given, it will be automatically searched in the input file."
-        opts.separator ""
-        opts.separator "Examples:"
-        opts.separator "* Compile system named `adder` from `adder.rb` input file and generate `adder.yaml` low-level YAML description:"
-        opts.separator "   hdrcc.rb --yaml --top adder adder.rb adder.yaml"
-        opts.separator "* Compile `adder.rb` input file and generate `adder.vhd` low-level VHDL description:"
-        opts.separator "   hdrcc.rb --vhdl adder.rb adder.vhd"
-        opts.separator "* Check the validity of `adder.rb` input file:"
-        opts.separator "   hdrcc.rb adder.rb"
-        opts.separator "* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:"
-        opts.separator "   hdrcc -v -t adder --param 16 adder_gen.rb"
-        opts.separator "* Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`"
-        opts.separator "hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer_gen.yaml"
+# Process the command line options
+$options = {}
+$optparse = OptionParser.new do |opts|
+    opts.banner = "Usage: hdrcc.rb [options] <input file> [<output file>]"
 
+    opts.separator ""
+    opts.separator "Where:"
+    opts.separator "* `options` is a list of options"
+    opts.separator "* `<input file>` is the initial file to compile (mandatory)"
+    opts.separator "* `<output file>` is the output file"
+    opts.separator ""
+    opts.separator "Options:"
+
+    opts.on("-y", "--yaml", "Output in YAML format") do |y|
+        $options[:yaml] = y
     end
-    $optparse.parse!
-
-    # puts "options=#{$options}"
-
-    # Check the compatibility of the options
-    if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl].include?(op) } > 1 then
-        warn("Please choose either YAML, HDLRuby, Verilog HDL, or VHDL output.")
-        puts $optparse.help()
+    opts.on("-r", "--hdr","Output in HDLRuby format") do |v|
+        $options[:hdr] = v
     end
+    opts.on("-C", "--clang","Output in C format (simulator)") do |v|
+        $options[:clang] = v
+        $options[:multiple] = v
+    end
+    opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
+        $options[:allocate] = v
+    end
+    opts.on("-S", "--sim","Output in C format (simulator)") do |v|
+        $options[:clang] = v
+        $options[:multiple] = v
+        $options[:sim] = v
+    end
+    opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
+        $options[:verilog] = v
+        $options[:multiple] = v
+    end
+    opts.on("-V", "--vhdl","Output in VHDL format") do |v|
+        HDLRuby::Low::Low2VHDL.vhdl08 = false
+        $options[:vhdl] = v
+        $options[:multiple] = v
+        $options[:vhdl08] = false
+    end
+    opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
+        HDLRuby::Low::Low2VHDL.vhdl08 = false
+        HDLRuby::Low::Low2VHDL.alliance = true
+        $options[:vhdl] = v
+        $options[:alliance] = v
+        $options[:multiple] = v
+        $options[:vhdl08] = false
+    end
+    opts.on("-U", "--vhdl08","Output in VHDL'08 format") do |v|
+        HDLRuby::Low::Low2VHDL.vhdl08 = true
+        $options[:vhdl] = v
+        $options[:multiple] = v
+        $options[:vhdl08] = true
+    end
+    opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
+        $options[:syntax] = s
+    end
+    opts.on("-m", "--multiple", "Produce multiple files for the result.\nThe output name is then interpreted as a directory name.") do |v|
+        $options[:multiple] = v
+    end
+    opts.on("-d", "--directory dir","Specify the base directory for loading the hdr files") do |d|
+        $options[:directory] = d
+    end
+    opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
+        $options[:debug] = d
+    end
+    opts.on("-t", "--top system", "Specify the top system to process") do|t|
+        $options[:top] = t
+    end
+    opts.on("-p", "--param x,y,z", "Specify the generic parameters") do |p|
+        $options[:param] = p
+    end
+    opts.on_tail("-h", "--help", "Show this message") do
+        puts opts
+        exit
+    end
+    opts.separator ""
+    opts.separator "Notice:"
+    opts.separator "* If no output option is given, simply checks the input file"
+    opts.separator "* If no output file is given, the result is given through the standard output."
+    opts.separator "* If no top system is given, it will be automatically searched in the input file."
+    opts.separator ""
+    opts.separator "Examples:"
+    opts.separator "* Compile system named `adder` from `adder.rb` input file and generate `adder.yaml` low-level YAML description:"
+    opts.separator "   hdrcc.rb --yaml --top adder adder.rb adder.yaml"
+    opts.separator "* Compile `adder.rb` input file and generate `adder.vhd` low-level VHDL description:"
+    opts.separator "   hdrcc.rb --vhdl adder.rb adder.vhd"
+    opts.separator "* Check the validity of `adder.rb` input file:"
+    opts.separator "   hdrcc.rb adder.rb"
+    opts.separator "* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:"
+    opts.separator "   hdrcc -v -t adder --param 16 adder_gen.rb"
+    opts.separator "* Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`"
+    opts.separator "hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer_gen.yaml"
 
-    # Get the the input and the output files.
-    $input,$output = $*
+end
+$optparse.parse!
+
+# puts "options=#{$options}"
+
+# Check the compatibility of the options
+if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl].include?(op) } > 1 then
+    warn("Please choose either YAML, HDLRuby, Verilog HDL, or VHDL output.")
+    puts $optparse.help()
+end
+
+# Get the the input and the output files.
+$input,$output = $*
     # Get the top system name if name.
     $top = $options[:top].to_s
-    unless $top == "" || (/^[_[[:alpha:]]][_\w]*$/ =~ $top) then
-        warn("Please provide a valid top system name.")
-        exit
-    end
-    # Get the generic parameters if any.
-    $params = $options[:param].to_s.split(",")
+unless $top == "" || (/^[_[[:alpha:]]][_\w]*$/ =~ $top) then
+    warn("Please provide a valid top system name.")
+    exit
+end
+# Get the generic parameters if any.
+$params = $options[:param].to_s.split(",")
 
 
-    if $input == nil then
-        warn("Please provide an input file (or consult the help using the --help option.)")
-        exit
-    end
+if $input == nil then
+    warn("Please provide an input file (or consult the help using the --help option.)")
+    exit
+end
 
-    # Open the output.
-    if $output then
-        if $options[:multiple] then
-            # Create a directory if necessary.
-            unless File.directory?($output)
-                FileUtils.mkdir_p($output)
-            end
-        else
-            # Open the file.
-            $output = File.open($output,"w")
+# Open the output.
+if $output then
+    if $options[:multiple] then
+        # Create a directory if necessary.
+        unless File.directory?($output)
+            FileUtils.mkdir_p($output)
         end
     else
-        if $option[:multiple] then
-            raise "Need a target directory in multiple files generation mode."
-        end
-        $output = $stdout
+        # Open the file.
+        $output = File.open($output,"w")
     end
-
-    # Load and process the hdr files.
-    $options[:directory] ||= "./"
-    $loader = HDRLoad.new($top,$input,$options[:directory].to_s,*$params)
-    $loader.read_all
-    $loader.check_all
-
-    if $options[:syntax] then
-        if $options[:multiple] then
-            raise "Multiple files generation mode not supported for syntax tree output."
-        end
-        $output << $loader.show_all
-        exit
+else
+    if $option[:multiple] then
+        raise "Need a target directory in multiple files generation mode."
     end
+    $output = $stdout
+end
 
-    if $options[:debug] then
-        # Debug mode, no error management.
-        $top_instance = $loader.parse
-    else
-        # Not debug mode, use the error management.
-        error_manager($loader.requires + [$input]) { $top_instance = $loader.parse }
-    end
+# Load and process the hdr files.
+$options[:directory] ||= "./"
+$loader = HDRLoad.new($top,$input,$options[:directory].to_s,*$params)
+$loader.read_all
+$loader.check_all
 
-    # Generate the result.
-    # Get the top systemT.
-    $top_system = $top_instance.to_low.systemT
-    
-    # Gather the non-HDLRuby code.
-    $non_hdlruby = []
-    $top_system.each_systemT_deep do |systemT|
-        systemT.scope.each_scope_deep do |scope|
-            scope.each_code do |code|
-                $non_hdlruby << code
-            end
-        end
+if $options[:syntax] then
+    if $options[:multiple] then
+        raise "Multiple files generation mode not supported for syntax tree output."
     end
-    # Applies the allocators if required.
-    $allocate_range = $options[:allocate]
-    if $allocate_range then
-        # Get the allocation characteristics.
-        $allocate_range = $allocate_range.split(",")
-        $allocate_range = [$allocate_range[0]..$allocate_range[1],
-                           $allocate_range[2]].compact
-        # Create the allocator.
-        allocator = HDLRuby::Low::Allocator.new(*$allocate_range)
-        $non_hdlruby.each do |code|
-            # Try the C allocator.
-            code.c_code_allocate(allocator)
+    $output << $loader.show_all
+    exit
+end
+
+if $options[:debug] then
+    # Debug mode, no error management.
+    $top_instance = $loader.parse
+else
+    # Not debug mode, use the error management.
+    error_manager($loader.requires + [$input]) { $top_instance = $loader.parse }
+end
+
+# Generate the result.
+# Get the top systemT.
+$top_system = $top_instance.to_low.systemT
+
+# Gather the non-HDLRuby code.
+$non_hdlruby = []
+$top_system.each_systemT_deep do |systemT|
+    systemT.scope.each_scope_deep do |scope|
+        scope.each_code do |code|
+            $non_hdlruby << code
         end
     end
-    # Generates its code.
-    $non_hdlruby.each {|code| code.to_file($output) }
+end
+# Applies the allocators if required.
+$allocate_range = $options[:allocate]
+if $allocate_range then
+    # Get the allocation characteristics.
+    $allocate_range = $allocate_range.split(",")
+    $allocate_range = [$allocate_range[0]..$allocate_range[1],
+                       $allocate_range[2]].compact
+    # Create the allocator.
+    allocator = HDLRuby::Low::Allocator.new(*$allocate_range)
+    $non_hdlruby.each do |code|
+        # Try the C allocator.
+        code.c_code_allocate(allocator)
+    end
+end
+# Generates its code.
+$non_hdlruby.each {|code| code.to_file($output) }
 
-    # The HDLRuby code
-    if $options[:yaml] then
-        # $output << $top_instance.to_low.systemT.to_yaml
-        $output << $top_system.to_yaml
-    elsif $options[:hdr] then
-        if $options[:multiple] then
-            raise "Multiple files generation mode not supported for HDLRuby output yet."
-        end
-        # $top_system.each_systemT_deep.reverse_each do |systemT|
-        #     $output << systemT.to_high
+# The HDLRuby code
+if $options[:yaml] then
+    # $output << $top_instance.to_low.systemT.to_yaml
+    $output << $top_system.to_yaml
+elsif $options[:hdr] then
+    if $options[:multiple] then
+        raise "Multiple files generation mode not supported for HDLRuby output yet."
+    end
+    # $top_system.each_systemT_deep.reverse_each do |systemT|
+    #     $output << systemT.to_high
+    # end
+    # $output << $top_instance.to_low.systemT.to_high
+    $output << $top_system.to_high
+elsif $options[:clang] then
+    # top_system = $top_instance.to_low.systemT
+    top_system = $top_system
+    # Preprocess the HW description for valid C generation.
+    top_system.each_systemT_deep do |systemT|
+        # Converts the connections to behaviors.
+        systemT.connections_to_behaviors!
+        # Break the RefConcat.
+        systemT.break_concat_assigns! 
+        # Explicits the types.
+        systemT.explicit_types!
+    end
+    # Generate the C.
+    if $options[:multiple] then
+        # Get the base name of the input file, it will be used for
+        # generating the main name of the multiple result files.
+        basename = File.basename($input,File.extname($input))
+        basename = $output + "/" + basename
+        # File name counter.
+        count = 0
+
+        # # Converts the connections to behaviors (C generation does not
+        # # support connections).
+        # top_system.each_systemT_deep do |systemT|
+        #     systemT.connections_to_behaviors!
         # end
-        # $output << $top_instance.to_low.systemT.to_high
-        $output << $top_system.to_high
-    elsif $options[:clang] then
-        # top_system = $top_instance.to_low.systemT
-        top_system = $top_system
-        # Preprocess the HW description for valid C generation.
+
+        # Multiple files generation mode.
+        # Generate the h file.
+        hname = $output + "/hruby_sim_gen.h"
+        hnames = [ File.basename(hname) ]
+        outfile = File.open(hname,"w")
+        # Adds the generated globals
         top_system.each_systemT_deep do |systemT|
-            # Converts the connections to behaviors.
-            systemT.connections_to_behaviors!
-            # Break the RefConcat.
-            systemT.break_concat_assigns! 
-            # Explicits the types.
-            systemT.explicit_types!
+            # For the h file.
+            # hname = $output + "/" +
+            #     HDLRuby::Low::Low2C.c_name(systemT.name) +
+            #     ".h"
+            # hnames << File.basename(hname)
+            # # Open the file for current systemT
+            # output = File.open(hname,"w")
+            # Generate the H code in to.
+            outfile << systemT.to_ch
+            # # Close the file.
+            # output.close
+            # # Clears the name.
+            # hname = nil
         end
-        # Generate the C.
-        if $options[:multiple] then
-            # Get the base name of the input file, it will be used for
-            # generating the main name of the multiple result files.
-            basename = File.basename($input,File.extname($input))
-            basename = $output + "/" + basename
-            # File name counter.
-            count = 0
-
-            # # Converts the connections to behaviors (C generation does not
-            # # support connections).
-            # top_system.each_systemT_deep do |systemT|
-            #     systemT.connections_to_behaviors!
-            # end
-
-            # Multiple files generation mode.
-            # Generate the h file.
-            hname = $output + "/hruby_sim_gen.h"
-            hnames = [ File.basename(hname) ]
-            outfile = File.open(hname,"w")
-            # Adds the generated globals
-            top_system.each_systemT_deep do |systemT|
-                # For the h file.
-                # hname = $output + "/" +
-                #     HDLRuby::Low::Low2C.c_name(systemT.name) +
-                #     ".h"
-                # hnames << File.basename(hname)
-                # # Open the file for current systemT
-                # output = File.open(hname,"w")
-                # Generate the H code in to.
-                outfile << systemT.to_ch
-                # # Close the file.
-                # output.close
-                # # Clears the name.
-                # hname = nil
-            end
-            # Adds the globals from the non-HDLRuby code
-            $non_hdlruby.each do |code|
-                code.each_chunk do |chunk|
-                    if chunk.name == :sim then
-                        outfile << "extern " + 
-                            HDLRuby::Low::Low2C.prototype(chunk.to_c)
-                    end
+        # Adds the globals from the non-HDLRuby code
+        $non_hdlruby.each do |code|
+            code.each_chunk do |chunk|
+                if chunk.name == :sim then
+                    outfile << "extern " + 
+                        HDLRuby::Low::Low2C.prototype(chunk.to_c)
                 end
             end
+        end
+        outfile.close
+
+        # Prepare the initial name for the main file.
+        name = basename + ".c"
+        # Generate the code for it.
+        main = File.open(name,"w")
+
+        # Generate the code of the main function.
+        # HDLRuby start code
+        main << HDLRuby::Low::Low2C.main(top_system,
+                                         top_system.each_systemT_deep.to_a.reverse,hnames)
+        main.close
+
+        top_system.each_systemT_deep do |systemT|
+            # For the c file.
+            name = $output + "/" +
+                HDLRuby::Low::Low2C.c_name(systemT.name) +
+                ".c"
+            # Open the file for current systemT
+            outfile = File.open(name,"w")
+            # Generate the C code in to.
+            outfile << systemT.to_c(0,*hnames)
+            # Close the file.
             outfile.close
-
-            # Prepare the initial name for the main file.
-            name = basename + ".c"
-            # Generate the code for it.
-            main = File.open(name,"w")
-           
-            # Generate the code of the main function.
-            # HDLRuby start code
-            main << HDLRuby::Low::Low2C.main(top_system,
-                            top_system.each_systemT_deep.to_a.reverse,hnames)
-            main.close
-
-            top_system.each_systemT_deep do |systemT|
-                # For the c file.
+            # Clears the name.
+            name = nil
+        end
+    else
+        # Single file generation mode.
+        top_system.each_systemT_deep.reverse_each do |systemT|
+            $output << systemT.to_ch
+            $output << systemT.to_c
+        end
+        # Adds the main code.
+        $output << HDLRuby::Low::Low2C.main(top_system,
+                                            *top_system.each_systemT_deep.to_a)
+    end
+    if $options[:sim] then
+        # Simulation mode, compile and exectute.
+        # Path of the simulator core files.
+        # simdir = File.dirname(__FILE__) + "/sim/"
+        simdir = $hdr_dir + "/sim/"
+        # Generate and execute the simulation commands.
+        Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
+    end
+elsif $options[:verilog] then
+    # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
+    # top_system = $top_instance.to_low.systemT
+    top_system = $top_system
+    # Make description compatible with verilog generation.
+    top_system.each_systemT_deep do |systemT|
+        systemT.to_upper_space!
+        systemT.to_global_systemTs!
+        systemT.break_types!
+        systemT.with_port!
+    end
+    # # Verilog generation
+    # $output << top_system.to_verilog
+    # Generate the Verilog.
+    if $options[:multiple] then
+        # Get the base name of the input file, it will be used for
+        # generating the main name of the multiple result files.
+        basename = File.basename($input,File.extname($input))
+        basename = $output + "/" + basename
+        # File name counter.
+        count = 0
+        # Prepare the initial name for the main file.
+        name = basename + ".v"
+        # Multiple files generation mode.
+        top_system.each_systemT_deep do |systemT|
+            # Generate the name if necessary.
+            unless name
                 name = $output + "/" +
-                    HDLRuby::Low::Low2C.c_name(systemT.name) +
-                    ".c"
-                # Open the file for current systemT
-                outfile = File.open(name,"w")
-                # Generate the C code in to.
-                outfile << systemT.to_c(0,*hnames)
-                # Close the file.
-                outfile.close
-                # Clears the name.
-                name = nil
+                    HDLRuby::Verilog.name_to_verilog(systemT.name) +
+                    ".v"
             end
-        else
-            # Single file generation mode.
-            top_system.each_systemT_deep.reverse_each do |systemT|
-                $output << systemT.to_ch
-                $output << systemT.to_c
-            end
-            # Adds the main code.
-            $output << HDLRuby::Low::Low2C.main(top_system,
-                                    *top_system.each_systemT_deep.to_a)
+            # Open the file for current systemT
+            outfile = File.open(name,"w")
+            # Generate the VHDL code in to.
+            outfile << systemT.to_verilog
+            # Close the file.
+            outfile.close
+            # Clears the name.
+            name = nil
         end
-        if $options[:sim] then
-            # Simulation mode, compile and exectute.
-            # Path of the simulator core files.
-            simdir = File.dirname(__FILE__) + "/sim/"
-            # Generate and execute the simulation commands.
-            Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
+    else
+        # Single file generation mode.
+        top_system.each_systemT_deep.reverse_each do |systemT|
+            $output << systemT.to_verilog
         end
-    elsif $options[:verilog] then
-        # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
-        # top_system = $top_instance.to_low.systemT
-        top_system = $top_system
-        # Make description compatible with verilog generation.
+    end
+elsif $options[:vhdl] then
+    # top_system = $top_instance.to_low.systemT
+    top_system = $top_system
+    # Make description compatible with vhdl generation.
+    top_system.each_systemT_deep do |systemT|
+        systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
+        systemT.with_boolean!
+        systemT.boolean_in_assign2select! unless $options[:alliance]
+        systemT.bit2vector2inner!         unless $options[:vhdl08] || $options[:alliance]
+        systemT.select2case!              # if     $options[:alliance]
+        systemT.break_concat_assigns!     # if     $options[:alliance]
+        systemT.to_upper_space!
+        systemT.to_global_systemTs!
+        systemT.break_types!
+        systemT.with_port!
+        systemT.with_var!
+        systemT.cleanup!
+    end
+    # Generate the vhdl.
+    if $options[:multiple] then
+        # Get the base name of the input file, it will be used for
+        # generating the main name of the multiple result files.
+        basename = File.basename($input,File.extname($input))
+        basename = $output + "/" + basename
+        # File name counter.
+        count = 0
+        # Prepare the initial name for the main file.
+        name = basename + ".vhd"
+        # Multiple files generation mode.
         top_system.each_systemT_deep do |systemT|
-            systemT.to_upper_space!
-            systemT.to_global_systemTs!
-            systemT.break_types!
-            systemT.with_port!
+            # Generate the name if necessary.
+            unless name
+                name = $output + "/" +
+                    HDLRuby::Low::Low2VHDL.entity_name(systemT.name) +
+                    ".vhd"
+            end
+            # Open the file for current systemT
+            outfile = File.open(name,"w")
+            # Generate the VHDL code in to.
+            outfile << systemT.to_vhdl
+            # Close the file.
+            outfile.close
+            # Clears the name.
+            name = nil
         end
-        # # Verilog generation
-        # $output << top_system.to_verilog
-        # Generate the Verilog.
-        if $options[:multiple] then
-            # Get the base name of the input file, it will be used for
-            # generating the main name of the multiple result files.
-            basename = File.basename($input,File.extname($input))
-            basename = $output + "/" + basename
-            # File name counter.
-            count = 0
-            # Prepare the initial name for the main file.
-            name = basename + ".v"
-            # Multiple files generation mode.
-            top_system.each_systemT_deep do |systemT|
-                # Generate the name if necessary.
-                unless name
-                    name = $output + "/" +
-                        HDLRuby::Verilog.name_to_verilog(systemT.name) +
-                        ".v"
-                end
-                # Open the file for current systemT
-                outfile = File.open(name,"w")
-                # Generate the VHDL code in to.
-                outfile << systemT.to_verilog
-                # Close the file.
-                outfile.close
-                # Clears the name.
-                name = nil
-            end
-        else
-            # Single file generation mode.
-            top_system.each_systemT_deep.reverse_each do |systemT|
-                $output << systemT.to_verilog
-            end
-        end
-    elsif $options[:vhdl] then
-        # top_system = $top_instance.to_low.systemT
-        top_system = $top_system
-        # Make description compatible with vhdl generation.
-        top_system.each_systemT_deep do |systemT|
-            systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
-            systemT.with_boolean!
-            systemT.boolean_in_assign2select! unless $options[:alliance]
-            systemT.bit2vector2inner!         unless $options[:vhdl08] || $options[:alliance]
-            systemT.select2case!              # if     $options[:alliance]
-            systemT.break_concat_assigns!     # if     $options[:alliance]
-            systemT.to_upper_space!
-            systemT.to_global_systemTs!
-            systemT.break_types!
-            systemT.with_port!
-            systemT.with_var!
-            systemT.cleanup!
-        end
-        # Generate the vhdl.
-        if $options[:multiple] then
-            # Get the base name of the input file, it will be used for
-            # generating the main name of the multiple result files.
-            basename = File.basename($input,File.extname($input))
-            basename = $output + "/" + basename
-            # File name counter.
-            count = 0
-            # Prepare the initial name for the main file.
-            name = basename + ".vhd"
-            # Multiple files generation mode.
-            top_system.each_systemT_deep do |systemT|
-                # Generate the name if necessary.
-                unless name
-                    name = $output + "/" +
-                        HDLRuby::Low::Low2VHDL.entity_name(systemT.name) +
-                        ".vhd"
-                end
-                # Open the file for current systemT
-                outfile = File.open(name,"w")
-                # Generate the VHDL code in to.
-                outfile << systemT.to_vhdl
-                # Close the file.
-                outfile.close
-                # Clears the name.
-                name = nil
-            end
-        else
-            # Single file generation mode.
-            top_system.each_systemT_deep.reverse_each do |systemT|
-                $output << systemT.to_vhdl
-            end
+    else
+        # Single file generation mode.
+        top_system.each_systemT_deep.reverse_each do |systemT|
+            $output << systemT.to_vhdl
         end
     end
 end
