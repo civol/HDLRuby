@@ -192,9 +192,12 @@ end
 
 
 if __FILE__ == $0 then
+    # From hdrcc.rb
     $hdr_dir = File.dirname(__FILE__)
 else
-    $hdr_dir = File.dirname($0).chomp("exe")
+    # Form hdrcc
+    $hdr_dir = File.dirname(Gem.bin_path("HDLRuby","hdrcc")).chomp("exe") +
+        "lib/HDLRuby"
 end
 
 require 'optparse'
@@ -396,6 +399,9 @@ $non_hdlruby.each {|code| code.to_file($output) }
 
 # The HDLRuby code
 if $options[:yaml] then
+    if $options[:multiple] then
+        raise "Multiple files generation mode not supported for YAML output yet."
+    end
     # $output << $top_instance.to_low.systemT.to_yaml
     $output << $top_system.to_yaml
 elsif $options[:hdr] then
@@ -507,7 +513,15 @@ elsif $options[:clang] then
         # simdir = File.dirname(__FILE__) + "/sim/"
         simdir = $hdr_dir + "/sim/"
         # Generate and execute the simulation commands.
-        Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
+        # Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
+        Dir.entries(simdir).each do |filename| 
+            unless File.directory?(filename) then
+                FileUtils.cp(simdir + "/" + filename,$output)
+            end
+        end
+        Dir.chdir($output)
+        Kernel.system("make -s")
+        Kernel.system("./hruby_simulator")
     end
 elsif $options[:verilog] then
     # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
