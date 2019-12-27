@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["lovic@ariake-nct.ac.jp"]
 
   spec.summary       = %q{Hardware Ruby is a library for describing and simulating digital electronic systems.}
-  spec.description   = %q{Hardware Ruby is a library for describing and simulating digital electronic systems. With this library it will possible to describe hardware using all the features of the Ruby language, e.g., object orientation, duck tping, closure. This library is also usable through irb for interactive design and simulation.}
+  spec.description   = %q{Hardware Ruby is a library for describing and simulating digital electronic systems. With this library it will possible to describe synthesizable hardware using all the features of the Ruby language, e.g., object orientation, duck typing, closure. This library is also usable through irb for interactive design and simulation.}
   spec.homepage      = "https://github.com/civol"
   spec.license       = "MIT"
 
@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.required_ruby_version = '>= 2.0'
   spec.add_development_dependency "bundler", "~> 2.0.1"
   spec.add_development_dependency "rake", "~> 10.0"
   # spec.add_development_dependency "minitest", "~> 5.0"
