@@ -13,13 +13,13 @@ __Warning__:
 
 ## Using the HDLRuby compiler
 
-'hdrcc.rb' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL or a YAML low-level descriptions of a HW components but also simulate the input description.
+'hdrcc' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL or a YAML low-level descriptions of a HW components but also simulate the input description.
 
 
 __Usage__:
 
 ```
-hdrcc.rb [options] <input file> <output directory>
+hdrcc [options] <input file> <output directory>
 ```
 
 Where:
@@ -52,32 +52,32 @@ __Examples__:
 * Compile system named `adder` from `adder.rb` input file and generate a low-level YAML description into directory `adder`:
 
 ```
-hdrcc.rb --yaml --top adder adder.rb adder
+hdrcc --yaml --top adder adder.rb adder
 ```
 
 * Compile `adder.rb` input file and generate a low-level Verilog HDL description into directory `adder`:
 
 ```
-hdrcc.rb -v adder.rb adder
+hdrcc -v adder.rb adder
 ```
   
 * Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit low-level VHDL description into directory `adder`:
 
 ```
-hdrcc.rb -V -t adder --param 16 adder_gen.rb adder
+hdrcc -V -t adder --param 16 adder_gen.rb adder
 ```
 
 * Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description into directory `multer`:
 
 ```
-hdrcc.rb -y -t multer -p 16,16,32 multer_gen.rb multer
+hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer
 ```
 
 * Simulate the circuit described in file `counter_bench.rb` using directory `counter` for
   storing the simulator's files:
 
 ```
-hdrcc.rb -S counter_bench.rb counter
+hdrcc -S counter_bench.rb counter
 ```
 
 
