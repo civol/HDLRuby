@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/civol"
   spec.license       = "MIT"
 
-  if spec.metadata = { 
+  spec.metadata = { 
     "source_code_uri" => "https://github.com/civol/HDLRuby"
   }
 
