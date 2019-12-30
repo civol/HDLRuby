@@ -14,9 +14,9 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/civol"
   spec.license       = "MIT"
 
-  spec.metadata = { 
-    "source_code_uri" => "https://github.com/civol/HDLRuby"
-  }
+  if spec.respond_to?(:metadata) then
+      spec.metadata["source_code_uri"] = "https://github.com/civol/HDLRuby"
+  end
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
