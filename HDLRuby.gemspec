@@ -11,12 +11,12 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Hardware Ruby is a library for describing and simulating digital electronic systems.}
   spec.description   = %q{Hardware Ruby is a library for describing and simulating digital electronic systems. With this library it will possible to describe synthesizable hardware using all the features of the Ruby language, e.g., object orientation, duck typing, closure. This library is also usable through irb for interactive design and simulation.}
-  spec.homepage      = "https://github.com/civol"
+  spec.homepage      = "https://github.com/civol/HDLRuby"
   spec.license       = "MIT"
 
-  if spec.respond_to?(:metadata) then
-      spec.metadata["source_code_uri"] = "https://github.com/civol/HDLRuby"
-  end
+  # if spec.respond_to?(:metadata) then
+  #     spec.metadata["source_code_uri"] = "https://github.com/civol/HDLRuby"
+  # end
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
