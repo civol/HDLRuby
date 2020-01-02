@@ -3,6 +3,20 @@
 HDLRuby is a library for describing and simulating digital electronic
 systems.
 
+__Install__:
+
+The recommended installation method is from rubygem as follows:
+
+```
+gem install HDLRuby
+```
+
+Developpers indending to contribute to HDLRuby can install the sources from github as follows:
+
+```
+git clone HDLRuby
+```
+
 __Warning__: 
 
  - This is still preliminary work which may change a before we release a stable version.
