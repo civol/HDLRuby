@@ -515,12 +515,13 @@ elsif $options[:clang] then
         # Generate and execute the simulation commands.
         # Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
         Dir.entries(simdir).each do |filename| 
-            unless File.directory?(filename) then
+            if !File.directory?(filename) && /\.[ch]$/ === filename then
                 FileUtils.cp(simdir + "/" + filename,$output)
             end
         end
         Dir.chdir($output)
-        Kernel.system("make -s")
+        # Kernel.system("make -s")
+        Kernel.system("cc -o3 -o hruby_simulator *.c")
         Kernel.system("./hruby_simulator")
     end
 elsif $options[:verilog] then
