@@ -27,7 +27,7 @@ __Warning__:
 
 ## Using the HDLRuby compiler
 
-'hdrcc' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL or a YAML low-level descriptions of a HW components but also simulate the input description.
+'hdrcc' is the HDLRuby compiler. It takes as input a HDLRuby file, checks it, and can produce as output a Verilog HDL, VHDL or a YAML low-level descriptions of a HW components but it can also simulate the input description.
 
 
 __Usage__:
@@ -60,6 +60,7 @@ __Notes__:
 
 * If no top system is given, it is automatically looked for from the input file.
 * If no option is given, simply checks the input file.
+* The simulator option (-S) requires a standard compiler (accessible through the command `cc`) to be available in the executable path.
 
 __Examples__:
 
