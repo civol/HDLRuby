@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Lovic Gauthier"]
   spec.email         = ["lovic@ariake-nct.ac.jp"]
 
-  spec.summary       = %q{Hardware Ruby is a library for describing and simulating digital electronic systems.}
-  spec.description   = %q{Hardware Ruby is a library for describing and simulating digital electronic systems. With this library it will possible to describe synthesizable hardware using all the features of the Ruby language, e.g., object orientation, duck typing, closure. This library is also usable through irb for interactive design and simulation.}
+  spec.summary       = %q{HDLRuby is a library for describing and simulating digital electronic systems.}
+  spec.description   = %q{HDLRuby is a library for describing and simulating digital electronic systems. With this library it will possible to describe synthesizable hardware using all the features of the Ruby language, e.g., object orientation, duck typing, closure. This library is also usable through irb for interactive design and simulation.}
   spec.homepage      = "https://github.com/civol/HDLRuby"
   spec.license       = "MIT"
 
