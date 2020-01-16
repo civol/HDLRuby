@@ -25,7 +25,12 @@ $space_count = 0   # Count used for increasing indent by if statement. (temporar
 $vector_reg = ""   # For storing signal type at structure declaration. (temporary)
 $vector_cnt = 0    # For allocating numbers at structure declaration.  (temporary)
 
-class Fixnum
+# class Fixnum
+#     def to_verilog
+#         to_s
+#     end
+# end
+class ::Integer
     def to_verilog
         to_s
     end

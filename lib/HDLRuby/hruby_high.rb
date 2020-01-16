@@ -3592,19 +3592,35 @@ module HDLRuby::High
         end
     end
 
-    # Extends the Fixnum class for computing for conversion to expression.
-    class ::Fixnum
+    # # Extends the Fixnum class for computing for conversion to expression.
+    # class ::Fixnum
+    #     # Converts to a new high-level expression.
+    #     def to_expr
+    #         return Value.new(Integer,self)
+    #     end
+    # end
+
+    # # Extends the Bignum class for computing for conversion to expression.
+    # class ::Bignum
+    #     # Converts to a new high-level expression.
+    #     def to_expr
+    #         return Value.new(Bignum,self)
+    #     end
+    # end
+    
+    # Extends the Integer class for computing for conversion to expression.
+    class ::Integer
         # Converts to a new high-level expression.
         def to_expr
             return Value.new(Integer,self)
         end
     end
-
-    # Extends the Bignum class for computing for conversion to expression.
-    class ::Bignum
+    
+    # Extends the Float class for computing for conversion to expression.
+    class ::Float
         # Converts to a new high-level expression.
         def to_expr
-            return Value.new(Bignum,self)
+            return Value.new(Float,self)
         end
     end
 
@@ -4051,6 +4067,7 @@ module HDLRuby::High
 
     # Standard vector types.
     Integer = TypeSigned.new(:integer)
+    Char    = TypeSigned.new(:char,7..0)
     Natural = TypeUnsigned.new(:natural)
     Bignum  = TypeSigned.new(:bignum,HDLRuby::Infinity..0)
     Real    = TypeFloat.new(:float)
