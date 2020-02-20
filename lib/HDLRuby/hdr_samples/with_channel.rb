@@ -71,7 +71,7 @@ system :producer8 do |channel|
     # Inputs of the producer: clock and reset.
     input :clk, :rst
     # Instantiate the channel ports
-    channel.writer_ports
+    channel.output :ch
     # Inner 8-bit counter for generating values.
     [8].inner :counter
 
@@ -79,7 +79,7 @@ system :producer8 do |channel|
     par(clk.posedge) do
         hif(rst) { counter <= 0 }
         helse do
-            channel.write(counter) { counter <= counter + 1 }
+            ch.write(counter) { counter <= counter + 1 }
         end
     end
 end
@@ -89,13 +89,13 @@ system :consummer8 do |channel|
     # Input of the consummer: a clock is enough.
     input :clk
     # Instantiate the channel ports
-    channel.reader_ports
+    channel.input :ch
     # Inner buffer for storing the cunsummed value.
     [8].inner :buf
 
     # The value consumption process
     par(clk.posedge) do
-        channel.read(buf)
+        ch.read(buf)
     end
 end
 
@@ -111,8 +111,8 @@ system :hs_test do
     hs.reset.at(rst.posedge)
 
     # Instantiate the producer.
-    producer8(hs).(:producerI).(clk,rst,*hs.writer_signals)
+    producer8(hs).(:producerI).(clk,rst)
 
     # Instantiate the consummer.
-    consummer8(hs).(:consummerI).(clk,*hs.reader_signals)
+    consummer8(hs).(:consummerI).(clk)
 end
