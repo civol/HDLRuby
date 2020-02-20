@@ -52,6 +52,13 @@ module HDLRuby::Low
                 @parent = parent
             end
         end
+
+        # Get the parent scope.
+        def scope
+            cur = self.parent
+            cur = cur.parent until cur.is_a?(Scope)
+            return cur
+        end
     end
 
 
