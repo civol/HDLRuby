@@ -336,6 +336,9 @@ module HDLRuby::High
             # Create the public namespace.
             @public_namespace = Namespace.new(self.scope)
 
+            # Initialize the list of tasks to execute on the instance.
+            @on_instances = []
+
             # Check and set the mixins.
             mixins.each do |mixin|
                 unless mixin.is_a?(SystemT) then
@@ -543,6 +546,21 @@ module HDLRuby::High
             return self
         end
 
+
+        # Adds a task to apply on the instances of the system.
+        def on_instance(&ruby_block)
+            @on_instances << ruby_block
+        end
+
+        # Iterate over the task to apply on the instances of the system.
+        def each_on_instance(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_on_instance) unless ruby_block
+            # A block? Apply it on each overload if any.
+            @on_instances.each(&ruby_block)
+        end
+
+
         # Instantiate the system type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
@@ -560,6 +578,10 @@ module HDLRuby::High
             # puts "instance scope= #{instance.systemT.scope}"
             # Add the instance.
             High.top_user.send(:add_systemI,instance)
+            
+            # Execute the post instantiation tasks.
+            eigen.each_on_instance { |task| task.(instance) }
+
             # Return the resulting instance
             return instance
         end
@@ -884,8 +906,6 @@ module HDLRuby::High
             @namespace.concat_namespace(base.namespace)
             High.space_push(@namespace)
             # Execute the instantiation block
-            # instance_proc = base.parent.instance_proc if base.parent.respond_to?(:instance_proc)
-            # @return_value = High.top_user.instance_exec(*args,&instance_proc) if instance_proc
             base.parent.each_instance_proc do |instance_proc|
                 @return_value = High.top_user.instance_exec(*args,&instance_proc)
             end
@@ -1148,9 +1168,14 @@ module HDLRuby::High
                         export
                     end
                 end
+                # Adds the task to execute on the instance.
+                system.each_on_instance do |task|
+                    self.parent.on_instance(&task)
+                end
             end
             # Adds it the list of includeds
             @includes[include_name] = system
+            
         end
 
         # Casts as an included +system+.
@@ -1160,6 +1185,7 @@ module HDLRuby::High
             # puts "includes are: #{@includes.keys}"
             return @includes[system].namespace
         end
+
 
         include Hmux
 
@@ -1523,7 +1549,34 @@ module HDLRuby::High
 
         include HbasicType
     end
-    
+
+    # # The infer type.
+    # # Unspecified, but automatically infered when connected.
+    # Infer = define_type(:infer)
+    # class << Infer
+    #     # The specified type.
+    #     attr_reader :type
+
+    #     # Sets the specifed type to typ.
+    #     def type=(typ)
+    #         # Ensure typ is a type.
+    #         typ = typ.to_type
+    #         unless @type
+    #             @type = typ
+    #         else
+    #             unless @type.eql(typ)
+    #                 raise AnyError.new("Invalid type for connection to auto type: expecting #{@type} but got #{typ}")
+    #             end
+    #         end
+    #         return self
+    #     end
+
+    #     # Converts the type to HDLRuby::low.
+    #     # Actually returns the HDLRuby::low version of the specified type.
+    #     def to_low
+    #         return type.to_low
+    #     end
+    # end
 
 
 
@@ -1839,7 +1892,8 @@ module HDLRuby::High
         # in the order of declaration.
         def call(*connects)
             # Checks if it is a connection through is a hash.
-            if connects.size == 1 and connects[0].respond_to?(:to_h) then
+            if connects.size == 1 and connects[0].respond_to?(:to_h) and
+                !connects[0].is_a?(HRef) then
                 # Yes, perform a connection by name
                 connects = connects[0].to_h
                 # Performs the connections.
@@ -2166,6 +2220,66 @@ module HDLRuby::High
         attr_reader :systemT
         # The type of the expression if resolved.
         attr_reader :type
+
+        # Creates input port +name+ and connect it to the expression.
+        def input(name)
+            # Ensures the name is a symbol.
+            name = name.to_sym
+            # Get access to the current expression
+            obj = self
+            # Create the input.
+            port = nil
+            HDLRuby::High.cur_system.open do
+                port = obj.type.input(name)
+            end
+            # Make the connection when the instance is ready.
+            HDLRuby::High.cur_system.on_instance do |inst|
+                obj.scope.open do
+                    RefObject.new(inst,port.to_ref) <= obj
+                end
+            end
+            return port
+        end
+
+        # Creates output port +name+ and connect it to the expression.
+        def output(name)
+            # Ensures the name is a symbol.
+            name = name.to_sym
+            # Get access to the current expression
+            obj = self
+            # Create the output.
+            port = nil
+            HDLRuby::High.cur_system.open do
+                port = obj.type.output(name)
+            end
+            # Make the connection when the instance is ready.
+            HDLRuby::High.cur_system.on_instance do |inst|
+                obj.scope.open do
+                    obj <= RefObject.new(inst,port.to_ref)
+                end
+            end
+            return port
+        end
+
+        # Creates inout port +name+ and connect it to the expression.
+        def inout(name)
+            # Ensures the name is a symbol.
+            name = name.to_sym
+            # Get access to the current expression
+            obj = self
+            # Create the inout.
+            port = nil
+            HDLRuby::High.cur_system.open do
+                port = obj.type.inout(name)
+            end
+            # Make the connection when the instance is ready.
+            HDLRuby::High.cur_system.on_instance do |inst|
+                obj.scope.open do
+                    RefObject.new(inst,port.to_ref) <= obj
+                end
+            end
+            return port
+        end
 
         # Tell if the expression can be converted to a value.
         def to_value?
@@ -3494,6 +3608,22 @@ module HDLRuby::High
     def self.in_behavior?
         top_user.is_a?(Block)
     end
+
+    # Gets the enclosing scope if any.
+    #
+    # NOTE: +level+ allows to get an upper scope of the currently enclosing
+    #       scope.
+    def self.cur_scope(level = 0)
+        if level < 0 then
+            raise AnyError, "Not within a scope: #{Namespaces[-1].user.class}"
+        end
+        if Namespaces[-1-level].user.is_a?(Scope) then
+            return Namespaces[-1-level].user
+        else
+            return cur_scope(level+1)
+        end
+    end
+
 
     # Gets the enclosing block if any.
     #
