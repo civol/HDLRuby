@@ -1923,11 +1923,7 @@ For example, the following code describes an empty system with two generic param
 system(:nothing) { |a,b| }
 ```
 
-The generic parameters can be anything: values, data types, systems, Ruby variables, and so on.  For example, the following system uses generic argument
-`t` as a type for an input signal, generic argument `w` as a bit range for an
-output signal and generic argument `s` as a system used for creating instance
-`sI` whose input and output signals `i` and `o` are connected respectively to
-signals `isig` and `osig`.
+The generic parameters can be anything: values, data types, signals, systems, Ruby variables, and so on.  For example, the following system uses generic argument `t` as a type for an input signal, generic argument `w` as a bit range for an output signal and generic argument `s` as a system used for creating instance `sI` whose input and output signals `i` and `o` are connected respectively to signals `isig` and `osig`.
 
 ```ruby
 system :something do |t,w,s|
@@ -1995,7 +1991,7 @@ end
 
 __Note:__
 
-- In the example above, generic parameter `param` of `sybsys_gen` is used for specializing system `sys`.
+- In the example above, generic parameter `param` of `subsys_gen` is used for specializing system `sys`.
 
 
 ##### Specializing generic types
@@ -2007,6 +2003,27 @@ A generic type is specialized by invoking its name and passing as argument the v
 ```
 
 If less values are provided than the number of generic arguments, the type is partially specialized. However, only a fully specialized type can be used for declaring signals.
+
+
+##### Use of signals as generic parameters
+
+Signals passed as generic arguments to systems can be used for making generic connections to the instance of the system. For that purpose, the generic argument has to be declared as input, output or inout port in the body of the system as follows:
+
+```ruby
+system :<system_name> do |sig|
+   sig.input :my_sig
+   ...
+end
+```
+
+In the code above, `sig` is a generic argument assumed to be a signal. The second line declares the port to which sig will connected to when instantiating. From there, port `my_sig` can be used like any other port of the system. Such a system is them instantiated as follows:
+
+```ruby
+system_name(some_sig) :<instance_name>
+```
+
+In the code above, `some_sig` is a signal available in the current context. This instantiation automatically connects `some_sig` to the instance.
+
 
 
 ### Inheritance
@@ -2715,8 +2732,11 @@ This library provides a unified interface to complex communication protocols thr
 
 A channel is used similarly to a pipe: it has an input where data can be written and an output where data can be read. The ordering of the data and the synchronization depend on the internals of the channel, e.g., a channel can be FIFO or LIFO. The interaction with the channel is done using the following methods:
  
- * `writer_ports`: generate ports in the system for writing to the channel. This method is used without any argument.
- * `reader_ports`: generate ports in the system for reading from the channel. This method is used without any argument.
+ * `output <name>`: generate ports in the system for writing to the channel and associate them to `name`
+ * `input <name>`: generate ports in the system for reading from the channel amd associate them to `name`
+
+When the channel ports are declared, they can be accessed using the following methods depending on whether they are writing or reading ports:
+
  * `write(<value>) <block>`: write `value` to the channel and execute `block` when `write` completes. Both `value` and `block` may be omitted depending on the kind of channel.
  * `read(<target>) <block>`: read the channel, assign the result to signal `target` and execute `block` when the read completes. Both `target` and `block` may be omitted depending on the kind of channel.
 
@@ -2727,7 +2747,7 @@ system :producer8 do |channel|
     # Inputs of the producer: clock and reset.
     input :clk, :rst
     # Instantiate the channel ports
-    channel.writer_ports
+    channel.output :chi
     # Inner 8-bit counter for generating values.
     [8].inner :counter
 
@@ -2735,7 +2755,7 @@ system :producer8 do |channel|
     par(clk.posedge) do
         hif(rst) { counter <= 0 }
         helse do
-            channel.write(counter) { counter <= counter + 1 }
+            chi.write(counter) { counter <= counter + 1 }
         end
     end
 end
@@ -2814,17 +2834,12 @@ And in case there are generic parameter, the instantiation procedure is as follo
 <channel name>(:<instance name>).(<generic parameters>)
 ```
 
-After a channel is instantiated, it must be linked to the circuits that will communicate through it. This is done when instantiating these circuits. If a circuit reads on the channel, it will be instantiated as follows:
+After a channel is instantiated, it must be linked to the circuits that will communicate through it. This is done when instantiating these circuits. If a circuit reads or writes on the channel, it will be instantiated as follows:
 
 ```ruby
-<system name>(<channel instance>).(:<instance name>).(<circuit standard connections>,*<channel instance>.reader_signals)
+<system name>(<channel instance>).(:<instance name>).(<circuit standard connections>)
 ```
 
-If the circuit writes on the channel, it must be instantiated as follows:
-
-```ruby
-<system name>(<channel instance>).(:<instance name>).(<circuit standard connections>,*<channel instance>.writer_signals)
-```
 
 __Notes__:
 
@@ -2846,10 +2861,10 @@ system :producer_consumer8 do
    regchI.reset.at(rst.posedge)
 
    # Instantiate the producer.
-   producer8(regch).(:producerI).(clk,rst,*regch.writer_signals)
+   producer8(regch).(:producerI).(clk,rst)
 
    # Instantiate the consumer.
-   consumer8(regch).(:consumerI).(clk.rst,*regch.reader_signals)
+   consumer8(regch).(:consumerI).(clk.rst)
 end
 ```
 
