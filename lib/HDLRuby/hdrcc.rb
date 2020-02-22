@@ -54,6 +54,14 @@ module HDLRuby
             @dir = dir.to_s
             @params = params
 
+            # The list of the standard library files to exclude for
+            # checking.
+            # Get the directory of the HDLRuby and Ruby standard libraries.
+            @std_dirs = $LOAD_PATH
+            # @std_dirs << File.dirname(__FILE__) + "/std"
+            # # Gather the files with their path to std.
+            # @std_files = Dir[@std_dir + "/*"]
+
             # The list of required files.
             @requires = []
 
@@ -70,19 +78,45 @@ module HDLRuby
 
         # Loads a single +file+.
         def read(file)
-            @texts << File.read(File.join(@dir,file) )
-            @checks << Checker.new(@texts[-1],file)
+            # Resolve the file.
+            found = File.join(@dir,file)
+            unless File.exist?(found) then
+                founds = Dir.glob(@std_dirs.map {|path| File.join(path,file) })
+                if founds.empty? then
+                    # No standard file with this name, this is an error.
+                    raise "Unknown required file: #{file}."
+                else
+                    # A standard file is found, skip it since it does not
+                    # need to be read.
+                    # puts "Standard files: #{founds}"
+                    return false
+                end
+            end
+            # Load the file.
+            # @texts << File.read(File.join(@dir,file) )
+            @texts << File.read(found)
+            # @checks << Checker.new(@texts[-1],file)
+            @checks << Checker.new(@texts[-1],found)
+            return true
         end
 
         # Loads all the files from +file+.
         def read_all(file = @top_file)
             # puts "read_all with file=#{file}"
             # Read the file
-            read(file)
+            # read(file)
+            unless read(file) then
+                # The file is to skip.
+                return
+            end
             # Get its required files.
             requires = @checks[-1].get_all_requires
             requires.each do |file|
-                read_all(file) if file != "HDLRuby"
+                # if file != "HDLRuby" &&
+                #         !@std_files.find { |std| std.include?(file) } then
+                #     read_all(file)
+                # end
+                read_all(file)
             end
             @requires += requires
             @requires.uniq!
