@@ -1,4 +1,4 @@
-require '../std/decoder.rb'
+require 'std/decoder.rb'
 include HDLRuby::High::Std
 
 # Implementation of a decoder.

@@ -1,5 +1,4 @@
-
-require '../std/channel.rb'
+require 'std/channel.rb'
 
 include HDLRuby::High::Std
 

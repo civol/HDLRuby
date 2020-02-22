@@ -1,4 +1,4 @@
-require '../std/reconf.rb'
+require 'std/reconf.rb'
 
 include HDLRuby::High::Std
 

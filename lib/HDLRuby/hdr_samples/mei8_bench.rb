@@ -1,5 +1,5 @@
-require '../std/fsm.rb'
-require '../std/decoder.rb'
+require 'std/fsm.rb'
+require 'std/decoder.rb'
 include HDLRuby::High::Std
 
 # A simple implementation of the MEI8 processor.

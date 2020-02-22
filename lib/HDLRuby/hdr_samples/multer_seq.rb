@@ -1,4 +1,4 @@
-require '../std/fsm.rb'
+require 'std/fsm.rb'
 include HDLRuby::High::Std
 
 # A sequential 16x16 -> 32 multer
