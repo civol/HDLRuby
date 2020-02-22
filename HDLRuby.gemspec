@@ -24,7 +24,8 @@ Gem::Specification.new do |spec|
   spec.extra_rdoc_files = ["README.md"]
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
-  spec.require_paths = ["lib"]
+  # spec.require_paths = ["lib"]
+  spec.require_paths = ["lib","lib/HDLRuby"]
 
   spec.required_ruby_version = '>= 2.0'
   spec.add_development_dependency "bundler", "~> 2.0.1"
