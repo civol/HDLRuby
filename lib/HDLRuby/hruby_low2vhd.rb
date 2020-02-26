@@ -1100,7 +1100,11 @@ module HDLRuby::Low
             # when Numeric
             #     return self.content.to_s
             when HDLRuby::BitString
-                sign = self.type.signed? ? self.content.to_s[-1] : "0"
+                # Compute the extension: in case of signed type, the extension
+                # is the last bit. Otherwise it is 0 unless the last bit
+                # is not defined (Z or X).
+                sign = self.type.signed? ? self.content.to_s[-1] : 
+                    /[01]/ =~ self.content[-1] ? "0" : self.content[-1]
                 return '"' + self.content.to_s.rjust(width,sign).upcase + '"'
             else
                 sign = self.type.signed? ? (self.content>=0 ? "0" : "1") : "0"
