@@ -2732,13 +2732,15 @@ This library provides a unified interface to complex communication protocols thr
 
 A channel is used similarly to a pipe: it has an input where data can be written and an output where data can be read. The ordering of the data and the synchronization depend on the internals of the channel, e.g., a channel can be FIFO or LIFO. The interaction with the channel is done using the following methods:
  
- * `output <name>`: generate ports in the system for writing to the channel and associate them to `name`
  * `input <name>`: generate ports in the system for reading from the channel amd associate them to `name`
+ * `output <name>`: generate ports in the system for writing to the channel and associate them to `name`
+ * `inout <name>`: generate ports in the system for reading and writing to the channel and associate them to `name`
 
 When the channel ports are declared, they can be accessed using the following methods depending on whether they are writing or reading ports:
 
- * `write(<value>) <block>`: write `value` to the channel and execute `block` when `write` completes. Both `value` and `block` may be omitted depending on the kind of channel.
- * `read(<target>) <block>`: read the channel, assign the result to signal `target` and execute `block` when the read completes. Both `target` and `block` may be omitted depending on the kind of channel.
+ * `write(<args>) <block>`: write to the channel and execute `block` when `write` completes. `args` is a list of arguments required for performing the write that depend on the channel.
+ * `read(<args>) <block>`: read the channel and execute `block` when the read completes. `args` is a list of arguments required for performing the write that depend on the channel.
+ * `access(<args>) <block>`: access (read and/or write to) the channel and execute `block` when the access completes. `args` is a list of arguments required for performing the access that depend on the channel.
 
 For example, a system sending successive 8-bit values through a channel can be described as follows:
 
@@ -2775,17 +2777,24 @@ Where `name` is the name of the channel and `block` is a procedure block describ
  * `reader_output <list of names>`: declares the output ports on the reader side. The list must give the names of the inner signals of the channel that can be written using the reader procedure.
  * `writer_input <list of names>`: declares the inputs on the writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
  * `writer_output <list of names>`: declares the outputs on the writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
+ * `accesser_input <list of names>`: declares the inputs on the reader-writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
+ * `accesser_output <list of names>`: declares the outputs on the reader-writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
  * `command <name> <block>`: declares a new command for the channel.
  * `reader <block>`: defines the reader's access procedure.
    This procedure is invoked by method `read` of the channel (please refer to the previous example).
- The block takes the following arguments:
+ The first argument of the block must be the following:
    - `blk`: the block to execute when the read completes.
-   - `target`: the signal where to put the read value.
+ Other arguments can be freely defined, and will be required by the `read` method.
  * `writer < block>`: defines the writer's access procedure.
    This procedure is invoked by method `write` of the channel (please refer to the previous example).
- The block takes the following arguments:
+ The first argument of the block must be the following:
    - `blk`: the block to execute when the write completes.
-   - `target`: the signal that contains the value to write.
+ Other arguments can be freely defined, and will be required by the `write` command.
+ * `accesser < block>`: defines the reader-writer's access procedure.
+   This procedure is invoked by method `access` of the channel (please refer to the previous example).
+ The first argument of the block must be the following:
+   - `blk`: the block to execute when the access completes.
+ Other arguments can be freely defined, and will be required by the `access` command.
 
 For example, a channel implemented by a simple register of generic type `typ`, that can be set to 0 using the `reset` command can be described as follows:
 
