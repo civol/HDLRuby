@@ -1568,11 +1568,11 @@ The type puns include `to_bit`, `to_unsigned` and `to_signed` that convert expre
 
 ```ruby
 [ up: signed[3..0], down: unsigned[3..0] ].inner :sig
-sig.to_bit <= b01010011
+sig.to_bit <= _b01010011
 ```
 
 The type casts change both the type and the value and are used to adjust the width of the types.  They can only be applied to vectors of `bit`, `signed` or `unsinged` and can only increase the bit width (bit width can be truncated using the selection operator, please refer to the [next section](#concat)).
-These operators comprise the bit width conversions: `ljust`, `rjust`, `zext` and `sext`; they also comprise the bit endianness conversions: `to_big`, `to_little` and `reverse`.
+These operators comprise the bit width conversions: `ljust`, `rjust`, `zext` and `sext`.
 
 More precisely, the bit width conversions operate as follows:
 
@@ -1602,14 +1602,6 @@ More precisely, the bit width conversions operate as follows:
    sig0 <= -120
    sig1 <= sig0.sext(12)
    ```
-
-Finally, the bit endianness conversions operate as follows:
-
-- `to_big` ensures the type of the converted expression is big endian. If the initial expression is already big endian, it is left as is, otherwise its bits are reversed.
-
-- `to_little` ensures the type of the converted expression is little endian. If the initial expression is already little endian, it is left as is, otherwise its bits are reversed.
-
-- `reverse` always reverses the bit order of the expression.
 
 
 #### Concatenation and selection operators
@@ -1644,7 +1636,7 @@ Concatenation and selection are done using the `[]` operator as follows:
 #### Implicit conversions
 <a name="implicit"></a>
 
-When there is no ambiguity with bit vector types of same endianness, HDLRuby will automatically insert conversion operators when two types are not compatible with one another.  The cases where such implicit conversions are applied are summarized in the following tables where:
+When there is no ambiguity, HDLRuby will automatically insert conversion operators when two types are not compatible with one another.  The cases where such implicit conversions are applied are summarized in the following tables where:
 
  - `operator` is the operator in use
  - `result width` is the width of the result's type
@@ -2775,10 +2767,13 @@ Where `name` is the name of the channel and `block` is a procedure block describ
 
  * `reader_input <list of names>`: declares the input ports on the reader side. The list must give the names of the inner signals of the channel that can be read using the reader procedure.
  * `reader_output <list of names>`: declares the output ports on the reader side. The list must give the names of the inner signals of the channel that can be written using the reader procedure.
- * `writer_input <list of names>`: declares the inputs on the writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
- * `writer_output <list of names>`: declares the outputs on the writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
- * `accesser_input <list of names>`: declares the inputs on the reader-writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
- * `accesser_output <list of names>`: declares the outputs on the reader-writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
+ * `reader_inout <list of names>`: declares the inout ports on the reader side. The list must give the names of the inner signals of the channel that can be written using the reader procedure.
+ * `writer_input <list of names>`: declares the input ports on the writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
+ * `writer_output <list of names>`: declares the output ports on the writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
+ * `writer_inout <list of names>`: declares the inout ports on the writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
+ * `accesser_input <list of names>`: declares the input ports on both the reader and writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
+ * `accesser_output <list of names>`: declares the output ports on both the reader and writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
+ * `accesser_inout <list of names>`: declares the inout ports on both the reader and writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
  * `command <name> <block>`: declares a new command for the channel.
  * `reader <block>`: defines the reader's access procedure.
    This procedure is invoked by method `read` of the channel (please refer to the previous example).
@@ -2790,11 +2785,6 @@ Where `name` is the name of the channel and `block` is a procedure block describ
  The first argument of the block must be the following:
    - `blk`: the block to execute when the write completes.
  Other arguments can be freely defined, and will be required by the `write` command.
- * `accesser < block>`: defines the reader-writer's access procedure.
-   This procedure is invoked by method `access` of the channel (please refer to the previous example).
- The first argument of the block must be the following:
-   - `blk`: the block to execute when the access completes.
- Other arguments can be freely defined, and will be required by the `access` command.
 
 For example, a channel implemented by a simple register of generic type `typ`, that can be set to 0 using the `reset` command can be described as follows:
 
