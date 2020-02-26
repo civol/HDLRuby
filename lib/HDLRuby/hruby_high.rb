@@ -2321,6 +2321,41 @@ module HDLRuby::High
             return Cast.new(type.to_type,self.to_expr)
         end
 
+        # Casts to a bit vector type.
+        def to_bit
+            return self.as(bit[self.width])
+        end
+
+        # Casts to an unsigned bit vector type.
+        def to_unsigned
+            return self.as(unsigned[self.width])
+        end
+
+        # Casts to a signed bit vector type.
+        def to_unsigned
+            return self.as(signed[self.width])
+        end
+
+        # Extends on the left to +n+ bits filling with +v+ bit values.
+        def ljust(n,v)
+            return [(v.to_s * (n-self.width)).to_expr, self]
+        end
+
+        # Extends on the right to +n+ bits filling with +v+ bit values.
+        def rjust(n,v)
+            return [self, (v.to_s * (n-self.width)).to_expr]
+        end
+
+        # Extends on the left to +n+ bits filling with 0.
+        def zext(n)
+            return self.ljust(n,0)
+        end
+
+        # Extends on the left to +n+ bits preserving the signe.
+        def sext(n)
+            return self.ljust(self[-1])
+        end
+
         # Gets the origin method for operation +op+.
         def self.orig_operator(op)
             return (op.to_s + "_orig").to_sym
@@ -2340,6 +2375,26 @@ module HDLRuby::High
             define_method(operator,&meth) 
             # And save it so that it can still be accessed if overidden.
             define_method(orig_operator(operator),&meth)
+        end
+
+        # Left shift of +n+ bits.
+        def ls(n)
+            return self << n
+        end
+
+        # Right shift of +n+ bits.
+        def rs(n)
+            return self >> n
+        end
+
+        # Left rotate of +n+ bits.
+        def lr(n)
+            return [self[-(n+1)..0], self[-1..-(n)]]
+        end
+
+        # Right rotate of +n+ bits.
+        def rr(n)
+            return [self[(n-1)..0], self[-1..n]]
         end
 
         # Coerce by forcing convertion of obj to expression.
