@@ -20,17 +20,15 @@ channel(:handshaker) do |typ|
     # Sets the writer output ports.
     writer_output :buf, :read_valid, :read_ready
 
-    # Defines the reset command for the channel.
-    command(:reset) do
-        par do
-            # Fully locked reader side.
-            read_valid  <= 0
-            read_ready  <= 0
-            # Fully unlocked writer side.
-            write_valid <= 1
-            write_ready <= 1
-        end
-    end
+    # # Defines the reset command for the channel.
+    # command(:reset) do
+    #     # Fully locked reader side.
+    #     read_valid  <= 0
+    #     read_ready  <= 0
+    #     # Fully unlocked writer side.
+    #     write_valid <= 1
+    #     write_ready <= 1
+    # end
 
     # Defines the reader's access procedure.
     reader do |blk,target|
@@ -106,8 +104,8 @@ system :hs_test do
     # Declares the handshaker
     handshaker([8]).(:hs)
 
-    # Sets the reset.
-    hs.reset.at(rst.posedge)
+    # # Sets the reset.
+    # par(rst.posedge) { hs.reset }
 
     # Instantiate the producer.
     producer8(hs).(:producerI).(clk,rst)

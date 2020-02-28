@@ -18,7 +18,8 @@ module HDLRuby::High::Std
             @name = name.to_sym
             # Sets the block for instantiating a channel.
             @ruby_block = ruby_block
-            # Sets the instantiation procedure.
+            # Sets the instantiation procedure if named.
+            return if @name.empty?
             obj = self
             HDLRuby::High.space_reg(@name) do |*args|
                 obj.instantiate(*args)
@@ -42,11 +43,12 @@ module HDLRuby::High::Std
                 end
             end
             # Generates the channels.
+            channelI = nil
             args.each do |nameI|
                 channelI = ChannelI.new(name,&@ruby_block)
                 HDLRuby::High.space_reg(nameI) { channelI }
-                channelI
             end
+            channelI
         end
 
         alias_method :call, :instantiate
@@ -65,19 +67,32 @@ module HDLRuby::High::Std
         HDLRuby::High::Std.channel(name,&ruby_block)
     end
 
+    ## Creates directly an instance of channel named +name+ using
+    #  +ruby_block+ built with +args+.
+    def self.channel_instance(name,*args,&ruby_block)
+        return ChannelT.new(:"",&ruby_block).instantiate(name,*args)
+    end
+
+    ## Creates directly an instance of channel named +name+ using
+    #  +ruby_block+ built with +args+.
+    def channel_instance(name,*args,&ruby_block)
+        HDLRuby::High::Std.channel_instance(name,*args,&ruby_block)
+    end
+
 
     ##
     # Describes a read port to a channel.
     class ChannelPortR
 
         # Creates a new channel reader running in +namespace+ and
-        # reading using +reader_proc+
-        def initialize(namespace,reader_proc)
+        # reading using +reader_proc+ and reseting using +reseter_proc+.
+        def initialize(namespace,reader_proc,reseter_proc)
             unless namespace.is_a?(Namespace)
                 raise "Invalid class for a namespace: #{namespace.class}"
             end
             @namespace = namespace
             @reader_proc = reader_proc.to_proc
+            @rester_proc = reseter_proc.to_proc
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -92,6 +107,19 @@ module HDLRuby::High::Std
             end
             HDLRuby::High.space_pop
         end
+
+        ## Performs a reset on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def reset(*args,&ruby_block)
+            # Gain access to the accesser as local variable.
+            reseter_proc = @reseter_proc
+            # Execute the code generating the accesser in context.
+            HDLRuby::High.space_push(@namespace)
+            HDLRuby::High.cur_block.open do
+                instance_exec(ruby_block,*args,&reseter_proc)
+            end
+            HDLRuby::High.space_pop
+        end
     end
 
 
@@ -100,13 +128,14 @@ module HDLRuby::High::Std
     class ChannelPortW
 
         # Creates a new channel writer running in +namespace+ and
-        # writing using +writer_proc+
-        def initialize(namespace,writer_proc)
+        # writing using +writer_proc+ and reseting using +reseter_proc+.
+        def initialize(namespace,writer_proc,reseter_proc)
             unless namespace.is_a?(Namespace)
                 raise "Invalid class for a namespace: #{namespace.class}"
             end
             @namespace = namespace
             @writer_proc = writer_proc.to_proc
+            @reseter_proc = reseter_proc.to_proc
         end
 
         ## Performs a write on the channel using +args+ and +ruby_block+
@@ -121,6 +150,19 @@ module HDLRuby::High::Std
             end
             HDLRuby::High.space_pop
         end
+
+        ## Performs a reset on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def reset(*args,&ruby_block)
+            # Gain access to the accesser as local variable.
+            reseter_proc = @reseter_proc
+            # Execute the code generating the accesser in context.
+            HDLRuby::High.space_push(@namespace)
+            HDLRuby::High.cur_block.open do
+                instance_exec(ruby_block,*args,&reseter_proc)
+            end
+            HDLRuby::High.space_pop
+        end
     end
 
 
@@ -130,14 +172,16 @@ module HDLRuby::High::Std
     class ChannelPortA
 
         # Creates a new channel accesser running in +namespace+
-        # and reading using +reader_proc+ and writing using +writer_proc+.
-        def initialize(namespace,reader_proc,writer_proc)
+        # and reading using +reader_proc+, writing using +writer_proc+,
+        # and reseting using +reseter_proc+.
+        def initialize(namespace,reader_proc,writer_proc,reseter_proc)
             unless namespace.is_a?(Namespace)
                 raise "Invalid class for a namespace: #{namespace.class}"
             end
             @namespace = namespace
-            @reader_proc = reader_proc.to_proc
-            @writer_proc = writer_proc.to_proc
+            @reader_proc  = reader_proc.to_proc
+            @writer_proc  = writer_proc.to_proc
+            @reseter_proc = reseter_proc.to_proc
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -162,6 +206,19 @@ module HDLRuby::High::Std
             HDLRuby::High.space_push(@namespace)
             HDLRuby::High.cur_block.open do
                 instance_exec(ruby_block,*args,&writer_proc)
+            end
+            HDLRuby::High.space_pop
+        end
+
+        ## Performs a reset on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def reset(*args,&ruby_block)
+            # Gain access to the accesser as local variable.
+            reseter_proc = @reseter_proc
+            # Execute the code generating the accesser in context.
+            HDLRuby::High.space_push(@namespace)
+            HDLRuby::High.cur_block.open do
+                instance_exec(ruby_block,*args,&reseter_proc)
             end
             HDLRuby::High.space_pop
         end
@@ -181,7 +238,7 @@ module HDLRuby::High::Std
         attr_reader :scope
 
         # The namespace associated with the current execution when
-        # building a channel, its reader or its writer.
+        # building a channel.
         attr_reader :namespace
 
         ## Creates a new channel instance with +name+ built from +ruby_block+.
@@ -219,24 +276,32 @@ module HDLRuby::High::Std
             # The accesser inout ports by name.
             @accesser_inouts = {}
 
+            # The default reset procedures (reseters), by default do nothing.
+            @input_reseter_proc  = proc {}
+            @output_reseter_proc = proc {}
+            @inout_reseter_proc  = proc {}
+
+            # The fork channels
+            @forks = {}
+
             # Create the namespaces for building the channel, its readers
             # its writers and its accessers.
 
             # Creates the namespace of the channel.
-            @channel_namespace = Namespace.new(self)
+            @namespace = Namespace.new(self)
             # Make it give access to the internal of the class.
-            @channel_namespace.add_method(:reader_input, &method(:reader_input))
-            @channel_namespace.add_method(:reader_output,&method(:reader_output))
-            @channel_namespace.add_method(:reader_inout, &method(:reader_inout))
-            @channel_namespace.add_method(:writer_input, &method(:writer_input))
-            @channel_namespace.add_method(:writer_output,&method(:writer_output))
-            @channel_namespace.add_method(:writer_inout, &method(:writer_inout))
-            @channel_namespace.add_method(:accesser_input, &method(:accesser_input))
-            @channel_namespace.add_method(:accesser_output,&method(:accesser_output))
-            @channel_namespace.add_method(:accesser_inout, &method(:accesser_inout))
-            @channel_namespace.add_method(:reader,       &method(:reader))
-            @channel_namespace.add_method(:writer,       &method(:writer))
-            @channel_namespace.add_method(:accesser,     &method(:accesser))
+            @namespace.add_method(:reader_input,   &method(:reader_input))
+            @namespace.add_method(:reader_output,  &method(:reader_output))
+            @namespace.add_method(:reader_inout,   &method(:reader_inout))
+            @namespace.add_method(:writer_input,   &method(:writer_input))
+            @namespace.add_method(:writer_output,  &method(:writer_output))
+            @namespace.add_method(:writer_inout,   &method(:writer_inout))
+            @namespace.add_method(:accesser_input, &method(:accesser_input))
+            @namespace.add_method(:accesser_output,&method(:accesser_output))
+            @namespace.add_method(:accesser_inout, &method(:accesser_inout))
+            @namespace.add_method(:reader,         &method(:reader))
+            @namespace.add_method(:writer,         &method(:writer))
+            @namespace.add_method(:forker,         &method(:forker))
 
             # Creates the namespace of the reader.
             @reader_namespace = Namespace.new(self)
@@ -244,9 +309,6 @@ module HDLRuby::High::Std
             @writer_namespace = Namespace.new(self)
             # Creates the namespace of the accesser.
             @accesser_namespace = Namespace.new(self)
-
-            # By default the namespace is the one of the namespace
-            @namespace = @channel_namespace
 
             # Builds the channel within a new scope.
             HDLRuby::High.space_push(@namespace)
@@ -278,20 +340,22 @@ module HDLRuby::High::Std
         
         # For the channel itself
         
-        ## Defines new command +name+ to execute +ruby_block+ for the
-        #  channel.
-        def command(name,&ruby_block)
-            # Ensures name is a symbol.
-            name = name.to_sym
-            # Sets the new command.
-            self.define_singleton_method(name) do |*args|
-                # Executes the command in the right environment.
-                HDLRuby::High.space_push(@namespace)
-                res = HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
-                HDLRuby::High.space_pop
-                res
-            end
-        end
+        # ## Defines new command +name+ to execute +ruby_block+ for the
+        # #  channel.
+        # def command(name,&ruby_block)
+        #     # Ensures name is a symbol.
+        #     name = name.to_sym
+        #     res = nil
+        #     # Sets the new command.
+        #     self.define_singleton_method(name) do |*args|
+        #         HDLRuby::High.space_push(@namespace)
+        #         HDLRuby::High.cur_block.open do
+        #             res = instance_exec(*args,&ruby_block)
+        #         end
+        #         HDLRuby::High.space_pop
+        #         res
+        #     end
+        # end
         
         # For the reader and the writer
 
@@ -414,13 +478,27 @@ module HDLRuby::High::Std
             @writer_proc = ruby_block
         end
 
-        ## Sets the accesser procedure to be +ruby_block+.
-        def accesser(&ruby_block)
-            @accesser_proc = ruby_block
+        # ## Sets the accesser procedure to be +ruby_block+.
+        # def accesser(&ruby_block)
+        #     @accesser_proc = ruby_block
+        # end
+
+        ## Sets the input port reset to be +ruby_block+.
+        def input_reseter(&ruby_block)
+            @input_reseter_proc = ruby_block
         end
 
-        # The methods for accessing the channel
+        ## Sets the output port reset to be +ruby_block+.
+        def output_reseter(&ruby_block)
+            @output_reseter_proc = ruby_block
+        end
+
+        ## Sets the inout port reset to be +ruby_block+.
+        def inout_reseter(&ruby_block)
+            @inout_reseter_proc = ruby_block
+        end
         
+        # The methods for accessing the channel
         # Channel side.
 
         ## Gets the list of the signals of the channel to be connected
@@ -436,6 +514,30 @@ module HDLRuby::High::Std
             return @writer_inputs.values + @writer_outputs.values +
                    @writer_inouts.values
         end
+
+        # Defines a fork in the channel named +name+ built executing
+        # +ruby_block+.
+        def forker(name,&ruby_block)
+            # Ensure name is a symbol.
+            name = name.to_s unless name.respond_to?(:to_sym)
+            name = name.to_sym
+            # Create the fork.
+            @forks[name] = HDLRuby::High.channel_instance(name,&ruby_block)
+        end
+
+
+        # Methods used on the channel outside its definition.
+        
+        # Gets fork channel +name+.
+        # NOTE: +name+ can be of any type on purpose.
+        def fork(name)
+            # Ensure name is a symbol.
+            name = name.to_s unless name.respond_to?(:to_sym)
+            name = name.to_sym
+            # Get the fork.
+            return @forks[name]
+        end
+
 
         # Reader, writer and accesser side.
 
@@ -500,7 +602,7 @@ module HDLRuby::High::Std
 
             # Give access to the ports through name.
             # NOTE: for now, simply associate the channel to name.
-            chp = ChannelPortR.new(@reader_namespace,@reader_proc)
+            chp = ChannelPortR.new(@reader_namespace,@reader_proc,@input_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
             # return obj
             return chp
@@ -565,7 +667,7 @@ module HDLRuby::High::Std
 
             # Give access to the ports through name.
             # NOTE: for now, simply associate the channel to name.
-            chp = ChannelPortW.new(@writer_namespace,@writer_proc)
+            chp = ChannelPortW.new(@writer_namespace,@writer_proc,@output_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
             # return obj
             return chp
@@ -625,7 +727,7 @@ module HDLRuby::High::Std
 
             # Give access to the ports through name.
             # NOTE: for now, simply associate the channel to name.
-            chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc)
+            chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc,@inout_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
             # return obj
             return chp
@@ -635,148 +737,43 @@ module HDLRuby::High::Std
         ## Performs a read on the channel using +args+ and +ruby_block+
         #  as arguments.
         def read(*args,&ruby_block)
-            # # Fill the reader namespace with the access to the reader signals.
-            # @reader_inputs.each do |name,sig|
-            #     @reader_namespace.add_method(sig.name) do
-            #         HDLRuby::High.top_user.send(name)
-            #     end
-            # end
-            # @reader_outputs.each do |name,sig|
-            #     @reader_namespace.add_method(sig.name) do
-            #         HDLRuby::High.top_user.send(name)
-            #     end
-            # end
-            # @reader_inouts.each do |name,sig|
-            #     @reader_namespace.add_method(sig.name) do
-            #         HDLRuby::High.top_user.send(name)
-            #     end
-            # end
-            # Gain access to the reader as local variable.
-            reader_proc = @reader_proc
-            # The context is the one of the reader.
-            @namespace = @reader_namespace
-            # Execute the code generating the reader in context.
-            HDLRuby::High.space_push(@namespace)
-            HDLRuby::High.cur_block.open do
-                instance_exec(ruby_block,*args,&reader_proc)
-            end
-            HDLRuby::High.space_pop
-            # Restores the default context.
-            @namespace = @channel_namespace
-        end
-        ## Performs a read on the channel using +args+ and +ruby_block+
-        #  as arguments.
-        def read(*args,&ruby_block)
             # Gain access to the reader as local variable.
             reader_proc = @reader_proc
             # # The context is the one of the reader.
-            # @namespace = @reader_namespace
             # Execute the code generating the reader in context.
             HDLRuby::High.space_push(@namespace)
             HDLRuby::High.cur_block.open do
                 instance_exec(ruby_block,*args,&reader_proc)
             end
             HDLRuby::High.space_pop
-            # Restores the default context.
-            # @namespace = @channel_namespace
         end
         
-        # ## Performs a write on the channel using +args+ and +ruby_block+
-        # #  as arguments.
-        # def write(*args,&ruby_block)
-        #     # # Fill the writer namespace with the access to the writer signals.
-        #     # @writer_inputs.each do |name,sig|
-        #     #     @writer_namespace.add_method(sig.name) do
-        #     #         HDLRuby::High.top_user.send(name)
-        #     #     end
-        #     # end
-        #     # @writer_outputs.each do |name,sig|
-        #     #     @writer_namespace.add_method(sig.name) do
-        #     #         HDLRuby::High.top_user.send(name)
-        #     #     end
-        #     # end
-        #     # @writer_inouts.each do |name,sig|
-        #     #     @writer_namespace.add_method(sig.name) do
-        #     #         HDLRuby::High.top_user.send(name)
-        #     #     end
-        #     # end
-        #     # Gain access to the writer as local variable.
-        #     writer_proc = @writer_proc
-        #     # The context is the one of the writer.
-        #     @namespace = @writer_namespace
-        #     # Execute the code generating the writer in context.
-        #     HDLRuby::High.space_push(@namespace)
-        #     HDLRuby::High.cur_block.open do
-        #         instance_exec(ruby_block,*args,&writer_proc)
-        #     end
-        #     HDLRuby::High.space_pop
-        #     # Restores the default context.
-        #     @namespace = @channel_namespace
-        # end
         ## Performs a write on the channel using +args+ and +ruby_block+
         #  as arguments.
         def write(*args,&ruby_block)
             # Gain access to the writer as local variable.
             writer_proc = @writer_proc
             # # The context is the one of the writer.
-            # @namespace = @writer_namespace
             # Execute the code generating the writer in context.
             HDLRuby::High.space_push(@namespace)
             HDLRuby::High.cur_block.open do
                 instance_exec(ruby_block,*args,&writer_proc)
             end
             HDLRuby::High.space_pop
-            # Restores the default context.
-            # @namespace = @channel_namespace
         end
 
-        # ## Performs a access on the channel using +args+ and +ruby_block+
-        # #  as arguments.
-        # def access(*args,&ruby_block)
-        #     # Fill the accesser namespace with the access to the accesser signals.
-        #     # @accesser_inputs.each do |name,sig|
-        #     #     @accesser_namespace.add_method(sig.name) do
-        #     #         HDLRuby::High.top_user.send(name)
-        #     #     end
-        #     # end
-        #     # @accesser_outputs.each do |name,sig|
-        #     #     @accesser_namespace.add_method(sig.name) do
-        #     #         HDLRuby::High.top_user.send(name)
-        #     #     end
-        #     # end
-        #     # @accesser_inouts.each do |name,sig|
-        #     #     @accesser_namespace.add_method(sig.name) do
-        #     #         HDLRuby::High.top_user.send(name)
-        #     #     end
-        #     # end
-        #     # Gain access to the accesser as local variable.
-        #     accesser_proc = @accesser_proc
-        #     # The context is the one of the accesser.
-        #     @namespace = @accesser_namespace
-        #     # Execute the code generating the accesser in context.
-        #     HDLRuby::High.space_push(@namespace)
-        #     HDLRuby::High.cur_block.open do
-        #         instance_exec(ruby_block,*args,&accesser_proc)
-        #     end
-        #     HDLRuby::High.space_pop
-        #     # Restores the default context.
-        #     @namespace = @channel_namespace
-        # end
-        ## Performs a access on the channel using +args+ and +ruby_block+
+        ## Performs a reset on the channel using +args+ and +ruby_block+
         #  as arguments.
-        def access(*args,&ruby_block)
-            # Gain access to the accesser as local variable.
-            accesser_proc = @accesser_proc
-            # # The context is the one of the accesser.
-            # @namespace = @accesser_namespace
-            # Execute the code generating the accesser in context.
+        def reset(*args,&ruby_block)
+            # Gain access to the writer as local variable.
+            reseter_proc = @inout_reseter_proc
+            # # The context is the one of the writer.
+            # Execute the code generating the writer in context.
             HDLRuby::High.space_push(@namespace)
             HDLRuby::High.cur_block.open do
-                instance_exec(ruby_block,*args,&accesser_proc)
+                instance_exec(ruby_block,*args,&reseter_proc)
             end
             HDLRuby::High.space_pop
-            # Restores the default context.
-            # @namespace = @channel_namespace
         end
     end
 
