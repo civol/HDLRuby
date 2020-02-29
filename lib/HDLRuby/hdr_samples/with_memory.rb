@@ -47,7 +47,7 @@ system :mem_test do
     mem_sync(2,[8],256,clk.negedge).(:memI)
 
     # Instantiate the producer to access port 1 of the memory.
-    periph(memI.fork(1)).(:periphI).(clk,rst)
+    periph(memI.branch(1)).(:periphI).(clk,rst)
     # periph(memI).(:periphI).(clk,rst)
 
     # Inner 8-bit counter for generating addresses.

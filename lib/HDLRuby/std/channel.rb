@@ -281,8 +281,8 @@ module HDLRuby::High::Std
             @output_reseter_proc = proc {}
             @inout_reseter_proc  = proc {}
 
-            # The fork channels
-            @forks = {}
+            # The branch channels
+            @branches = {}
 
             # Create the namespaces for building the channel, its readers
             # its writers and its accessers.
@@ -301,7 +301,7 @@ module HDLRuby::High::Std
             @namespace.add_method(:accesser_inout, &method(:accesser_inout))
             @namespace.add_method(:reader,         &method(:reader))
             @namespace.add_method(:writer,         &method(:writer))
-            @namespace.add_method(:forker,         &method(:forker))
+            @namespace.add_method(:brancher,         &method(:brancher))
 
             # Creates the namespace of the reader.
             @reader_namespace = Namespace.new(self)
@@ -515,27 +515,27 @@ module HDLRuby::High::Std
                    @writer_inouts.values
         end
 
-        # Defines a fork in the channel named +name+ built executing
+        # Defines a branch in the channel named +name+ built executing
         # +ruby_block+.
-        def forker(name,&ruby_block)
+        def brancher(name,&ruby_block)
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
-            # Create the fork.
-            @forks[name] = HDLRuby::High.channel_instance(name,&ruby_block)
+            # Create the branch.
+            @branches[name] = HDLRuby::High.channel_instance(name,&ruby_block)
         end
 
 
         # Methods used on the channel outside its definition.
         
-        # Gets fork channel +name+.
+        # Gets branch channel +name+.
         # NOTE: +name+ can be of any type on purpose.
-        def fork(name)
+        def branch(name)
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
-            # Get the fork.
-            return @forks[name]
+            # Get the branch.
+            return @branches[name]
         end
 
 

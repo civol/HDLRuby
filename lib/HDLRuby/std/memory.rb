@@ -54,9 +54,9 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e|
         accesser_inout :"dbus_#{p}"
     end
 
-    # Defines the ports of the memory as forks of the channel.
+    # Defines the ports of the memory as branchs of the channel.
     n.times do |p|
-        forker(p) do
+        brancher(p) do
             accesser_inout :"abus_#{p}", :"cs_#{p}", :"rwb_#{p}"
             accesser_inout :"dbus_#{p}"
 
