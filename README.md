@@ -2722,6 +2722,8 @@ end
 
 This library provides a unified interface to complex communication protocols through a new kind of components called the channels that abstract the details of communication protocols. The channels can be used similarly to the ports of a system and are used through a unified interface so that changing the kind of channel, i.e., the communication protocol, does not require any modification of the code.
 
+### Using a channel
+
 A channel is used similarly to a pipe: it has an input where data can be written and an output where data can be read. The ordering of the data and the synchronization depend on the internals of the channel, e.g., a channel can be FIFO or LIFO. The interaction with the channel is done using the following methods:
  
  * `input <name>`: generate ports in the system for reading from the channel amd associate them to `name`
@@ -2732,7 +2734,6 @@ When the channel ports are declared, they can be accessed using the following me
 
  * `write(<args>) <block>`: write to the channel and execute `block` when `write` completes. `args` is a list of arguments required for performing the write that depend on the channel.
  * `read(<args>) <block>`: read the channel and execute `block` when the read completes. `args` is a list of arguments required for performing the write that depend on the channel.
- * `access(<args>) <block>`: access (read and/or write to) the channel and execute `block` when the access completes. `args` is a list of arguments required for performing the access that depend on the channel.
 
 For example, a system sending successive 8-bit values through a channel can be described as follows:
 
@@ -2757,6 +2758,22 @@ end
 
 __Note__: In the code above, the channel is passed as generic argument of the system.
 
+### Channel branches
+
+Some channel may include several branches, they are accessed by name using the following method:
+ 
+ * `branch(<name>)`: gets branch named `name` from the channel. This name can be actually be any ruby object (e.g., a number) but it will be converted internally to a ruby symbol.
+
+A branch is a full fledge channel and is used identically. For instance the following code get access to branch number 0 of channel `ch`, get its inputs port, read it and put the result in signal `val` on rising edges of signal `clk`:
+
+```ruby
+br = ch.branch(0)
+br.input
+par(clk.posedge) { br.read(val) }
+```
+
+### Declaring a channel
+
 A new channel is declared like using the keyword `channel` as follows:
 
 ```ruby
@@ -2774,7 +2791,6 @@ Where `name` is the name of the channel and `block` is a procedure block describ
  * `accesser_input <list of names>`: declares the input ports on both the reader and writer side. The list must give the names of the inner signals of the channel that can be read using the writer procedure.
  * `accesser_output <list of names>`: declares the output ports on both the reader and writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
  * `accesser_inout <list of names>`: declares the inout ports on both the reader and writer side. The list must give the names of the inner signals of the channel that can be written using the writer procedure.
- * `command <name> <block>`: declares a new command for the channel.
  * `reader <block>`: defines the reader's access procedure.
    This procedure is invoked by method `read` of the channel (please refer to the previous example).
  The first argument of the block must be the following:
@@ -2785,6 +2801,7 @@ Where `name` is the name of the channel and `block` is a procedure block describ
  The first argument of the block must be the following:
    - `blk`: the block to execute when the write completes.
  Other arguments can be freely defined, and will be required by the `write` command.
+ * `brancher(name) <block>`: defines branch named +name+ described in `block`. The content of block can be any content valid for a channel, with the additional possiblity to access the internals of the upper channel.
 
 For example, a channel implemented by a simple register of generic type `typ`, that can be set to 0 using the `reset` command can be described as follows:
 
