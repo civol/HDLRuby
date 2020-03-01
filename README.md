@@ -2729,6 +2729,9 @@ A channel is used similarly to a pipe: it has an input where data can be written
  * `input <name>`: generate ports in the system for reading from the channel amd associate them to `name`
  * `output <name>`: generate ports in the system for writing to the channel and associate them to `name`
  * `inout <name>`: generate ports in the system for reading and writing to the channel and associate them to `name`
+ * `inner <name>`: generates inner signals for accessing directly the channel
+
+__Note__: `input`, `output`, `inout` and `inner` for channels work similarly to the ones of data types for declaring signals. In particular, `input`, `output` and `inout` are to be used in systems that do not include the channel and `inner` is to be used in the system that include the channel.
 
 When the channel ports are declared, they can be accessed using the following methods depending on whether they are writing or reading ports:
 
