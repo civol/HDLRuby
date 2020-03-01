@@ -517,12 +517,13 @@ module HDLRuby::High::Std
 
         # Defines a branch in the channel named +name+ built executing
         # +ruby_block+.
-        def brancher(name,&ruby_block)
+        def brancher(name,*args,&ruby_block)
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
             # Create the branch.
-            @branches[name] = HDLRuby::High.channel_instance(name,&ruby_block)
+            channelI = HDLRuby::High.channel_instance(name,*args,&ruby_block)
+            @branches[name] = channelI
         end
 
 
@@ -594,17 +595,10 @@ module HDLRuby::High::Std
                 end
             end
 
-
-            # # Give access to the ports through name.
-            # # NOTE: for now, simply associate the channel to name.
-            # HDLRuby::High.space_reg(name) { obj }
-            # return obj
-
             # Give access to the ports through name.
             # NOTE: for now, simply associate the channel to name.
             chp = ChannelPortR.new(@reader_namespace,@reader_proc,@input_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
-            # return obj
             return chp
         end
 
@@ -660,16 +654,10 @@ module HDLRuby::High::Std
                 end
             end
 
-            # # Give access to the ports through name.
-            # # NOTE: for now, simply associate the channel to name.
-            # HDLRuby::High.space_reg(name) { obj }
-            # return obj
-
             # Give access to the ports through name.
             # NOTE: for now, simply associate the channel to name.
             chp = ChannelPortW.new(@writer_namespace,@writer_proc,@output_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
-            # return obj
             return chp
         end
 
@@ -729,7 +717,57 @@ module HDLRuby::High::Std
             # NOTE: for now, simply associate the channel to name.
             chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc,@inout_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
-            # return obj
+            return chp
+        end
+
+        ## Declares the ports for accessing the channel as an inner component
+        #  and assigned them to +name+.
+        def inner(name)
+            # Ensure name is a symbol.
+            name = name.to_sym
+            # Access the ports
+            loc_inputs  = @accesser_inputs.merge(@reader_inputs).
+                merge(@writer_inputs)
+            loc_outputs = @accesser_outputs.merge(@reader_outputs).
+                merge(@writer_outputs)
+            loc_inouts  = @accesser_inouts.merge(@reader_inouts).
+                merge(@writer_inouts)
+            locs = loc_inputs.merge(loc_outputs).merge(loc_inouts)
+            # The generated port with corresponding channel port pairs.
+            port_pairs = []
+            # Add them to the current system.
+            HDLRuby::High.cur_system.open do
+                locs.each  do |name,sig|
+                    port_pairs << [sig, sig.type.inner(name)]
+                end
+            end
+            obj = self
+            # Make the inner connection
+            port_pairs.each do |sig, port|
+                port.to_ref <= sig
+            end
+
+            # Set ups the accesser's namespace
+            @accesser_inputs.each do |name,sig|
+                @accesser_namespace.add_method(sig.name) do
+                    HDLRuby::High.top_user.send(name)
+                end
+            end
+            @accesser_outputs.each do |name,sig|
+                @accesser_namespace.add_method(sig.name) do
+                    HDLRuby::High.top_user.send(name)
+                end
+            end
+            @accesser_inouts.each do |name,sig|
+                @accesser_namespace.add_method(sig.name) do
+                    HDLRuby::High.top_user.send(name)
+                end
+            end
+
+            # Give access to the ports through name.
+            # NOTE: for now, simply associate the channel to name.
+            chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc,@inout_reseter_proc)
+            HDLRuby::High.space_reg(name) { chp }
             return chp
         end
 
