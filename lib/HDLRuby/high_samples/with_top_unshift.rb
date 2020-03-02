@@ -14,7 +14,7 @@ system :with_top_unshift do
         w0 <= x + y
         par do
             w1 <= w0 * x
-            HDLRuby::High.top_block.unshift { o <= w1 + y }
+            top_block.unshift { o <= w1 + y }
         end
     end
 end
