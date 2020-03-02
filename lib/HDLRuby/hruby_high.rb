@@ -1187,6 +1187,11 @@ module HDLRuby::High
         end
 
 
+        # Gets the current system.
+        def cur_system
+            return HDLRuby::High.cur_system
+        end
+
         include Hmux
 
         # Fills a low level scope with self's contents.
@@ -3253,6 +3258,33 @@ module HDLRuby::High
         # def block
         #     return self.mode
         # end
+        
+        # Gets the current block.
+        def cur_block
+            return HDLRuby::High.cur_block
+        end
+
+        # Gets the top block of the current behavior.
+        def top_block
+            return HDLRuby::High.top_block
+        end
+
+        # Gets the current behavior.
+        def cur_behavior
+            return HDLRuby::High.cur_behavior
+        end
+
+        # Gets the current scope.
+        def cur_scope
+            return HDLRuby::High.cur_scope
+        end
+
+        # Gets the current system.
+        def cur_system
+            return HDLRuby::High.cur_system
+        end
+
+
 
         # Need to be able to declare select operators
         include Hmux
