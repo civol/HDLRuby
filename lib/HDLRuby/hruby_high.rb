@@ -2861,10 +2861,10 @@ module HDLRuby::High
             return High.cur_behavior
         end
 
-        # Gets the enclosing block if any.
-        def block
-            return High.cur_block
-        end
+        # # Gets the enclosing block if any.
+        # def block
+        #     return High.cur_block
+        # end
 
         # Converts the this reference to HDLRuby::Low.
         def to_low
@@ -3237,12 +3237,22 @@ module HDLRuby::High
             self.add_block(self.mode,name,&ruby_block)
         end
 
-        # Get the current mode of the block.
-        #
-        # NOTE: for name coherency purpose only. 
-        def block
-            return self.mode
+        # Adds statements at the top of the block.
+        def unshift(&ruby_block)
+            # Create a sub block for the statements.
+            block = High.make_block(self.mode,:"",&ruby_block)
+            # Unshifts it.
+            self.unshift_statement(block)
+            # Use its return value.
+            return block.return_value
         end
+
+        # # Get the current mode of the block.
+        # #
+        # # NOTE: for name coherency purpose only. 
+        # def block
+        #     return self.mode
+        # end
 
         # Need to be able to declare select operators
         include Hmux
@@ -3679,7 +3689,6 @@ module HDLRuby::High
         end
     end
 
-
     # Gets the enclosing block if any.
     #
     # NOTE: +level+ allows to get an upper block of the currently enclosing
@@ -3692,6 +3701,20 @@ module HDLRuby::High
             return Namespaces[-1-level].user
         else
             return cur_block(level+1)
+        end
+    end
+
+    # Gets the top enclosing block if any.
+    def self.top_block(level = 0)
+        blk = cur_block(level)
+        unless blk.is_a?(Block)
+            raise AnyError,
+                "Not within a block: #{blk.user.class}"
+        end
+        if Namespaces[-1-level-1].user.is_a?(Scope) then
+            return blk
+        else
+            return top_block(level+1)
         end
     end
 

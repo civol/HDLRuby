@@ -1059,8 +1059,11 @@ __Note__:
     ```
   - Parallel mode can be set the same way using `par`.
 
-Finally, it often happens that a behavior contains only one statement.
-In such a case, the description can be shortened using the `at` operator as follows:
+### Extra features for the description of behaviors
+
+#### Single-statement behaviors
+
+It often happens that a behavior contains only one statement.  In such a case, the description can be shortened using the `at` operator as follows:
 
 ```ruby
 ( statement ).at(<list of events>)
@@ -1086,6 +1089,41 @@ For sake of consistency, this operator can also be applied on block statements a
      c <= d+2
   end ).at(clk.posedge)
 ```
+
+#### Insertion of statements at the beginning of a block
+
+By default, the statements of a  block are added in order of appearance in the code. However, it is also possible to insert statements at the top of the current block using the unshift command within a block as follows:
+
+```ruby
+unshift do
+   <list of statements>
+end
+```
+
+For example the following code inserts two statements at the beginning of the current block:
+
+```ruby
+par do
+   x <= y + z
+   unshift do
+      a <= b - c
+      u <= v & w
+    end
+end
+```
+
+The code above will actually result in the following block:
+
+```ruby
+par do
+   a <= b - c
+   u <= v & w
+   x <= y + z
+end
+```
+
+__Note__: 
+ - While of no practical use for simple circuit description, this feature can be used in advanced generic component descriptions.
 
 
 ## Events
@@ -2260,8 +2298,9 @@ In order to get information about the current state of the hardware description 
 | `is_seq?`      | bit            | tells if current parallel block is sequential|
 | `is_clocked?`  | bit            | tells if current behavior is clocked (activated on a sole rising or falling edge of a signal) |
 | `cur_block`    | block          | gets the current block                     |
-| `cur_behavior` | behavior       | gets the current behavior                  |
-| `cur_systemT`  | system         | gets the current system                    |
+| `cur_behavior` | behavior       | gets the current behavior              |
+| `cur_systemT`  | system         | gets the current system                |
+| `top_block  `  | block          | gets the top block of the current behavior |
 | `one_up`       | block/system   | gets the upper construct (block or system) |
 | `last_one`     | any            | last declared construct                    |
 

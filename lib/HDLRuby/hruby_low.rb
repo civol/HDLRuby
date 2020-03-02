@@ -3495,6 +3495,24 @@ module HDLRuby::Low
             statement
         end
 
+        # Adds a +statement+ and the begining of the block
+        #
+        # NOTE: TimeWait is not supported unless for TimeBlock objects.
+        def unshift_statement(statement)
+            unless statement.is_a?(Statement) then
+                raise AnyError,
+                      "Invalid class for a statement: #{statement.class}"
+            end
+            if statement.is_a?(TimeWait) then
+                raise AnyError,
+                      "Timed statements are not supported in common blocks."
+            end
+            @statements.unshift(statement)
+            # And set its parent.
+            statement.parent = self
+            statement
+        end
+
         # Gets the number of statements.
         def num_statements
             return @statements.size
@@ -3615,6 +3633,20 @@ module HDLRuby::Low
                       "Invalid class for a statement: #{statement.class}"
             end
             @statements << statement
+            # And set its parent.
+            statement.parent = self
+            statement
+        end
+
+        # Adds a +statement+ and the begining of the block
+        #
+        # NOTE: TimeWait is not supported unless for TimeBlock objects.
+        def unshift_statement(statement)
+            unless statement.is_a?(Statement) then
+                raise AnyError,
+                      "Invalid class for a statement: #{statement.class}"
+            end
+            @statements.unshift(statement)
             # And set its parent.
             statement.parent = self
             statement
