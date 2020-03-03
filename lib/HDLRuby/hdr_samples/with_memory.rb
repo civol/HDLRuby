@@ -22,15 +22,57 @@ system :periph do |mem|
     par(clk.posedge) do
         hif(rst) do
             address <= 0
-            memP.reset
-            # memP.reset(1)
+        end
+        memP.read(address,value) do
+            value <= value + 1
+            memP.write(address,value) { address <= address + 1 }
+        end
+    end
+end
+
+# A system producing data and writing it to a memory.
+system :producer do |mem|
+    # Clock and reset.
+    input :clk, :rst
+    # The memory port.
+    mem.output :memP
+
+    # Inner 8-bit counter for generating addresses and values
+    [8].inner :cnt
+
+    # The value production process.
+    par(clk.posedge) do
+        hif(rst) { cnt <= 0 }
+        helse do
+            memP.write(cnt,cnt) { cnt <= cnt + 1 }
+        end
+    end
+end
+
+# A system consuming data from a memory.
+system :consumer do |mem|
+    # Clock and reset.
+    input :clk, :rst
+    # The accumumated consumed data list.
+    [8].output :sum
+    # The memory port.
+    mem.input :memP
+
+    # Inner 8-bit counter for generating addresses and values
+    [8].inner :cnt
+    # Memory access result.
+    [8].inner :res
+
+    # The value production process.
+    par(clk.posedge) do
+        hif(rst) do
+            cnt <= 255
+            sum <= 0
         end
         helse do
-            memP.read(address,value) do
-            # memP.read(1,address,value) do
-                value <= value + 1
-                memP.write(address,value) { address <= address + 1 }
-                # memP.write(1,address,value) { address <= address + 1 }
+            memP.read(cnt,res) do
+                cnt <= cnt + 1
+                sum <= sum + res
             end
         end
     end
@@ -44,11 +86,12 @@ system :mem_test do
 
     # Declares a dual-port 8-bit data and address synchronous memory
     # on negative edge of clk.
-    mem_sync(2,[8],256,clk.negedge).(:memI)
+    mem_sync(2,[8],256,clk.negedge,rst,[:rst,:rst]).(:memI)
 
     # Instantiate the producer to access port 1 of the memory.
     periph(memI.branch(1)).(:periphI).(clk,rst)
     # periph(memI).(:periphI).(clk,rst)
+    memI.branch(0).inner :mem0
 
     # Inner 8-bit counter for generating addresses.
     [8].inner :address
@@ -59,10 +102,22 @@ system :mem_test do
     par(clk.posedge) do
         hif(rst) do
             address <= 255; value <= 128
-            memI.reset(0)
-        end; helse do
-            memI.write(0,address,value) { address <= address - 1 }
         end
+        # memI.write(0,address,value) { address <= address - 1 }
+        mem0.write(address,value) { address <= address - 1 }
     end
+
+
+    [8].inner :sum
+
+    # Declares a dual edge 8-bit data and address memory.
+    mem_dual([8],256,clk,rst, raddr: :rst,waddr: :rst).(:memDI)
+
+    # Instantiate the producer to access port waddr of the memory.
+    producer(memDI.branch(:waddr)).(:producerI).(clk,rst)
+
+    # Instantiate the producer to access port raddr of the memory.
+    consumer(memDI.branch(:raddr)).(:consumerI).(clk,rst,sum)
+
 
 end
