@@ -54,6 +54,7 @@ Where:
 | `-D, --debug`     | Set the HDLRuby debug mode |
 | `-t, --top system`| Specify the top system describing the circuit to compile |
 | `-p, --param x,y,z`     | Specify the generic parameters                 |
+| `--version `      | Print the version number, then exit                  |
 | `-h, --help`      | Show the help message                                    |
 
 __Notes__:

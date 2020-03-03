@@ -253,10 +253,6 @@ $optparse = OptionParser.new do |opts|
     opts.separator ""
     opts.separator "Options:"
     
-    opts.on("--version", "Print the version number, then exit") do
-        puts "hdrcc: HDLRuby #{HDLRuby::VERSION} compiler"
-        exit
-    end
     opts.on("-y", "--yaml", "Output in YAML format") do |y|
         $options[:yaml] = y
     end
@@ -317,7 +313,12 @@ $optparse = OptionParser.new do |opts|
     opts.on("-p", "--param x,y,z", "Specify the generic parameters") do |p|
         $options[:param] = p
     end
-    opts.on_tail("-h", "--help", "Show this message") do
+    opts.on("--version", "Print the version number, then exit") do
+        puts "hdrcc: HDLRuby #{HDLRuby::VERSION} compiler"
+        exit
+    end
+    # opts.on_tail("-h", "--help", "Show this message") do
+    opts.on("-h", "--help", "Show this message") do
         puts opts
         exit
     end
