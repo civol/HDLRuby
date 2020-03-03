@@ -3,7 +3,7 @@
 require 'fileutils'
 require 'HDLRuby'
 require 'HDLRuby/hruby_check.rb'
-require 'ripper'
+# require 'ripper'
 require 'HDLRuby/hruby_low2high'
 require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
