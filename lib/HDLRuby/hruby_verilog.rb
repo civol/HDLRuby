@@ -1796,7 +1796,7 @@ class SystemT
                 ref = self.extract_port_assign!(systemI,inout)
                 if ref then
                     code << "." << name_to_verilog(inout.name) << "(" 
-                    code << ref.to_vhdl(level) 
+                    code << ref.to_verilog
                     code << "),"
                 end
             end
