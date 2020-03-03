@@ -25,6 +25,8 @@ require 'HDLRuby/hruby_verilog.rb'
 require 'HDLRuby/backend/hruby_allocator'
 require 'HDLRuby/backend/hruby_c_allocator'
 
+require 'HDLRuby/version.rb'
+
 ##
 # HDLRuby compiler interface program
 #####################################
@@ -250,7 +252,11 @@ $optparse = OptionParser.new do |opts|
     opts.separator "* `<output file>` is the output file"
     opts.separator ""
     opts.separator "Options:"
-
+    
+    opts.on("--version", "Print the version number, then exit") do
+        puts "hdrcc: HDLRuby #{HDLRuby::VERSION} compiler"
+        exit
+    end
     opts.on("-y", "--yaml", "Output in YAML format") do |y|
         $options[:yaml] = y
     end
