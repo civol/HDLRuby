@@ -38,13 +38,13 @@ system :producer do |mem|
     mem.output :memP
 
     # Inner 8-bit counter for generating addresses and values
-    [8].inner :cnt
+    [8].inner :count
 
     # The value production process.
     par(clk.posedge) do
-        hif(rst) { cnt <= 0 }
+        hif(rst) { count <= 0 }
         helse do
-            memP.write(cnt,cnt) { cnt <= cnt + 1 }
+            memP.write(count,count) { count <= count + 1 }
         end
     end
 end
@@ -59,19 +59,19 @@ system :consumer do |mem|
     mem.input :memP
 
     # Inner 8-bit counter for generating addresses and values
-    [8].inner :cnt
+    [8].inner :count
     # Memory access result.
     [8].inner :res
 
     # The value production process.
     par(clk.posedge) do
         hif(rst) do
-            cnt <= 255
+            count <= 255
             sum <= 0
         end
         helse do
-            memP.read(cnt,res) do
-                cnt <= cnt + 1
+            memP.read(count,res) do
+                count <= count + 1
                 sum <= sum + res
             end
         end
