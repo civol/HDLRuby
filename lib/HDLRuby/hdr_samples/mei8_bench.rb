@@ -25,11 +25,11 @@ system :mei8 do |prog_file = "./prog_encrypt.obj"|
     instance :prog do
         [7..0].input  :addr          # The address bus
         [7..0].output :instr         # The instruction bus
-        bit[7..0][-256].constant content: # The content of the memory
+        bit[7..0][-256].constant mem: # The content of the memory
             ( File.readlines(prog_file).map {|l| l.split[0] }.select do |l|
             ["0","1"].include?(l[2])
         end.map {|l| l[2..9] } )
-        instr <= content[addr]       # The access procedure
+        instr <= mem[addr]       # The access procedure
     end
 
     # The registers.
