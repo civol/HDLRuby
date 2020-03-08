@@ -1553,6 +1553,16 @@ module HDLRuby::Low
                     @base.equivalent?(type.base) )
         end
 
+        # Should not exists since it identifies types with multiple sub types.
+        #
+        # # Iterates over the sub types.
+        # def each_type(&ruby_block)
+        #     # No ruby block? Return an enumerator.
+        #     return to_enum(:each_type) unless ruby_block
+        #     # A ruby block? Apply it on the base.
+        #     ruby_block.call(@base)
+        # end
+
         # Iterates over the types deeply if any.
         def each_type_deep(&ruby_block)
             # No ruby block? Return an enumerator.
@@ -3153,7 +3163,10 @@ module HDLRuby::Low
 
         # Clones the Case (deeply)
         def clone
-            return Case.new(@value.clone,@default.clone,(@whens.map do |w|
+            # Clone the default if any.
+            defaut = @default ? @default.clone : nil
+            # Clone the case.
+            return Case.new(@value.clone,default,(@whens.map do |w|
                 w.clone
             end) )
         end
