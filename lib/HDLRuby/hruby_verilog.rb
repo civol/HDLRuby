@@ -1301,6 +1301,21 @@ class RefRange
     end
 end
 
+# Use it when collecting references.
+class RefConcat
+    def to_verilog    
+        ref = self.each_ref.to_a
+
+        result = "{"
+        ref[0..-2].each do |ref|
+            result << "#{ref.to_verilog},"
+        end
+        result << "#{ref.last.to_verilog}}"
+
+        return result
+    end
+end
+
 # Used to output bitstring.
 # Enhance HDLRuby with generation of verilog code.
 class HDLRuby::BitString
@@ -1420,18 +1435,20 @@ class Case
             end
         end
         # The default part is stored in default instead of when. Reads and processes in the same way as when.
-        if self.default.each_statement.count > 1 then
-            result << "      " + "   " *$space_count + "default: begin\n"
-            self.default.each_statement do |statement|
-                result << "                  " + "   " *$space_count + "#{statement.to_verilog}"
-            end
-            result << "                  end\n"
-        elsif self.default.each_statement.count == 1 then
-            result << "      " + "   " *$space_count + "default: "
-            self.default.each_statement do |statement|
-                result << "#{statement.to_verilog}"
-            end
-        end  
+        if self.default then
+            if self.default.each_statement.count > 1 then
+                result << "      " + "   " *$space_count + "default: begin\n"
+                self.default.each_statement do |statement|
+                    result << "                  " + "   " *$space_count + "#{statement.to_verilog}"
+                end
+                result << "                  end\n"
+            elsif self.default.each_statement.count == 1 then
+                result << "      " + "   " *$space_count + "default: "
+                self.default.each_statement do |statement|
+                    result << "#{statement.to_verilog}"
+                end
+            end  
+        end
         result << "   " + "   " *$space_count + "endcase\n" # Conclusion.
 
         $space_count -= 1           # Since the output ends, reduce the count.
@@ -1510,6 +1527,14 @@ class Unary
     # Converts the system to Verilog code.
     def to_verilog
         return "#{self.operator}#{self.child.to_verilog}"
+    end
+end
+
+# Used when casting expressions.
+class Cast
+    # Converts the system to Verilog code.
+    def to_verilog
+        return "#{self.type.to_verilog}'(#{self.child.to_verilog})"
     end
 end
 
@@ -1616,10 +1641,23 @@ class SystemT
         # Preprocessing
         # Detect the registers
         regs = []
+        # The left values.
         self.each_behavior do |behavior|
-            behavior.block.each_statement do |statement|
-                regs << statement.left.to_verilog if statement.is_a?(Transmit)
+            # behavior.block.each_statement do |statement|
+            #     regs << statement.left.to_verilog if statement.is_a?(Transmit)
+            # end
+            behavior.each_block_deep do |block|
+                block.each_statement do |statement|
+                    regs << statement.left.to_verilog if statement.is_a?(Transmit)
+                end
             end
+        end
+        # And the initialized signals.
+        self.each_output do |output|
+            regs << output.to_verilog if output.value
+        end
+        self.each_inner do |inner|
+            regs << inner.to_verilog if inner.value
         end
 
         # Code generation
@@ -1690,16 +1728,29 @@ class SystemT
                     else
                         code << "   output"
                     end
-                    code << "#{type.to_verilog} #{$vector_reg}:#{$vector_cnt};\n"
+                    # code << "#{type.to_verilog} #{$vector_reg}:#{$vector_cnt};\n"
+                    code << "#{type.to_verilog} #{$vector_reg}:#{$vector_cnt}"
+                    if output.value then
+                        # There is an initial value.
+                        code << " = #{output.value.to_verilog}"
+                    end
+                    code << ";\n"
                     $vector_cnt += 1
                 end        
             else
-                if regs.include?(output.name) then
+                # if regs.include?(output.name) then
+                if regs.include?(output.to_verilog) then
                     code << "   output reg"
                 else
                     code << "   output"
                 end
-                code << "#{output.type.to_verilog} #{output.to_verilog};\n"
+                # code << "#{output.type.to_verilog} #{output.to_verilog};\n"
+                code << "#{output.type.to_verilog} #{output.to_verilog}"
+                if output.value then
+                    # There is an initial value.
+                    code << " = #{output.value.to_verilog}"
+                end
+                code << ";\n"
             end
         end
 
@@ -1719,7 +1770,9 @@ class SystemT
 
         # Declare "inner".
         self.each_inner do |inner|
-            if regs.include?(inner.name) then
+            # puts "for inner: #{inner.to_verilog}"
+            # if regs.include?(inner.name) then
+            if regs.include?(inner.to_verilog) then
                 code << "   reg"
             else
                 code << "   wire"
@@ -1727,19 +1780,28 @@ class SystemT
 
             if inner.type.base? 
                 if inner.type.base.base? 
-                    code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                    # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                    code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
                 else
-                    code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                    # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                    code << "#{inner.type.to_verilog} #{inner.to_verilog}"
                 end
             else
-                code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+                # code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+                code << " #{inner.type.to_verilog}#{inner.to_verilog}"
             end
+            if inner.value then
+                # There is an initial value.
+                code << " = #{inner.value.to_verilog}"
+            end
+            code << ";\n"
         end
 
         # If there is scope in scope, translate it.
         self.each_scope do |scope|
             scope.each_inner do |inner|
-                if regs.include?(inner.name) then
+                # if regs.include?(inner.name) then
+                if regs.include?(inner.to_verilog) then
                     code << "   reg "
                 else
                     code << "   wire "
@@ -1747,13 +1809,21 @@ class SystemT
 
                 if inner.type.respond_to? (:base) 
                     if inner.type.base.base?
-                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                        # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
                     else
-                        code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                        # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                        code << "#{inner.type.to_verilog} #{inner.to_verilog}"
                     end
                 else
-                    code << "inner #{inner.type.to_verilog} #{inner.to_verilog};\n"
+                    # code << "inner #{inner.type.to_verilog} #{inner.to_verilog};\n"
+                    code << "inner #{inner.type.to_verilog} #{inner.to_verilog}"
                 end
+                if inner.value then
+                    # There is an initial value.
+                    code << " = #{inner.value.to_verilog}"
+                end
+                code << ";\n"
             end    
 
             scope.each_connection do |connection|
@@ -1843,7 +1913,8 @@ class SystemT
 
             # Declaration of "inner" part within "always".
             block.each_inner do |inner|
-                if regs.include?(inner.name) then
+                # if regs.include?(inner.name) then
+                if regs.include?(inner.to_verilog) then
                     code << "      reg"
                 else
                     code << "      wire"
@@ -1853,13 +1924,21 @@ class SystemT
                 # It is determined by an if.
                 if inner.type.base? 
                     if inner.type.base.base? 
-                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                        # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
                     else
-                        code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                        # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                        code << "#{inner.type.to_verilog} #{inner.to_verilog}"
                     end
                 else
-                    code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+                    # code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+                    code << " #{inner.type.to_verilog}#{inner.to_verilog}"
                 end
+                if inner.value then
+                    # There is an initial value.
+                    code << " = #{inner.value.to_verilog}"
+                end
+                code << ";\n"
             end
 
             # Translate the block that finished scheduling.
