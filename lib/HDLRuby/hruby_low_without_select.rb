@@ -96,6 +96,19 @@ module HDLRuby::Low
         end
     end
 
+
+    ## Extends the TimeWait class with functionality for converting booleans
+    #  in assignments to select operators.
+    class TimeWait
+        # Extract the Select expressions.
+        def extract_selects!
+            # Nothing to extract.
+            return []
+        end
+    end
+
+
+
     ## Extends the Block class with functionality for converting select
     #  expressions to case statements.
     class Block

@@ -119,6 +119,17 @@ module HDLRuby::Low
     end
 
 
+    ## Extends the TimeWait class with functionality for converting booleans
+    #  in assignments to select operators.
+    class TimeWait
+        # Converts booleans in assignments to select operators.
+        def boolean_in_assign2select!
+            # Nothing to do.
+            return self
+        end
+    end
+
+
     ## Extends the Block class with functionality for converting booleans
     #  in assignments to select operators.
     class Block

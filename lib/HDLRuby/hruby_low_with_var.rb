@@ -247,6 +247,21 @@ module HDLRuby::Low
 
     end
 
+
+    ## Extends the TimeBlock class with separation between signals and variables.
+    class TimeBlock
+        # Converts to a variable-compatible block where +upper+ is
+        # the upper block if any.
+        #
+        # NOTE: the result is a new block.
+        def with_var(upper = nil)
+            # For the specific case of block, the conversion is not
+            # done.
+            return self
+        end
+    end
+
+
     ## Extends the If class with separation between signals and variables.
     class If
         # Converts to a variable-compatible if where +upper+ is
