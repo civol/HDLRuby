@@ -8,6 +8,7 @@ require 'HDLRuby/hruby_low2high'
 require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
 require 'HDLRuby/hruby_low_fix_types'
+# require 'HDLRuby/hruby_low_expand_types' # For now dormant
 require 'HDLRuby/hruby_low_without_outread'
 require 'HDLRuby/hruby_low_with_bool'
 require 'HDLRuby/hruby_low_bool2select'
@@ -573,7 +574,8 @@ elsif $options[:verilog] then
     $top_system.each_systemT_deep do |systemT|
         systemT.to_upper_space!
         systemT.to_global_systemTs!
-        systemT.break_types!
+        # systemT.break_types!
+        # systemT.expand_types!
         systemT.with_port!
     end
     # # Verilog generation
