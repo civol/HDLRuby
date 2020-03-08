@@ -116,7 +116,11 @@ class Block
     # Process top layer of Block.
     # Determine whether there is a block under block and convert it.
     def flatten(mode = nil)
-        new_block  = Block.new(self.mode,"") # A new block to store the converted statement.
+        if self.is_a?(TimeBlock) then
+            new_block = TimeBlock.new(self.mode,"")
+        else
+            new_block  = Block.new(self.mode,"") # A new block to store the converted statement.
+        end
         list = []                            # A list for confirming that variable declarations do not overlap.
 
         # Is block in the statement?
@@ -1884,29 +1888,33 @@ class SystemT
 
         # Translation of behavior part (always).
         self.each_behavior do |behavior|
-            code << "   always @( "
-            # If there is no "always" condition, it is always @("*").
-            if behavior.each_event.to_a.empty? then
-                code << "*"
+            if behavior.block.is_a?(TimeBlock) then
+                code << "   initial begin\n"
             else
-                event = behavior.each_event.to_a
-                event[0..-2].each do |event|
-                    # If "posedge" or "negedge" does not exist, the variable is set to condition.
-                    if (event.type.to_s != "posedge" && event.type.to_s != "negedge") then
-                        code << "#{event.ref.to_verilog}, "
+                code << "   always @( "
+                # If there is no "always" condition, it is always @("*").
+                if behavior.each_event.to_a.empty? then
+                    code << "*"
+                else
+                    event = behavior.each_event.to_a
+                    event[0..-2].each do |event|
+                        # If "posedge" or "negedge" does not exist, the variable is set to condition.
+                        if (event.type.to_s != "posedge" && event.type.to_s != "negedge") then
+                            code << "#{event.ref.to_verilog}, "
+                        else
+                            # Otherwise, it outputs "psoedge" or "negedge" as a condition.
+                            code << "#{event.type.to_s} #{event.ref.to_verilog}, "
+                        end
+                    end
+                    # Since no comma is necessary at the end, we try not to separate commas separately at the end.
+                    if (event.last.type.to_s != "posedge" && event.last.type.to_s != "negedge") then
+                        code << "#{event.last.ref.to_verilog}"
                     else
-                        # Otherwise, it outputs "psoedge" or "negedge" as a condition.
-                        code << "#{event.type.to_s} #{event.ref.to_verilog}, "
+                        code << "#{event.last.type.to_s} #{event.last.ref.to_verilog}"
                     end
                 end
-                # Since no comma is necessary at the end, we try not to separate commas separately at the end.
-                if (event.last.type.to_s != "posedge" && event.last.type.to_s != "negedge") then
-                    code << "#{event.last.ref.to_verilog}"
-                else
-                    code << "#{event.last.type.to_s} #{event.last.ref.to_verilog}"
-                end
+                code << " ) begin\n"
             end
-            code << " ) begin\n"
 
             # Perform "scheduling" using the method "flatten".
             block = behavior.block.flatten(behavior.block.mode.to_s)
