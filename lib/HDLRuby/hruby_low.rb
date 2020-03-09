@@ -3696,6 +3696,16 @@ module HDLRuby::Low
         def hash
             return super
         end
+
+        # Gets the top block, i.e. the first block of the current behavior.
+        def top_block
+            raise AnyError, "Connections are not within blocks."
+        end
+
+        # Gets the top scope, i.e. the first scope of the current system.
+        def top_scope
+            return self.parent.is_a?(Scope) ? self.parent : self.parent.top_scope
+        end
     end
 
 

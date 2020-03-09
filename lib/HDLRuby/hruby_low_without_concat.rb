@@ -41,7 +41,8 @@ module HDLRuby::Low
                 if nconnection.is_a?(Block) then
                     # The connection has been broken, remove the former
                     # version and add the generated block as a behavior.
-                    self.remove_connection(connection)
+                    # self.remove_connection(connection)
+                    self.delete_connection!(connection)
                     self.add_behavior(Behavior.new(nconnection))
                 end
             end
@@ -101,6 +102,91 @@ module HDLRuby::Low
                         top_block.insert_statement!(0,
                             Transmit.new(aux.clone,Value.new(aux.type,0)))
                     end
+                    # Replace the concat in the copy of the left value.
+                    if left.eql?(node) then
+                        # node was the top of left, replace here.
+                        nleft = aux
+                    else
+                        # node was inside left, replace within left.
+                        nleft = self.left.clone
+                        nleft.each_node_deep do |ref|
+                            ref.map_nodes! do |sub|
+                                sub.eql?(node) ? aux.clone : sub
+                            end
+                        end
+                    end
+                    # Recreate the transmit and add it to the block.
+                    block.add_statement(
+                        Transmit.new(nleft,self.right.clone) )
+                    # And assign its part to each reference of the
+                    # concat.
+                    pos = 0
+                    node.each_ref.reverse_each do |ref|
+                        # Compute the range to assign.
+                        range = ref.type.width-1+pos .. pos
+                        # Single or multi-bit range?
+                        sbit = range.first == range.last
+                        # Convert the range to an HDLRuby range for 
+                        # using is the resulting statement.
+                        # Create and add the statement.
+                        if sbit then
+                            # Single bit.
+                            # Generate the index.
+                            idx = Value.new(Integer,range.first)
+                            # Generate the assignment.
+                            block.add_statement(
+                                Transmit.new(ref.clone,
+                                RefIndex.new(aux.type.base, aux.clone, idx)))
+                        else
+                            # Multi-bits.
+                            # Compute the type of the right value.
+                            rtype = TypeVector.new(:"",aux.type.base,range)
+                            # Generate the range.
+                            range = Value.new(Integer,range.first) ..
+                                    Value.new(Integer,range.last)
+                            # Generate the assignment.
+                            block.add_statement(
+                                Transmit.new(ref.clone,
+                                RefRange.new(rtype, aux.clone, range)))
+                        end
+                        pos += ref.type.width
+                    end
+                    # puts "Resulting block=#{block.to_vhdl}"
+                    # Return the resulting block
+                    return block
+                end
+            end
+            # No, nothing to do.
+            return self
+        end
+    end
+
+
+    ## Extends the Connection class with functionality for breaking assingments
+    #  to concats.
+    class Connection
+        # Break the assignments to concats.
+        #
+        # NOTE: when breaking generates a new Block containing the broken
+        #       assignments.
+        def break_concat_assigns
+            # puts "break_concat_assigns with self=#{self}"
+            # Is the left value a RefConcat?
+            self.left.each_node_deep do |node|
+                if node.is_a?(RefConcat) then
+                    # Yes, must break. Create the resulting sequential
+                    # block that will contain the new assignements.
+                    block = Block.new(:seq)
+                    # Create an intermediate signal for storing the
+                    # right value. Put it in the top scope.
+                    top_scope = self.top_scope
+                    aux = top_scope.add_inner(
+                        SignalI.new(HDLRuby.uniq_name,self.right.type) )
+                    # puts "new signal: #{aux.name}"
+                    aux = RefName.new(aux.type,RefThis.new,aux.name)
+                    # Set a default value to avoid latch generation.
+                    block.insert_statement!(0,
+                            Transmit.new(aux.clone,Value.new(aux.type,0)))
                     # Replace the concat in the copy of the left value.
                     if left.eql?(node) then
                         # node was the top of left, replace here.
