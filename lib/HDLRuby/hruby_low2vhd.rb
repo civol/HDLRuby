@@ -1108,7 +1108,7 @@ module HDLRuby::Low
                 return '"' + self.content.to_s.rjust(width,sign).upcase + '"'
             else
                 sign = self.type.signed? ? (self.content>=0 ? "0" : "1") : "0"
-                return '"' + self.content.to_s(2).rjust(width,sign).upcase + '"'
+                return '"' + self.content.abs.to_s(2).rjust(width,sign).upcase + '"'
             end
         end
     end
