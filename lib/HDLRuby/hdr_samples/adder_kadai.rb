@@ -3,5 +3,5 @@ system :adder do
     [4].output :x
     output :carry
 
-    [x,carry] <= a+b
+    [x,carry] <= a.as([5])+b
 end

@@ -1537,8 +1537,15 @@ end
 # Used when casting expressions.
 class Cast
     # Converts the system to Verilog code.
+    # NOTE: the cast is rounded up size bit-width cast is not supported
+    #       by traditional verilog.
     def to_verilog
-        return "#{self.type.to_verilog}'(#{self.child.to_verilog})"
+        # return "#{self.type.to_verilog}'(#{self.child.to_verilog})"
+        if self.type.signed? then
+            return "$signed(#{self.child.to_verilog})"
+        else
+            return "$unsigned(#{self.child.to_verilog})"
+        end
     end
 end
 
