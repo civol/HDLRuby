@@ -86,13 +86,13 @@ module HDLRuby::High::Std
 
         # Creates a new channel reader running in +namespace+ and
         # reading using +reader_proc+ and reseting using +reseter_proc+.
-        def initialize(namespace,reader_proc,reseter_proc)
+        def initialize(namespace,reader_proc,reseter_proc = nil)
             unless namespace.is_a?(Namespace)
                 raise "Invalid class for a namespace: #{namespace.class}"
             end
             @namespace = namespace
             @reader_proc = reader_proc.to_proc
-            @rester_proc = reseter_proc.to_proc
+            @rester_proc = reseter_proc ? reseter_proc.to_proc : proc {}
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -129,13 +129,13 @@ module HDLRuby::High::Std
 
         # Creates a new channel writer running in +namespace+ and
         # writing using +writer_proc+ and reseting using +reseter_proc+.
-        def initialize(namespace,writer_proc,reseter_proc)
+        def initialize(namespace,writer_proc,reseter_proc = nil)
             unless namespace.is_a?(Namespace)
                 raise "Invalid class for a namespace: #{namespace.class}"
             end
             @namespace = namespace
             @writer_proc = writer_proc.to_proc
-            @reseter_proc = reseter_proc.to_proc
+            @reseter_proc = reseter_proc ? reseter_proc.to_proc : proc {}
         end
 
         ## Performs a write on the channel using +args+ and +ruby_block+
@@ -174,14 +174,17 @@ module HDLRuby::High::Std
         # Creates a new channel accesser running in +namespace+
         # and reading using +reader_proc+, writing using +writer_proc+,
         # and reseting using +reseter_proc+.
-        def initialize(namespace,reader_proc,writer_proc,reseter_proc)
+        def initialize(namespace,reader_proc,writer_proc,reseter_proc = nil)
             unless namespace.is_a?(Namespace)
                 raise "Invalid class for a namespace: #{namespace.class}"
             end
             @namespace = namespace
-            @reader_proc  = reader_proc.to_proc
-            @writer_proc  = writer_proc.to_proc
-            @reseter_proc = reseter_proc.to_proc
+            unless reader_proc || writer_proc then
+                raise "An accesser must have at least a reading or a writing procedure."
+            end
+            @reader_proc  = reader_proc ? reader_proc.to_proc : proc { }
+            @writer_proc  = writer_proc ? writer_proc.to_proc : proc { }
+            @reseter_proc = reseter_proc ? reseter_proc.to_proc : proc {}
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -276,10 +279,10 @@ module HDLRuby::High::Std
             # The accesser inout ports by name.
             @accesser_inouts = {}
 
-            # The default reset procedures (reseters), by default do nothing.
-            @input_reseter_proc  = proc {}
-            @output_reseter_proc = proc {}
-            @inout_reseter_proc  = proc {}
+            # # The default reset procedures (reseters), by default do nothing.
+            # @input_reseter_proc  = proc {}
+            # @output_reseter_proc = proc {}
+            # @inout_reseter_proc  = proc {}
 
             # The branch channels
             @branches = {}
@@ -748,17 +751,17 @@ module HDLRuby::High::Std
             end
 
             # Set ups the accesser's namespace
-            @accesser_inputs.each do |name,sig|
+            loc_inputs.each do |name,sig|
                 @accesser_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
             end
-            @accesser_outputs.each do |name,sig|
+            loc_outputs.each do |name,sig|
                 @accesser_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
             end
-            @accesser_inouts.each do |name,sig|
+            loc_inouts.each do |name,sig|
                 @accesser_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end

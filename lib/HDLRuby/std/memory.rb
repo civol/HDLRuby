@@ -322,6 +322,84 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
         end
     end
 
+
+    # The increment branches.
+    # Read with increment
+    brancher(:rinc) do
+        reader_output :trig_r, :abus_r
+        reader_input :dbus_r
+        if br_rsts[:rinc] then
+            rst_name = br_rsts[:rinc].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,target|
+            # By default the read trigger is 0.
+            top_block.unshift { trig_r <= 0 }
+            # The read procedure.
+            rst  = send(rst_name)
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hif(trig_r == 1) do
+                        # The trigger was previously set, read ok.
+                        target <= dbus_r
+                        blk.call
+                    end
+                    # Prepare the read.
+                    abus_r <= abus_r + 1
+                    trig_r <= 1
+                end
+                helse do
+                    # Initialize the address to -1
+                    abus_r <= -1
+                end
+            end
+        end
+    end
+
+    # Write with address
+    brancher(:winc) do
+        writer_output :trig_w, :abus_w, :dbus_w
+        if br_rsts[:winc] then
+            rst_name = br_rsts[:winc].to_sym
+        else
+            rst_name = rst.name
+            writer_input rst_name
+        end
+        # puts "br_rsts=#{br_rsts}"
+        # puts "rst_name=#{rst_name}"
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        writer do |blk,target|
+            # By default the read trigger is 0.
+            top_block.unshift { trig_w <= 0 }
+            # The write procedure.
+            rst  = send(rst_name)
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the write.
+                    hif(trig_w == 1) do
+                        # The trigger was previously set, write ok.
+                        blk.call
+                    end
+                    # Prepare the write.
+                    abus_w <= abus_w + 1
+                    trig_w <= 1
+                    dbus_w <= target
+                end
+                helse do
+                    abus_w <= -1
+                end
+            end
+        end
+    end
+
 end
 
 
