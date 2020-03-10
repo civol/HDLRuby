@@ -2041,8 +2041,17 @@ module HDLRuby::High
         #
         # NOTE: the else part is defined through the helse method.
         def hif(condition)
+            # # Creates the if statement.
+            # return If.new(condition) { self }
+            # Remove self from the current block.
+            obj = self
+            High.cur_block.delete_statement!(obj)
             # Creates the if statement.
-            return If.new(condition) { self }
+            stmnt = If.new(condition) { add_statement(obj) }
+            # Add it to the current block.
+            High.cur_block.add_statement(stmnt)
+            # Returns the result.
+            return stmnt
         end
     end
 
