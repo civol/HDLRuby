@@ -747,7 +747,9 @@ module HDLRuby::High::Std
             obj = self
             # Make the inner connection
             port_pairs.each do |sig, port|
-                port.to_ref <= sig
+                sig.parent.open do
+                    port.to_ref <= sig
+                end
             end
 
             # Set ups the accesser's namespace
