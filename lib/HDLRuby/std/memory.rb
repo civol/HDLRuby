@@ -277,7 +277,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
                         target <= dbus_r
-                        blk.call
+                        blk.call if blk
                     end
                     # Prepare the read.
                     abus_r <= addr
@@ -311,7 +311,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     # No reset, so can perform the write.
                     hif(trig_w == 1) do
                         # The trigger was previously set, write ok.
-                        blk.call
+                        blk.call if blk
                     end
                     # Prepare the write.
                     abus_w <= addr
@@ -348,7 +348,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
                         target <= dbus_r
-                        blk.call
+                        blk.call if blk
                     end
                     # Prepare the read.
                     abus_r <= abus_r + 1
@@ -386,7 +386,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     # No reset, so can perform the write.
                     hif(trig_w == 1) do
                         # The trigger was previously set, write ok.
-                        blk.call
+                        blk.call if blk
                     end
                     # Prepare the write.
                     abus_w <= abus_w + 1
