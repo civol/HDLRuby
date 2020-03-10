@@ -189,5 +189,16 @@ module HDLRuby::Low
         end
     end
 
+    ## Extends the TimeBlock class with functionality for breaking assingments
+    #  to concats.
+    class TimeBlock
+
+        # Removes the signals and corresponding assignments whose name is not
+        # in +keep+.
+        def delete_unless!(keep)
+            # Nothing to cleanup.
+        end
+    end
+
 
 end
