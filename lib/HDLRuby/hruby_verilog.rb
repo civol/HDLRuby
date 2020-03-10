@@ -1691,7 +1691,10 @@ class SystemT
         end
         # When only input is used, it is necessary to close (), so it branches with if.
         if outputs.empty? && inout.empty? then
-            code << " #{inputs.last.to_verilog} ); \n" unless inputs.empty?
+            # code << " #{inputs.last.to_verilog} ); \n" unless inputs.empty?
+            if (inputs.empty?)
+                code << " ); \n"
+            end
         else
             code << " #{inputs.last.to_verilog}," unless inputs.empty?
         end
