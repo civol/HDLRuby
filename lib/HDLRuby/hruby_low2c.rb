@@ -1432,10 +1432,13 @@ module HDLRuby::Low
             # Create the bit string.
             # str = self.content.is_a?(BitString) ?
             #     self.content.to_s : self.content.to_s(2).rjust(32,"0")
-            sign = self.content>=0 ? "0" : "1"
-            str = self.content.abs.to_s(2).rjust(width,sign).upcase
-            # Sign extend.
-            str = str.rjust(self.type.width, self.type.signed ? str[-1] : "0")
+            if self.content.is_a?(BitString) then
+                str = self.content.is_a?(BitString) ?
+                    self.content.to_s : self.content.to_s(2).rjust(32,"0")
+            else
+                sign = self.content>=0 ? "0" : "1"
+                str = self.content.abs.to_s(2).rjust(width,sign).upcase
+            end
             # Is it a fully defined number?
             if str =~ /^[01]+$/ then
                 # Yes, generate a numeral value.
