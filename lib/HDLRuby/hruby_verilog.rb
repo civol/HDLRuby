@@ -167,8 +167,8 @@ class Block
             $fm.fm_par.clear()
 
             code << "\n   end\n\n"
-            return code
         end
+        return code
     end
 
 
