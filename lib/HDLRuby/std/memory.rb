@@ -47,7 +47,7 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e,rst,br_rsts = []|
         inner          :"rwb_#{p}"  # Read/!Write
     end
     # Declare the memory content.
-    typ[awidth].inner :mem
+    typ[-size].inner :mem
 
     # Defines the ports of the memory as branchs of the channel.
     n.times do |p|
@@ -241,7 +241,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
     [awidth].inner :abus_r_reg
 
     # Declare the memory content.
-    typ[awidth].inner :mem
+    typ[-size].inner :mem
 
     # Processes handling the memory access.
     par(clk.posedge) do
@@ -339,9 +339,14 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
         # using +target+ as target of access result.
         reader do |blk,target|
             # By default the read trigger is 0.
-            top_block.unshift { trig_r <= 0 }
-            # The read procedure.
             rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_r <= -1 }
+                # Reset so switch of the access trigger.
+                trig_r <= 0
+            end
+            # The read procedure.
             par do
                 hif(rst == 0) do
                     # No reset, so can perform the read.
@@ -353,10 +358,6 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     # Prepare the read.
                     abus_r <= abus_r + 1
                     trig_r <= 1
-                end
-                helse do
-                    # Initialize the address to -1
-                    abus_r <= -1
                 end
             end
         end
@@ -378,23 +379,25 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
         # using +target+ as target of access result.
         writer do |blk,target|
             # By default the read trigger is 0.
-            top_block.unshift { trig_w <= 0 }
-            # The write procedure.
             rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst == 1) { abus_w <= -1 }
+                # Reset so switch of the access trigger.
+                trig_w <= 0
+            end
+            # The write procedure.
             par do
                 hif(rst == 0) do
                     # No reset, so can perform the write.
                     hif(trig_w == 1) do
                         # The trigger was previously set, write ok.
-                        blk.call if blk
-                    end
+                        blk.call
+                    end if blk
                     # Prepare the write.
                     abus_w <= abus_w + 1
                     trig_w <= 1
                     dbus_w <= target
-                end
-                helse do
-                    abus_w <= -1
                 end
             end
         end
