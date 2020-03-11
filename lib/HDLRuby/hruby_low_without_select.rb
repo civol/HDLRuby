@@ -108,6 +108,20 @@ module HDLRuby::Low
     end
 
 
+    ## Extends the TimeRepeat class with functionality for converting booleans
+    #  in assignments to select operators.
+    class TimeRepeat
+        # Extract the Select expressions.
+        def extract_selects!
+            # Simply recruse on the statement.
+            if self.statement.is_a?(Block) then
+                return []
+            else
+                return self.statement.extract_selects!
+            end
+        end
+    end
+
 
     ## Extends the Block class with functionality for converting select
     #  expressions to case statements.

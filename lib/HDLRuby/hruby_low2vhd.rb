@@ -727,11 +727,20 @@ module HDLRuby::Low
             # It is assumed that the inners are all in declared in the
             # direct sub block and that they represent variables, i.e.,
             # Low::to_upper_space! and Low::with_var! has been called.
-            vars = self.block.each_inner.to_a 
+            vars = self.block.each_inner.to_a
 
             # The resulting string.
-            res = " " * (level*3)
+            res = ""
+
+            # Generate the TimeRepeat as different processes if any.
+            self.block.each_statement_deep do |stmnt|
+                if stmnt.is_a?(TimeRepeat) then
+                    res << stmnt.process_to_vhdl(vars,level)
+                end
+            end
+
             # Generate the header.
+            res << " " * (level*3)
             unless  self.block.name.empty? then
                 res << Low2VHDL.vhdl_name(self.block.name) << ": "
             end
@@ -796,6 +805,11 @@ module HDLRuby::Low
             else
                 # Generate the body directly.
                 res << self.block.to_vhdl(vars,level+1)
+            end
+            # Insert an infinite wait is the top block is a timed block.
+            if self.block.is_a?(TimeBlock) then
+                res << " " * ((level+1)*3)
+                res << "wait;\n"
             end
             # Close the process.
             res << " " * (level*3)
@@ -990,12 +1004,41 @@ module HDLRuby::Low
 
     ## Extends the TimeRepeat class with generation of HDLRuby::High text.
     class TimeRepeat
-
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
         def to_vhdl(vars,level = 0)
-            raise AnyError, "Internal error: TimeRepeat not supported yet for conversion to VHDL."
+            # Nothing to do, see process_to_vhdl
+            return ""
+        end
+
+        # Generates the text of the equivalent HDLRuby::High code as a new
+        # process.
+        # +vars+ is the list of the variables and
+        # +level+ is the hierachical level of the object.
+        def process_to_vhdl(vars,level = 0)
+            # Generate a separate process for the repeated statement with
+            # a wait.
+            # The resulting string.
+            res = " " * (level*3)
+            # Generate the header.
+            unless  self.block.name.empty? then
+                res << Low2VHDL.vhdl_name(self.block.name) << ": "
+            end
+            res << "process \n"
+            # Generate the content.
+            res << " " * (level*3)
+            res << "begin\n"
+            # Adds the wait.
+            res << " " * ((level+1)*3)
+            res << "wait for " << self.delay.to_vhdl(level) << ";\n" 
+            # Generate the remaining of the body.
+            res << self.statement.to_vhdl(vars,level+1)
+            # Close the process.
+            res << " " * (level*3)
+            res << "end process;\n\n"
+            # Return the result.
+            return res
         end
     end
 

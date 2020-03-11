@@ -436,7 +436,7 @@ module HDLRuby::Low
             # Assign the replaced nodes.
             node2rep_done.each do |node,rep|
                 reassign = node2reassign[node][1].clone
-                self.parent.
+                self.parent.parent.
                     add_connection(Connection.new(reassign,node.clone))
             end
         end

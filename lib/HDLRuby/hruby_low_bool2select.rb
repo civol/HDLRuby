@@ -129,6 +129,17 @@ module HDLRuby::Low
         end
     end
 
+    ## Extends the TimeRepeat class with functionality for converting booleans
+    #  in assignments to setlect operators.
+    class TimeRepeat
+        # Converts booleans in assignments to select operators.
+        def boolean_in_assign2select!
+            # Simply recurse on the stamtement.
+            self.statement.boolean_in_assign2select!
+            return self
+        end
+    end
+
 
     ## Extends the Block class with functionality for converting booleans
     #  in assignments to select operators.
