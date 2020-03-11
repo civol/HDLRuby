@@ -3340,7 +3340,7 @@ module HDLRuby::Low
 
         # Clones the TimeRepeat (deeply)
         def clone
-            return TimeRepeat(@statement.clone,@delay.clone)
+            return TimeRepeat.new(@statement.clone,@delay.clone)
         end
 
         # Iterates over the expression children if any.
