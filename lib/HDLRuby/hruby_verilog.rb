@@ -113,6 +113,65 @@ class Block
         puts "Block to_verilog not found" # For debugging
     end
 
+    # Extract and convert to verilog the TimeRepeat statements.
+    # NOTE: work only on the current level of the block (should be called
+    # through each_block_deep).
+    def repeat_to_verilog!
+        code = ""
+        # Gather the TimeRepeat statements.
+        repeats = self.each_statement.find_all { |st| st.is_a?(TimeRepeat) }
+        # Remove them from the block.
+        repeats.each { |st| self.delete_statement!(st) }
+        # Generate them separately in timed always processes.
+        repeats.each do |st|
+            code << "   always #{st.delay.to_verilog} begin\n"
+
+            # Perform "scheduling" using the method "flatten".
+            block = st.statement.flatten(st.statement.mode.to_s)
+
+            # Declaration of "inner" part within "always".
+            block.each_inner do |inner|
+                # if regs.include?(inner.name) then
+                if regs.include?(inner.to_verilog) then
+                    code << "      reg"
+                else
+                    code << "      wire"
+                end
+
+                # Variable has "base", but if there is width etc, it is not in "base".
+                # It is determined by an if.
+                if inner.type.base? 
+                    if inner.type.base.base? 
+                        # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+                    else
+                        # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                        code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+                    end
+                else
+                    # code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+                    code << " #{inner.type.to_verilog}#{inner.to_verilog}"
+                end
+                if inner.value then
+                    # There is an initial value.
+                    code << " = #{inner.value.to_verilog}"
+                end
+                code << ";\n"
+            end
+
+            # Translate the block that finished scheduling.
+            block.each_statement do |statement|
+                code  << "\n      #{statement.to_verilog(block.mode.to_s)}"
+            end
+
+            $fm.fm_par.clear()
+
+            code << "\n   end\n\n"
+            return code
+        end
+    end
+
+
     # Process top layer of Block.
     # Determine whether there is a block under block and convert it.
     def flatten(mode = nil)
@@ -1587,20 +1646,20 @@ end
 # One of two people, TimeWait and Delay.
 class TimeWait
     def to_verilog(mode=nil)
-        return self.delay.to_verilog
+        return self.delay.to_verilog + "\n"
     end
 end
 class Delay
     def to_verilog
         time = self.value.to_s
         if(self.unit.to_s == "ps") then
-            return "##{time}\n"
+            return "##{time}"
         elsif(self.unit.to_s == "ns")
-            return "##{time}000\n"
+            return "##{time}000"
         elsif(self.unit.to_s == "us")
-            return "##{time}000000\n"
+            return "##{time}000000"
         elsif(self.unit.to_s == "ms")
-            return "##{time}000000000\n"
+            return "##{time}000000000"
         end
     end
 end
@@ -1899,8 +1958,14 @@ class SystemT
         # Translation of behavior part (always).
         self.each_behavior do |behavior|
             if behavior.block.is_a?(TimeBlock) then
+                # Extract and translate the TimeRepeat separately.
+                behavior.each_block_deep do |blk|
+                    code << blk.repeat_to_verilog!
+                end
+                # And generate an initial block.
                 code << "   initial begin\n"
             else
+                # Generate a standard process.
                 code << "   always @( "
                 # If there is no "always" condition, it is always @("*").
                 if behavior.each_event.to_a.empty? then
