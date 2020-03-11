@@ -2045,11 +2045,11 @@ module HDLRuby::High
             # return If.new(condition) { self }
             # Remove self from the current block.
             obj = self
-            High.cur_block.delete_statement!(obj)
+            ::HDLRuby::High.cur_block.delete_statement!(obj)
             # Creates the if statement.
             stmnt = If.new(condition) { add_statement(obj) }
             # Add it to the current block.
-            High.cur_block.add_statement(stmnt)
+            ::HDLRuby::High.cur_block.add_statement(stmnt)
             # Returns the result.
             return stmnt
         end

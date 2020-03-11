@@ -273,20 +273,23 @@ begin
     if systemI1Statements.size != 4 then
         puts "Error: invalid number of statements, got #{systemI1Statements.size} but expecting 4."
         success = false
-    elsif !systemI1Statements[0].is_a?(Transmit) then
-        puts "Error: invalid first statement, got #{systemI1Statements[0].class} but expecting Transmit."
+    elsif !systemI1Statements[0].is_a?(If) then
+        puts "Error: invalid first statement, got #{systemI1Statements[0].class} but expecting If."
         success = false
-    elsif systemI1Statements[0].left.object.name != :o1 then
-        puts "Error: invalid first statement left, got #{systemI1Statements[0].left.object.name} but expecting o1."
+    elsif !systemI1Statements[0].yes.last_statement.is_a?(Transmit) then
+        puts "Error: invalid content of first if statement, got #{systemI1Statements[0].yes.class} but expecting Transmit."
         success = false
-    elsif systemI1Statements[0].right.operator != :* then
-        puts "Error: invalid first statement right operator, got #{systemI1Statements[0].right.operator} but expecting *."
+    elsif systemI1Statements[0].yes.last_statement.left.object.name != :o1 then
+        puts "Error: invalid content of first if statement left, got #{systemI1Statements[0].left.object.name} but expecting o1."
         success = false
-    elsif systemI1Statements[0].right.left.object.name != :i0 then
-        puts "Error: invalid first statement right left, got #{systemI1Statements[0].right.left.object.name} but expecting i0."
+    elsif systemI1Statements[0].yes.last_statement.right.operator != :* then
+        puts "Error: invalid content of first if statement right operator, got #{systemI1Statements[0].right.operator} but expecting *."
         success = false
-    elsif systemI1Statements[0].right.right.object.name != :i1 then
-        puts "Error: invalid first statement right right, got #{systemI1Statements[0].right.left.object.name} but expecting i1."
+    elsif systemI1Statements[0].yes.last_statement.right.left.object.name != :i0 then
+        puts "Error: invalid content of first first if statement right left, got #{systemI1Statements[0].right.left.object.name} but expecting i0."
+        success = false
+    elsif systemI1Statements[0].yes.last_statement.right.right.object.name != :i1 then
+        puts "Error: invalid content of first if statement right right, got #{systemI1Statements[0].right.left.object.name} but expecting i1."
         success = false
     elsif !systemI1Statements[2].is_a?(If) then
         puts "Error: invalid third statement, got #{systemI1Statements[2].class} but expecting If."
