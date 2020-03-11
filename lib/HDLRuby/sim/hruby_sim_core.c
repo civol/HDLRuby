@@ -496,7 +496,7 @@ void transmit_to_signal_range(Value value, RefRangeS ref) {
     SignalI signal = ref.signal;
     unsigned long long first = ref.first;
     unsigned long long last = ref.last;
-    // printf("Tansmit to signal range: %s(%p)\n",signal->name,signal);
+    // printf("Tansmit to signal range: %s(%p) [%lld:%lld]\n",signal->name,signal,first,last);
     /* Can transmit, copy the content. */
     if (signal->fading)
         signal->f_value = write_range(value,first,last,signal->f_value);

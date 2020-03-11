@@ -620,8 +620,9 @@ module HDLRuby::Low
 
             # Is it a clocked behavior?
             events = self.each_event.to_a
-            if events.empty? then
+            if events.empty? && !self.is_a?(TimeBehavior) then
                 # No events, this is not a clock behavior.
+                # And it is not a time behavior neigther.
                 # Generate the events list from the right values.
                 # First get the references.
                 refs = self.block.each_node_deep.select do |node|
@@ -1429,8 +1430,10 @@ module HDLRuby::Low
 
             # Declares the data.
             # Create the bit string.
-            str = self.content.is_a?(BitString) ?
-                self.content.to_s : self.content.to_s(2).rjust(32,"0")
+            # str = self.content.is_a?(BitString) ?
+            #     self.content.to_s : self.content.to_s(2).rjust(32,"0")
+            sign = self.content>=0 ? "0" : "1"
+            str = self.content.abs.to_s(2).rjust(width,sign).upcase
             # Sign extend.
             str = str.rjust(self.type.width, self.type.signed ? str[-1] : "0")
             # Is it a fully defined number?

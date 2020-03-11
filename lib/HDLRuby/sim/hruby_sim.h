@@ -143,6 +143,13 @@ extern Value add_value(Value src0, Value src1, Value dst);
  *  @return dst */
 extern Value sub_value(Value src0, Value src1, Value dst);
 
+/** Computes the multiplication of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+extern Value mul_value(Value src0, Value src1, Value dst);
+
 /** Computes the not of a value.
  *  @param src the source value of the not
  *  @param dst the destination value

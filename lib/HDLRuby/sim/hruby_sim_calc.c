@@ -238,9 +238,9 @@ void resize_value(Value value, int size) {
  *  @param data the source data */
 void set_value(Value value, int numeric, void* data) {
     value->numeric = numeric;
-    if (numeric)
+    if (numeric) {
         value->data_int = *((unsigned long long*)data);
-    else  {
+    } else  {
         memcpy(value->data_str,data,type_width(value->type)*sizeof(char));
     }
 }
@@ -359,7 +359,7 @@ static Value set_bitstring_value(Value src, Value dst) {
     unsigned long long i;
     /* Resize dst to match the width. */
     resize_value(dst,width);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src->type;
     dst->numeric = 0;
 
@@ -379,6 +379,29 @@ static Value set_bitstring_value(Value src, Value dst) {
 }
 
 
+/** Sets a value to undefined.
+ *  @param dst the destination value
+ *  @return the destination value */
+static Value set_undefined_bitstring(Value dst) {
+    /* Compute the width of the result in bits. */
+    unsigned long long width = type_width(dst->type);
+
+    /* set the type and size of the destination. */
+    dst->numeric = 0;
+
+    /* Get access to the destination data. */
+    char* dst_data = dst->data_str;
+
+    /* undefine the destination. */
+    unsigned long long count;
+    for(count = 0; count < width; ++count) {
+        dst_data[count] = 'x';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
+
 /** Computes the neg of a bitstring value.
  *  @param src the source value of the not
  *  @param dst the destination value
@@ -389,7 +412,7 @@ static Value neg_value_bitstring(Value src, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src->type;
     dst->numeric = 0;
 
@@ -434,7 +457,7 @@ static Value add_value_bitstring(Value src0, Value src1, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
@@ -503,7 +526,7 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
@@ -572,7 +595,7 @@ static Value not_value_bitstring(Value src, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src->type;
     dst->numeric = 0;
 
@@ -611,7 +634,7 @@ static Value and_value_bitstring(Value src0, Value src1, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
@@ -680,7 +703,7 @@ static Value or_value_bitstring(Value src0, Value src1, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
@@ -749,7 +772,7 @@ static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
@@ -953,7 +976,7 @@ static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
@@ -1026,7 +1049,7 @@ static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
 
     /* Update the destination capacity if required. */
     resize_value(dst,width);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = src->type;
     dst->numeric = 0;
     char *dst_data = dst->data_str;
@@ -1098,7 +1121,7 @@ static Value cast_value_bitstring(Value src, Type type, Value dst) {
 
     /* Update the destination capacity if required. */
     resize_value(dst,width);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = type;
     dst->numeric = 0;
 
@@ -1221,7 +1244,7 @@ Value read_range_bitstring(Value src, long long first, long long last,
 
     /* Update the destination capacity if required. */
     resize_value(dst,length);
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = make_type_vector(get_type_bit(),length);
     dst->numeric = 0;
 
@@ -1249,6 +1272,7 @@ Value write_range_bitstring(Value src, long long first, long long last,
         last = first;
         first = tmp;
     }
+    // printf("Initially first=%lld, last=%lld\n",first,last);
     /* Get the widths of the source and the desintation. */
     unsigned long long src_width = type_width(src->type);
     unsigned long long dst_width = type_width(dst->type);
@@ -1256,6 +1280,8 @@ Value write_range_bitstring(Value src, long long first, long long last,
     unsigned long long bw = dst->type->base;
     first *= bw;
     last *=  bw;
+    last += bw-1;
+    // printf("bw=%lld, first=%lld, last=%lld\n",bw,first,last);
     /* Access the source and destination bitstring data. */
     char* dst_data = dst->data_str;
     char* src_data = src->data_str;
@@ -1350,6 +1376,22 @@ static Value sub_value_numeric(Value src0, Value src1, Value dst) {
 
     /* Perform the subtraction. */
     dst->data_int = src0->data_int - src1->data_int;
+    return dst;
+}
+
+
+/** Computes the multiplication of two numeric values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+static Value mul_value_numeric(Value src0, Value src1, Value dst) {
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    /* Perform the addition. */
+    dst->data_int = src0->data_int * src1->data_int;
     return dst;
 }
 
@@ -1605,7 +1647,7 @@ Value read_range_numeric(Value value, long long first, long long last,
     length *= bw;
     // printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length);
 
-    /* set the type and size of the destination the the type of the source. */
+    /* Set the type and size of the destination from the type of the source.*/
     dst->type = make_type_vector(get_type_bit(),length);
     dst->numeric = 1;
 
@@ -1744,6 +1786,27 @@ Value sub_value(Value src0, Value src1, Value dst) {
     /* Restores the pool of values. */
     set_value_pos(pos);
     /* Return the destination. */
+    return dst;
+}
+
+
+/** Computes the multiplication of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+Value mul_value(Value src0, Value src1, Value dst) {
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric && src1->numeric) {
+        /* Both sources are numeric. */
+        return mul_value_numeric(src0,src1,dst);
+    } else {
+        /* Cannot compute (for now), simply undefines the destination. */
+        set_undefined_bitstring(dst);
+    }
     return dst;
 }
 
@@ -2199,14 +2262,14 @@ RefRangeS make_ref_rangeS(SignalI signal, unsigned long long first,
  *  @param value the value to convert
  *  @return the resulting int. */
 unsigned long long value2integer(Value value) {
+    unsigned long long width = type_width(value->type);
     /* If the value is numeric, just return its data as is. */
     if (value->numeric) {
-        return value->data_int;
+        return value->data_int & ~((unsigned long long)(-1LL) << width);
     }
     /* Otherwise convert the bitstring to an integer if possible,
      * but return 0 in case of failure. */
     /* Gets the width of the value. */
-    unsigned long long width = type_width(value->type);
     unsigned long long res = 0;
     unsigned long long i;
     char bit;
