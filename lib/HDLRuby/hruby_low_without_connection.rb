@@ -86,14 +86,28 @@ module HDLRuby::Low
                             outputs_blk.add_statement(
                                 Transmit.new(left.clone,right.clone))
                         else
-                            # puts "left/right is inout"
+                            # # puts "left/right is inout"
+                            # if (left.is_a?(Ref)) then
+                            #     inputs_blk.add_statement(
+                            #         Transmit.new(left.clone,right.clone))
+                            # end
+                            # if (right.is_a?(Ref)) then
+                            #     outputs_blk.add_statement(
+                            #         Transmit.new(right.clone,left.clone))
+                            # end
+                            # Both or neither input/output, make a behavior
+                            # for each.
                             if (left.is_a?(Ref)) then
-                                inputs_blk.add_statement(
+                                blk = Block.new(:par)
+                                blk.add_statement(
                                     Transmit.new(left.clone,right.clone))
+                                scope.add_behavior(Behavior.new(blk))
                             end
                             if (right.is_a?(Ref)) then
-                                outputs_blk.add_statement(
+                                blk = Block.new(:par)
+                                blk.add_statement(
                                     Transmit.new(right.clone,left.clone))
+                                scope.add_behavior(Behavior.new(blk))
                             end
                         end
                     end
