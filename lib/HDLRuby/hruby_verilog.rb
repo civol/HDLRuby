@@ -1407,9 +1407,15 @@ class Value
         if self.type.base.name.to_s == "bit"
             return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
         elsif self.type.name.to_s == "integer"
-            return "#{self.type.range.first + 1}'d#{self.content.to_verilog}"
+            str = self.content.to_verilog
+            if str[0] == "-" then
+                # Negative value.
+                return "-#{self.type.range.first + 1}'d#{str[1..-1]}"
+            else
+                return "#{self.type.range.first + 1}'d#{str}"
+            end
         end
-        return "#{self.content.to_verilog}"
+        return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
     end
     # How to use when simply obtaining the width
     def to_getrange
