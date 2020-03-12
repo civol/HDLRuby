@@ -585,6 +585,22 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
 }
 
 
+/** Computes the multiplication of two defined bitstring values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+static Value mul_value_defined_bitstring(Value src0, Value src1, Value dst) {
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    /* Perform the addition. */
+    dst->data_int = value2integer(src0) * value2integer(src1);
+    return dst;
+}
+
+
 /** Computes the NOT of a bitstring value.
  *  @param src the source value of the not
  *  @param dst the destination value
@@ -1803,8 +1819,14 @@ Value mul_value(Value src0, Value src1, Value dst) {
     if (src0->numeric && src1->numeric) {
         /* Both sources are numeric. */
         return mul_value_numeric(src0,src1,dst);
+    } else if (is_defined_value(src0) && is_defined_value(src1)) {
+        /* Both sources can be converted to numeric values. */
+        return mul_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */
+        /* First ensure dst has the right shape. */
+        copy_value(src0,dst);
+        /* Then make it undefined. */
         set_undefined_bitstring(dst);
     }
     return dst;
