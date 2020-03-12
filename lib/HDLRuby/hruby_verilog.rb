@@ -1446,7 +1446,7 @@ class If
         # If noif (else if) exists, it outputs it.
         # Since noif is directly under, respond_to is unnecessary.
         self.each_noif do |condition, block|
-            result << "#{"   " * $space_count}   else if (#{condition.to_verilog})\n"
+            result << "#{"   " * $space_count}   else if (#{condition.to_verilog}) begin\n"
             block.each_statement do |statement|
                 result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
             end
