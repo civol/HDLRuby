@@ -10,7 +10,7 @@
 /** Prints the time.
  *  @param time the time to show. */
 void print_time(unsigned long long time) {
-    printf("# %lluns",time);
+    printf("# %llups",time);
 }
 
 /** Prints the time and goes to the next line.

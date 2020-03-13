@@ -460,7 +460,7 @@ typedef struct EventS_ {
 /* The interface to the simulator. */
 
 /* The time units. */
-typedef enum { S, MS, US, NS, FS } Unit;
+typedef enum { S, MS, US, NS, PS, FS } Unit;
 
 /** Adds a timed behavior for processing. 
  *  @param behavior the timed behavior to register */

@@ -577,10 +577,11 @@ Event make_event(Edge edge, SignalI signal) {
  *  @return the result delay in the base unit of the simulator (ns) */
 unsigned long long make_delay(int value, Unit unit) {
     switch(unit) {
-        case  S: return value * 1000000000ULL;
-        case MS: return value * 1000000ULL;
-        case US: return value * 1000ULL;
-        case NS: return value * 1ULL;
+        case  S: return value * 1000000000000ULL;
+        case MS: return value * 1000000000ULL;
+        case US: return value * 1000000ULL;
+        case NS: return value * 1000ULL;
+        case PS: return value * 1ULL;
         default: 
                  perror("Invalid unit for a delay."); 
     }
