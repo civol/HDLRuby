@@ -1501,6 +1501,9 @@ class Case
                 whens.statement.each_statement do |statement|
                     result << "#{statement.to_verilog}"
                 end
+            else
+                # Empty statement case.
+                result << "\n"
             end
         end
         # The default part is stored in default instead of when. Reads and processes in the same way as when.
