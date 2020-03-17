@@ -1666,6 +1666,8 @@ class Delay
             return "##{time}000000"
         elsif(self.unit.to_s == "ms")
             return "##{time}000000000"
+        elsif(self.unit.to_s == "s")
+            return "##{time}000000000000"
         end
     end
 end
