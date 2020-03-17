@@ -820,5 +820,30 @@ module HDLRuby::High::Std
         end
     end
 
+
 end
 
+
+module HDLRuby::High
+
+    ## Enhance expressions with possibility to act like a reading branch.
+    module HExpression
+        ## Transmits the expression to +target+ and execute +ruby_block+ if
+        #  any.
+        def read(target,&ruby_block)
+            target <= self
+            ruby_block.call if ruby_block
+        end
+    end
+
+
+    ## Enhance references with possibility to act like a writing branch.
+    module HRef
+        ## Transmits +target+ to the reference and execute +ruby_block+ if
+        #  any.
+        def write(target,&ruby_block)
+            self <= target
+            ruby_block.call if ruby_block
+        end
+    end
+end
