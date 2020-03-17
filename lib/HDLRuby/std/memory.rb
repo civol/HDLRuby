@@ -407,3 +407,239 @@ end
 
 
 
+# Register file supporting multiple parallel accesses with distinct read and
+# write ports of +size+ elements of +typ+ typ, syncrhonized on +clk+ 
+# and reset on +rst+.
+# At each rising edge of +clk+ a read and a write is guaranteed to be
+# completed provided they are triggered.
+# +br_rsts+ are reset names on the branches, if not given, a reset input
+# is added and connected to rst.
+#
+# NOTE:
+#
+# * such memories uses the following arrayes of ports:
+#   - dbus_rs: read data buses        (inputs)
+#   - dbus_ws: write data buses       (outputs)
+#
+# * The following branches are possible (only one read and one write can
+#   be used per channel)
+#   - rnum:    read by register number, the number must be a defined value.
+#   - wnum:    writer by register number, the number must be a defined value.
+#   - raddr:   read by address
+#   - waddr:   read by address
+#   - rinc:    read by automatically incremented address.
+#   - winc:    write by automatically incremented address.
+#   - rdec:    read by automatically decremented address.
+#   - wdec:    write by automatically decremented address.
+#   - rque:    read in queue mode: automatically incremented address ensuring
+#              the read address is always different from the write address.
+#   - wque:    write in queue mode: automatically incremented address ensuring
+#              the write address is always differnet from the read address.
+#
+HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
+    # Ensure typ is a type.
+    typ = typ.to_type
+    # Ensure size in an integer.
+    size = size.to_i
+    # Process the table of reset mapping for the branches.
+    # puts "first br_rsts=#{br_rsts}"
+    if br_rsts.is_a?(Array) then
+        # It is a list, convert it to a hash with the following order:
+        # raddr, waddr, rinc, winc, rdec, wdec, rque, wque
+        # If there is only two entries they will be duplicated and mapped
+        # as follows:
+        # [raddr,waddr], [rinc,winc], [rdec,wdec], [rque,wque]
+        # If there is only one entry it will be duplicated and mapped as
+        # follows:
+        # raddr, rinc, rdec, rque
+        if br_rsts.size == 2 then
+            br_rsts = br_rsts * 4
+        elsif br_rsts.size == 1 then
+            br_rsts = br_rsts * 8
+        end
+        br_rsts = { raddr: br_rsts[0], waddr: br_rsts[1],
+                    rinc:  br_rsts[2], winc:  br_rsts[3],
+                    rdec:  br_rsts[4], wdec:  br_rsts[5],
+                    rque:  br_rsts[6], wque:  br_rsts[6] }
+    end
+    unless br_rsts.respond_to?(:[])
+        raise "Invalid reset mapping description: #{br_rsts}"
+    end
+
+    # Declare the registers.
+    size.times do |i|
+        typ.inner :"reg_#{i}"
+    end
+
+    # Defines the ports of the memory as branchs of the channel.
+    
+    # The number branch (accesser).
+    brancher(:anum) do
+        size.times { |i| accesser_inout :"reg_#{i}" }
+
+        # Defines the read procedure of register number +num+
+        # using +target+ as target of access result.
+        reader do |blk,num,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # The read procedure.
+            par do
+                # No reset, so can perform the read.
+                target <= regs[num]
+                blk.call if blk
+            end
+        end
+
+        # Defines the read procedure of register number +num+
+        # using +target+ as target of access result.
+        writer do |blk,num,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # The write procedure.
+            par do
+                regs[num] <= target
+                blk.call if blk
+            end
+        end
+    end
+
+    
+    # The address branches.
+    # Read with address
+    brancher(:raddr) do
+        size.times { |i| reader_input :"reg_#{i}" }
+        regs = size.times.map {|i| send(:"reg_#{i}") }
+        if br_rsts[:raddr] then
+            rst_name = br_rsts[:raddr].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,addr,target|
+            # The read procedure.
+            rst  = send(rst_name)
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hcase(addr)
+                    size.times do |i|
+                        hwhen(i) { target <= regs[i] }
+                    end
+                    blk.call if blk
+                end
+            end
+        end
+    end
+
+    # Write with address
+    brancher(:waddr) do
+        size.times { |i| writer_output :"reg_#{i}" }
+        regs = size.times.map {|i| send(:"reg_#{i}") }
+        if br_rsts[:waddr] then
+            rst_name = br_rsts[:waddr].to_sym
+        else
+            rst_name = rst.name
+            writer_input rst_name
+        end
+
+        # Defines the writer procedure at address +addr+
+        # using +target+ as target of access.
+        writer do |blk,addr,target|
+            # The writer procedure.
+            rst  = send(rst_name)
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hcase(addr)
+                    size.times do |i|
+                        hwhen(i) { regs[i] <= target }
+                    end
+                    blk.call if blk
+                end
+            end
+        end
+    end
+
+
+    # The increment branches.
+    # Read with increment
+    brancher(:rinc) do
+        size.times { |i| reader_input :"reg_#{i}" }
+        if br_rsts[:rinc] then
+            rst_name = br_rsts[:rinc].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+        # Declares the address counter.
+        [size.width-1].inner :abus_r
+        reader_inout :abus_r
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # By default the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_r <= 0 }
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hcase(abus_r)
+                    size.times do |i|
+                        hwhen(i) { target <= regs[i] }
+                    end
+                    blk.call if blk
+                    # Prepare the next read.
+                    abus_r <= abus_r + 1
+                end
+            end
+        end
+    end
+
+    # Write with increment
+    brancher(:winc) do
+        size.times { |i| writer_output :"reg_#{i}" }
+        if br_rsts[:winc] then
+            rst_name = br_rsts[:winc].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+        # Declares the address counter.
+        [size.width-1].inner :abus_w
+        reader_inout :abus_w
+
+        # Defines the write procedure at address +addr+
+        # using +target+ as target of access result.
+        writer do |blk,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # By default the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_w <= 0 }
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hcase(abus_w)
+                    size.times do |i|
+                        hwhen(i) { regs[i] <= target }
+                    end
+                    blk.call if blk
+                    # Prepare the next write.
+                    abus_w <= abus_w + 1
+                end
+            end
+        end
+    end
+
+
+end
