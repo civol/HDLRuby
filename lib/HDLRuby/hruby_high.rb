@@ -2403,12 +2403,14 @@ module HDLRuby::High
 
         # Left rotate of +n+ bits.
         def lr(n)
-            return [self[-(n+1)..0], self[-1..-(n)]]
+            w = self.type.width
+            return [self[w-(n+1)..0], self[w-1..w-(n)]]
         end
 
         # Right rotate of +n+ bits.
         def rr(n)
-            return [self[(n-1)..0], self[-1..n]]
+            w = self.type.width
+            return [self[(n-1)..0], self[w-1..n]]
         end
 
         # Coerce by forcing convertion of obj to expression.
@@ -2427,7 +2429,7 @@ module HDLRuby::High
         # Adds the binary operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
          :"&",:"|",:"^",
-         :"<<",:">>",:ls,:rs,:lr,:rr,
+         :"<<",:">>",# :ls,:rs,:lr,:rr, # ls, rs lr and rr are treated separately
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
              meth = proc do |right|
                  expr = self.to_expr

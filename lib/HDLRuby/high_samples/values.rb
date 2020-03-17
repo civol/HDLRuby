@@ -47,6 +47,9 @@ system :values do
         sig <= _b1ZZX
 
         !1.us
+        sig <= _b8bxxxx
+
+        !1.us
         sig <= _b0110 + _b0110
         !1.us
         sig <= _b0110 - _b0110

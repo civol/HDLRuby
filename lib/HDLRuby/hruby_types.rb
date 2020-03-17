@@ -226,8 +226,19 @@ module HDLRuby
             end
         end
 
+        alias_method :ls, :<<
+
         # Shift right
         alias_method :>>, :<<
+        alias_method :rs, :<<
+
+        # Rotate left.
+        def lr(type)
+            return self
+        end
+
+        # Rotate right.
+        alias_method :rr, :lr
         
 
     end
