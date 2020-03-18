@@ -576,6 +576,7 @@ elsif $options[:verilog] then
         systemT.to_global_systemTs!
         # systemT.break_types!
         # systemT.expand_types!
+        systemT.initial_concat_to_timed!
         systemT.with_port!
     end
     # # Verilog generation

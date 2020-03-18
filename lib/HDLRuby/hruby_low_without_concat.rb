@@ -22,6 +22,15 @@ module HDLRuby::Low
             self.scope.break_concat_assigns!
         end
 
+        # Converts initial concat of values of signals to assignment in
+        # timed blocks (for making the code compatible with verilog
+        # translation).
+        #
+        # NOTE: Assumes such array as at the top level.
+        def initial_concat_to_timed!
+            self.scope.initial_concat_to_timed!
+        end
+
     end
 
     ## Extends the Scope class with functionality for breaking assingments
@@ -45,6 +54,48 @@ module HDLRuby::Low
                     self.delete_connection!(connection)
                     self.add_behavior(Behavior.new(nconnection))
                 end
+            end
+        end
+
+        # Converts initial array of value of signals to assignment in
+        # timed blocks (for making the code compatible with verilog
+        # translation).
+        #
+        # NOTE: Assumes such array as at the top level.
+        def initial_concat_to_timed!
+            # Gather the signal with concat as initial values.
+            sigs = []
+            # For the interface signals of the upper system.
+            self.parent.each_signal do |sig|
+                sigs << sig if sig.value.is_a?(Concat)
+            end
+            # For the inner signals of the scope.
+            self.each_signal do |sig|
+                sigs << sig if sig.value.is_a?(Concat)
+            end
+            # No initial concat? End here.
+            return if sigs.empty?
+            
+            # Create a timed block for moving the concat initialization
+            # to it.
+            initial = TimeBlock.new(:seq)
+            self.add_behavior(TimeBehavior.new(initial))
+            # Adds to it the initializations.
+            sigs.each do |sig|
+                name = sig.name
+                styp = sig.type
+                btyp = styp.base
+                value = sig.value
+                sig.value.each_expression.with_index do |expr,i|
+                    left = RefIndex.new(btyp,
+                                        RefName.new(styp,RefThis.new,name),
+                                        i.to_expr)
+                    initial.add_statement(Transmit.new(left,expr.clone))
+                end
+            end
+            # Remove the initial values from the signals.
+            sigs.each do |sig|
+                sig.set_value!(nil)
             end
         end
     end

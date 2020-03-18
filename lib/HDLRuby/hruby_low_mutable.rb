@@ -463,14 +463,14 @@ module HDLRuby::Low
             end
         end
 
-        # Sets the value.
+        # Sets the value (can also be nil for removing the value).
         def set_value!(value)
             # Check and set teh value.
-            unless value.is_a?(Expression) then
-                raise AnyError, "Invalid class for a constant: #{val.class}"
+            unless value == nil || value.is_a?(Expression) then
+                raise AnyError, "Invalid class for a constant: #{value.class}"
             end
             @value = value
-            value.parent = self
+            value.parent = self unless value == nil
         end
 
     end

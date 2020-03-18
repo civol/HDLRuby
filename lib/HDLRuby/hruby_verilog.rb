@@ -1740,6 +1740,13 @@ class SystemT
         self.each_inner do |inner|
             regs << inner.to_verilog if inner.value
         end
+        # And the array types signals.
+        self.each_signal do |sig|
+            regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+        end
+        self.each_inner do |sig|
+            regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+        end
 
         # Code generation
         inputs = 0
@@ -1854,7 +1861,6 @@ class SystemT
 
         # Declare "inner".
         self.each_inner do |inner|
-            # puts "for inner: #{inner.to_verilog}"
             # if regs.include?(inner.name) then
             if regs.include?(inner.to_verilog) then
                 code << "   reg"
