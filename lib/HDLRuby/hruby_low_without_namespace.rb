@@ -317,7 +317,7 @@ module HDLRuby::Low
                 # And create a new type from current type.
                 # Maybe the new type already exists.
                 ndef = types[self]
-                return self if ndef # Yes, already exists.
+                return ndef if ndef # Yes, already exists.
                 # No, create and register a new typedef.
                 ndef = TypeDef.new(HDLRuby.uniq_name,self)
                 types[self] = ndef
