@@ -2576,8 +2576,22 @@ module HDLRuby::Low
         def block
             if self.is_a?(Block)
                 return self
+            elsif self.parent.is_a?(Scope)
+                # No block
+                return nil
             else
                 return self.parent.block
+            end
+        end
+
+        # Get the scope of the statement.
+        def scope
+            if self.parent.is_a?(Scope) then
+                return self.parent
+            elsif self.parent.is_a?(Behavior) then
+                return self.parent.parent
+            else
+                return self.parent.scope
             end
         end
 
@@ -2588,7 +2602,7 @@ module HDLRuby::Low
 
         # Gets the top scope, i.e. the first scope of the current system.
         def top_scope
-            return self.top_block.parent.top_scope
+            return self.scope.top_scope
         end
     end
 

@@ -87,9 +87,10 @@ module HDLRuby::Low
                     blk = LowWithoutSelect.selects2block(selects)
                     # Add a transmit replacing the connection.
                     blk.add_statement(
-                        Transmit.new(self.left.clone,self.right.clone))
+                        Transmit.new(connection.left.clone,
+                                     connection.right.clone))
                     # Remove the connection and add a behavior instead.
-                    self.remove_connection(connection)
+                    self.delete_connection!(connection)
                     self.add_behavior(Behavior.new(blk))
                 end
             end
@@ -223,7 +224,14 @@ module HDLRuby::Low
                 selects << [self,sig]
                 # Create the signal replacing self.
                 blk = self.statement.block
-                blk.add_inner(sig)
+                if blk then
+                    # Add the signal in the block.
+                    blk.add_inner(sig)
+                else
+                    # No block, this is a connection, add the signal in the
+                    # socpe
+                    self.statement.scope.add_inner(sig)
+                end
                 # And return a reference to it.
                 return RefName.new(sig.type,RefThis.new,sig.name)
             end
