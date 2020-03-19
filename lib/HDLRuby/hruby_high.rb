@@ -428,6 +428,22 @@ module HDLRuby::High
             return res
         end
 
+
+        # Gets an output signal by +name+ considering also the included
+        # systems
+        def get_output_with_included(name)
+            # Look in self.
+            found = self.get_output(name)
+            return found if found
+            # Not in self, look in the included systems.
+            self.scope.each_included do |included|
+                found = included.get_output_with_included(name)
+                return found if found
+            end
+            # Not found
+            return nil
+        end
+
         # Iterates over the all interface signals, i.e, also the ones of
         # the included systems.
         #
@@ -1919,12 +1935,13 @@ module HDLRuby::High
             else
                 # No, perform a connection is order of declaration
                 connects.each.with_index do |csig,i|
-                    # puts "csig=#{csig} i=#{i}"
+                    # puts "csig=#{csig.name} i=#{i}"
                     # puts "systemT inputs=#{systemT.each_input.to_a.size}"
                     # Gets i-est signal to connect
                     ssig = self.systemT.get_interface_with_included(i)
                     # Check if it is an output.
-                    isout = self.get_output(ssig.name)
+                    isout = self.systemT.get_output_with_included(ssig.name)
+                    # puts "ssig=#{ssig.name} isout=#{isout}"
                     # Convert it to a reference.
                     ssig = RefObject.new(self.to_ref,ssig)
                     # Make the connection.

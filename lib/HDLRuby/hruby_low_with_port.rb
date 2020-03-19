@@ -102,6 +102,8 @@ module HDLRuby::Low
             self.each_connection do |connection|
                 connection.each_node_deep do |node|
                     if instance_port?(node) then
+                        # puts "port for node: #{node.ref.name}.#{node.name}"
+                        # puts "leftvalue? #{node.leftvalue?}"
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
                     end
