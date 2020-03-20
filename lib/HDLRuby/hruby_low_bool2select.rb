@@ -214,9 +214,10 @@ module HDLRuby::Low
                         # Value.new(HDLRuby::Low::Boolean,1) )
             else
                 # No return it as is.
-                self.set_left!(nleft)
-                self.set_right!(nright)
-                return self
+                # self.set_left!(nleft)
+                # self.set_right!(nright)
+                # return self
+                return Binary.new(self.type,self.operator,nleft,nright)
             end
         end
     end
