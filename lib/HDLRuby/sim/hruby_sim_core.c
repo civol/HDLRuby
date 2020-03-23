@@ -91,9 +91,10 @@ void register_signal(SignalI signal) {
             all_signals = calloc(sizeof(SignalI),cap_all_signals);
         } else {
             /* Need to increase the capacity. */
-            Behavior* behaviors = calloc(sizeof(Behavior),cap_all_signals*2);
-            memcpy(all_signals,behaviors,sizeof(Behavior)*cap_all_signals);
+            SignalI* new_signals = calloc(sizeof(SignalI),cap_all_signals*2);
+            memcpy(new_signals,all_signals,sizeof(SignalI)*cap_all_signals);
             cap_all_signals *= 2;
+            all_signals=new_signals;
         }
     }
     /* Add the behavior. */
