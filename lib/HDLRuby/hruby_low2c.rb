@@ -519,8 +519,10 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
-            # Simply use the name of the type.
-            return Low2C.type_name(self.name) + "()"
+            # # Simply use the name of the type.
+            # return Low2C.type_name(self.name) + "()"
+            # Simply return the defined type.
+            return self.def.to_c(level)
         end
     end
 
