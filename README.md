@@ -740,6 +740,8 @@ inner :w1
 [1..0].inner :w2
 ```
 
+If the signal is not meant to be changed, in can be declared using the `constant` keyword instead of `inner`.
+
 A connection between signals is done using the arrow operator `<=` as follows:
 
 ```ruby
@@ -827,6 +829,28 @@ system :mem16_16 do
    memH.data <= data[15..8]
 end
 ```
+
+### Initialization of signals
+<a name="initialization"></a>
+
+Output, inner and constant signals of a system can be initial when declared using the following syntax in place of the usual name of the signal:
+
+```ruby
+<signal name>: <intial value>
+```
+
+For example a single bit inner signal named `sig` can be initialized to 0 as follows:
+
+```ruby
+inner sig: 0
+```
+
+As an other example, a 8-bit 8-word ROM could be declared and initialized as follows:
+
+```ruby
+bit[8][-8] rom: [ 0,1,2,3,4,5,6,7 ]
+```
+
 
 ### Scope in a system
 
@@ -2756,6 +2780,26 @@ fsm(clk.posedge,rst,:sync) do
    end
 end
 ```
+
+
+## Fixed-point (fixpoint)
+<a name="fixpoint"></a>
+
+This library provides a new fixed point set of data types. These new data types can be bit vectors, unsigned or signed value and are declared respectively as follows:
+
+```ruby
+bit[<integer part range>,<fractional part range>]
+unsigned[<integer part range>,<fractional part range>]
+signed[<integer part range>,<fractional part range>]
+```
+
+For example a signed 4-bit integer part 4-bit fractional part fixed point inner signal named `sig` can be declared as follows:
+
+```ruby
+bit[4,4].inner :sig
+```
+
+When performing computation with fixed point types, HDLRuby ensures that the result's decimal point position is correct.
 
 ## Channel
 <a name="channel"></a>
