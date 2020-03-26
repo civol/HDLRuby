@@ -70,7 +70,8 @@ module HDLRuby::High::Std
     ## Creates directly an instance of channel named +name+ using
     #  +ruby_block+ built with +args+.
     def self.channel_instance(name,*args,&ruby_block)
-        return ChannelT.new(:"",&ruby_block).instantiate(name,*args)
+        # return ChannelT.new(:"",&ruby_block).instantiate(name,*args)
+        return self.channel(:"",&ruby_block).instantiate(name,*args)
     end
 
     ## Creates directly an instance of channel named +name+ using
@@ -81,8 +82,19 @@ module HDLRuby::High::Std
 
 
     ##
+    #  Module for wrapping channel ports.
+    module ChannelPortWrapping
+        # Wrap with +args+ arguments.
+        def wrap(*args)
+            return ChannelPortB.new(self,*args)
+        end
+    end
+
+
+    ##
     # Describes a read port to a channel.
     class ChannelPortR
+        include ChannelPortWrapping
 
         # Creates a new channel reader running in +namespace+ and
         # reading using +reader_proc+ and reseting using +reseter_proc+.
@@ -126,6 +138,7 @@ module HDLRuby::High::Std
     ##
     # Describes a writer port to a channel.
     class ChannelPortW
+        include ChannelPortWrapping
 
         # Creates a new channel writer running in +namespace+ and
         # writing using +writer_proc+ and reseting using +reseter_proc+.
@@ -166,10 +179,10 @@ module HDLRuby::High::Std
     end
 
 
-
     ##
     # Describes an access port to a channel.
     class ChannelPortA
+        include ChannelPortWrapping
 
         # Creates a new channel accesser running in +namespace+
         # and reading using +reader_proc+, writing using +writer_proc+,
@@ -226,6 +239,73 @@ module HDLRuby::High::Std
             HDLRuby::High.space_pop
         end
     end
+
+
+    ##
+    # Describes port wrapper (Box) for fixing arugments.
+    class ChannelPortB
+        include ChannelPortWrapping
+
+        # Creates a new channel box over channel port +port+ fixing +args+
+        # as arguments.
+        # +args+ is a list of arguments to apply to all read, write
+        # and access procedure, nil values meaning that the corresponding
+        # argument is not overwritten.
+        # It can also be three lists for seperate read, write and access
+        # procedures using named arguments as:
+        # read: <read arguments>, write: <write arguments>,
+        # access: <access arguments>
+        def initialize(port,*args)
+            # Ensure port is a channel port.
+            unless port.is_a?(ChannelPortR) || port.is_a?(ChannelPortW) ||
+                    port.is_a?(ChannelPortA) || port.is_a?(ChannelPortB)
+                raise "Invalid class for a channel port: #{port.class}"
+            end
+            @port = port
+            # Process the arguments.
+            if args.size == 1 && args[0].is_a?(Hash) then
+                # Read, write and access are separated.
+                @args_read = args[0][:read]
+                @args_write = args[0][:write]
+                @args_access = args[0][:access]
+            else
+                @args_read = args
+                @args_write = args.clone
+                @args_access = args.clone
+            end
+        end
+
+        ## Performs a read on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def read(*args,&ruby_block)
+            # Generate the final arguments: fills the nil with arguments
+            # from args
+            rargs = @args_read.clone
+            rargs.map! { |arg| arg == nil ? args.shift : arg }
+            # And add the remaining at the tail.
+            rargs += args
+            @port.read(*rargs,&ruby_block)
+        end
+
+        ## Performs a write on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def write(*args,&ruby_block)
+            # Generate the final arguments: fills the nil with arguments
+            # from args
+            rargs = @args_write.clone
+            rargs.map! { |arg| arg == nil ? args.shift : arg }
+            # And add the remaining at the tail.
+            rargs += args
+            @port.write(*rargs,&ruby_block)
+        end
+
+        ## Performs a reset on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def reset(*args,&ruby_block)
+            @port.reset(*@args,*args)
+        end
+    end
+
 
 
     ## 
@@ -520,12 +600,12 @@ module HDLRuby::High::Std
 
         # Defines a branch in the channel named +name+ built executing
         # +ruby_block+.
-        def brancher(name,*args,&ruby_block)
+        def brancher(name,&ruby_block)
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
             # Create the branch.
-            channelI = HDLRuby::High.channel_instance(name,*args,&ruby_block)
+            channelI = HDLRuby::High.channel_instance(name, &ruby_block)
             @branches[name] = channelI
         end
 
@@ -534,7 +614,7 @@ module HDLRuby::High::Std
         
         # Gets branch channel +name+.
         # NOTE: +name+ can be of any type on purpose.
-        def branch(name)
+        def branch(name,*args)
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
