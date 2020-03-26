@@ -71,13 +71,15 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e,rst,br_rsts = []|
                 rwb  = send(:"rwb_#{p}")
                 rst  = send(rst_name)
                 # Use it to make the access.
-                hif (rst) do
-                    # Reset case
-                    cs <= 0
-                    abus <= 0
-                    rwb <= 0
+                top_block.unshift do
+                    hif (rst) do
+                        # Reset case
+                        cs <= 0
+                        abus <= 0
+                        rwb <= 0
+                    end
                 end
-                helsif (cs == 0) do
+                hif(cs == 0) do
                     # Start the access.
                     cs <= 1
                     rwb <= 1
@@ -101,13 +103,15 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e,rst,br_rsts = []|
                 rwb  = send(:"rwb_#{p}")
                 rst  = send(rst_name)
                 # Use it to make the access.
-                hif (rst) do
-                    # Reset case
-                    cs <= 0
-                    abus <= 0
-                    rwb <= 0
+                top_block.unshift do
+                    hif (rst) do
+                        # Reset case
+                        cs <= 0
+                        abus <= 0
+                        rwb <= 0
+                    end
                 end
-                helsif (cs == 0) do
+                hif(cs == 0) do
                     # Start the access.
                     cs <= 1
                     rwb <= 0
@@ -119,6 +123,8 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e,rst,br_rsts = []|
                     cs <= 0
                     rwb <= 0
                     dbus <= "z" * typ.width
+                    # Execute the blk.
+                    blk.call if blk
                 end
             end
         end
@@ -237,20 +243,15 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
     typ.inner :dbus_r, :dbus_w
     # Address buses (or simply registers)
     [awidth].inner :abus_r, :abus_w
-    # Address buffers
-    [awidth].inner :abus_r_reg
 
     # Declare the memory content.
     typ[-size].inner :mem
 
     # Processes handling the memory access.
-    par(clk.posedge) do
-        # Output memory value for reading at each cycle.
-        dbus_r <= mem[abus_r_reg]
-        # Manage the write to the memory.
+    par(clk.negedge) do
+        dbus_r <= mem[abus_r]
         hif(trig_w) { mem[abus_w] <= dbus_w }
     end
-    par(clk.negedge) { abus_r_reg <= abus_r }
 
     # The address branches.
     # Read with address
@@ -277,11 +278,14 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
                         target <= dbus_r
+                        trig_r <= 0
                         blk.call if blk
                     end
-                    # Prepare the read.
-                    abus_r <= addr
-                    trig_r <= 1
+                    helse do
+                        # Prepare the read.
+                        abus_r <= addr
+                        trig_r <= 1
+                    end
                 end
             end
         end
@@ -390,12 +394,87 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
             par do
                 hif(rst == 0) do
                     # No reset, so can perform the write.
-                    hif(trig_w == 1) do
-                        # The trigger was previously set, write ok.
-                        blk.call
-                    end if blk
+                    blk.call if blk
                     # Prepare the write.
                     abus_w <= abus_w + 1
+                    trig_w <= 1
+                    dbus_w <= target
+                end
+            end
+        end
+    end
+
+
+    # The decrement branches.
+    # Read with increment
+    brancher(:rdec) do
+        reader_output :trig_r, :abus_r
+        reader_input :dbus_r
+        if br_rsts[:rdec] then
+            rst_name = br_rsts[:rdec].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,target|
+            # By default the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_r <= 0 }
+                # Reset so switch of the access trigger.
+                trig_r <= 0
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hif(trig_r == 1) do
+                        # The trigger was previously set, read ok.
+                        target <= dbus_r
+                        blk.call if blk
+                    end
+                    # Prepare the read.
+                    abus_r <= abus_r - 1
+                    trig_r <= 1
+                end
+            end
+        end
+    end
+
+    # Write with address
+    brancher(:wdec) do
+        writer_output :trig_w, :abus_w, :dbus_w
+        if br_rsts[:wdec] then
+            rst_name = br_rsts[:wdec].to_sym
+        else
+            rst_name = rst.name
+            writer_input rst_name
+        end
+        # puts "br_rsts=#{br_rsts}"
+        # puts "rst_name=#{rst_name}"
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        writer do |blk,target|
+            # By default the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst == 1) { abus_w <= 0 }
+                # Reset so switch of the access trigger.
+                trig_w <= 0
+            end
+            # The write procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the write.
+                    blk.call if blk
+                    # Prepare the write.
+                    abus_w <= abus_w - 1
                     trig_w <= 1
                     dbus_w <= target
                 end
@@ -423,8 +502,7 @@ end
 #
 # * The following branches are possible (only one read and one write can
 #   be used per channel)
-#   - rnum:    read by register number, the number must be a defined value.
-#   - wnum:    writer by register number, the number must be a defined value.
+#   - anum:    access by register number, the number must be a defined value.
 #   - raddr:   read by address
 #   - waddr:   read by address
 #   - rinc:    read by automatically incremented address.
@@ -499,6 +577,23 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                 blk.call if blk
             end
         end
+
+        # Defines a conversion to array as list of fixed inner accessers.
+        define_singleton_method(:inners) do |name|
+            # The resulting array.
+            chbs = []
+            # Declare the fixed inners with uniq names, box them and
+            # add the result to the resulting array.
+            size.times do |i|
+                port = inner HDLRuby.uniq_name
+                chbs << port.box(i)
+            end
+            # Register the array as name.
+            HDLRuby::High.space_reg(name) { chbs }
+            # Return it.
+            return chbs
+        end
+
     end
 
     
@@ -506,7 +601,6 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
     # Read with address
     brancher(:raddr) do
         size.times { |i| reader_input :"reg_#{i}" }
-        regs = size.times.map {|i| send(:"reg_#{i}") }
         if br_rsts[:raddr] then
             rst_name = br_rsts[:raddr].to_sym
         else
@@ -517,6 +611,7 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
         # Defines the read procedure at address +addr+
         # using +target+ as target of access result.
         reader do |blk,addr,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
             # The read procedure.
             rst  = send(rst_name)
             par do
@@ -535,7 +630,6 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
     # Write with address
     brancher(:waddr) do
         size.times { |i| writer_output :"reg_#{i}" }
-        regs = size.times.map {|i| send(:"reg_#{i}") }
         if br_rsts[:waddr] then
             rst_name = br_rsts[:waddr].to_sym
         else
@@ -546,6 +640,7 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
         # Defines the writer procedure at address +addr+
         # using +target+ as target of access.
         writer do |blk,addr,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
             # The writer procedure.
             rst  = send(rst_name)
             par do
@@ -641,5 +736,84 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
         end
     end
 
+
+    # The decrement branches.
+    # Read with decrement
+    brancher(:rdec) do
+        size.times { |i| reader_input :"reg_#{i}" }
+        if br_rsts[:rdec] then
+            rst_name = br_rsts[:rdec].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+        # Declares the address counter.
+        [size.width-1].inner :abus_r
+        reader_inout :abus_r
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # By default the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_r <= -1 }
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hcase(abus_r)
+                    size.times do |i|
+                        hwhen(i) { target <= regs[i] }
+                    end
+                    blk.call if blk
+                    # Prepare the next read.
+                    abus_r <= abus_r - 1
+                end
+            end
+        end
+    end
+
+    # Write with decrement
+    brancher(:wdec) do
+        size.times { |i| writer_output :"reg_#{i}" }
+        if br_rsts[:wdec] then
+            rst_name = br_rsts[:wdec].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+        # Declares the address counter.
+        [size.width-1].inner :abus_w
+        reader_inout :abus_w
+
+        # Defines the write procedure at address +addr+
+        # using +target+ as target of access result.
+        writer do |blk,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # By default the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_w <= -1 }
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hcase(abus_w)
+                    size.times do |i|
+                        hwhen(i) { regs[i] <= target }
+                    end
+                    blk.call if blk
+                    # Prepare the next write.
+                    abus_w <= abus_w - 1
+                end
+            end
+        end
+    end
 
 end
