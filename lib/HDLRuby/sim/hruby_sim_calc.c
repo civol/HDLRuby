@@ -1818,6 +1818,7 @@ Value read_range_numeric(Value value, long long first, long long last,
  *  @return dst */
 Value write_range_numeric(Value src, long long first, long long last,
         Value dst) {
+    // printf("write_range_numeric\n");
     /* Ensure first is the smaller. */
     if (first > last) {
         long long tmp = last;
@@ -1829,6 +1830,7 @@ Value write_range_numeric(Value src, long long first, long long last,
     unsigned long long dst_width = type_width(dst->type);
     /* scale the range according to the base type of the destination. */
     unsigned long long bw = dst->type->base;
+    // printf("src_width=%llu dst_wdith=%llu bw=%llu\n",src_width,dst_width,bw);
     first *= bw;
     last *= bw;
     /* If first is too large, end here. */
@@ -1836,11 +1838,13 @@ Value write_range_numeric(Value src, long long first, long long last,
     /* Adjust the last to fit the source and destination range. */
     if (last >= dst_width) last = dst_width-1;
     if (last-first >= src_width) last = src_width + first - 1;
+    // printf("first=%lld last=%lld\n",first,last);
     /* Copy from the source. */
-    unsigned long long src_data = src->data_int & ~((-1LL) << (last-first));
+    unsigned long long src_data = src->data_int & ~((-1LL) << (last-first+1));
     /* Cleans the destination where to place the data. */
-    unsigned long long mask = ((-1LL) << first) & ~((-1LL) << last);
+    unsigned long long mask = ~(((-1LL) << first) & ~((-1LL) << (last+1)));
     unsigned long long dst_data = dst->data_int & mask;
+    // printf("src_data=%llx  mask=%llx dst_data=%llx\n",src_data,mask,dst_data);
     /* Write the data. */
     dst_data |= src_data << first;
     dst->data_int = dst_data;
@@ -2613,6 +2617,7 @@ Value read_range(Value value, long long first, long long last, Type base,
  *  @param dst the destination value
  *  @return dst */
 Value write_range(Value src, long long first, long long last, Value dst) {
+    // printf("write_range\n");
     /* Is the value numeric? */
     if ((src->numeric) && (dst->numeric)) {
         /* Yes, do a numeric range read. */
@@ -2638,6 +2643,7 @@ Value write_range(Value src, long long first, long long last, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value write_range_no_z(Value src, long long first, long long last, Value dst) {
+    // printf("write_range_no_z\n");
     /* Is the value numeric? */
     if ((src->numeric) && (dst->numeric)) {
         /* Yes, do a numeric range read. */
