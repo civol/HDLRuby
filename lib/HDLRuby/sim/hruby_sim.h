@@ -205,6 +205,20 @@ Value shift_right_value(Value src0, Value src1, Value dst);
  *  @return dst */
 extern Value equal_value(Value src0, Value src1, Value dst);
 
+/** Computes the lesser comparision of two values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+extern Value lesser_value(Value src0, Value src1, Value dst);
+
+/** Computes the greater comparision of two values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+extern Value greater_value(Value src0, Value src1, Value dst);
+
 /** Selects a value depending on a condition.
  *  @param cond   the condition to use for selecting a value
  *  @param dst    the destination value
