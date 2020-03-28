@@ -284,6 +284,11 @@ Value make_set_value(Type type, int numeric, void* data) {
 //     }
 // }
 
+/* Defined after.*/
+static unsigned long long
+fix_numeric_type(Type type, unsigned long long val);
+
+
 /** Copies a value to another, the type of the destination is preserved.
  *  @param src the source value
  *  @param dst the destination value
@@ -296,7 +301,7 @@ Value copy_value(Value src, Value dst) {
     /* Copy the data. */
     if (src->numeric) {
         /* Numeric copy. */
-        dst->data_int = src->data_int;
+        dst->data_int = fix_numeric_type(dst->type,src->data_int);
     } else {
         /* Resize the destination if required. */
         resize_value(dst,type_width(dst->type));
@@ -1396,6 +1401,37 @@ Value write_range_bitstring_no_z(Value src, long long first, long long last,
 
 /* ############# Start of the computation of numeric values. ############## */
 
+/** Fix the content of a numeric value according to its type so that
+ *  it can be used for C numeric computation. 
+ *  @param type the type to fix the value to
+ *  @param val the value to fix 
+ *  @return the rsulting value */
+static unsigned long long
+fix_numeric_type(Type type, unsigned long long val) {
+    /* Get the width of the type. */
+    int width = type_width(type);
+    /* Compute the base mask. */
+    unsigned long long mask = ((unsigned long long)(-1)) << width;
+    // printf("width=%i val=%llu mask=%llx\n",width,val,mask);
+
+    /* Is the type signed? */
+    if (type->flags.sign) {
+        /* Yes, perform sign extension. */
+        int is_neg = (val >> (width-1)) & 1;
+        // printf("is_neg=%i\n",is_neg);
+        if (is_neg) {
+            /* Negative sign extension. */
+            return val | mask;
+        } else {
+            /* Positive sign extension. */
+            return val & ~mask;
+        }
+    } else {
+        /* No, perform a zero extension. */
+        return val & ~mask;
+    }
+}
+
 
 /** Computes the neg of a numeric value.
  *  @param src the source value of the not
@@ -1407,7 +1443,7 @@ static Value neg_value_numeric(Value src, Value dst) {
     dst->numeric = 1;
 
     /* Perform the negation. */
-    dst->data_int = -src->data_int;
+    dst->data_int = fix_numeric_type(dst->type,-src->data_int);
     return dst;
 }
 
@@ -1423,7 +1459,7 @@ static Value add_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the addition. */
-    dst->data_int = src0->data_int + src1->data_int;
+    dst->data_int = fix_numeric_type(dst->type,src0->data_int + src1->data_int);
     return dst;
 }
 
@@ -1439,7 +1475,7 @@ static Value sub_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the subtraction. */
-    dst->data_int = src0->data_int - src1->data_int;
+    dst->data_int = fix_numeric_type(dst->type,src0->data_int - src1->data_int);
     return dst;
 }
 
@@ -1454,8 +1490,8 @@ static Value mul_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    /* Perform the addition. */
-    dst->data_int = src0->data_int * src1->data_int;
+    /* Perform the multiplication. */
+    dst->data_int = fix_numeric_type(dst->type, src0->data_int * src1->data_int);
     return dst;
 }
 
@@ -1470,8 +1506,8 @@ static Value div_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    /* Perform the addition. */
-    dst->data_int = src0->data_int / src1->data_int;
+    /* Perform the division. */
+    dst->data_int = fix_numeric_type(dst->type, src0->data_int / src1->data_int);
     return dst;
 }
 
@@ -1486,7 +1522,7 @@ static Value not_value_numeric(Value src, Value dst) {
     dst->numeric = 1;
 
     /* Perform the not. */
-    dst->data_int = !src->data_int;
+    dst->data_int = fix_numeric_type(dst->type,!src->data_int);
     return dst;
 }
 
@@ -1550,7 +1586,7 @@ static Value shift_left_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the left shift. */
-    dst->data_int = src0->data_int << src1->data_int;
+    dst->data_int = fix_numeric_type(dst->type,src0->data_int << src1->data_int);
     return dst;
 }
 
@@ -1566,7 +1602,7 @@ static Value shift_right_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the right shift. */
-    dst->data_int = src0->data_int >> src1->data_int;
+    dst->data_int = fix_numeric_type(dst->type,src0->data_int >> src1->data_int);
     return dst;
 }
 
