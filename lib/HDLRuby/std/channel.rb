@@ -901,29 +901,77 @@ module HDLRuby::High::Std
     end
 
 
-end
-
-
-module HDLRuby::High
-
-    ## Enhance expressions with possibility to act like a reading branch.
-    module HExpression
-        ## Transmits the expression to +target+ and execute +ruby_block+ if
-        #  any.
-        def read(target,&ruby_block)
-            target <= self
-            ruby_block.call if ruby_block
+    # Wrapper to make an object run like a channel port.
+    class ChannelPortObject
+        # Create a new object wrapper for +obj+.
+        def initialize(obj)
+            @obj = obj
         end
+
+        # Port read with arguments +args+ executing +ruby_block+ in
+        # case of success.
+        def read(*args,&ruby_block)
+            # Get the target from the arguments.
+            target = args.pop
+            # Is there any argument left?
+            unless (args.empty?) then
+                # There are arguments left, perform an array access.
+                target <= @obj[*args]
+            else
+                # There are no argument left, perform a direct access.
+                target <= @obj
+            end
+            # Execute the ruby_block if any.
+            ruby_block.call if ruby_block 
+        end
+
+        # Port write with argumnet +Args+ executing +ruby_block+ in
+        # case of success.
+        def write(*args,&ruby_block)
+            # Get the value to write from the arguments.
+            value = args.pop
+            # Is there any argument left?
+            unless (args.empty?) then
+                # There are arguments left, perform an array access.
+                @obj[*args] <= value
+            else
+                # There are no argument left, perform a direct access.
+                @obj <= value
+            end
+            # Execute the ruby_block if any.
+            ruby_block.call if ruby_block 
+        end
+
     end
 
 
-    ## Enhance references with possibility to act like a writing branch.
-    module HRef
-        ## Transmits +target+ to the reference and execute +ruby_block+ if
-        #  any.
-        def write(target,&ruby_block)
-            self <= target
-            ruby_block.call if ruby_block
-        end
+    # Wrap object +obj+ to act like a channel port.
+    def channel_port(obj)
+        return ChannelPortObject.new(obj)
     end
 end
+
+
+# module HDLRuby::High
+# 
+#     ## Enhance expressions with possibility to act like a reading branch.
+#     module HExpression
+#         ## Transmits the expression to +target+ and execute +ruby_block+ if
+#         #  any.
+#         def read(target,&ruby_block)
+#             target <= self
+#             ruby_block.call if ruby_block
+#         end
+#     end
+# 
+# 
+#     ## Enhance references with possibility to act like a writing branch.
+#     module HRef
+#         ## Transmits +target+ to the reference and execute +ruby_block+ if
+#         #  any.
+#         def write(target,&ruby_block)
+#             self <= target
+#             ruby_block.call if ruby_block
+#         end
+#     end
+# end
