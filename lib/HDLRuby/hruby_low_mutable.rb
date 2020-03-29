@@ -1069,7 +1069,8 @@ module HDLRuby::Low
             node2rep = node2reassign.map {|n,r| [n,r[0]] }.to_h
 
             # First recurse on the sub blocks.
-            self.each_block { |block| block.reassign_expressions!(node2rep) }
+            # self.each_block { |block| block.reassign_expressions!(node2rep) }
+            self.each_block { |block| block.reassign_expressions!(node2reassign) }
 
             # Now work on the block.
             # Replace on the statements.
