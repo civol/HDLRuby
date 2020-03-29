@@ -3059,24 +3059,6 @@ module HDLRuby::Low
             return [@value,@whens,@default].hash
         end
 
-        # # Adds a possible +match+ for the case's value that lead to the 
-        # # execution of +statement+.
-        # def add_when(match,statement)
-        #     # Checks the match.
-        #     unless match.is_a?(Expression)
-        #         raise AnyError, "Invalid class for a case match: #{match.class}"
-        #     end
-        #     # Checks statement.
-        #     unless statement.is_a?(Statement)
-        #         raise AnyError, "Invalid class for a statement: #{statement.class}"
-        #     end
-        #     # Add the case.
-        #     @whens << [match,statement]
-        #     # And set their parents.
-        #     match.parent = statement.parent = self
-        #     [match,statement]
-        # end
-
         # Adds possible when case +w+.
         def add_when(w)
             # Check +w+.
@@ -3178,7 +3160,7 @@ module HDLRuby::Low
         # Clones the Case (deeply)
         def clone
             # Clone the default if any.
-            defaut = @default ? @default.clone : nil
+            default = @default ? @default.clone : nil
             # Clone the case.
             return Case.new(@value.clone,default,(@whens.map do |w|
                 w.clone
