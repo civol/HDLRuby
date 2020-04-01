@@ -8,6 +8,51 @@ module HDLRuby::High::Std
     #
     ########################################################################
 
+    # Controller of the linear operator.
+    # - +num+: the number of computation cycles.
+    # - +ev+: event to synchronize the controller on.
+    # - +req+: the request to start the linear computation.
+    # - +ack+: the ack signal that is set to 1 when the computation completes.
+    # - +ruby_block+: the code of the linear computation kernel, it takes
+    #                 as argument +ev+, and its own req and ack signals
+    #                 (resp. +req_ker+ +ack_ker+).
+    function :linearun do |num,ev,req,ack,ruby_block|
+        # Ensure ev is really an event.
+        ev = ev.posedge unless ev.is_a?(Event)
+
+        # Creates the kernel.
+        inner :req_ker, :ack_ker
+
+        HDLRuby::High.top_user.instance_exec(ev,req_ker,ack_ker,&ruby_block)
+
+        # The computation counter.
+        [num.width].inner :count
+        # Run flag
+        inner :run
+        par(ev) do
+            req_ker <= 0
+            ack <= 0
+            count <= 1
+            run <= 0
+            hif(req | run) do
+                run <= 1
+                req_ker <= 1
+                # Is one linear computation completed?
+                hif(ack_ker) do
+                    # Yes.
+                    count <= count + 1
+                end
+                # Is the full computation completed?
+                hif(count == num) do
+                    # Yes.
+                    ack <= 1
+                    run <= 0
+                    req_ker <= 0
+                end
+            end
+        end
+    end
+
 
     # Delcares a vector product by a scalar value.
     #
@@ -111,7 +156,7 @@ module HDLRuby::High::Std
         mul = proc { |x,y| x*y }, add = proc { |x,y| x+y }|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
-        # Left value and right value.
+        # Left value, right value and computation temp value.
         typ.inner :lv, :rv, :av
         # lv and rv are valid.
         inner :lvok, :rvok
@@ -125,18 +170,21 @@ module HDLRuby::High::Std
                 # Computation request.
                 left.read(lv)  { lvok <= 1 }
                 right.read(rv) { rvok <= 1 }
-                # ( acc <= add.(acc,mul.(lv,rv)) ).hif(lvok & rvok)
-                acc.read(av)
                 hif(lvok & rvok) do
                     ack <= 1
                     run <= 0
-                    acc.write(add.(av,mul.(lv,rv)))
+                    # acc.write(add.(av,mul.(lv,rv)))
+                    seq do
+                        av <= add.(av,mul.(lv,rv))
+                        acc.write(av)
+                    end
                 end
             end
             helse do
                 lvok <= 0
                 rvok <= 0
-                acc.write(0)
+                # acc.write(0)
+                av <= 0
             end
         end
     end
@@ -172,13 +220,15 @@ module HDLRuby::High::Std
                 right.read(rv) { rvok <= 1 }
                 lefts.each_with_index do |left,i|
                     left.read(lvs[i])  { lvoks[i] <= 1 }
-                    # accs.read(i,avs[i])
-                    accs[i].read(avs[i])
+                    # accs[i].read(avs[i])
                     hif(lvoks[i] & rvok) do
                         ack <= 1
                         run <= 0
-                        # accs.write(i,add.(avs[i],mul.(lvs[i],rv)))
-                        accs[i].write(add.(avs[i],mul.(lvs[i],rv)))
+                        # accs[i].write(add.(avs[i],mul.(lvs[i],rv)))
+                        seq do
+                            avs[i] <= add.(avs[i],mul.(lvs[i],rv))
+                            accs[i].write(avs[i])
+                        end
                     end
                 end
             end
@@ -186,12 +236,14 @@ module HDLRuby::High::Std
                 rvok <= 0
                 lefts.each_with_index do |left,i|
                     lvoks[i] <= 0
-                    # accs.write(i,0)
-                    accs[i].write(0)
+                    # accs[i].write(0)
+                    avs[i] <= 0
                 end
             end
         end
     end
+
+
 
 
 end

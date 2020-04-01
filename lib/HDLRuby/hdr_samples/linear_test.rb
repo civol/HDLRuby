@@ -102,6 +102,22 @@ system :linear_test do
     mac_n1([8],clk.posedge,ack[3],ack[4], mem_macn1_left_inPs,
           channel_port(5), mem_macn1_outPs)
 
+    # Circuit for testing the linearun with mac.
+    # Input memories
+    mem_dual([8],8,clk,rst, rinc: :rst, winc: :rst).(:mem_macrn_left_in)
+    mem_dual([8],8,clk,rst, rinc: :rst, winc: :rst).(:mem_macrn_right_in)
+    # Access ports.
+    mem_macrn_left_in.branch(:rinc).inner :mem_macrn_left_in_readP
+    mem_macrn_right_in.branch(:rinc).inner :mem_macrn_right_in_readP
+    # Output signal.
+    [8].inner :accr
+
+    # Build the linearun mac.
+    linearun(8,clk.posedge,ack[4],ack[5]) do |ev,req,ack|
+        mac([8],ev,req,ack,mem_macrn_left_in_readP,mem_macrn_right_in_readP, 
+            channel_port(accr))
+    end
+
 
     # The memory initializer.
     # Writing ports
@@ -111,6 +127,8 @@ system :linear_test do
     mem_muln_left_in.branch(:winc).inner :mem_muln_left_in_writeP
     mem_muln_right_in.branch(:winc).inner :mem_muln_right_in_writeP
     mem_macn1_left_in.branch(:winc).inner :mem_macn1_left_in_writeP
+    mem_macrn_left_in.branch(:winc).inner :mem_macrn_left_in_writeP
+    mem_macrn_right_in.branch(:winc).inner :mem_macrn_right_in_writeP
     # Filling index
     [8].inner :idx
     # Filling counter
@@ -127,7 +145,7 @@ system :linear_test do
         helse do
             # Step index processing.
             hif(cnt == 7) do
-                hif(idx < 6) { idx <= idx + 1 }
+                hif(idx < 8) { idx <= idx + 1 }
             end
             # Memory filling steps.
             hcase(idx)
@@ -158,6 +176,16 @@ system :linear_test do
             end
             hwhen(5) do
                 mem_macn1_left_in_writeP.write(val-32) do
+                    cnt <= cnt + 1; val <= val + 1
+                end
+            end
+            hwhen(6) do
+                mem_macrn_left_in_writeP.write(val-48) do
+                    cnt <= cnt + 1; val <= val + 1
+                end
+            end
+            hwhen(7) do
+                mem_macrn_right_in_writeP.write(val-48) do
                     cnt <= cnt + 1; val <= val + 1
                 end
             end
@@ -197,7 +225,7 @@ system :linear_test do
         start <= 1
         !10.ns
         # Run
-        64.times do
+        128.times do
             clk <= 1
             !10.ns
             clk <= 0
