@@ -1851,16 +1851,18 @@ module HDLRuby::High
     # NOTE: a function is a short-cut for a method that creates a scope.
     def function(name, &ruby_block)
         if HDLRuby::High.in_system? then
-            define_singleton_method(name.to_sym) do |*args|
+            define_singleton_method(name.to_sym) do |*args,&other_block|
                 sub do
-                    HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
+                    HDLRuby::High.top_user.instance_exec(*args,*other_block,
+                                                         &ruby_block)
                     # ruby_block.call(*args)
                 end
             end
         else
-            define_method(name.to_sym) do |*args|
+            define_method(name.to_sym) do |*args,&other_block|
                 sub do
-                    HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
+                    HDLRuby::High.top_user.instance_exec(*args,*other_block,
+                                                         &ruby_block)
                 end
             end
         end
