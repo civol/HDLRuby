@@ -39,6 +39,7 @@ module HDLRuby::Low
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
         def get_by_name(name)
+            # puts "getbyname for name=#{name} with self=#{self}"
             # Ensure the name is a symbol.
             name = name.to_sym
             # Look in the signals.
@@ -114,7 +115,6 @@ module HDLRuby::Low
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
-            # puts "from_systemI? for #{self.name}"
             # Look for the owner from the name hierarchy.
             if self.ref.is_a?(RefName) then
                 # Look in the parent hierachy for the sub reference name.
@@ -151,6 +151,7 @@ module HDLRuby::Low
                 parent = self.parent
                 # puts "parent=#{parent}"
                 while parent
+                    # puts "parent=#{parent}"
                     if parent.respond_to?(:get_by_name) then
                         found = parent.get_by_name(self.name)
                         return found if found
