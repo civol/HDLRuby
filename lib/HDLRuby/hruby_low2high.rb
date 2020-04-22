@@ -566,7 +566,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_high(level = 0)
             return self.child.to_high(level) + 
-                ".cast(" + self.type.to_high(level) + ")"
+                ".as(" + self.type.to_high(level) + ")"
         end
     end
 
