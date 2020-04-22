@@ -1630,9 +1630,17 @@ end
 # If it is signed, it outputs signed.
 # Enhance Type with generation of verilog code.
 class Type
-    # Converts the system to Verilog code.
+    # Converts the type to Verilog code.
     def to_verilog
         return self.name == :signed ? "#{self.name.to_s} " : ""
+    end
+end
+
+# Replace type by refered type.
+class TypeDef
+    # Converts the type to verilog code.
+    def to_verilog
+        return self.def.to_verilog
     end
 end
 
