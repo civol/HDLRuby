@@ -1301,14 +1301,7 @@ __The vector operator__ `[]` is used for building types representing vectors of 
 <type>[<range>]
 ```
 
-The `<range>` of a vector type indicates the position of the starting and ending bits relatively to the radix point. If the position of the starting bit
-is on the left side of the range, the vector is big endian, otherwise it is little endian.  Negative values in a range are also possible and indicate positions bellow the radix point.  For example, the following code describes a big-endian fixed-point type with 8 bits above the radix point and 4 bits
-bellow:
-
-```ruby
-bit[7..-4]
-```
-
+The `<range>` of a vector type indicates the position of the starting and ending bits.
 A `n..0` range can also be abbreviated to `n+1`. For instance, the two following types are identical:
 
 ```ruby
@@ -2800,6 +2793,19 @@ bit[4,4].inner :sig
 ```
 
 When performing computation with fixed point types, HDLRuby ensures that the result's decimal point position is correct.
+
+In addition to the fixed point data type, a method is added to the literal objects (Numeric) to convert them to fixed point representation:
+
+```ruby
+<litteral>.to_fix(<number of bits after the decimal point>)
+```
+
+For example the following code converts a floating point value to a fixed point value with 16 bits after the decimal point:
+
+```
+3.178.to_fix(16)
+```
+
 
 ## Channel
 <a name="channel"></a>
