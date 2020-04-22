@@ -12,8 +12,9 @@ system :fix_test do
 
     # Performs calculation between then
     timed do
-        x <= _00110011
-        y <= _01000000
+        # x <= _00110011 # 3.1875
+        x <= 3.1875.to_fix(4)
+        y <= _01000000 # 4
         !10.ns
         z <= x + y
         !10.ns

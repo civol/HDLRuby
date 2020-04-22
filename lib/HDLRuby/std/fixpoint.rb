@@ -62,6 +62,14 @@ module HDLRuby::High::Std
         end
     end
 
+    # Extends the Numeric class for conversion to fixed point litteral.
+    class ::Numeric
+        # Convert to fixed point value with +dec+ digits after the decimal
+        # point.
+        def to_fix(dec)
+            return (self * (2**dec.to_i)).to_i
+        end
+    end
 
 
 end
