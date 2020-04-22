@@ -345,31 +345,34 @@ module HDLRuby::Low
             res << " " * (level*3)
             res << "entity #{Low2VHDL.entity_name(self.name)} is\n"
             # The ports
-            res << " " * ((level+1)*3)
-            res << "port (\n"
-            # Inputs
-            self.each_input do |input|
-                res << " " * ((level+2)*3)
-                res << Low2VHDL.vhdl_name(input.name) << ": in " 
-                res << input.type.to_vhdl << ";\n"
+            if self.each_input.any? || self.each_output.any? ||
+                   self.each_inout.any? then
+                res << " " * ((level+1)*3)
+                res << "port (\n"
+                # Inputs
+                self.each_input do |input|
+                    res << " " * ((level+2)*3)
+                    res << Low2VHDL.vhdl_name(input.name) << ": in " 
+                    res << input.type.to_vhdl << ";\n"
+                end
+                # Outputs
+                self.each_output do |output|
+                    res << " " * ((level+2)*3)
+                    res << Low2VHDL.vhdl_name(output.name) << ": out " 
+                    res << output.type.to_vhdl << ";\n"
+                end
+                # Inouts
+                self.each_inout do |inout|
+                    res << " " * ((level+2)*3)
+                    res << Low2VHDL.vhdl_name(inout.name) << ": inout " 
+                    res << inout.type.to_vhdl << ";\n"
+                end
+                # Remove the last ";" for conforming with VHDL syntax.
+                res[-2..-1] = "\n" if res[-2] == ";"
+                res << " " * ((level+1)*3)
+                # Close the port declaration.
+                res << ");\n"
             end
-            # Outputs
-            self.each_output do |output|
-                res << " " * ((level+2)*3)
-                res << Low2VHDL.vhdl_name(output.name) << ": out " 
-                res << output.type.to_vhdl << ";\n"
-            end
-            # Inouts
-            self.each_inout do |inout|
-                res << " " * ((level+2)*3)
-                res << Low2VHDL.vhdl_name(inout.name) << ": inout " 
-                res << inout.type.to_vhdl << ";\n"
-            end
-            # Remove the last ";" for conforming with VHDL syntax.
-            res[-2..-1] = "\n" if res[-2] == ";"
-            res << " " * ((level+1)*3)
-            # Close the port declaration.
-            res << ");\n"
             # Close the entity
             res << " " * (level*3)
             res << "end #{Low2VHDL.entity_name(self.name)};\n\n"
@@ -617,7 +620,17 @@ module HDLRuby::Low
             # # Simply generates the redefined type.
             # return self.def.to_vhdl(level)
             # Simply use the name of the type.
-            return Low2VHDL.vhdl_name(self.name)
+            # Is it a composite type?
+            if (self.def.is_a?(TypeStruct) ||
+              (self.def.is_a?(TypeVector) && 
+                    (self.def.base.is_a?(TypeVector) || 
+                     self.def.base.is_a?(TypeStruct))))
+                # Yes, generate a VHDL type definition.
+                return Low2VHDL.vhdl_name(self.name)
+            else
+                # No, generates the defined type.
+                return self.def.to_vhdl(level)
+            end
         end
     end
 
@@ -745,29 +758,31 @@ module HDLRuby::Low
                 res << Low2VHDL.vhdl_name(self.block.name) << ": "
             end
             res << "process "
-            # Generate the senitivity list.
-            if self.each_event.any? then
-                # If there is a clock.
-                res << "("
-                res << self.each_event.map do |event|
-                    event.ref.to_vhdl(level)
-                end.join(", ")
-                res << ")"
-            else
-                # If no clock, generate the sensitivity list from the right
-                # values.
-                list = self.block.each_node_deep.select do |node|
-                    node.is_a?(RefName) && !node.leftvalue? && 
-                        !node.parent.is_a?(RefName) &&
-                        # Also skip the variables
-                        !vars.find {|var| var.name == node.name }
-                end.to_a
-                # Keep only one ref per signal.
-                list.uniq! { |node| node.name }
-                # Generate the sensitivity list from it.
-                res << "("
-                res << list.map {|node| node.to_vhdl(level) }.join(", ")
-                res << ")"
+            # Generate the senitivity list if not a timed block.
+            unless self.block.is_a?(TimeBlock) then
+                if self.each_event.any? then
+                    # If there is a clock.
+                    res << "("
+                    res << self.each_event.map do |event|
+                        event.ref.to_vhdl(level)
+                    end.join(", ")
+                    res << ")"
+                else
+                    # If no clock, generate the sensitivity list from the right
+                    # values.
+                    list = self.block.each_node_deep.select do |node|
+                        node.is_a?(RefName) && !node.leftvalue? && 
+                            !node.parent.is_a?(RefName) &&
+                            # Also skip the variables
+                            !vars.find {|var| var.name == node.name }
+                    end.to_a
+                    # Keep only one ref per signal.
+                    list.uniq! { |node| node.name }
+                    # Generate the sensitivity list from it.
+                    res << "("
+                    res << list.map {|node| node.to_vhdl(level) }.join(", ")
+                    res << ")"
+                end
             end
             res << "\n"
             # Generate the variables.
