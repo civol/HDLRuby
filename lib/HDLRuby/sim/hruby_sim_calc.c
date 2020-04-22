@@ -5,6 +5,10 @@
 #include <limits.h>
 #include "hruby_sim.h"
 
+#ifndef alloca
+#define alloca(x)  __builtin_alloca(x)
+#endif
+
 
 /**
  *  The HDLRuby simulation calculation engine, to be used with C code
