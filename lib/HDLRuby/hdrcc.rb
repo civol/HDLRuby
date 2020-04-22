@@ -563,7 +563,7 @@ elsif $options[:clang] then
         end
         Dir.chdir($output)
         # Kernel.system("make -s")
-        Kernel.system("cc -o3 -o hruby_simulator *.c")
+        Kernel.system("cc -o3 -o hruby_simulator *.c -lpthread")
         Kernel.system("./hruby_simulator")
     end
 elsif $options[:verilog] then
