@@ -149,7 +149,7 @@ module HDLRuby::High::Std
             end
             @namespace = namespace
             @finisher_proc = finisher_proc.to_proc
-            @reseter_proc = reseter_proc ? reseter_proc.to_proc : proc {}
+            # @reseter_proc = reseter_proc ? reseter_proc.to_proc : proc {}
         end
 
         ## Performs a finish on the task using +args+ and +ruby_block+
@@ -165,18 +165,18 @@ module HDLRuby::High::Std
             HDLRuby::High.space_pop
         end
 
-        ## Performs a reset on the task using +args+ and +ruby_block+
-        #  as arguments.
-        def reset(*args,&ruby_block)
-            # Gain access to the accesser as local variable.
-            reseter_proc = @reseter_proc
-            # Execute the code generating the accesser in context.
-            HDLRuby::High.space_push(@namespace)
-            HDLRuby::High.cur_block.open do
-                instance_exec(ruby_block,*args,&reseter_proc)
-            end
-            HDLRuby::High.space_pop
-        end
+        # ## Performs a reset on the task using +args+ and +ruby_block+
+        # #  as arguments.
+        # def reset(*args,&ruby_block)
+        #     # Gain access to the accesser as local variable.
+        #     reseter_proc = @reseter_proc
+        #     # Execute the code generating the accesser in context.
+        #     HDLRuby::High.space_push(@namespace)
+        #     HDLRuby::High.cur_block.open do
+        #         instance_exec(ruby_block,*args,&reseter_proc)
+        #     end
+        #     HDLRuby::High.space_pop
+        # end
     end
 
 
@@ -227,18 +227,18 @@ module HDLRuby::High::Std
             HDLRuby::High.space_pop
         end
 
-        # ## Performs a reset on the task using +args+ and +ruby_block+
-        # #  as arguments.
-        # def reset(*args,&ruby_block)
-        #     # Gain access to the accesser as local variable.
-        #     reseter_proc = @reseter_proc
-        #     # Execute the code generating the accesser in context.
-        #     HDLRuby::High.space_push(@namespace)
-        #     HDLRuby::High.cur_block.open do
-        #         instance_exec(ruby_block,*args,&reseter_proc)
-        #     end
-        #     HDLRuby::High.space_pop
-        # end
+        ## Performs a reset on the task using +args+ and +ruby_block+
+        #  as arguments.
+        def reset(*args,&ruby_block)
+            # Gain access to the accesser as local variable.
+            reseter_proc = @reseter_proc
+            # Execute the code generating the accesser in context.
+            HDLRuby::High.space_push(@namespace)
+            HDLRuby::High.cur_block.open do
+                instance_exec(ruby_block,*args,&reseter_proc)
+            end
+            HDLRuby::High.space_pop
+        end
     end
 
 
@@ -645,7 +645,7 @@ module HDLRuby::High::Std
 
             # Give access to the ports through name.
             # NOTE: for now, simply associate the task to name.
-            tp = TaskPortS.new(@runner_namespace,@runner_proc,@input_reseter_proc)
+            tp = TaskPortS.new(@runner_namespace,@runner_proc,@reseter_proc)
             HDLRuby::High.space_reg(name) { tp }
             return tp
         end
@@ -755,7 +755,7 @@ module HDLRuby::High::Std
 
             # Give access to the ports through name.
             # NOTE: for now, simply associate the task to name.
-            tp = TaskPortSA.new(@controller_namespace,@runner_proc,@finisher_proc)
+            tp = TaskPortSA.new(@controller_namespace,@runner_proc,@finisher_proc,@reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
             return tp
         end
