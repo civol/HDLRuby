@@ -26,27 +26,21 @@ HDLRuby::High::Std.task(:while_task) do |clk_e, init, condition, ruby_block|
         condition = proc { condition_expr }
     end
 
-    # Transform init into a proc if any.
-    init = proc { init } unless (init.is_a?(Proc) || init == nil)
+    # Ensures init to be a proc if not nil
+    init = init.to_proc unless init == nil
 
     # Declares the signals for controlling the loop.
     inner :req  # Signal to set to 1 for running the loop.
-    inner :ack  # Signal set to 1 by the loop when over.
 
     # Declares the runner signals.
     runner_output :req
-    # Declares the finisher signals.
-    finisher_input :ack
 
     par(clk_e) do
-        ack <= 0
         # Performs the loop.
         hif(req) do
             # By default the loop is not finished.
             # If the condition is still met go on looping.
             hif(condition.call,&ruby_block)
-            # No, ends the loop.
-            helse { ack <= 1 }
         end
         if (init) then
             # There is an initialization, do it when there is no req.
@@ -64,7 +58,7 @@ HDLRuby::High::Std.task(:while_task) do |clk_e, init, condition, ruby_block|
 
     # The code for checking the end of execution.
     finisher do |blk|
-        hif(ack,&blk) 
+        hif(~condition.call,&blk)
     end
 
 end
@@ -81,4 +75,18 @@ def while_loop(clk_e, init, condition = nil, &ruby_block)
     prt = tsk.inner HDLRuby.uniq_name
     # Return the access port.
     return prt
+end
+
+## Loop +num+ times executing +ruby_block+.
+#  The loop is synchronized on +clk_e+.
+def times_loop(clk_e, num, &ruby_block)
+    # Compute the width of the counter.
+    width = num.respond_to?(:width) ? num.width : num.type.width
+    # Declares the counter.
+    cnt = [width].inner(HDLRuby.uniq_name)
+    # Create the loop.
+    return while_loop(clk_e, proc{cnt<=0}, cnt<num) do
+        cnt <= cnt + 1
+        ruby_block.call
+    end
 end
