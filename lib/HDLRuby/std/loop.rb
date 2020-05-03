@@ -42,17 +42,26 @@ HDLRuby::High::Std.task(:while_task) do |clk_e, init, condition, ruby_block|
             # If the condition is still met go on looping.
             hif(condition.call,&ruby_block)
         end
-        if (init) then
-            # There is an initialization, do it when there is no req.
-            helse do
-                init.call
-            end
+        # # if (init) then
+        # #     # There is an initialization, do it when there is no req.
+        # #     helse do
+        # #         init.call
+        # #     end
+        # # end
+    end
+
+    # The code for reseting the task.
+    if (init) then
+        # reseter(&init)
+        reseter do
+            req <= 0
+            init.call
         end
     end
 
     # The code for running the task.
     runner do
-        top_block.unshift { req <= 0 }
+        # top_block.unshift { req <= 0 }
         req <= 1
     end
 
