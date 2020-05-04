@@ -30,7 +30,7 @@ system :with_loop do
         end
         helse do
             hif(doit0) { lp0.run }
-            lp0.finish { doit0 <= 0; doit1 <= 1 }
+            lp0.finish { doit0 <= 0; doit1 <= 1; lp1.run }
             hif(doit1) { lp1.run; lp0.reset() }
             lp1.finish { over <= 1; doit1 <= 0 }
             # Second pass for first loop.
