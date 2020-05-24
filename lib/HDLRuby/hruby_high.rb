@@ -1308,6 +1308,12 @@ module HDLRuby::High
             return true
         end
 
+        # Converts to a type.
+        # Returns self since it is already a type.
+        def to_type
+            return self
+        end
+
         # Sets the +name+.
         #
         # NOTE: can only be done if the name is not already set.
