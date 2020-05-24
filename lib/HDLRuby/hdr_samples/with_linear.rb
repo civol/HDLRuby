@@ -15,7 +15,10 @@ system :testmat do
     inner :clk,:rst, :req
 
     # Input memories
-    mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memL0)
+    # mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memL0)
+    # The first memory is 4-bank for testing purpose.
+    mem_bank([8],4,256/4,clk,rst, rinc: :rst,winc: :rst).(:memL0)
+    # The others are standard dual-edge memories.
     mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memL1)
     mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memR)
     # Access ports.

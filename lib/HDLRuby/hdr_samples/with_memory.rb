@@ -108,16 +108,26 @@ system :mem_test do
     end
 
 
-    [8].inner :sum
+    [8].inner :sum0, :sum1
 
     # Declares a dual edge 8-bit data and address memory.
     mem_dual([8],256,clk,rst, raddr: :rst,waddr: :rst).(:memDI)
 
     # Instantiate the producer to access port waddr of the memory.
-    producer(memDI.branch(:waddr)).(:producerI).(clk,rst)
+    producer(memDI.branch(:waddr)).(:producerI0).(clk,rst)
 
     # Instantiate the producer to access port raddr of the memory.
-    consumer(memDI.branch(:raddr)).(:consumerI).(clk,rst,sum)
+    consumer(memDI.branch(:raddr)).(:consumerI0).(clk,rst,sum0)
+
+
+    # Declares a 4-bank 8-bit data and address memory.
+    mem_bank([8],4,256/4,clk,rst, raddr: :rst, waddr: :rst).(:memBI)
+
+    # Instantiate the producer to access port waddr of the memory.
+    producer(memBI.branch(:waddr)).(:producerI1).(clk,rst)
+
+    # Instantiate the producer to access port raddr of the memory.
+    consumer(memBI.branch(:raddr)).(:consumerI1).(clk,rst,sum1)
 
 
 end
