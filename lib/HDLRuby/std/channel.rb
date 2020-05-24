@@ -81,9 +81,17 @@ module HDLRuby::High::Std
     end
 
 
-    ##
-    #  Module for wrapping channel ports.
-    module ChannelPortWrapping
+    # ##
+    # #  Module for wrapping channel ports.
+    # module ChannelPortWrapping
+    #     # Wrap with +args+ arguments.
+    #     def wrap(*args)
+    #         return ChannelPortB.new(self,*args)
+    #     end
+    # end
+
+    ## Describes a channel port.
+    class ChannelPort
         # Wrap with +args+ arguments.
         def wrap(*args)
             return ChannelPortB.new(self,*args)
@@ -93,8 +101,8 @@ module HDLRuby::High::Std
 
     ##
     # Describes a read port to a channel.
-    class ChannelPortR
-        include ChannelPortWrapping
+    class ChannelPortR < ChannelPort
+        # include ChannelPortWrapping
 
         # Creates a new channel reader running in +namespace+ and
         # reading using +reader_proc+ and reseting using +reseter_proc+.
@@ -137,8 +145,8 @@ module HDLRuby::High::Std
 
     ##
     # Describes a writer port to a channel.
-    class ChannelPortW
-        include ChannelPortWrapping
+    class ChannelPortW < ChannelPort
+        # include ChannelPortWrapping
 
         # Creates a new channel writer running in +namespace+ and
         # writing using +writer_proc+ and reseting using +reseter_proc+.
@@ -181,8 +189,8 @@ module HDLRuby::High::Std
 
     ##
     # Describes an access port to a channel.
-    class ChannelPortA
-        include ChannelPortWrapping
+    class ChannelPortA < ChannelPort
+        # include ChannelPortWrapping
 
         # Creates a new channel accesser running in +namespace+
         # and reading using +reader_proc+, writing using +writer_proc+,
@@ -243,8 +251,8 @@ module HDLRuby::High::Std
 
     ##
     # Describes port wrapper (Box) for fixing arugments.
-    class ChannelPortB
-        include ChannelPortWrapping
+    class ChannelPortB < ChannelPort
+        # include ChannelPortWrapping
 
         # Creates a new channel box over channel port +port+ fixing +args+
         # as arguments.
@@ -600,13 +608,22 @@ module HDLRuby::High::Std
 
         # Defines a branch in the channel named +name+ built executing
         # +ruby_block+.
-        def brancher(name,&ruby_block)
+        # Alternatively, a ready channel instance can be passed as argument
+        # as +channelI+.
+        def brancher(name,channelI = nil,&ruby_block)
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
-            # Create the branch.
+            # Is there a ready channel instance.
+            if channelI then
+                # Yes, use it directly.
+                @branches[name] = channelI
+                return self
+            end
+            # No, create the branch.
             channelI = HDLRuby::High.channel_instance(name, &ruby_block)
             @branches[name] = channelI
+            return self
         end
 
 
@@ -619,6 +636,7 @@ module HDLRuby::High::Std
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
             # Get the branch.
+            channelI = @branches[name]
             return @branches[name]
         end
 
@@ -902,7 +920,7 @@ module HDLRuby::High::Std
 
 
     # Wrapper to make an object run like a channel port.
-    class ChannelPortObject
+    class ChannelPortObject < ChannelPort
         # Create a new object wrapper for +obj+.
         def initialize(obj)
             @obj = obj
@@ -947,6 +965,7 @@ module HDLRuby::High::Std
 
     # Wrap object +obj+ to act like a channel port.
     def channel_port(obj)
+        return obj if obj.is_a?(ChannelPort) # No need to wrap.
         return ChannelPortObject.new(obj)
     end
 end
