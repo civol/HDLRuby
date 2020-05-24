@@ -805,4 +805,46 @@ module HDLRuby::High::Std
     end
 
 
+    ## Encapsulate a task for integrating a control with simple 
+    #  reset (+rst+), request and acknowledge (+ack+) signals, 
+    #  synchronised on +clk_e+.
+    #  +port+ is assumed to return a TaskPortSA.
+    #  If +clk_e+ is nil, work in asynchronous mode.
+    #  If +rst+ is nil, no reset is handled.
+    def rst_req_ack(clk_e,rst,req,ack,port)
+        if clk_e then
+            # Ensures clk_e is an event.
+            clk_e = clk_e.posedge unless clk_e.is_a?(Event)
+            par(clk_e) do
+                # Handle the reset.
+                hif(rst) { port.reset } if rst
+                ack <= 0
+                # Control the start of the task.
+                hif(req) { port.run }
+                # Control the end of the task: set ack to 1.
+                port.finish { ack <= 1 }
+            end
+        else
+            par do
+                # Handle the reset
+                hif(rst) { port.reset } if rst
+                # Control the start of the task.
+                hif(req) { port.run }
+                ack <= 0
+                # Control the end of the task: set ack to 1.
+                port.finish { ack <= 1 }
+            end
+        end
+    end
+
+
+    ## Encapsulate a task for integrating a control with simple 
+    #  request and acknowledge (+ack+) signals, 
+    #  synchronised on +clk_e+.
+    #  +port+ is assumed to return a TaskPortSA.
+    #  If +clk_e+ is nil, work in asynchronous mode.
+    def req_ack(clk_e,req,ack,port)
+        rst_req_ack(clk_e,nil,req,ack,port)
+    end
+
 end
