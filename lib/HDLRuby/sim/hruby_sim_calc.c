@@ -1432,7 +1432,10 @@ fix_numeric_type(Type type, unsigned long long val) {
     /* Get the width of the type. */
     int width = type_width(type);
     /* Compute the base mask. */
-    unsigned long long mask = ((unsigned long long)(-1)) << width;
+    // unsigned long long mask = ((unsigned long long)(-1)) << width;
+    /* NOTE: (ull)-1 << 64 becomes (ull)-1 on Intel processors, this is
+     * totally not what I expected (I expected 0). */
+    unsigned long long mask = width == 64 ? 0 : ((unsigned long long)(-1)) << width;
     // printf("width=%i val=%llu mask=%llx\n",width,val,mask);
 
     /* Is the type signed? */
@@ -1724,7 +1727,7 @@ static Value concat_value_numeric_array(int num, int dir,
     unsigned int i,pos;
     /* Compute the bit width of the destination. */
     unsigned int width = 0;
-    // printf("concat_value_numeric with dir=%d\n",dir);
+    // printf("concat_value_numeric with dir=%d and width=%llu\n",dir,type_width(args[0]->type));
     for(i=0; i<num; ++i) width += type_width(args[i]->type);
 
     /* Sets state of the destination using the bit width. */
@@ -1748,6 +1751,7 @@ static Value concat_value_numeric_array(int num, int dir,
         pos += arg_width;
     }
     /* Return the destination. */
+    // printf("Result is dst=%llx\n",dst->data_int);
     return dst;
 }
 
@@ -1758,6 +1762,7 @@ static Value concat_value_numeric_array(int num, int dir,
  *  @param dst the destination value
  *  @return dst */
 static Value cast_value_numeric(Value src, Type type, Value dst) {
+    // printf("cast_value_numeric with src=%llx",src->data_int);
     /* Copy the source to the destination. */
     dst->data_int = src->data_int;
     /* Update the destination type to the cast. */
@@ -1817,6 +1822,7 @@ static int same_content_value_range_numeric(Value value0,
  *  @return dst */
 Value read_range_numeric(Value value, long long first, long long last,
         Type base, Value dst) {
+    // printf("read_range_numeric with value=%llx and first=%llu and last=%llu\n",value->data_int,first,last);
     /* Ensure first is the smaller. */
     if (first > last) {
         long long tmp = last;
@@ -1829,6 +1835,7 @@ Value read_range_numeric(Value value, long long first, long long last,
     unsigned long long bw = type_width(base);
     /* Scale the range according to the base type. */
     first *= bw;
+    last  *= bw;
     length *= bw;
     // printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length);
 
@@ -1837,7 +1844,9 @@ Value read_range_numeric(Value value, long long first, long long last,
     dst->numeric = 1;
 
     /* Compute the read mask. */
-    unsigned long long mask = ((-1LL) << first) & (~((-1LL) << (last+1)));
+    // unsigned long long mask = ((-1LL) << first) & (~((-1LL) << (last+1)));
+    /* NOTE: once again, << 64 does not work like expected. */
+    unsigned long long mask = mask+bw < 64 ? (~((-1LL) << (last+bw))) : -1LL;
     /* Performs the read. */
     unsigned long long data = (value->data_int & mask) >> first;
     /* Write it to the destination. */
