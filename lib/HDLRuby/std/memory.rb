@@ -170,6 +170,187 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e,rst,br_rsts = []|
 end
 
 
+# Flexible ROM memory of +size+ elements of +typ+ typ, syncrhonized on +clk+
+# (positive and negative edges) and reset on +rst+.
+# At each rising edge of +clk+ a read and a write is guaranteed to be
+# completed provided they are triggered.
+# +br_rsts+ are reset names on the branches, if not given, a reset input
+# is added and connected to rst.
+# The content of the ROM is passed through +content+ argument.
+#
+# NOTE:
+#
+# * such memories uses the following ports:
+#   - trig_r: read access trigger  (output)
+#   - trig_w: write access trigger (output)
+#   - dbus_r: read data bus        (input)
+#   - dbus_w: write data bus       (output)
+#
+# * The following branches are possible (only one read and one write can
+#   be used per channel)
+#   - raddr:   read by address, this channel adds the following port:
+#     abus_r:  read address bus (output)
+#   - waddr:   read by address, this channel adds the following port:
+#     abus_w:  write address bus (output)
+#   - rinc:    read by automatically incremented address.
+#   - winc:    write by automatically incremented address.
+#   - rdec:    read by automatically decremented address.
+#   - wdec:    write by automatically decremented address.
+#   - rque:    read in queue mode: automatically incremented address ensuring
+#              the read address is always different from the write address.
+#   - wque:    write in queue mode: automatically incremented address ensuring
+#              the write address is always differnet from the read address.
+#
+HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
+    br_rsts = {}|
+    # Ensure typ is a type.
+    typ = typ.to_type
+    # Ensure size in an integer.
+    size = size.to_i
+    # Compute the address bus width from the size.
+    awidth = (size-1).width
+    # Process the table of reset mapping for the branches.
+    # Ensures br_srts is a hash.
+    br_rsts = br_rsts.to_hash
+
+    # Declare the control signals.
+    # Access trigger.
+    inner :trig_r
+    # Data bus
+    typ.inner :dbus_r
+    # Address bus (or simply register)
+    [awidth].inner :abus_r
+
+    # Declare the ROM with its inner content.
+    # typ[-size].constant mem: content.map { |val| val.to_expr }
+    typ[-size].constant mem: content
+
+    # Processes handling the memory access.
+    par(clk.negedge) do
+        dbus_r <= mem[abus_r]
+    end
+
+    # The address branches.
+    # Read with address
+    brancher(:raddr) do
+        reader_output :trig_r, :abus_r
+        reader_input :dbus_r
+        if br_rsts[:raddr] then
+            rst_name = br_rsts[:raddr].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,addr,target|
+            # By default the read trigger is 0.
+            top_block.unshift { trig_r <= 0 }
+            # The read procedure.
+            rst  = send(rst_name)
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hif(trig_r == 1) do
+                        # The trigger was previously set, read ok.
+                        target <= dbus_r
+                        trig_r <= 0
+                        blk.call if blk
+                    end
+                    helse do
+                        # Prepare the read.
+                        abus_r <= addr
+                        trig_r <= 1
+                    end
+                end
+            end
+        end
+    end
+
+    # The increment branches.
+    # Read with increment
+    brancher(:rinc) do
+        reader_output :trig_r, :abus_r
+        reader_input :dbus_r
+        if br_rsts[:rinc] then
+            rst_name = br_rsts[:rinc].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,target|
+            # On reset the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_r <= -1 }
+                # Reset so switch of the access trigger.
+                trig_r <= 0
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hif(trig_r == 1) do
+                        # The trigger was previously set, read ok.
+                        target <= dbus_r
+                        blk.call if blk
+                    end
+                    # Prepare the read.
+                    abus_r <= abus_r + 1
+                    trig_r <= 1
+                end
+            end
+        end
+    end
+
+    # The decrement branches.
+    # Read with increment
+    brancher(:rdec) do
+        reader_output :trig_r, :abus_r
+        reader_input :dbus_r
+        if br_rsts[:rdec] then
+            rst_name = br_rsts[:rdec].to_sym
+        else
+            rst_name = rst.name
+            reader_input rst_name
+        end
+
+        # Defines the read procedure at address +addr+
+        # using +target+ as target of access result.
+        reader do |blk,target|
+            # On reset the read trigger is 0.
+            rst  = send(rst_name)
+            top_block.unshift do
+                # Initialize the address so that the next access is at address 0.
+                hif(rst==1) { abus_r <= 0 }
+                # Reset so switch of the access trigger.
+                trig_r <= 0
+            end
+            # The read procedure.
+            par do
+                hif(rst == 0) do
+                    # No reset, so can perform the read.
+                    hif(trig_r == 1) do
+                        # The trigger was previously set, read ok.
+                        target <= dbus_r
+                        blk.call if blk
+                    end
+                    # Prepare the read.
+                    abus_r <= abus_r - 1
+                    trig_r <= 1
+                end
+            end
+        end
+    end
+
+end
+
+
 
 
 
