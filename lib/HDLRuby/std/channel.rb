@@ -621,7 +621,8 @@ module HDLRuby::High::Std
                 return self
             end
             # No, create the branch.
-            channelI = HDLRuby::High.channel_instance(name, &ruby_block)
+            # channelI = HDLRuby::High.channel_instance(name, &ruby_block)
+            channelI = HDLRuby::High::Std.channel_instance(name, &ruby_block)
             @branches[name] = channelI
             return self
         end
@@ -964,9 +965,12 @@ module HDLRuby::High::Std
 
 
     # Wrap object +obj+ to act like a channel port.
-    def channel_port(obj)
+    def self.channel_port(obj)
         return obj if obj.is_a?(ChannelPort) # No need to wrap.
         return ChannelPortObject.new(obj)
+    end
+    def channel_port(obj)
+        return HDLRuby::High::Std.channel_port(obj)
     end
 end
 
