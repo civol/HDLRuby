@@ -91,7 +91,7 @@ module HDLRuby::Low
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
-            return self.ref.from_systemI
+            return self.ref.from_systemI?
         end
     end
 
@@ -103,7 +103,7 @@ module HDLRuby::Low
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
-            return self.ref.from_systemI
+            return self.ref.from_systemI?
         end
     end
 
@@ -119,11 +119,13 @@ module HDLRuby::Low
             if self.ref.is_a?(RefName) then
                 # Look in the parent hierachy for the sub reference name.
                 parent = self.parent
+                # puts "self.ref.name=#{self.ref.name}"
                 while parent
+                    # puts "parent=#{parent}"
                     if parent.respond_to?(:get_by_name) then
                         found = parent.get_by_name(self.ref.name)
                         # puts "found is a :#{found.class}"
-                        return found.is_a?(SystemI)
+                        return found.is_a?(SystemI) if found
                     end
                     parent = parent.parent
                 end
