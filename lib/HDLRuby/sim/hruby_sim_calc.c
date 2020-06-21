@@ -397,6 +397,9 @@ static Value set_undefined_bitstring(Value dst) {
 
     /* set the type and size of the destination. */
     dst->numeric = 0;
+    /* Ensures the buffer of dst has the write size (in cas it was a fromer
+     * numeric for example). */
+    resize_value(dst,width);
 
     /* Get access to the destination data. */
     char* dst_data = dst->data_str;
