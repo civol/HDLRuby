@@ -244,6 +244,74 @@ module HDLRuby::High::Std
     end
 
 
+    # Declares a simple pipelined multiple mac with single right data.
+    #
+    # Can be used for the product of a martix-vector product.
+    function :mac_np do |typ,ev,req,ack,lefts, rights, last,
+        mul = proc { |x,y| x*y }, add = proc { |x,y| x+y }|
+        # Ensure ev is really an event.
+        ev = ev.posedge unless ev.is_a?(Event)
+        # Ensures lefts is an array.
+        lefts = lefts.to_a
+        # Ensures rights is an array.
+        rights = rights.to_a
+        # Get the size of the pipeline and ensure lefts and rights have the
+        # same.
+        size = lefts.size
+        if (rights.size != size) then
+            raise "Incompatible lefts and rights sizes: lefts size is #{size} and rights size is #{rights.size}"
+        end
+        # Declares the accumulators.
+        accs = size.times.map { |i| typ.inner :"acc#{i}" }
+        # Left value and right value.
+        lvs = lefts.each_with_index.map { |left,i| typ.inner :"lv#{i}" }
+        rvs = rights.each_with_index.map { |right,i| typ.inner :"rv#{i}" }
+        # typ.inner :rv
+        # lv and rv are valid.
+        lvoks = lefts.each_with_index.map { |left,i| inner :"lvok#{i}" }
+        # inner :rvok
+        rvoks = rights.each_with_index.map { |right,i| inner :"rvok#{i}" }
+        # Run flag
+        inner :run
+        par(ev) do
+            ack <= 0
+            run <= 0
+            hif(req | run) do
+                run <= 1
+                # Computation request.
+                lefts.zip(rights).each_with_index do |(left,right),i|
+                    left.read(lvs[i])  { lvoks[i] <= 1 }
+                    right.read(rvs[i]) { rvoks[i] <= 1 }
+                    hif(lvoks[i] & rvoks[i]) do
+                        ack <= 1
+                        run <= 0
+                        if (i < lefts.size-1) then
+                            if (i>0) then 
+                                accs[i] <= add.(accs[i],mul.(lvs[i],rvs[i])) +
+                                    accs[i-1]
+                            else
+                                accs[i] <= add.(accs[i],mul.(lvs[i],rvs[i]))
+                            end
+                        else
+                            # The last is reached
+                            seq do
+                                accs[i] <= add.(accs[i],mul.(lvs[i],rvs[i]))
+                                last.write(accs[i])
+                            end
+                        end
+                    end
+                end
+            end
+            helse do
+                lefts.each_with_index do |left,i|
+                    lvoks[i] <= 0
+                    rvoks[i] <= 0
+                    accs[i] <= 0
+                end
+            end
+        end
+    end
+
 
 
 end
