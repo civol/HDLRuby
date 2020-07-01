@@ -187,11 +187,13 @@ module HDLRuby::Low
                             # Generate the assignment.
                             block.add_statement(
                                 Transmit.new(ref.clone,
-                                RefIndex.new(aux.type.base, aux.clone, idx)))
+                                # RefIndex.new(aux.type.base, aux.clone, idx)))
+                                RefIndex.new(bit, aux.clone, idx)))
                         else
                             # Multi-bits.
                             # Compute the type of the right value.
-                            rtype = TypeVector.new(:"",aux.type.base,range)
+                            # rtype = TypeVector.new(:"",aux.type.base,range)
+                            rtype = TypeVector.new(:"",bit,range)
                             # Generate the range.
                             range = Value.new(Integer,range.first) ..
                                     Value.new(Integer,range.last)
@@ -272,11 +274,13 @@ module HDLRuby::Low
                             # Generate the assignment.
                             block.add_statement(
                                 Transmit.new(ref.clone,
-                                RefIndex.new(aux.type.base, aux.clone, idx)))
+                                # RefIndex.new(aux.type.base, aux.clone, idx)))
+                                RefIndex.new(bit, aux.clone, idx)))
                         else
                             # Multi-bits.
                             # Compute the type of the right value.
-                            rtype = TypeVector.new(:"",aux.type.base,range)
+                            # rtype = TypeVector.new(:"",aux.type.base,range)
+                            rtype = TypeVector.new(:"",bit,range)
                             # Generate the range.
                             range = Value.new(Integer,range.first) ..
                                     Value.new(Integer,range.last)
