@@ -32,7 +32,8 @@ system :fir do |typ,iChannel,oChannel,coefs|
         hif(rst) { datas.each { |d| d <= 0 } }
         hif(req) do
             iPort.read(datas[0]) do
-                datas.each_cons(2) { |d0,d1| d1 <= d0 }
+                # datas.each_cons(2) { |d0,d1| d1 <= d0 }
+                datas[1..-1] <= datas[0..-2]
             end
             req2 <= 1
         end
