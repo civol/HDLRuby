@@ -302,14 +302,16 @@ module HDLRuby::Low
                     end)
                 else
                     # No, it should be a tuple.
-                    return Concat.new(type,self.expressions.map.with_index do
+                    return Concat.new(type,
+                                      self.each_expression.map.with_index do
                         |expr,i|
                         expr.explicit_types(type.get_type(i))
                     end)
                 end
             else
                 # No, recurse on the sub expressions.
-                return Concat.new(self.type,self.expressions.map do |expr|
+                return Concat.new(self.type,
+                                  self.each_expression.map do |expr|
                     expr.explicit_types
                 end)
             end
