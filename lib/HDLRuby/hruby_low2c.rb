@@ -546,9 +546,10 @@ module HDLRuby::Low
         #
         # NOTE: type tuples are converted to bit vector of their contents.
         def to_c(level = 0)
-            return "get_type_tuple(#{self.each.join(",") do |type|
-               type.to_c(level+1)
-            end})"
+            # return "get_type_tuple(#{self.each.to_a.join(",") do |type|
+            #    type.to_c(level+1)
+            # end})"
+            return self.to_vector.to_c(level)
         end
     end
 
@@ -1872,7 +1873,8 @@ module HDLRuby::Low
             res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
             # Make the access.
             res << (" " * ((level+1)*3))
-            res << "dst = read_range(ref,idx,idx,#{self.ref.type.base.to_c(level)},dst);\n"
+            # res << "dst = read_range(ref,idx,idx,#{self.ref.type.base.to_c(level)},dst);\n"
+            res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
@@ -1930,7 +1932,9 @@ module HDLRuby::Low
             res << "last = value2integer(#{self.range.last.to_c(level+2)});\n"
             # Make the access.
             res << (" " * ((level+1)*3))
-            res << "dst = #{command}_range(ref,first,last,#{self.ref.type.base.to_c(level)},dst);\n"
+            # res << "dst = #{command}_range(ref,first,last,#{self.ref.type.base.to_c(level)},dst);\n"
+            # puts "will read_range for #{self.ref.name} with width=#{self.ref.type.width} with base width=#{self.ref.type.base.width} with range=#{self.ref.type.range} with range=#{self.range.first.content}..#{self.range.last.content}"
+            res << "dst = #{command}_range(ref,first,last,#{self.type.base.to_c(level)},dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
