@@ -1385,7 +1385,8 @@ module HDLRuby::Low
     # NOTE: type definition are actually type with a name refering to another
     #       type (and equivalent to it).
     class TypeDef < Type
-        extend Forwardable
+        # Moved to constructor
+        # extend Forwardable
 
         # The definition of the type.
         attr_reader :def
@@ -1402,6 +1403,19 @@ module HDLRuby::Low
             end
             # Set the referened type.
             @def = type
+
+            # Sets the delegations
+            self.extend Forwardable
+            [ :signed?, :unsigned?, :fixed?, :float?, :leaf?,
+              :width, :range?, :range, :base?, :base, :types?,
+              :get_all_types, :get_type, :each, :each_type, 
+              :regular?,
+              :each_name,
+              :equivalent? ].each do |meth|
+                  if @def.respond_to?(meth)
+                      self.def_delegator :@def, meth
+                  end
+              end
         end
 
         # Comparison for hash: structural comparison.
@@ -1429,14 +1443,15 @@ module HDLRuby::Low
             @def.each_type_deep(&ruby_block)
         end
 
-        # Delegate the type methods to the ref.
-        def_delegators :@def,
-                       :signed?, :unsigned?, :fixed?, :float?, :leaf?,
-                       :width, :range?, :range, :base?, :base, :types?,
-                       :get_all_types, :get_type, :each, :each_type, 
-                       :regular?,
-                       :each_name,
-                       :equivalent?
+        # Moved to constructor
+        # # Delegate the type methods to the ref.
+        # def_delegators :@def,
+        #                :signed?, :unsigned?, :fixed?, :float?, :leaf?,
+        #                :width, :range?, :range, :base?, :base, :types?,
+        #                :get_all_types, :get_type, :each, :each_type, 
+        #                :regular?,
+        #                :each_name,
+        #                :equivalent?
     end
 
 
