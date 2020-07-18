@@ -26,17 +26,18 @@ module HDLRuby::High::Std
                 if args.size == 1 then
                     return self.send(:"_[]_fixpoint",*args)
                 else
-                    # Handle the arguments.
+                    # Handle the arguments and compute the fix point sizes.
                     arg0,arg1 = *args
                     if arg0.respond_to?(:to_i) then
-                        arg0 = (arg0.to_i.abs-1)..0
+                        isize = arg0
+                    else
+                        isize = (arg0.first-arg0.last).abs+1
                     end
                     if arg1.respond_to?(:to_i) then
-                        arg1 = (arg1.to_i.abs-1)..0
+                        fsize = arg1
+                    else
+                        fsize = (arg1.first-arg1.last).abs+1
                     end
-                    # Compute the fix point sizes.
-                    isize = (arg0.first-arg0.last).abs+1
-                    fsize = (arg1.first-arg1.last).abs+1
                     # Build the type.
                     case(self.name)
                     when :bit
