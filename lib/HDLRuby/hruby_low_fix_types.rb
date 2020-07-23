@@ -294,6 +294,8 @@ module HDLRuby::Low
             # Is there a type to match?
             if type then
                 # Yes, update the concat to the type.
+                # Get the real type in case of typedef.
+                type = type.def while type.is_a?(TypeDef)
                 # Is it an array type?
                 if type.is_a?(TypeVector) then
                     # Yes, update the concat without subcasting.
