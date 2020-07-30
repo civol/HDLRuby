@@ -45,11 +45,20 @@ module HDLRuby
                    (code[1][1] == "require")
         end
 
+        # Tells if +code+ is require_relative description.
+        def is_require_relative?(code)
+            # return code[0] && (code[0][0] == :command) &&
+            #        (code[0][1][1] == "require_relative")
+            return code && (code[0] == :command) &&
+                   (code[1][1] == "require_relative")
+        end
+
         # Gets the required file from +code+.
         def get_require(code)
             # return (code[0][2][1][0][1][1][1])
             return (code[2][1][0][1][1][1])
         end
+        alias_method :get_require_relative, :get_require
 
         # Gets all the required files of  +code+.
         def get_all_requires(code = @code)
@@ -66,6 +75,21 @@ module HDLRuby
             end
         end
 
+        # Gets all the require_relative files of  +code+.
+        def get_all_require_relatives(code = @code)
+            if code.is_a?(Array) then
+                require_relatives = (code.select { |sub| is_require_relative?(sub) }).map! do |sub|
+                    get_require_relative(sub)
+                end
+                code.each do |sub|
+                    require_relatives += get_all_require_relatives(sub)
+                end
+                return require_relatives
+            else
+                return []
+            end
+        end
+
         # Tells if +code+ is a system description.
         def is_system?(code)
             return code.is_a?(Array) && (code[0] == :command) &&
@@ -77,7 +101,7 @@ module HDLRuby
             return code[2][1][0][1][1][1]
         end
 
-        # Gets all the required files of  +code+.
+        # Gets all the systems of  +code+.
         def get_all_systems(code = @code)
             return [] unless code.is_a?(Array)
             return code.reduce([]) {|ar,sub| ar + get_all_systems(sub) } +

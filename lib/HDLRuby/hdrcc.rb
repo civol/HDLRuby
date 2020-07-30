@@ -113,12 +113,9 @@ module HDLRuby
                 return
             end
             # Get its required files.
-            requires = @checks[-1].get_all_requires
+            requires = @checks[-1].get_all_requires +
+                       @checks[-1].get_all_require_relatives
             requires.each do |file|
-                # if file != "HDLRuby" &&
-                #         !@std_files.find { |std| std.include?(file) } then
-                #     read_all(file)
-                # end
                 read_all(file)
             end
             @requires += requires
