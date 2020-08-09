@@ -1123,6 +1123,10 @@ module HDLRuby::Low
             return self.parent.is_a?(SystemT) ? self : self.parent.top_scope
         end
 
+        # Gets the parent system, i.e., the parent of the top scope.
+        def parent_system
+            return self.top_scope.parent
+        end
 
     end
 
@@ -2132,6 +2136,11 @@ module HDLRuby::Low
         def top_scope
             return parent.top_scope
         end
+
+        # Gets the parent system, i.e., the parent of the top scope.
+        def parent_system
+            return self.top_scope.parent
+        end
     end
 
 
@@ -2618,6 +2627,11 @@ module HDLRuby::Low
         # Gets the top scope, i.e. the first scope of the current system.
         def top_scope
             return self.scope.top_scope
+        end
+
+        # Gets the parent system, i.e., the parent of the top scope.
+        def parent_system
+            return self.top_scope.parent
         end
     end
 
@@ -3716,6 +3730,11 @@ module HDLRuby::Low
         # Gets the top scope, i.e. the first scope of the current system.
         def top_scope
             return self.parent.is_a?(Scope) ? self.parent : self.parent.top_scope
+        end
+
+        # Gets the parent system, i.e., the parent of the top scope.
+        def parent_system
+            return self.top_scope.parent
         end
     end
 
