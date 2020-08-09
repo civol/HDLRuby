@@ -2815,18 +2815,10 @@ This library provides a unified interface to complex communication protocols thr
 ### Using a channel
 
 A channel is used similarly to a pipe: it has an input where data can be written and an output where data can be read. The ordering of the data and the synchronization depend on the internals of the channel, e.g., a channel can be FIFO or LIFO. The interaction with the channel is done using the following methods:
- 
- * `input <name>`: generate ports in the system for reading from the channel amd associate them to `name`
- * `output <name>`: generate ports in the system for writing to the channel and associate them to `name`
- * `inout <name>`: generate ports in the system for reading and writing to the channel and associate them to `name`
- * `inner <name>`: generates inner signals for accessing directly the channel
-
-__Note__: `input`, `output`, `inout` and `inner` for channels work similarly to the ones of data types for declaring signals. In particular, `input`, `output` and `inout` are to be used in systems that do not include the channel and `inner` is to be used in the system that include the channel.
-
-When the channel ports are declared, they can be accessed using the following methods depending on whether they are writing or reading ports:
 
  * `write(<args>) <block>`: write to the channel and execute `block` when `write` completes. `args` is a list of arguments required for performing the write that depend on the channel.
  * `read(<args>) <block>`: read the channel and execute `block` when the read completes. `args` is a list of arguments required for performing the write that depend on the channel.
+
 
 For example, a system sending successive 8-bit values through a channel can be described as follows:
 
@@ -2834,8 +2826,6 @@ For example, a system sending successive 8-bit values through a channel can be d
 system :producer8 do |channel|
     # Inputs of the producer: clock and reset.
     input :clk, :rst
-    # Instantiate the channel ports
-    channel.output :chi
     # Inner 8-bit counter for generating values.
     [8].inner :counter
 
@@ -2843,13 +2833,29 @@ system :producer8 do |channel|
     par(clk.posedge) do
         hif(rst) { counter <= 0 }
         helse do
-            chi.write(counter) { counter <= counter + 1 }
+            channel.write(counter) { counter <= counter + 1 }
         end
     end
 end
 ```
 
 __Note__: In the code above, the channel is passed as generic argument of the system.
+
+The access points to a channel can also be handled individually by declaring ports using the following methods:
+ 
+ * `input <name>`: declares a port for reading from the channel and associate them to `name` if any
+ * `output <name>`: declares a port for writing to the channel and associate them to `name` if any
+ * `inout <name>`: declares a port for reading and writing to the channel and associate them to `name` if any
+
+Such port can then be accessed using the same `read` and `write` method of a channel, the difference being that they can also be configured for new access procedure using the `wrap` method:
+
+ * `wrap(<args>) <code>`: creates a new port whose read or write procedure has the elements of `<args>` and the ones produced by `<code>` assign to the arguments of the read or write procedure.
+
+For example, assuming `mem` is a channel whose read and write access have as argument the target address and data signals, the following code creates a port for always accessing at address 0:
+
+```ruby
+  addr0 = channel.input.wrap(0) 
+```
 
 ### Channel branches
 
@@ -2894,7 +2900,7 @@ Where `name` is the name of the channel and `block` is a procedure block describ
  The first argument of the block must be the following:
    - `blk`: the block to execute when the write completes.
  Other arguments can be freely defined, and will be required by the `write` command.
- * `brancher(name) <block>`: defines branch named +name+ described in `block`. The content of block can be any content valid for a channel, with the additional possiblity to access the internals of the upper channel.
+ * `brancher(name) <block>`: defines branch named +name+ described in `block`. The content of block can be any content valid for a channel, with the additional possibility to access the internals of the upper channel.
 
 For example, a channel implemented by a simple register of generic type `typ`, that can be set to 0 using the `reset` command can be described as follows:
 
