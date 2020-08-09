@@ -668,8 +668,9 @@ module HDLRuby::High::Std
         # Reader, writer and accesser side.
 
         ## Declares the reader port as and assigned them to +name+.
-        def input(name)
+        def input(name = nil)
             # Ensure name is a symbol.
+            name = HDLRuby.uniq_name unless name
             name = name.to_sym
             # Ensure the port is not already existing.
             if @read_port then
@@ -758,8 +759,9 @@ module HDLRuby::High::Std
         end
 
         ## Declares the ports for the writer and assigned them to +name+.
-        def output(name)
+        def output(name = nil)
             # Ensure name is a symbol.
+            name = HDLRuby.uniq_name unless name
             name = name.to_sym
             # Ensure the port is not already existing.
             if @write_port then
@@ -849,8 +851,9 @@ module HDLRuby::High::Std
 
 
         ## Declares the accesser port and assigned them to +name+.
-        def inout(name)
+        def inout(name = nil)
             # Ensure name is a symbol.
+            name = HDLRuby.uniq_name unless name
             name = name.to_sym
             # Ensure the port is not already existing.
             if @read_port then
