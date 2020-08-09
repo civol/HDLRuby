@@ -96,6 +96,9 @@ module HDLRuby::High::Std
         def wrap(*args)
             return ChannelPortB.new(self,*args)
         end
+
+        # The scope the port has been declared in.
+        attr_reader :scope
     end
 
 
@@ -113,6 +116,7 @@ module HDLRuby::High::Std
             @namespace = namespace
             @reader_proc = reader_proc.to_proc
             @rester_proc = reseter_proc ? reseter_proc.to_proc : proc {}
+            @scope = HDLRuby::High.cur_scope
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -157,6 +161,7 @@ module HDLRuby::High::Std
             @namespace = namespace
             @writer_proc = writer_proc.to_proc
             @reseter_proc = reseter_proc ? reseter_proc.to_proc : proc {}
+            @scope = HDLRuby::High.cur_scope
         end
 
         ## Performs a write on the channel using +args+ and +ruby_block+
@@ -206,6 +211,7 @@ module HDLRuby::High::Std
             @reader_proc  = reader_proc ? reader_proc.to_proc : proc { }
             @writer_proc  = writer_proc ? writer_proc.to_proc : proc { }
             @reseter_proc = reseter_proc ? reseter_proc.to_proc : proc {}
+            @scope = HDLRuby::High.cur_scope
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -281,6 +287,8 @@ module HDLRuby::High::Std
                 @args_write = args.clone
                 @args_access = args.clone
             end
+
+            @scope = @port.scope
         end
 
         ## Performs a read on the channel using +args+ and +ruby_block+
@@ -332,6 +340,12 @@ module HDLRuby::High::Std
         # building a channel.
         attr_reader :namespace
 
+        # The read port if any.
+        attr_reader :read_port
+
+        # The write port if any.
+        attr_reader :write_port
+
         ## Creates a new channel instance with +name+ built from +ruby_block+.
         def initialize(name,&ruby_block)
             # Check and set the name of the channel.
@@ -345,6 +359,10 @@ module HDLRuby::High::Std
 
             # Keep access to self.
             obj = self
+
+            # At first there no read nor write port.
+            @read_port = nil
+            @write_port = nil
 
             # The reader input ports by name.
             @reader_inputs = {}
@@ -366,11 +384,6 @@ module HDLRuby::High::Std
             @accesser_outputs = {}
             # The accesser inout ports by name.
             @accesser_inouts = {}
-
-            # # The default reset procedures (reseters), by default do nothing.
-            # @input_reseter_proc  = proc {}
-            # @output_reseter_proc = proc {}
-            # @inout_reseter_proc  = proc {}
 
             # The branch channels
             @branches = {}
@@ -425,6 +438,11 @@ module HDLRuby::High::Std
             obj = self
             # HDLRuby::High.space_reg(@name) { self }
             HDLRuby::High.space_reg(@name) { obj }
+        end
+
+        # Get the parent system.
+        def parent_system
+            return self.scope.parent_system
         end
 
         # The methods for defining the channel
@@ -606,6 +624,12 @@ module HDLRuby::High::Std
                    @writer_inouts.values
         end
 
+        ## Tells if the channel support inout port.
+        def inout?
+            return @accesser_inputs.any? || @accesser_outputs.any? ||
+                   @accesser_inouts.any?
+        end
+
         # Defines a branch in the channel named +name+ built executing
         # +ruby_block+.
         # Alternatively, a ready channel instance can be passed as argument
@@ -620,8 +644,7 @@ module HDLRuby::High::Std
                 @branches[name] = channelI
                 return self
             end
-            # No, create the branch.
-            # channelI = HDLRuby::High.channel_instance(name, &ruby_block)
+            # Now, create the branch.
             channelI = HDLRuby::High::Std.channel_instance(name, &ruby_block)
             @branches[name] = channelI
             return self
@@ -644,54 +667,82 @@ module HDLRuby::High::Std
 
         # Reader, writer and accesser side.
 
-        ## Declares the ports for the reader and assigned them to +name+.
+        ## Declares the reader port as and assigned them to +name+.
         def input(name)
             # Ensure name is a symbol.
             name = name.to_sym
+            # Ensure the port is not already existing.
+            if @read_port then
+                raise "Read port already declared for channel instance: " +
+                    self.name
+            end
+
             # Access the ports
-            loc_inputs  = @reader_inputs
-            loc_outputs = @reader_outputs
-            loc_inouts  = @reader_inouts
+            # loc_inputs  = @reader_inputs
+            # loc_outputs = @reader_outputs
+            # loc_inouts  = @reader_inouts
+            loc_inputs  = @reader_inputs.merge(@accesser_inputs)
+            loc_outputs = @reader_outputs.merge(@accesser_outputs)
+            loc_inouts  = @reader_inouts.merge(@accesser_inouts)
+            locs = loc_inputs.merge(loc_outputs).merge(loc_inouts)
             # The generated port with corresponding channel port pairs.
             port_pairs = []
-            # Add them to the current system.
-            HDLRuby::High.cur_system.open do
-                # The inputs
-                loc_inputs.each  do |name,sig|
-                    # puts "name=#{name} sig.name=#{sig.name}"
-                    port_pairs << [sig, sig.type.input(name)]
+            if HDLRuby::High.cur_system == self.parent_system then
+                # Port in same system as the channel case.
+                # Add them to the current system.
+                HDLRuby::High.cur_system.open do
+                    locs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name)]
+                    end
                 end
-                # The outputs
-                loc_outputs.each do |name,sig| 
-                    port_pairs << [sig, sig.type.output(name)]
+                obj = self
+                # Make the inner connection
+                port_pairs.each do |sig, port|
+                    sig.parent.open do
+                        port.to_ref <= sig
+                    end
                 end
-                # The inouts
-                loc_inouts.each  do |name,sig| 
-                    port_pairs << [sig, sig.type.inout(name)]
+            else
+                # Port in different system as the channel case.
+                # Add them to the current system.
+                HDLRuby::High.cur_system.open do
+                    # The inputs
+                    loc_inputs.each  do |name,sig|
+                        # puts "name=#{name} sig.name=#{sig.name}"
+                        port_pairs << [sig, sig.type.input(name)]
+                    end
+                    # The outputs
+                    loc_outputs.each do |name,sig| 
+                        port_pairs << [sig, sig.type.output(name)]
+                    end
+                    # The inouts
+                    loc_inouts.each  do |name,sig| 
+                        port_pairs << [sig, sig.type.inout(name)]
+                    end
                 end
-            end
-            obj = self
-            # Make the connection of the instance.
-            HDLRuby::High.cur_system.on_instance do |inst|
-                obj.scope.open do
-                    port_pairs.each do |sig, port|
-                        RefObject.new(inst,port.to_ref) <= sig
+                obj = self
+                # Make the connection of the instance.
+                HDLRuby::High.cur_system.on_instance do |inst|
+                    obj.scope.open do
+                        port_pairs.each do |sig, port|
+                            RefObject.new(inst,port.to_ref) <= sig
+                        end
                     end
                 end
             end
 
             # Fill the reader namespace with the access to the reader signals.
-            @reader_inputs.each do |name,sig|
+            loc_inputs.each do |name,sig|
                 @reader_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
             end
-            @reader_outputs.each do |name,sig|
+            loc_outputs.each do |name,sig|
                 @reader_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
             end
-            @reader_inouts.each do |name,sig|
+            loc_inouts.each do |name,sig|
                 @reader_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
@@ -701,6 +752,8 @@ module HDLRuby::High::Std
             # NOTE: for now, simply associate the channel to name.
             chp = ChannelPortR.new(@reader_namespace,@reader_proc,@input_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
+            # Save the port in the channe to avoid conflicting declaration.
+            @read_port = chp
             return chp
         end
 
@@ -708,49 +761,78 @@ module HDLRuby::High::Std
         def output(name)
             # Ensure name is a symbol.
             name = name.to_sym
+            # Ensure the port is not already existing.
+            if @write_port then
+                raise "Write port already declared for channel instance: " +
+                    self.name
+            end
             # Access the ports
-            loc_inputs  = @writer_inputs
-            loc_outputs = @writer_outputs
-            loc_inouts  = @writer_inouts
+            # loc_inputs  = @writer_inputs
+            # loc_outputs = @writer_outputs
+            # loc_inouts  = @writer_inouts
+            loc_inputs  = @writer_inputs.merge(@accesser_inputs)
+            loc_outputs = @writer_outputs.merge(@accesser_outputs)
+            loc_inouts  = @writer_inouts.merge(@accesser_inouts)
+            locs = loc_inputs.merge(loc_outputs).merge(loc_inouts)
             # The generated port with corresponding channel port pairs.
             port_pairs = []
-            # Add them to the current system.
-            HDLRuby::High.cur_system.open do
-                # The inputs
-                loc_inputs.each  do |name,sig|
-                    port_pairs << [sig, sig.type.input(name)]
+            # puts "cur_system=#{HDLRuby::High.cur_system} self.parent_system=#{self.parent_system}"
+            if HDLRuby::High.cur_system == self.parent_system then
+                # puts "Inner found!"
+                # Port in same system as the channel case.
+                # Add them to the current system.
+                HDLRuby::High.cur_system.open do
+                    locs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name)]
+                    end
                 end
-                # The outputs
-                loc_outputs.each do |name,sig| 
-                    port_pairs << [sig, sig.type.output(name)]
+                obj = self
+                # Make the inner connection
+                port_pairs.each do |sig, port|
+                    sig.parent.open do
+                        port.to_ref <= sig
+                    end
                 end
-                # The inouts
-                loc_inouts.each  do |name,sig| 
-                    port_pairs << [sig, sig.type.inout(name)]
+            else
+                # Portds in different system as the channel's case.
+                # Add them to the current system.
+                HDLRuby::High.cur_system.open do
+                    # The inputs
+                    loc_inputs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.input(name)]
+                    end
+                    # The outputs
+                    loc_outputs.each do |name,sig| 
+                        port_pairs << [sig, sig.type.output(name)]
+                    end
+                    # The inouts
+                    loc_inouts.each  do |name,sig| 
+                        port_pairs << [sig, sig.type.inout(name)]
+                    end
                 end
-            end
-            obj = self
-            # Make the connection of the instance.
-            HDLRuby::High.cur_system.on_instance do |inst|
-                obj.scope.open do
-                    port_pairs.each do |sig, port|
-                        RefObject.new(inst,port.to_ref) <= sig
+                obj = self
+                # Make the connection of the instance.
+                HDLRuby::High.cur_system.on_instance do |inst|
+                    obj.scope.open do
+                        port_pairs.each do |sig, port|
+                            RefObject.new(inst,port.to_ref) <= sig
+                        end
                     end
                 end
             end
 
             # Fill the writer namespace with the access to the writer signals.
-            @writer_inputs.each do |name,sig|
+            loc_inputs.each do |name,sig|
                 @writer_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
             end
-            @writer_outputs.each do |name,sig|
+            loc_outputs.each do |name,sig|
                 @writer_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
             end
-            @writer_inouts.each do |name,sig|
+            loc_inouts.each do |name,sig|
                 @writer_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
                 end
@@ -760,73 +842,27 @@ module HDLRuby::High::Std
             # NOTE: for now, simply associate the channel to name.
             chp = ChannelPortW.new(@writer_namespace,@writer_proc,@output_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
+            # Save the port in the channe to avoid conflicting declaration.
+            @write_port = chp
             return chp
         end
 
-        ## Declares the ports for the accesser and assigned them to +name+.
+
+        ## Declares the accesser port and assigned them to +name+.
         def inout(name)
             # Ensure name is a symbol.
             name = name.to_sym
-            # Access the ports
-            loc_inputs  = @accesser_inputs
-            loc_outputs = @accesser_outputs
-            loc_inouts  = @accesser_inouts
-            # The generated port with corresponding channel port pairs.
-            port_pairs = []
-            # Add them to the current system.
-            HDLRuby::High.cur_system.open do
-                # The inputs
-                loc_inputs.each  do |name,sig|
-                    port_pairs << [sig, sig.type.input(name)]
-                end
-                # The outputs
-                loc_outputs.each do |name,sig| 
-                    port_pairs << [sig, sig.type.output(name)]
-                end
-                # The inouts
-                loc_inouts.each  do |name,sig| 
-                    port_pairs << [sig, sig.type.inout(name)]
-                end
-            end
-            obj = self
-            # Make the connection of the instance.
-            HDLRuby::High.cur_system.on_instance do |inst|
-                obj.scope.open do
-                    port_pairs.each do |sig, port|
-                        RefObject.new(inst,port.to_ref) <= sig
-                    end
-                end
+            # Ensure the port is not already existing.
+            if @read_port then
+                raise "Read port already declared for channel instance: " +
+                    self.name
             end
 
-            # Set ups the accesser's namespace
-            @accesser_inputs.each do |name,sig|
-                @accesser_namespace.add_method(sig.name) do
-                    HDLRuby::High.top_user.send(name)
-                end
-            end
-            @accesser_outputs.each do |name,sig|
-                @accesser_namespace.add_method(sig.name) do
-                    HDLRuby::High.top_user.send(name)
-                end
-            end
-            @accesser_inouts.each do |name,sig|
-                @accesser_namespace.add_method(sig.name) do
-                    HDLRuby::High.top_user.send(name)
-                end
+            if @write_port then
+                raise "Write port already declared for channel instance: " +
+                    self.name
             end
 
-            # Give access to the ports through name.
-            # NOTE: for now, simply associate the channel to name.
-            chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc,@inout_reseter_proc)
-            HDLRuby::High.space_reg(name) { chp }
-            return chp
-        end
-
-        ## Declares the ports for accessing the channel as an inner component
-        #  and assigned them to +name+.
-        def inner(name)
-            # Ensure name is a symbol.
-            name = name.to_sym
             # Access the ports
             loc_inputs  = @accesser_inputs.merge(@reader_inputs).
                 merge(@writer_inputs)
@@ -837,21 +873,51 @@ module HDLRuby::High::Std
             locs = loc_inputs.merge(loc_outputs).merge(loc_inouts)
             # The generated port with corresponding channel port pairs.
             port_pairs = []
-            # Add them to the current system.
-            HDLRuby::High.cur_system.open do
-                locs.each  do |name,sig|
-                    port_pairs << [sig, sig.type.inner(name)]
+            if HDLRuby::High.cur_system == self.parent_system then
+                # Port in same system as the channel case.
+                # Add them to the current system.
+                HDLRuby::High.cur_system.open do
+                    locs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name)]
+                    end
                 end
-            end
-            obj = self
-            # Make the inner connection
-            port_pairs.each do |sig, port|
-                sig.parent.open do
-                    port.to_ref <= sig
+                obj = self
+                # Make the inner connection
+                port_pairs.each do |sig, port|
+                    sig.parent.open do
+                        port.to_ref <= sig
+                    end
+                end
+            else
+                # Port in different system as the channel case.
+                # Add them to the current system.
+                HDLRuby::High.cur_system.open do
+                    # The inputs
+                    loc_inputs.each  do |name,sig|
+                        # puts "name=#{name} sig.name=#{sig.name}"
+                        port_pairs << [sig, sig.type.input(name)]
+                    end
+                    # The outputs
+                    loc_outputs.each do |name,sig| 
+                        port_pairs << [sig, sig.type.output(name)]
+                    end
+                    # The inouts
+                    loc_inouts.each  do |name,sig| 
+                        port_pairs << [sig, sig.type.inout(name)]
+                    end
+                end
+                obj = self
+                # Make the connection of the instance.
+                HDLRuby::High.cur_system.on_instance do |inst|
+                    obj.scope.open do
+                        port_pairs.each do |sig, port|
+                            RefObject.new(inst,port.to_ref) <= sig
+                        end
+                    end
                 end
             end
 
-            # Set ups the accesser's namespace
+            # Fill the reader namespace with the access to the reader signals.
             loc_inputs.each do |name,sig|
                 @accesser_namespace.add_method(sig.name) do
                     HDLRuby::High.top_user.send(name)
@@ -872,37 +938,121 @@ module HDLRuby::High::Std
             # NOTE: for now, simply associate the channel to name.
             chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc,@inout_reseter_proc)
             HDLRuby::High.space_reg(name) { chp }
+            # Save the port in the channe to avoid conflicting declaration.
+            @read_port = chp
+            @write_port = chp
             return chp
         end
+
+        # ## Declares the ports for accessing the channel as an inner component
+        # #  and assigned them to +name+.
+        # def inner(name)
+        #     # Ensure name is a symbol.
+        #     name = name.to_sym
+        #     # Access the ports
+        #     loc_inputs  = @accesser_inputs.merge(@reader_inputs).
+        #         merge(@writer_inputs)
+        #     loc_outputs = @accesser_outputs.merge(@reader_outputs).
+        #         merge(@writer_outputs)
+        #     loc_inouts  = @accesser_inouts.merge(@reader_inouts).
+        #         merge(@writer_inouts)
+        #     locs = loc_inputs.merge(loc_outputs).merge(loc_inouts)
+        #     # The generated port with corresponding channel port pairs.
+        #     port_pairs = []
+        #     # Add them to the current system.
+        #     HDLRuby::High.cur_system.open do
+        #         locs.each  do |name,sig|
+        #             port_pairs << [sig, sig.type.inner(name)]
+        #         end
+        #     end
+        #     obj = self
+        #     # Make the inner connection
+        #     port_pairs.each do |sig, port|
+        #         sig.parent.open do
+        #             port.to_ref <= sig
+        #         end
+        #     end
+
+        #     # Set ups the accesser's namespace
+        #     loc_inputs.each do |name,sig|
+        #         @accesser_namespace.add_method(sig.name) do
+        #             HDLRuby::High.top_user.send(name)
+        #         end
+        #     end
+        #     loc_outputs.each do |name,sig|
+        #         @accesser_namespace.add_method(sig.name) do
+        #             HDLRuby::High.top_user.send(name)
+        #         end
+        #     end
+        #     loc_inouts.each do |name,sig|
+        #         @accesser_namespace.add_method(sig.name) do
+        #             HDLRuby::High.top_user.send(name)
+        #         end
+        #     end
+
+        #     # Give access to the ports through name.
+        #     # NOTE: for now, simply associate the channel to name.
+        #     chp = ChannelPortA.new(@accesser_namespace,@reader_proc,@writer_proc,@inout_reseter_proc)
+        #     HDLRuby::High.space_reg(name) { chp }
+        #     return chp
+        # end
+
 
         
         ## Performs a read on the channel using +args+ and +ruby_block+
         #  as arguments.
+        #  NOTE:
+        #  * Will generate a port if not present.
+        #  * Will generate an error if a read is tempted while the read
+        #    port has been declared within another system.
         def read(*args,&ruby_block)
-            # Gain access to the reader as local variable.
-            reader_proc = @reader_proc
-            # # The context is the one of the reader.
-            # Execute the code generating the reader in context.
-            HDLRuby::High.space_push(@namespace)
-            HDLRuby::High.cur_block.open do
-                instance_exec(ruby_block,*args,&reader_proc)
+            # Is there a port to read?
+            unless self.read_port then
+                # No, generate a new one.
+                # Is it possible to be inout?
+                if self.inout? then
+                    # Yes, create an inout port.
+                    self.inout(HDLRuby.uniq_name)
+                else
+                    # No, create an input port.
+                    self.input(HDLRuby.uniq_name)
+                end
             end
-            HDLRuby::High.space_pop
+            # Ensure the read port is within current system.
+            unless self.read_port.scope.system != HDLRuby::High.cur_system then
+                raise "Cannot read from a port external of current system for channel " + self.name
+            end
+            # Performs the read.
+            self.read_port.read(*args,&ruby_block)
         end
         
         ## Performs a write on the channel using +args+ and +ruby_block+
         #  as arguments.
+        #  NOTE:
+        #  * Will generate a port if not present.
+        #  * Will generate an error if a read is tempted while the read
+        #    port has been declared within another system.
         def write(*args,&ruby_block)
-            # Gain access to the writer as local variable.
-            writer_proc = @writer_proc
-            # # The context is the one of the writer.
-            # Execute the code generating the writer in context.
-            HDLRuby::High.space_push(@namespace)
-            HDLRuby::High.cur_block.open do
-                instance_exec(ruby_block,*args,&writer_proc)
+            # Is there a port to write?
+            unless self.write_port then
+                # No, generate a new one.
+                # Is it possible to be inout?
+                if self.inout? then
+                    # Yes, create an inout port.
+                    self.inout(HDLRuby.uniq_name)
+                else
+                    # No, create an output port.
+                    self.output(HDLRuby.uniq_name)
+                end
             end
-            HDLRuby::High.space_pop
+            # Ensure the write port is within current system.
+            unless self.write_port.scope.system != HDLRuby::High.cur_system then
+                raise "Cannot write from a port external of current system for channel " + self.name
+            end
+            # Performs the write.
+            self.write_port.write(*args,&ruby_block)
         end
+        
 
         ## Performs a reset on the channel using +args+ and +ruby_block+
         #  as arguments.
@@ -925,6 +1075,8 @@ module HDLRuby::High::Std
         # Create a new object wrapper for +obj+.
         def initialize(obj)
             @obj = obj
+
+            @scope = HDLRuby::High.cur_scope
         end
 
         # Port read with arguments +args+ executing +ruby_block+ in

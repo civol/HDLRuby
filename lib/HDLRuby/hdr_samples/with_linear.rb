@@ -22,23 +22,29 @@ system :testmat do
     mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memL1)
     mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memR)
     # Access ports.
-    memL0.branch(:rinc).inner :readL0
-    memL1.branch(:rinc).inner :readL1
-    memR.branch(:rinc).inner :readR
+    # # memL0.branch(:rinc).inner :readL0
+    # # memL1.branch(:rinc).inner :readL1
+    # # memR.branch(:rinc).inner :readR
+    # memL0.branch(:rinc).input :readL0
+    # memL1.branch(:rinc).input :readL1
+    # memR.branch(:rinc).input :readR
 
     # Prepares the left and acc arrays.
-    lefts = [readL0, readL1]
+    # lefts = [readL0, readL1]
+    lefts = [memL0.branch(:rinc), memL1.branch(:rinc)]
 
     # Accumulators memory.
     mem_file([8],2,clk,rst,rinc: :rst).(:memAcc)
-    memAcc.branch(:anum).inner :accs
+    # # memAcc.branch(:anum).inner :accs
+    memAcc.branch(:anum).inout :accs
     accs_out = [accs.wrap(0), accs.wrap(1)]
 
     # Layer 0 ack.
     inner :ack0
     
     # Instantiate the matrix product.
-    mac_n1([8],clk,req,ack0,lefts,readR,accs_out)
+    # mac_n1([8],clk,req,ack0,lefts,readR,accs_out)
+    mac_n1([8],clk,req,ack0,lefts,memR.branch(:rinc),accs_out)
 
     # Translation.
     # Translation memory.
@@ -46,10 +52,12 @@ system :testmat do
     # Tarnslation result
     mem_file([8],2,clk,rst,rinc: :rst).(:memF)
     # Access ports.
-    memT.branch(:anum).inner :readT
-    memF.branch(:anum).inner :writeF
+    # # memT.branch(:anum).inner :readT
+    # # memF.branch(:anum).inner :writeF
+    memT.branch(:anum).input :readT
+    memF.branch(:anum).output :writeF
     regRs = [ readT.wrap(0), readT.wrap(1) ]
-    regLs = [ accs.wrap(0), accs.wrap(1) ]
+    regLs = accs_out
     regs =  [ writeF.wrap(0), writeF.wrap(1) ]
 
     # Translater ack.
@@ -64,9 +72,10 @@ system :testmat do
     # Input memories.
     mem_dual([8],2,clk,rst, rinc: :rst,winc: :rst).(:mem2L0)
     # Access ports.
-    mem2L0.branch(:rinc).inner :read2L0
-    # memAcc.branch(:rinc).inner :accsR
-    memF.branch(:rinc).inner :readF
+    # # mem2L0.branch(:rinc).inner :read2L0
+    # # memF.branch(:rinc).inner :readF
+    # mem2L0.branch(:rinc).input :read2L0
+    # memF.branch(:rinc).input :readF
 
     # Second layer ack.
     inner :ack1
@@ -76,29 +85,40 @@ system :testmat do
 
     sub do
         # Instantiate the second matrix product.
-        # mac([8],clk,req,read2L0,accsR,res)
-        mac([8],clk,ackT,ack1,read2L0,readF,channel_port(res))
+        # mac([8],clk,ackT,ack1,read2L0,readF,channel_port(res))
+        mac([8],clk,ackT,ack1,mem2L0.branch(:rinc),memF.branch(:rinc),
+            channel_port(res))
     end
 
 
 
     # The memory initializer.
-    memL0.branch(:winc).inner :writeL0
-    memL1.branch(:winc).inner :writeL1
-    memR.branch(:winc).inner :writeR
-    memT.branch(:winc).inner :writeT
-    mem2L0.branch(:winc).inner :write2L0
+    # # memL0.branch(:winc).inner :writeL0
+    # # memL1.branch(:winc).inner :writeL1
+    # # memR.branch(:winc).inner :writeR
+    # # memT.branch(:winc).inner :writeT
+    # # mem2L0.branch(:winc).inner :write2L0
+    # memL0.branch(:winc).output :writeL0
+    # memL1.branch(:winc).output :writeL1
+    # memR.branch(:winc).output :writeR
+    # mem2L0.branch(:winc).output :write2L0
+    # memT.branch(:winc).output :writeT
     inner :fill, :fill2
     [8].inner :val
     par(clk.posedge) do
         hif(fill) do
-            writeL0.write(val)
-            writeL1.write(val+1)
-            writeR.write(val+1)
+            # writeL0.write(val)
+            # writeL1.write(val+1)
+            # writeR.write(val+1)
+            memL0.branch(:winc).write(val)
+            memL1.branch(:winc).write(val+1)
+            memR.branch(:winc).write(val+1)
         end
         hif(fill2) do
-            write2L0.write(val+2)
-            writeT.write(val+2)
+            # write2L0.write(val+2)
+            # writeT.write(val+2)
+            mem2L0.branch(:winc).write(val+2)
+            memT.branch(:winc).write(val+2)
         end
     end
 
