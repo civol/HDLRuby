@@ -365,6 +365,7 @@ void* behavior_run(void* arg) {
  *  @note create a thread per timed behavior. */
 void hruby_sim_start_timed_behaviors() {
     int i;
+    pthread_mutex_lock(&hruby_sim_mutex);
     /* Sets the end flags to 0. */
     sim_end_flag = 0;
     /* Create and start the threads. */
@@ -375,6 +376,7 @@ void hruby_sim_start_timed_behaviors() {
         pthread_create(&timed_behaviors[i]->thread,NULL,
                        &behavior_run,timed_behaviors[i]);
     }
+    pthread_mutex_unlock(&hruby_sim_mutex);
 }
 
 /** Ends waiting all the threads properly terminates. */
