@@ -241,7 +241,7 @@ include HDLRuby
 # Process the command line options
 $options = {}
 $optparse = OptionParser.new do |opts|
-    opts.banner = "Usage: hdrcc.rb [options] <input file> [<output file>]"
+    opts.banner = "Usage: hdrcc.rb [options] <input file> [<output directory or file>]"
 
     opts.separator ""
     opts.separator "Where:"
@@ -323,18 +323,17 @@ $optparse = OptionParser.new do |opts|
     opts.separator ""
     opts.separator "Notice:"
     opts.separator "* If no output option is given, simply checks the input file"
-    opts.separator "* If no output file is given, the result is given through the standard output."
     opts.separator "* If no top system is given, it will be automatically searched in the input file."
     opts.separator ""
     opts.separator "Examples:"
     opts.separator "* Compile system named `adder` from `adder.rb` input file and generate `adder.yaml` low-level YAML description:"
     opts.separator "   hdrcc.rb --yaml --top adder adder.rb adder.yaml"
-    opts.separator "* Compile `adder.rb` input file and generate `adder.vhd` low-level VHDL description:"
-    opts.separator "   hdrcc.rb --vhdl adder.rb adder.vhd"
+    opts.separator "* Compile `adder.rb` input file and generate low-level VHDL description files in `adder_vhd` directory:"
+    opts.separator "   hdrcc.rb --vhdl adder.rb adder_vhd"
     opts.separator "* Check the validity of `adder.rb` input file:"
     opts.separator "   hdrcc.rb adder.rb"
-    opts.separator "* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit whose low-level Verilog HDL description is dumped to the standard output:"
-    opts.separator "   hdrcc -v -t adder --param 16 adder_gen.rb"
+    opts.separator "* Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit whose low-level Verilog HDL description files are put in `adder_gen_v` directory:"
+    opts.separator "   hdrcc -v -t adder --param 16 adder_gen.rb adder_gen_v"
     opts.separator "* Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32 bit cicruit whose low-level YAML description is saved to output file `multer_gen.yaml`"
     opts.separator "hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer_gen.yaml"
 
