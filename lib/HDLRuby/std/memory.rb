@@ -889,11 +889,11 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             rst_name = br_rsts[:winc].to_sym
         else
             rst_name = rst.name
-            reader_input rst_name
+            writer_input rst_name
         end
         # Declares the address counter.
         [size.width-1].inner :abus_w
-        reader_inout :abus_w
+        writer_inout :abus_w
 
         # Defines the write procedure at address +addr+
         # using +target+ as target of access result.
