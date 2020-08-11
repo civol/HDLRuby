@@ -1354,10 +1354,11 @@ Value read_range_bitstring(Value src, long long first, long long last,
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
 Value write_range_bitstring(Value src, long long first, long long last,
-        Value dst) {
+        Type base, Value dst) {
     unsigned long long i;
     /* Ensure first is the smaller. */
     if (first > last) {
@@ -1370,7 +1371,8 @@ Value write_range_bitstring(Value src, long long first, long long last,
     unsigned long long src_width = type_width(src->type);
     unsigned long long dst_width = type_width(dst->type);
     /* scale the range according to the base type. */
-    unsigned long long bw = dst->type->base;
+    // unsigned long long bw = dst->type->base;
+    unsigned long long bw = type_width(base);
     first *= bw;
     last *=  bw;
     last += bw-1;
@@ -1391,10 +1393,11 @@ Value write_range_bitstring(Value src, long long first, long long last,
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
 Value write_range_bitstring_no_z(Value src, long long first, long long last,
-        Value dst) {
+        Type base, Value dst) {
     unsigned long long i;
     /* Ensure first is the smaller. */
     if (first > last) {
@@ -1406,7 +1409,8 @@ Value write_range_bitstring_no_z(Value src, long long first, long long last,
     unsigned long long src_width = type_width(src->type);
     unsigned long long dst_width = type_width(dst->type);
     /* scale the range according to the base type. */
-    unsigned long long bw = dst->type->base;
+    // unsigned long long bw = dst->type->base;
+    unsigned long long bw = type_width(base);
     first *= bw;
     last *=  bw;
     /* Access the source and destination bitstring data. */
@@ -1864,10 +1868,11 @@ Value read_range_numeric(Value value, long long first, long long last,
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
 Value write_range_numeric(Value src, long long first, long long last,
-        Value dst) {
+        Type base, Value dst) {
     // printf("write_range_numeric\n");
     /* Ensure first is the smaller. */
     if (first > last) {
@@ -1879,7 +1884,8 @@ Value write_range_numeric(Value src, long long first, long long last,
     unsigned long long src_width = type_width(src->type);
     unsigned long long dst_width = type_width(dst->type);
     /* scale the range according to the base type of the destination. */
-    unsigned long long bw = dst->type->base;
+    // unsigned long long bw = dst->type->base;
+    unsigned long long bw = type_width(base);
     // printf("src_width=%llu dst_wdith=%llu bw=%llu\n",src_width,dst_width,bw);
     first *= bw;
     last *= bw;
@@ -2691,14 +2697,17 @@ Value read_range(Value value, long long first, long long last, Type base,
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range(Value src, long long first, long long last, Value dst) {
+Value write_range(Value src, long long first, long long last, Type base,
+        Value dst) {
     // printf("write_range\n");
     /* Is the value numeric? */
     if ((src->numeric) && (dst->numeric)) {
         /* Yes, do a numeric range read. */
-        return write_range_numeric(src,first,last,dst);
+        // return write_range_numeric(src,first,last,dst);
+        return write_range_numeric(src,first,last,base,dst);
     } else {
         /* No, do a bitstring range read. */
         if (dst->numeric) {
@@ -2708,7 +2717,8 @@ Value write_range(Value src, long long first, long long last, Value dst) {
             /* Need to convert the source to a bitstring. */
             src = set_bitstring_value(src,get_value());
         }
-        return write_range_bitstring(src,first,last,dst);
+        // return write_range_bitstring(src,first,last,dst);
+        return write_range_bitstring(src,first,last,base,dst);
     }
 }
 
@@ -2717,14 +2727,16 @@ Value write_range(Value src, long long first, long long last, Value dst) {
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range_no_z(Value src, long long first, long long last, Value dst) {
+Value write_range_no_z(Value src, long long first, long long last, Type base,
+        Value dst) {
     // printf("write_range_no_z\n");
     /* Is the value numeric? */
     if ((src->numeric) && (dst->numeric)) {
         /* Yes, do a numeric range read. */
-        return write_range_numeric(src,first,last,dst);
+        return write_range_numeric(src,first,last,base,dst);
     } else {
         /* No, do a bitstring range read. */
         if (dst->numeric) {
@@ -2734,7 +2746,8 @@ Value write_range_no_z(Value src, long long first, long long last, Value dst) {
             /* Need to convert the source to a bitstring. */
             src = set_bitstring_value(src,get_value());
         }
-        return write_range_bitstring_no_z(src,first,last,dst);
+        // return write_range_bitstring_no_z(src,first,last,dst);
+        return write_range_bitstring_no_z(src,first,last,base,dst);
     }
 }
 

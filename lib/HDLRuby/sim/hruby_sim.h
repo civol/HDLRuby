@@ -612,14 +612,18 @@ extern Value read_range(Value value, long long first, long long last,
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-extern Value write_range(Value src, long long first, long long last, Value dst);
+extern Value write_range(Value src, long long first, long long last, 
+        Type base, Value dst);
 
 /** Writes to a range within a value but without overwrite with Z. 
  *  @param src the source value
  *  @param first the first index of the range
  *  @param last the last index of the range
+ *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-extern Value write_range_no_z(Value src, long long first, long long last, Value dst);
+extern Value write_range_no_z(Value src, long long first, long long last,
+        Type base, Value dst);
