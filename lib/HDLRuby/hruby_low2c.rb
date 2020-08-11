@@ -1946,7 +1946,9 @@ module HDLRuby::Low
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
         def to_c_signal(level = 0)
-            return to_c(level,true)
+            # return to_c(level,true)
+            return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
+                "value2integer(#{self.range.first.to_c(level)}),value2integer(#{self.range.last.to_c(level)}))"
         end
     end
 
