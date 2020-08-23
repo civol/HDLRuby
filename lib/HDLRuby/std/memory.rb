@@ -568,7 +568,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
         # using +target+ as target of access result.
         writer do |blk,target|
             # On reset the read trigger is 0.
-            rst  = send(rst_name)
+            rst = send(rst_name)
             top_block.unshift do
                 # Initialize the address so that the next access is at address 0.
                 hif(rst == 1) { abus_w <= -1 }
