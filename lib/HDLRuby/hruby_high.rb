@@ -1263,7 +1263,8 @@ module HDLRuby::High
         # Converts the scope to HDLRuby::Low.
         def to_low()
             # Create the resulting low scope.
-            scopeLow = HDLRuby::Low::Scope.new()
+            # scopeLow = HDLRuby::Low::Scope.new()
+            scopeLow = HDLRuby::Low::Scope.new(self.name)
             # Push the private namespace for the low generation.
             High.space_push(@namespace)
             # Pushes on the name stack for converting the internals of
@@ -1858,7 +1859,8 @@ module HDLRuby::High
     def function(name, &ruby_block)
         if HDLRuby::High.in_system? then
             define_singleton_method(name.to_sym) do |*args,&other_block|
-                sub do
+                # sub do
+                sub(HDLRuby.uniq_name(name)) do
                     HDLRuby::High.top_user.instance_exec(*args,*other_block,
                                                          &ruby_block)
                     # ruby_block.call(*args)
@@ -1866,7 +1868,8 @@ module HDLRuby::High
             end
         else
             define_method(name.to_sym) do |*args,&other_block|
-                sub do
+                # sub do
+                sub(HDLRuby.uniq_name(name)) do
                     HDLRuby::High.top_user.instance_exec(*args,*other_block,
                                                          &ruby_block)
                 end
