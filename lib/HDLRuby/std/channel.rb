@@ -45,8 +45,10 @@ module HDLRuby::High::Std
             # Generates the channels.
             channelI = nil
             args.each do |nameI|
-                channelI = ChannelI.new(name,&@ruby_block)
-                HDLRuby::High.space_reg(nameI) { channelI }
+                # puts "nameI=#{nameI}"
+                channelI = ChannelI.new(nameI,&@ruby_block)
+                # Already registered!
+                # HDLRuby::High.space_reg(nameI) { channelI }
             end
             channelI
         end
@@ -350,9 +352,11 @@ module HDLRuby::High::Std
         def initialize(name,&ruby_block)
             # Check and set the name of the channel.
             @name = name.to_sym
+            # puts "my name is #{self.name}"
             # Generate a name for the scope containing the signals of
             # the channel.
-            @scope_name = HDLRuby.uniq_name
+            # @scope_name = HDLRuby.uniq_name
+            @scope_name = HDLRuby.uniq_name(name)
 
             # # Sets the scope.
             # @scope = HDLRuby::High.cur_scope
@@ -635,6 +639,7 @@ module HDLRuby::High::Std
         # Alternatively, a ready channel instance can be passed as argument
         # as +channelI+.
         def brancher(name,channelI = nil,&ruby_block)
+            # puts "self.name=#{self.name} and name=#{name}"
             # Ensure name is a symbol.
             name = name.to_s unless name.respond_to?(:to_sym)
             name = name.to_sym
@@ -646,6 +651,7 @@ module HDLRuby::High::Std
             end
             # Now, create the branch.
             channelI = HDLRuby::High::Std.channel_instance(name, &ruby_block)
+            # channelI = HDLRuby::High::Std.channel_instance("#{self.name}::#{name}", &ruby_block)
             @branches[name] = channelI
             return self
         end
