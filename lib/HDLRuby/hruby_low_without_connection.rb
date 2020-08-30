@@ -29,6 +29,7 @@ module HDLRuby::Low
                 if scope.each_connection.to_a.any? then
                     inputs_blk = Block.new(:par)
                     outputs_blk = Block.new(:par)
+                    timed_blk = TimeBlock.new(:seq)
                     scope.each_connection do |connection|
                         # Check the left and right of the connection
                         # for input or output port.
@@ -40,6 +41,15 @@ module HDLRuby::Low
                         right_r = right.resolve if right.respond_to?(:resolve)
                         # puts "right_r=#{right_r.name}" if right_r
                         # puts "right_r.parent=#{right_r.parent.name}" if right_r && right_r.parent
+                        if right.is_a?(Value) then
+                            # Right is value, the new transmit is to add
+                            # to the timed block.
+                            timed_blk.add_statement(
+                                Transmit.new(left.clone,right.clone))
+                            # No more process for this connection.
+                            next
+                        end
+
                         # Check if left is an input or an output.
                         left_is_i = left_is_o = false
                         if left_r && left_r.parent.is_a?(SystemT) then
@@ -117,6 +127,9 @@ module HDLRuby::Low
                     end
                     if outputs_blk.each_statement.any? then
                         scope.add_behavior(Behavior.new(outputs_blk))
+                    end
+                    if timed_blk.each_statement.any? then
+                        scope.add_behavior(TimeBehavior.new(timed_blk))
                     end
                 end
             end
