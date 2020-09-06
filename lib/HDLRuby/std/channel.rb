@@ -325,6 +325,86 @@ module HDLRuby::High::Std
     end
 
 
+    ##
+    # Module giving the methods for accessing a channel instance.
+    module HchannelI
+        ## Performs a read on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        #  NOTE:
+        #  * Will generate a port if not present.
+        #  * Will generate an error if a read is tempted while the read
+        #    port has been declared within another system.
+        def read(*args,&ruby_block)
+            # Is there a port to read?
+            unless self.read_port then
+                # No, generate a new one.
+                # Is it possible to be inout?
+                if self.inout? then
+                    # Yes, create an inout port.
+                    self.inout(HDLRuby.uniq_name)
+                else
+                    # No, create an input port.
+                    self.input(HDLRuby.uniq_name)
+                end
+            end
+            # Ensure the read port is within current system.
+            unless self.read_port.scope.system != HDLRuby::High.cur_system then
+                raise "Cannot read from a port external of current system for channel " + self.name
+            end
+            # Performs the read.
+            self.read_port.read(*args,&ruby_block)
+        end
+        
+        ## Performs a write on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        #  NOTE:
+        #  * Will generate a port if not present.
+        #  * Will generate an error if a read is tempted while the read
+        #    port has been declared within another system.
+        def write(*args,&ruby_block)
+            # Is there a port to write?
+            unless self.write_port then
+                # No, generate a new one.
+                # Is it possible to be inout?
+                if self.inout? then
+                    # Yes, create an inout port.
+                    self.inout(HDLRuby.uniq_name)
+                else
+                    # No, create an output port.
+                    self.output(HDLRuby.uniq_name)
+                end
+            end
+            # Ensure the write port is within current system.
+            unless self.write_port.scope.system != HDLRuby::High.cur_system then
+                raise "Cannot write from a port external of current system for channel " + self.name
+            end
+            # Performs the write.
+            self.write_port.write(*args,&ruby_block)
+        end
+        
+
+        ## Performs a reset on the channel using +args+ and +ruby_block+
+        #  as arguments.
+        def reset(*args,&ruby_block)
+            # Gain access to the writer as local variable.
+            reseter_proc = @inout_reseter_proc
+            # # The context is the one of the writer.
+            # Execute the code generating the writer in context.
+            HDLRuby::High.space_push(@namespace)
+            HDLRuby::High.cur_block.open do
+                instance_exec(ruby_block,*args,&reseter_proc)
+            end
+            HDLRuby::High.space_pop
+        end
+
+
+        # Wrap with +args+ arguments.
+        def wrap(*args)
+            return ChannelB.new(self,*args)
+        end
+    end
+
+
 
     ## 
     # Describes a high-level channel instance.
@@ -864,12 +944,12 @@ module HDLRuby::High::Std
             # Ensure the port is not already existing.
             if @read_port then
                 raise "Read port already declared for channel instance: " +
-                    self.name
+                    self.name.to_s
             end
 
             if @write_port then
                 raise "Write port already declared for channel instance: " +
-                    self.name
+                    self.name.to_s
             end
 
             # Access the ports
@@ -1006,76 +1086,238 @@ module HDLRuby::High::Std
         #     return chp
         # end
 
+        # Standard channel access is given is HchannelI module.
+        include HchannelI
 
         
-        ## Performs a read on the channel using +args+ and +ruby_block+
-        #  as arguments.
-        #  NOTE:
-        #  * Will generate a port if not present.
-        #  * Will generate an error if a read is tempted while the read
-        #    port has been declared within another system.
-        def read(*args,&ruby_block)
-            # Is there a port to read?
-            unless self.read_port then
-                # No, generate a new one.
-                # Is it possible to be inout?
-                if self.inout? then
-                    # Yes, create an inout port.
-                    self.inout(HDLRuby.uniq_name)
-                else
-                    # No, create an input port.
-                    self.input(HDLRuby.uniq_name)
-                end
-            end
-            # Ensure the read port is within current system.
-            unless self.read_port.scope.system != HDLRuby::High.cur_system then
-                raise "Cannot read from a port external of current system for channel " + self.name
-            end
-            # Performs the read.
-            self.read_port.read(*args,&ruby_block)
-        end
-        
-        ## Performs a write on the channel using +args+ and +ruby_block+
-        #  as arguments.
-        #  NOTE:
-        #  * Will generate a port if not present.
-        #  * Will generate an error if a read is tempted while the read
-        #    port has been declared within another system.
-        def write(*args,&ruby_block)
-            # Is there a port to write?
-            unless self.write_port then
-                # No, generate a new one.
-                # Is it possible to be inout?
-                if self.inout? then
-                    # Yes, create an inout port.
-                    self.inout(HDLRuby.uniq_name)
-                else
-                    # No, create an output port.
-                    self.output(HDLRuby.uniq_name)
-                end
-            end
-            # Ensure the write port is within current system.
-            unless self.write_port.scope.system != HDLRuby::High.cur_system then
-                raise "Cannot write from a port external of current system for channel " + self.name
-            end
-            # Performs the write.
-            self.write_port.write(*args,&ruby_block)
-        end
-        
+        # ## Performs a read on the channel using +args+ and +ruby_block+
+        # #  as arguments.
+        # #  NOTE:
+        # #  * Will generate a port if not present.
+        # #  * Will generate an error if a read is tempted while the read
+        # #    port has been declared within another system.
+        # def read(*args,&ruby_block)
+        #     # Is there a port to read?
+        #     unless self.read_port then
+        #         # No, generate a new one.
+        #         # Is it possible to be inout?
+        #         if self.inout? then
+        #             # Yes, create an inout port.
+        #             self.inout(HDLRuby.uniq_name)
+        #         else
+        #             # No, create an input port.
+        #             self.input(HDLRuby.uniq_name)
+        #         end
+        #     end
+        #     # Ensure the read port is within current system.
+        #     unless self.read_port.scope.system != HDLRuby::High.cur_system then
+        #         raise "Cannot read from a port external of current system for channel " + self.name
+        #     end
+        #     # Performs the read.
+        #     self.read_port.read(*args,&ruby_block)
+        # end
+        # 
+        # ## Performs a write on the channel using +args+ and +ruby_block+
+        # #  as arguments.
+        # #  NOTE:
+        # #  * Will generate a port if not present.
+        # #  * Will generate an error if a read is tempted while the read
+        # #    port has been declared within another system.
+        # def write(*args,&ruby_block)
+        #     # Is there a port to write?
+        #     unless self.write_port then
+        #         # No, generate a new one.
+        #         # Is it possible to be inout?
+        #         if self.inout? then
+        #             # Yes, create an inout port.
+        #             self.inout(HDLRuby.uniq_name)
+        #         else
+        #             # No, create an output port.
+        #             self.output(HDLRuby.uniq_name)
+        #         end
+        #     end
+        #     # Ensure the write port is within current system.
+        #     unless self.write_port.scope.system != HDLRuby::High.cur_system then
+        #         raise "Cannot write from a port external of current system for channel " + self.name
+        #     end
+        #     # Performs the write.
+        #     self.write_port.write(*args,&ruby_block)
+        # end
+        # 
 
-        ## Performs a reset on the channel using +args+ and +ruby_block+
-        #  as arguments.
-        def reset(*args,&ruby_block)
-            # Gain access to the writer as local variable.
-            reseter_proc = @inout_reseter_proc
-            # # The context is the one of the writer.
-            # Execute the code generating the writer in context.
-            HDLRuby::High.space_push(@namespace)
-            HDLRuby::High.cur_block.open do
-                instance_exec(ruby_block,*args,&reseter_proc)
+        # ## Performs a reset on the channel using +args+ and +ruby_block+
+        # #  as arguments.
+        # def reset(*args,&ruby_block)
+        #     # Gain access to the writer as local variable.
+        #     reseter_proc = @inout_reseter_proc
+        #     # # The context is the one of the writer.
+        #     # Execute the code generating the writer in context.
+        #     HDLRuby::High.space_push(@namespace)
+        #     HDLRuby::High.cur_block.open do
+        #         instance_exec(ruby_block,*args,&reseter_proc)
+        #     end
+        #     HDLRuby::High.space_pop
+        # end
+    end
+
+    # Describes channel instance wrapper (Box) for fixing arugments.
+    class ChannelB
+        include HDLRuby::High::Hmissing
+        include HchannelI
+
+        # Create a new channel box over +channelI+ channel instance using
+        # +args+ for fixing the arguments as follows:
+        # It can also be three lists for seperate read, write and access
+        # procedures using named arguments as:
+        # read: <read arguments>, write: <write arguments>,
+        # access: <access arguments>
+        def initialize(channelI,*args)
+            # Ensure port is a channel port.
+            unless channelI.is_a?(ChannelI) || channel.is_a?(ChannelB)
+                raise "Invalid class for a channel instance: #{ch.class}"
             end
-            HDLRuby::High.space_pop
+            @channelI = channelI
+            # Process the arguments.
+            if args.size == 1 && args[0].is_a?(Hash) then
+                # Read, write and access are separated.
+                @args_read = args[0][:read]
+                @args_write = args[0][:write]
+                @args_access = args[0][:access]
+            else
+                @args_read = args
+                @args_write = args.clone
+                @args_access = args.clone
+            end
         end
+
+        # Delegates to the boxed channel instance.
+
+        # The name of the channel instance.
+        def name
+            return @channelI.name
+        end
+
+        # The scope the channel has been created in.
+        def scope
+            return @channelI.scope
+        end
+
+        # The namespace associated with the current execution when
+        # building a channel.
+        def namespace
+            return @channelI.namespace
+        end
+
+        # The read port if any.
+        def read_port
+            return @read_port
+        end
+
+        # The write port if any.
+        def write_port
+            return @write_port
+        end
+
+        # Methods used on the channel outside its definition.
+        
+        # Gets branch channel +name+.
+        # NOTE: 
+        #  * +name+ can be of any type on purpose.
+        #  * The wrapping arguments are not transmitted to the branch.
+        def branch(name,*args)
+            return @channelI.branch(name,*args)
+        end
+
+        ## Tells if the channel support inout port.
+        def inout?
+            return @channelI.inout?
+        end
+
+
+        # Reader, writer and accesser side.
+
+        ## Declares the reader port as and assigned them to +name+.
+        def input(name = nil)
+            # Ensure name is a symbol.
+            name = HDLRuby.uniq_name unless name
+            name = name.to_sym
+            # Ensure the port is not already existing.
+            if @read_port then
+                raise "Read port already declared for channel instance: " +
+                    self.name
+            end
+
+            # Create a read port for the encaspulted channel.
+            real_port = @channelI.read_port
+            real_port = @channelI.input unless real_port
+
+            # Wrap it to a new port using.
+            chp = real_port.wrap(read: @args_read)
+
+            HDLRuby::High.space_reg(name) { chp }
+            # Save the port in the channe to avoid conflicting declaration.
+            @read_port = chp
+            return chp
+        end
+
+        ## Declares the ports for the writer and assigned them to +name+.
+        def output(name = nil)
+            # Ensure name is a symbol.
+            name = HDLRuby.uniq_name unless name
+            name = name.to_sym
+            # Ensure the port is not already existing.
+            if @write_port then
+                raise "Read port already declared for channel instance: " +
+                    self.name
+            end
+
+            # Create a write port for the encaspulted channel.
+            real_port = @channelI.write_port
+            real_port = @channelI.output unless real_port
+
+            # Wrap it to a new port using.
+            chp = real_port.wrap(write: @args_write)
+
+            HDLRuby::High.space_reg(name) { chp }
+            # Save the port in the channe to avoid conflicting declaration.
+            @write_port = chp
+            return chp
+        end
+
+
+        ## Declares the accesser port and assigned them to +name+.
+        def inout(name = nil)
+            # Ensure name is a symbol.
+            name = HDLRuby.uniq_name unless name
+            name = name.to_sym
+            # Ensure the port is not already existing.
+            if @read_port then
+                raise "Read port already declared for channel instance: " +
+                    self.name
+            end
+            if @write_port then
+                raise "Write port already declared for channel instance: " +
+                    self.name
+            end
+
+            # Create a write port for the encaspulted channel.
+            if @channelI.read_port == @channelI.write_port then
+                real_port = @channelI.read_port
+                real_port = @channelI.inout unless real_port
+            else
+                raise "Inout port not supported for channel #{@channelI}"
+            end
+
+            # Wrap it to a new port using.
+            chp = real_port.wrap(read: @args_read, write: @args_write)
+
+            HDLRuby::High.space_reg(name) { chp }
+            # Save the port in the channe to avoid conflicting declaration.
+            @write_port = chp
+            @read_port = chp
+            return chp
+        end
+
     end
 
 

@@ -22,9 +22,6 @@ system :testmat do
     mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memL1)
     mem_dual([8],256,clk,rst, rinc: :rst,winc: :rst).(:memR)
     # Access ports.
-    # # memL0.branch(:rinc).inner :readL0
-    # # memL1.branch(:rinc).inner :readL1
-    # # memR.branch(:rinc).inner :readR
     # memL0.branch(:rinc).input :readL0
     # memL1.branch(:rinc).input :readL1
     # memR.branch(:rinc).input :readR
@@ -35,9 +32,9 @@ system :testmat do
 
     # Accumulators memory.
     mem_file([8],2,clk,rst,rinc: :rst).(:memAcc)
-    # # memAcc.branch(:anum).inner :accs
-    memAcc.branch(:anum).inout :accs
-    accs_out = [accs.wrap(0), accs.wrap(1)]
+    # memAcc.branch(:anum).inout :accs
+    # accs_out = [accs.wrap(0), accs.wrap(1)]
+    accs_out = [memAcc.branch(:anum).wrap(0), memAcc.branch(:anum).wrap(1)]
 
     # Layer 0 ack.
     inner :ack0
@@ -52,8 +49,6 @@ system :testmat do
     # Tarnslation result
     mem_file([8],2,clk,rst,rinc: :rst).(:memF)
     # Access ports.
-    # # memT.branch(:anum).inner :readT
-    # # memF.branch(:anum).inner :writeF
     memT.branch(:anum).input :readT
     memF.branch(:anum).output :writeF
     regRs = [ readT.wrap(0), readT.wrap(1) ]
@@ -72,8 +67,6 @@ system :testmat do
     # Input memories.
     mem_dual([8],2,clk,rst, rinc: :rst,winc: :rst).(:mem2L0)
     # Access ports.
-    # # mem2L0.branch(:rinc).inner :read2L0
-    # # memF.branch(:rinc).inner :readF
     # mem2L0.branch(:rinc).input :read2L0
     # memF.branch(:rinc).input :readF
 
@@ -93,11 +86,6 @@ system :testmat do
 
 
     # The memory initializer.
-    # # memL0.branch(:winc).inner :writeL0
-    # # memL1.branch(:winc).inner :writeL1
-    # # memR.branch(:winc).inner :writeR
-    # # memT.branch(:winc).inner :writeT
-    # # mem2L0.branch(:winc).inner :write2L0
     # memL0.branch(:winc).output :writeL0
     # memL1.branch(:winc).output :writeL1
     # memR.branch(:winc).output :writeR
