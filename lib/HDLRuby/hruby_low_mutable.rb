@@ -156,7 +156,7 @@ module HDLRuby::Low
             end
         end
 
-        # Deletes an type.
+        # Deletes a type.
         def delete_type!(type)
             if @types.key?(type.name) then
                 # The type is present, delete it. 
@@ -167,7 +167,7 @@ module HDLRuby::Low
             type
         end
 
-        # Deletes an systemT.
+        # Deletes a systemT.
         def delete_systemT!(systemT)
             if @systemTs.key?(systemT.name) then
                 # The systemT is present, delete it. 
@@ -229,6 +229,33 @@ module HDLRuby::Low
                 # And remove its parent.
                 behavior.parent = nil
             end
+        end
+
+        # Deletes the elements related to one of +names+: either they have
+        # one of the names or they use an element with these names.
+        # NOTE: only delete actual instantiated elements, types or
+        # systemTs are left as is.
+        def delete_related!(*names)
+            # Delete the sub scopes whose name are in names.
+            @scopes.delete_if { |scope| names.include?(scope.name) }
+            # Delete the inner signals whose name are in names.
+            @inners.delete_if { |sig| names.include?(sig.name) }
+            # Delete the connections that contain signals whose name are
+            # in names.
+            @connections.delete_if { |connection| connection.use_name?(*names) }
+            # Delete the behaviors whose block name or events' name are in
+            # names.
+            @behaviors.delete_if do |behavior|
+                names.include?(behavior.block.name) or
+                behavior.each_event.include? do |event|
+                    event.ref.use_name?(*names)
+                end
+            end
+            
+            # Recurse on the sub scopes.
+            @scopes.each { |scope| scope.delete_related!(names) }
+            # Recurse on the behaviors.
+            @behaviors.each { |behavior| behavior.block.delete_related!(names) }
         end
     end
 
@@ -514,6 +541,14 @@ module HDLRuby::Low
             # By default: nothing to do.
             return {}
         end
+
+        # Deletes the elements related to one of +names+: either they have
+        # one of the names or they use an element with these names.
+        # NOTE: only delete actual instantiated elements, types or
+        # systemTs are left as is.
+        def delete_related!(*names)
+            # Nothing to do by default.
+        end
     end
 
 
@@ -694,6 +729,21 @@ module HDLRuby::Low
 
             return res
         end
+
+        # Deletes the elements related to one of +names+: either they have
+        # one of the names or they use an element with these names.
+        # NOTE: only delete actual instantiated elements, types or
+        # systemTs are left as is.
+        def delete_related!(*names)
+            # Delete the noifs if their condition uses one of names.
+            @noifs.delete_if { |noif| noif[0].use_names?(names) }
+            # Recurse on the yes.
+            @yes.delete_related!(*names)
+            # Recurse on the no.
+            @no.delete_related!(*names)
+            # Recruse one the no ifs statements.
+            @noifs.each { |noif| noif[1].delete_related!(*names) }
+        end
     end
 
     ##
@@ -757,6 +807,15 @@ module HDLRuby::Low
             end
 
             return res
+        end
+
+        # Deletes the elements related to one of +names+: either they have
+        # one of the names or they use an element with these names.
+        # NOTE: only delete actual instantiated elements, types or
+        # systemTs are left as is.
+        def delete_related!(*names)
+            # Recurse on the statement.
+            @statement.delete_related!(*names)
         end
     end
 
@@ -832,6 +891,18 @@ module HDLRuby::Low
             end
 
             return res
+        end
+
+        # Deletes the elements related to one of +names+: either they have
+        # one of the names or they use an element with these names.
+        # NOTE: only delete actual instantiated elements, types or
+        # systemTs are left as is.
+        def delete_related!(*names)
+            # Delete the whens whose match contains a signal whoses name is
+            # in names.
+            @whens.delete_if { |w| w.match.use_name?(*names) }
+            # Recurse on the whens.
+            @whens.each { |w| w.delete_related!(*names) }
         end
     end
 
@@ -1091,7 +1162,24 @@ module HDLRuby::Low
                 end
             end
         end
+
+        # Deletes the elements related to one of +names+: either they have
+        # one of the names or they use an element with these names.
+        # NOTE: only delete actual instantiated elements, types or
+        # systemTs are left as is.
+        def delete_related!(*names)
+            # Delete the inner signals whose name are in names.
+            @inners.delete_if { |sig| names.include?(sig.name) }
+            # Recurse on the statements.
+            @statements.each do |statement|
+                statement.delete_related!(*names)
+            end
+            # Delete the statements that contain signals whose name are
+            # in names.
+            @statements.delete_if { |statement| statement.use_name?(*names) }
+        end
     end
+
 
     # Describes a timed block.
     #
