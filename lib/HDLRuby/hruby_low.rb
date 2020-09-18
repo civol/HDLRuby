@@ -2633,6 +2633,11 @@ module HDLRuby::Low
         def parent_system
             return self.top_scope.parent
         end
+
+        # Tell if the statement includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # By default, nothing to do.
+        end
     end
 
 
@@ -2746,6 +2751,11 @@ module HDLRuby::Low
             return to_enum(:each_block_deep) unless ruby_block
             # A ruby block?
             # Nothing to do.
+        end
+
+        # Tell if the statement includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            return @left.use_name?(*names) || @right.use_name?(*names)
         end
     end
 
@@ -2925,6 +2935,12 @@ module HDLRuby::Low
             @no.each_block_deep(&ruby_block) if @no
         end
 
+        # Tell if the statement includes a signal whose name is one of +names+.
+        # NOTE: for the if check only the condition.
+        def use_name?(*names)
+            return @condition.use_name?(*name)
+        end
+
         # Clones the If (deeply)
         def clone
             # Duplicate the if.
@@ -3037,6 +3053,12 @@ module HDLRuby::Low
         # Gets the top block, i.e. the first block of the current behavior.
         def top_block
             return self.parent.is_a?(Behavior) ? self : self.parent.top_block
+        end
+
+        # Tell if the statement includes a signal whose name is one of +names+.
+        # NOTE: for the when check only the match.
+        def use_name?(*names)
+            return @match.use_name?(*name)
         end
     end
 
@@ -3184,6 +3206,12 @@ module HDLRuby::Low
             self.each_when { |w| w.each_statement_deep(&ruby_block) }
             # And apply it on the default if any.
             @default.each_statement_deep(&ruby_block) if @default
+        end
+
+        # Tell if the statement includes a signal whose name is one of +names+.
+        # NOTE: for the case check only the value.
+        def use_name?(*names)
+            return @value.use_name?(*name)
         end
 
         # Clones the Case (deeply)
@@ -3838,6 +3866,12 @@ module HDLRuby::Low
             end
         end
 
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # By default nothing.
+            return false
+        end
+
         # Clones the expression (deeply)
         def clone
             raise AnyError,
@@ -3991,6 +4025,12 @@ module HDLRuby::Low
             @child.each_ref_deep(&ruby_block)
         end
 
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the child.
+            return @child.use_name?(*names)
+        end
+
         # Clones the value (deeply)
         def clone
             return Cast.new(@type,@child.clone)
@@ -4101,6 +4141,12 @@ module HDLRuby::Low
             @child.each_ref_deep(&ruby_block)
         end
 
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the child.
+            return @child.use_name?(*names)
+        end
+
         # Clones the unary operator (deeply)
         def clone
             return Unary.new(@type,self.operator,@child.clone)
@@ -4185,6 +4231,12 @@ module HDLRuby::Low
             # Recurse on the children.
             @left.each_ref_deep(&ruby_block)
             @right.each_ref_deep(&ruby_block)
+        end
+
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the left and the right.
+            return @left.use_name?(*names) || @right.use_name?(*names)
         end
 
         # Clones the binary operator (deeply)
@@ -4311,6 +4363,14 @@ module HDLRuby::Low
             end
         end
 
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the select.
+            return true if @select.use_name?(*names)
+            # Recurse on the choices.
+            return @choices.include? { |choice| choice.use_name?(*names) }
+        end
+
         # Clones the select (deeply)
         def clone
             return Select.new(@type, self.operator, @select.clone,
@@ -4388,6 +4448,12 @@ module HDLRuby::Low
             self.each_expression do |expr|
                 expr.each_node_deep(&ruby_block)
             end
+        end
+
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the expressions.
+            return @expressions.include? { |expr| expr.use_name?(*names) }
         end
 
         # Clones the concatenated expression (deeply)
@@ -4532,6 +4598,12 @@ module HDLRuby::Low
             end
         end
 
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the references.
+            return @refs.include? { |expr| expr.use_name?(*names) }
+        end
+
         # Clones the concatenated references (deeply)
         def clone
             return RefConcat.new(@type, @refs.map { |ref| ref.clone } )
@@ -4613,6 +4685,12 @@ module HDLRuby::Low
             # And recurse on the children.
             @index.each_node_deep(&ruby_block)
             @ref.each_node_deep(&ruby_block)
+        end
+
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the index and the reference.
+            return @index.use_name?(names) || @ref.use_name?(*names)
         end
 
         # Clones the indexed references (deeply)
@@ -4710,6 +4788,13 @@ module HDLRuby::Low
             @ref.each_node_deep(&ruby_block)
         end
 
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Recurse on the range and the reference.
+            return @range.first.use_name?(names) ||
+                   @range.last.use_name?(names)  || @ref.use_name?(*names)
+        end
+
         # Clones the range references (deeply)
         def clone
             return RefRange.new(@type, @ref.clone,
@@ -4795,6 +4880,14 @@ module HDLRuby::Low
             ruby_block.call(self)
             # And recurse on the child.
             @ref.each_node_deep(&ruby_block)
+        end
+
+        # Tell if the expression includes a signal whose name is one of +names+.
+        def use_name?(*names)
+            # Is the named used here?
+            return true if names.include?(@name)
+            # No, recurse the reference.
+            return @ref.use_name?(*names)
         end
 
         # Clones the name references (deeply)
