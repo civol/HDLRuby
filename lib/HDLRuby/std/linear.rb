@@ -214,6 +214,14 @@ module HDLRuby::High::Std
         par(ev) do
             ack <= 0
             run <= 0
+            hif(~run) do
+                rvok <= 0
+                lefts.each_with_index do |left,i|
+                    lvoks[i] <= 0
+                    # accs[i].write(0)
+                    avs[i] <= 0
+                end
+            end
             hif(req | run) do
                 run <= 1
                 # Computation request.
@@ -232,14 +240,14 @@ module HDLRuby::High::Std
                     end
                 end
             end
-            helse do
-                rvok <= 0
-                lefts.each_with_index do |left,i|
-                    lvoks[i] <= 0
-                    # accs[i].write(0)
-                    avs[i] <= 0
-                end
-            end
+            # helse do
+            #     rvok <= 0
+            #     lefts.each_with_index do |left,i|
+            #         lvoks[i] <= 0
+            #         # accs[i].write(0)
+            #         avs[i] <= 0
+            #     end
+            # end
         end
     end
 
