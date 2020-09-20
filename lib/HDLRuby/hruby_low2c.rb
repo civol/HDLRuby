@@ -1612,7 +1612,9 @@ module HDLRuby::Low
         #         return "equal_value(#{self.left.to_c(level)}," +
         #                "#{self.right.to_c(level)})"
         #     when :!= then
-        #         return "not_equal_value(#{self.left.to_c(level)}," +
+        #         # return "not_equal_value(#{self.left.to_c(level)}," +
+        #         #        "#{self.right.to_c(level)})"
+        #         return "xor_value(#{self.left.to_c(level)}," +
         #                "#{self.right.to_c(level)})"
         #     when :> then
         #         return "greater_value(#{self.left.to_c(level)}," +
@@ -1681,9 +1683,12 @@ module HDLRuby::Low
             when :rr then
                 res += "dst = rotate_right_value(src0,src1,dst);\n"
             when :== then
-                res += "dst = equal_value(src0,src1,dst);\n"
+                res += "dst = equal_value(src0,src1,dst);\n" +
+                       "dst = reduce_or_value(dst,dst);"
             when :!= then
-                res += "dst = not_equal_value(src0,src1,dst);\n"
+                # res += "dst = not_equal_value(src0,src1,dst);\n"
+                res += "dst = xor_value(src0,src1,dst);\n" +
+                       "dst = reduce_or_value(dst,dst);"
             when :> then
                 res += "dst = greater_value(src0,src1,dst);\n"
             when :< then

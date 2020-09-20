@@ -714,6 +714,45 @@ static Value not_value_bitstring(Value src, Value dst) {
     return dst;
 }
 
+/** Compute the or of the bits a bitstring value.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+Value reduce_or_value_bitstring(Value src, Value dst) {
+    /* Compute the width of the result in bits. */
+    unsigned long long width = type_width(src->type);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,width);
+    /* Set the type and size of the destination from the type of the source.*/
+    dst->type = src->type;
+    dst->numeric = 0;
+
+    /* Get access to the source and destination data. */
+    char* src_data = src->data_str;
+    char* dst_data = dst->data_str;
+
+    /* Performs the reduce or. */
+    unsigned long long count;
+    char res;
+    for(count = 0; count < width; ++count) {
+        /* Performs the reduce or. */
+        char d = src_data[count] - '0'; /* Get and convert to bit. */
+        if ((d == (d&1)) && (res != 'x'-'0')) { /* d is defined. */
+            res |= d;
+        } else {
+            /* res is undefined. */
+            res = 'x' - '0';
+        }
+        /* Apart for the first bit, there are only 0, still we are in
+         * the loop, set it. */
+        dst_data[count] = '0';
+    }
+    dst_data[0] = res + '0';
+    /* Return the destination. */
+    return dst;
+}
+
 
 /** Computes the and of two bitstring values.
  *  @param src0 the first source value of the and
@@ -1575,6 +1614,21 @@ static Value not_value_numeric(Value src, Value dst) {
 }
 
 
+/** Compute the or of the bits a numeric value.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+Value reduce_or_value_numeric(Value src, Value dst) {
+    /* Sets state of the destination using the first source. */
+    dst->type = src->type;
+    dst->numeric = 1;
+
+    /* Perform the reduce or. */
+    dst->data_int = fix_numeric_type(dst->type, src->data_int != 0);
+    return dst;
+}
+
+
 /** Computes the AND of two numeric values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
@@ -2089,6 +2143,21 @@ Value not_value(Value src, Value dst) {
     } else {
         /* The source cannot be numeric, compute bitsitrings. */
         return not_value_bitstring(src,dst);
+    }
+}
+
+
+/** Compute the or of the bits a value.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+Value reduce_or_value(Value src, Value dst) {
+    if (src->numeric) {
+        /* The source is numeric. */
+        return reduce_or_value_numeric(src,dst);
+    } else {
+        /* The source cannot be numeric, compute bitsitrings. */
+        return reduce_or_value_bitstring(src,dst);
     }
 }
 

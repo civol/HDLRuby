@@ -170,6 +170,12 @@ extern Value mod_value(Value src0, Value src1, Value dst);
  *  @return dst */
 extern Value not_value(Value src, Value dst);
 
+/** Compute the or of the bits a a value.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+extern Value reduce_or_value(Value src, Value dst);
+
 /** Computes the AND of two values.
  *  @param src0 the first source value of the and
  *  @param src1 the second source value of the and
@@ -185,43 +191,43 @@ extern Value and_value(Value src0, Value src1, Value dst);
 extern Value or_value(Value src0, Value src1, Value dst);
 
 /** Computes the XOR of two values.
- *  @param src0 the first source value of the or
- *  @param src1 the second source value of the or
+ *  @param src0 the first source value of the xor
+ *  @param src1 the second source value of the xor
  *  @param dst the destination value
  *  @return dst */
 extern Value xor_value(Value src0, Value src1, Value dst);
 
 /** Computes the left shift of two general values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the shift
+ *  @param src1 the second source value of the shift
  *  @param dst the destination
  *  @return dst */
 Value shift_left_value(Value src0, Value src1, Value dst);
 
 /** Computes the right shift of two general values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the shift
+ *  @param src1 the second source value of the shift
  *  @param dst the destination
  *  @return dst */
 Value shift_right_value(Value src0, Value src1, Value dst);
 
 /** Computes the equal (NXOR) of two values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
  *  @param dst the destination value
  *  @return dst */
 extern Value equal_value(Value src0, Value src1, Value dst);
 
 /** Computes the lesser comparision of two values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
  *  @param dst the destination value
  *  @return dst */
 extern Value lesser_value(Value src0, Value src1, Value dst);
 
 /** Computes the greater comparision of two values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
  *  @param dst the destination value
  *  @return dst */
 extern Value greater_value(Value src0, Value src1, Value dst);
