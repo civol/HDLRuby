@@ -31,6 +31,7 @@ module HDLRuby::Low
                     outputs_blk = Block.new(:par)
                     timed_blk = TimeBlock.new(:seq)
                     scope.each_connection do |connection|
+                        # puts "For connection: #{connection}"
                         # Check the left and right of the connection
                         # for input or output port.
                         left = connection.left
