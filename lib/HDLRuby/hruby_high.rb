@@ -2791,6 +2791,14 @@ module HDLRuby::High
             return RefObject.new(@base,@object)
         end
 
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(RefObject)
+            return false unless @base.eql?(obj.base)
+            return false unless @object.eql?(obj.object)
+            return true
+        end
+
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
             # return HDLRuby::Low::RefName.new(@base.to_ref.to_low,@object.name)
