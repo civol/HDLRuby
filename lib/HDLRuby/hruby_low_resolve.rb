@@ -145,6 +145,7 @@ module HDLRuby::Low
             # puts "Resolve with #{self} and name=#{self.name}"
             # First resolve the sub reference if possible.
             if self.ref.is_a?(RefName) then
+                # puts "ref name=#{self.ref.name}"
                 obj = self.ref.resolve
                 # Look into the object for the name.
                 return obj.get_by_name(self.name)
