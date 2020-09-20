@@ -1978,14 +1978,6 @@ module HDLRuby::Low
 
         include Hparent
 
-        # # Creates a new behavior.
-        # def initialize
-        #     # Initialize the sensitivity list.
-        #     @events = []
-        #     # Initialize the block list.
-        #     @blocks = []
-        # end
-
         # The block executed by the behavior.
         attr_reader :block
 
@@ -2072,6 +2064,11 @@ module HDLRuby::Low
         # Tells if there is any event.
         def has_event?
             return !@events.empty?
+        end
+
+        # Tells if it is activated on one of +events+.
+        def on_event?(*events)
+            @events.any? { |ev0| events.any? { |ev1| ev0.eql?(ev1) } }
         end
 
         # Tells if there is a positive or negative edge event.
@@ -2616,6 +2613,15 @@ module HDLRuby::Low
                 return self.parent.parent
             else
                 return self.parent.scope
+            end
+        end
+
+        # Gets the behavior the statement is in.
+        def behavior
+            if self.parent.is_a?(Behavior) then
+                return self.parent
+            else
+                return self.parent.behavior
             end
         end
 
@@ -4368,7 +4374,7 @@ module HDLRuby::Low
             # Recurse on the select.
             return true if @select.use_name?(*names)
             # Recurse on the choices.
-            return @choices.include? { |choice| choice.use_name?(*names) }
+            return @choices.any? { |choice| choice.use_name?(*names) }
         end
 
         # Clones the select (deeply)
@@ -4453,7 +4459,7 @@ module HDLRuby::Low
         # Tell if the expression includes a signal whose name is one of +names+.
         def use_name?(*names)
             # Recurse on the expressions.
-            return @expressions.include? { |expr| expr.use_name?(*names) }
+            return @expressions.any? { |expr| expr.use_name?(*names) }
         end
 
         # Clones the concatenated expression (deeply)
@@ -4601,7 +4607,7 @@ module HDLRuby::Low
         # Tell if the expression includes a signal whose name is one of +names+.
         def use_name?(*names)
             # Recurse on the references.
-            return @refs.include? { |expr| expr.use_name?(*names) }
+            return @refs.any? { |expr| expr.use_name?(*names) }
         end
 
         # Clones the concatenated references (deeply)
