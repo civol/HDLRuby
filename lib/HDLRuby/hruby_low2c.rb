@@ -106,13 +106,13 @@ module HDLRuby::Low
 
         ## Generates the main for making the objects of +objs+ and
         #  for starting the simulation and including the files from +hnames+
-        def self.main(top,objs,hnames)
+        def self.main(name,init_visualizer,top,objs,hnames)
             res = Low2C.includes(*hnames)
             res << "int main(int argc, char* argv[]) {\n"
             # Build the objects.
             objs.each { |obj| res << "   #{Low2C.make_name(obj)}();\n" }
             # Starts the simulation.
-            res << "   hruby_sim_core(-1);\n"
+            res<< "   hruby_sim_core(\"#{name}\",#{init_visualizer},-1);\n"
             # Close the main.
             res << "}\n"
             return res

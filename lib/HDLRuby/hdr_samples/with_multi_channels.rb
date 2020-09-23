@@ -179,8 +179,8 @@ $mode = :prodcons
 # $mode = :nsync
 # $mode = :async
 # $channel = :register
-$channel = :handshake
-# $channel = :queue
+# $channel = :handshake
+$channel = :queue
 
 # Testing the queue channel.
 system :test_queue do
@@ -193,7 +193,7 @@ system :test_queue do
     elsif $channel == :handshake then
         handshake(bit[8],rst).(:my_ch)
     elsif $channel == :queue then
-        queue(bit[8],10,clk,rst).(:my_ch)
+        queue(bit[8],5,clk,rst).(:my_ch)
     end
 
     ev = $mode == :sync ? clk.posedge : 

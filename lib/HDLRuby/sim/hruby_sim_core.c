@@ -118,9 +118,10 @@ void hruby_sim_update_signals() {
             /* Is there a change? */
             if (same_content_value(sig->c_value,sig->f_value)) continue;
             /* Yes, process the signal. */
-            println_signal(sig);
-            // printf("c_value="); print_value(sig->c_value);
-            // printf("\nf_value="); print_value(sig->f_value); printf("\n");
+            // println_signal(sig);
+            printer.print_signal(sig);
+            // printf("c_value="); printer.print_value(sig->c_value);
+            // printf("\nf_value="); printer.print_value(sig->f_value); printf("\n");
             // printf("Touched signal: %p (%s)\n",sig,sig->name);
             /* Update the current value of the signal. */
             copy_value(sig->f_value,sig->c_value);
@@ -185,7 +186,8 @@ void hruby_sim_update_signals() {
             SignalI sig = e->data;
             delete_element(e);
             /* Yes, process the signal. */
-            println_signal(sig);
+            // println_signal(sig);
+            printer.print_signal(sig);
             /* Update the current value of the signal. */
             /* Mark the corresponding code as activated. */
             /* Any edge activation. */
@@ -284,7 +286,8 @@ void hruby_sim_advance_time() {
     }
     /* Sets the new activation time. */
     hruby_sim_time = next_time;
-    println_time(hruby_sim_time);
+    // println_time(hruby_sim_time);
+    printer.print_time(hruby_sim_time);
 }
 
 
@@ -393,9 +396,18 @@ void hruby_sim_end_timed_behaviors() {
 
 
 
+// /** The simulation core function.
+//  *  @param limit the time limit in fs. */
+// void hruby_sim_core(unsigned long long limit) {
 /** The simulation core function.
+ *  @param name the name of the simulation.
+ *  @param vizualizer the vizualizer engine initializer.
  *  @param limit the time limit in fs. */
-void hruby_sim_core(unsigned long long limit) {
+void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
+                           unsigned long long limit) {
+    /* Initilize the vizualizer. */
+    init_vizualizer(name);
+
     /* Initialize the time to 0. */
     hruby_sim_time = 0;
 
@@ -597,3 +609,14 @@ unsigned long long make_delay(int value, Unit unit) {
     return -1;
 }
 
+
+
+
+/* Iterate over all the signals.
+ * @param func function to applie on each signal. */
+void each_all_signal(void (*func)(SignalI)) {
+    int i;
+    for(i = 0; i<num_all_signals; ++i) {
+        func(all_signals[i]);
+    }
+}

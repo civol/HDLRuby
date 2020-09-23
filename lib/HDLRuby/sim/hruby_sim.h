@@ -561,39 +561,71 @@ extern unsigned long long make_delay(int value, Unit unit);
 
 
 
+/* Iterate over all the signals.
+ * @param func function to applie on each signal. */
+extern void each_all_signal(void (*func)(SignalI));
 
 /* Interface to the visualization engine. */
 
-/** Prints the time.
- *  @param time the time to show. */
-extern void print_time(unsigned long long time);
+typedef struct {
+    void (*print_time)(unsigned long long);
+    void (*print_name)(Object);
+    void (*print_value)(Value);
+    void (*print_signal)(SignalI);
+} PrinterS;
 
-/** Prints the time and goes to the next line.
- *  @param time the time to show. */
-extern void println_time(unsigned long long time);
+PrinterS printer;
 
-/** Prints the name of an object.
- *  @param object the object to print the name. */
-extern void print_name(Object object);
+/** Initializes the visualization printer engine.
+ *  @param print_time the time printer
+ *  @param print_name the name printer
+ *  @param print_value the value printer
+ *  @param print_signal the signal state printer. */
+void init_visualizer(void (*print_time)(unsigned long long), 
+                     void (*print_name)(Object),
+                     void (*print_value)(Value),
+                     void (*print_signal)(SignalI));
 
-/** Prints a value.
- *  @param value the value to print */
-extern void print_value(Value value);
+// /** Prints the time.
+//  *  @param time the time to show. */
+// extern void print_time(unsigned long long time);
+// 
+// // /** Prints the time and goes to the next line.
+// //  *  @param time the time to show. */
+// // extern void println_time(unsigned long long time);
+// 
+// /** Prints the name of an object.
+//  *  @param object the object to print the name. */
+// extern void print_name(Object object);
+// 
+// /** Prints a value.
+//  *  @param value the value to print */
+// extern void print_value(Value value);
+// 
+// /** Prints a signal.
+//  *  @param signal the signal to show */
+// extern void print_signal(SignalI signal);
+// 
+// // /** Prints a signal and goes to the next line.
+// //  *  @param signal the signal to show */
+// // extern void println_signal(SignalI signal);
 
-/** Prints a signal.
- *  @param signal the signal to show */
-extern void print_signal(SignalI signal);
+/** Sets up the default vizualization engine.
+ *  @param name the name of the vizualization. */
+extern void init_default_visualizer(char* name);
 
-/** Prints a signal and goes to the next line.
- *  @param signal the signal to show */
-extern void println_signal(SignalI signal);
-
+/** Sets up the vcd vizualization engine.
+ *  @param name the name of the vizualization. */
+extern void init_vcd_visualizer(char* name);
 
 /* The interface to the simulator core. */
 
 /** The simulation core function.
+ *  @param name the name of the simulation.
+ *  @param init_vizualizer the vizualizer engine initializer.
  *  @param limit the time limit in fs. */
-extern void hruby_sim_core(unsigned long long limit);
+extern void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
+                           unsigned long long limit);
 
 
 

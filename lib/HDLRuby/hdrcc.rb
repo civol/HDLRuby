@@ -269,6 +269,9 @@ $optparse = OptionParser.new do |opts|
         $options[:multiple] = v
         $options[:sim] = v
     end
+    opts.on("--vcd", "The simulator will generate a vcd file") do |v|
+        $options[:vcd] = v
+    end
     opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
         $options[:verilog] = v
         $options[:multiple] = v
@@ -515,9 +518,15 @@ elsif $options[:clang] then
         # Generate the code for it.
         $main = File.open($name,"w")
 
+        # Select the vizualizer depending on the options.
+        init_visualizer = $options[:vcd] ? "init_vcd_visualizer" :
+                                           "init_default_visualizer"
+
         # Generate the code of the main function.
         # HDLRuby start code
-        $main << HDLRuby::Low::Low2C.main($top_system,
+        $main << HDLRuby::Low::Low2C.main("hruby_simulator",
+                                         init_visualizer,
+                                         $top_system,
                                          $top_system.each_systemT_deep.to_a.reverse,$hnames)
         $main.close
 
