@@ -50,6 +50,7 @@ Where:
 | `-s, --syntax`    | Output the Ruby syntax tree                          |
 | `-C, --clang`     | Output the C code of the simulator                   |
 | `-S, --sim`       | Output the executable simulator and execute it       |
+| `--vcd`           | Make the simulator generate a vcd file               |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
 | `-D, --debug`     | Set the HDLRuby debug mode |
 | `-t, --top system`| Specify the top system describing the circuit to compile |
