@@ -64,20 +64,15 @@ static void vcd_print_time(unsigned long long time) {
 }
 
 
-/** Prints the name of an object.
+/** Prints the name of an object without its hierarchy.
  *  @param object the object to print the name. */
 static void vcd_print_name(Object object) {
-    /* Recurse on the owner if any. */
-    // printf("owner=%p\n",object->owner);
-    if (object->owner != NULL) {
-        vcd_print_name(object->owner);
-        vcd_print("$");
-    }
     /* Depending on the kind of object. */
     switch(object->kind) {
         case SYSTEMT:
         case SIGNALI:
         case SCOPE:
+        case BLOCK:
         case SYSTEMI:
             /* Print the name if name. */
             /* Trick: SystemT, SignalI, Scope and SystemI have the
@@ -91,6 +86,20 @@ static void vcd_print_name(Object object) {
         default: /* Nothing to do */
             break;
     }
+}
+
+
+/** Prints the name of an object incluing its heirarchy.
+ *  @param object the object to print the name. */
+static void vcd_print_full_name(Object object) {
+    /* Recurse on the owner if any. */
+    // printf("owner=%p\n",object->owner);
+    if (object->owner != NULL) {
+        vcd_print_full_name(object->owner);
+        vcd_print("$");
+    }
+    /* Print the name of the object. */
+    vcd_print_name(object);
 }
 
 /** Prints a value.
@@ -127,7 +136,7 @@ static void vcd_print_value(Value value) {
  *  @param signal the signal to declare */
 static void vcd_print_var(SignalI signal) {
     vcd_print("$var wire %d ",type_width(signal->type));
-    vcd_print_name((Object)signal);
+    vcd_print_full_name((Object)signal);
     vcd_print(" ");
     vcd_print_name((Object)signal);
     vcd_print(" $end\n");
@@ -140,7 +149,7 @@ static void vcd_print_signal_fvalue(SignalI signal) {
     if (signal->f_value) {
         vcd_print_value(signal->f_value);
         vcd_print(" ");
-        vcd_print_name((Object)signal);
+        vcd_print_full_name((Object)signal);
         vcd_print("\n");
     }
 }
@@ -152,9 +161,135 @@ static void vcd_print_signal_cvalue(SignalI signal) {
     if (signal->c_value) {
         vcd_print_value(signal->c_value);
         vcd_print(" ");
-        vcd_print_name((Object)signal);
+        vcd_print_full_name((Object)signal);
         vcd_print("\n");
     }
+}
+
+
+/** Prints the hierarchy content of a system type.
+ *  @param system the system to print. */
+static void vcd_print_systemT_content(SystemT system);
+
+/** Prints the hierarchy of a scope.
+ *  @param scope the scope to print. */
+static void vcd_print_scope(Scope scope);
+
+
+/** Prints the hierarchy of a block.
+ *  @param block the block to print. */
+static void vcd_print_block(Block block) {
+    int i;
+    /* Declares the block. */
+    vcd_print("$scope module ");
+    vcd_print_name((Object)block);
+    vcd_print(" $end\n");
+
+    /* Declare the inners of the systems. */
+    for(i=0; i<block->num_inners; ++i) {
+        vcd_print_var(block->inners[i]);
+    }
+
+    /* Close the hierarchy. */
+    vcd_print("$upscope $end\n");
+}
+
+
+/** Prints the hierarchy of a system instances.
+ *  @param scope the scope to print. */
+static void vcd_print_systemI(SystemI systemI) {
+    /* Declares the systemI. */
+    vcd_print("$scope module ");
+    vcd_print_name((Object)systemI);
+    vcd_print(" $end\n");
+
+    /* Declares its content. */
+    vcd_print_systemT_content(systemI->system);
+
+    /* Close the hierarchy. */
+    vcd_print("$upscope $end\n");
+}
+
+
+/** Prints the hierarchy inside a scope.
+ *  @param scope the scope to print the inside. */
+static void vcd_print_scope_content(Scope scope) {
+    int i;
+
+    /* Declare the inners of the systems. */
+    for(i=0; i<scope->num_inners; ++i) {
+        vcd_print_var(scope->inners[i]);
+    }
+
+    /* Recurse on the system instances. */
+    for(i=0; i<scope->num_systemIs; ++i) {
+        vcd_print_systemI(scope->systemIs[i]);
+    }
+
+    /* Recurse on the sub scopes. */
+    for(i=0; i<scope->num_scopes; ++i) {
+        vcd_print_scope(scope->scopes[i]);
+    }
+
+    /* Recurse on the behaviors. */
+    for(i=0; i<scope->num_behaviors; ++i) {
+        vcd_print_block(scope->behaviors[i]->block);
+    }
+}
+
+
+/** Prints the hierarchy of a scope.
+ *  @param scope the scope to print. */
+static void vcd_print_scope(Scope scope) {
+    /* Declares the scope. */
+    vcd_print("$scope module ");
+    vcd_print_name((Object)scope);
+    vcd_print(" $end\n");
+
+    /* Declares its content. */
+    vcd_print_scope_content(scope);
+
+    /* Close the hierarchy. */
+    vcd_print("$upscope $end\n");
+}
+
+
+/** Prints the hierarchy content of a system type.
+ *  @param system the system to print. */
+static void vcd_print_systemT_content(SystemT system) {
+    int i;
+
+    /* Declare the inputs of the systems. */
+    for(i = 0; i<system->num_inputs; ++i) {
+        vcd_print_var(system->inputs[i]);
+    }
+    /* Declare the outputs of the systems. */
+    for(i = 0; i<system->num_outputs; ++i) {
+        vcd_print_var(system->outputs[i]);
+    }
+    /* Declare the inouts of the systems. */
+    for(i = 0; i<system->num_inouts; ++i) {
+        vcd_print_var(system->inouts[i]);
+    }
+    /* Recurse on the content of the scope (the scope header is the system).*/
+    vcd_print_scope_content(system->scope);
+}
+
+
+/** Prints the hierarchy of a system type.
+ *  @param system the system to print. */
+static void vcd_print_systemT(SystemT system) {
+    int i;
+    /* Declares the module. */
+    vcd_print("$scope module ");
+    vcd_print_name((Object)system);
+    vcd_print(" $end\n");
+
+    /* Declares the content. */
+    vcd_print_systemT_content(system);
+
+    /* Close the hierarchy. */
+    vcd_print("$upscope $end\n");
 }
 
 
@@ -179,7 +314,7 @@ static void vcd_print_header() {
     /* The version section. */
     vcd_print("$version\n");
     vcd_print("   Generated from HDLRuby simulator\n");
-    vcd_print("$end");
+    vcd_print("$end\n");
     
     /* The comment section. */
     vcd_print("$comment\n");
@@ -189,14 +324,20 @@ static void vcd_print_header() {
     /* The time scale section: for now 1ps only. */
     vcd_print("$timescale 1ps $end\n");
 
-    /* The scope section: nothing specific. */
-    vcd_print("$scope module logic $end\n");
+    // /* The scope section: nothing specific. */
+    // vcd_print("$scope module logic $end\n");
 
-    /* The variables declaration. */
-    each_all_signal(&vcd_print_var);
+    // /* The variables declaration. */
+    // each_all_signal(&vcd_print_var);
 
+    // /* Ends the declarations. */
+    // vcd_print("$upscope $end\n");
+    // vcd_print("$enddefinitions $end\n");
+
+    /* The declaration of the hierarchy and the variables
+     * from the top system. */
+    vcd_print_systemT(top_system);
     /* Ends the declarations. */
-    vcd_print("$upscope $end\n");
     vcd_print("$enddefinitions $end\n");
 
     /* Display the initializations. */
@@ -220,7 +361,7 @@ extern void init_vcd_visualizer(char* name) {
 
     /* Initialize the vizualizer printer engine. */
     init_visualizer(&vcd_print_time,
-                    &vcd_print_name,
+                    &vcd_print_full_name,
                     &vcd_print_value,
                     &vcd_print_signal_fvalue);
 

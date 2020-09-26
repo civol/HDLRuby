@@ -474,6 +474,7 @@ typedef struct BlockS_ {
     Kind kind;          /* The kind of object. */
     Object owner;       /* The owner if any. */
 
+    char* name;         /* The name of the block. */
     int num_inners;     /* The number of inners. */
     SignalI* inners;    /* The inners of the scope. */
     void (*function)(); /* The function to execute for the block. */
@@ -495,6 +496,9 @@ typedef struct EventS_ {
 
 /* The time units. */
 typedef enum { S, MS, US, NS, PS, FS } Unit;
+
+/** The top system. */
+extern SystemT top_system;
 
 /** Adds a timed behavior for processing. 
  *  @param behavior the timed behavior to register */
@@ -574,17 +578,17 @@ typedef struct {
     void (*print_signal)(SignalI);
 } PrinterS;
 
-PrinterS printer;
+extern PrinterS printer;
 
 /** Initializes the visualization printer engine.
  *  @param print_time the time printer
  *  @param print_name the name printer
  *  @param print_value the value printer
  *  @param print_signal the signal state printer. */
-void init_visualizer(void (*print_time)(unsigned long long), 
-                     void (*print_name)(Object),
-                     void (*print_value)(Value),
-                     void (*print_signal)(SignalI));
+extern void init_visualizer(void (*print_time)(unsigned long long), 
+                            void (*print_name)(Object),
+                            void (*print_value)(Value),
+                            void (*print_signal)(SignalI));
 
 // /** Prints the time.
 //  *  @param time the time to show. */

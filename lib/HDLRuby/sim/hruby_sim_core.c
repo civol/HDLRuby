@@ -12,6 +12,9 @@
  *  hruby_low2c. 
  *  */
 
+/** The top system. */
+SystemT top_system;
+
 /** The number of all the signals. */
 static int num_all_signals = 0;
 /** The capacity of the set of signals. */

@@ -111,6 +111,8 @@ module HDLRuby::Low
             res << "int main(int argc, char* argv[]) {\n"
             # Build the objects.
             objs.each { |obj| res << "   #{Low2C.make_name(obj)}();\n" }
+            # Sets the top systemT.
+            res << "   top_system = #{Low2C.obj_name(top)};\n"
             # Starts the simulation.
             res<< "   hruby_sim_core(\"#{name}\",#{init_visualizer},-1);\n"
             # Close the main.
@@ -1328,6 +1330,10 @@ module HDLRuby::Low
             else
                 res << "block->owner = NULL;\n"
             end
+
+            # The name
+            res << " " * (level+1)*3
+            res << "block->name = \"#{self.name}\";\n"
 
             # Add the inner signals declaration.
             res << " " * (level+1)*3
