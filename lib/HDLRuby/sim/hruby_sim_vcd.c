@@ -72,17 +72,22 @@ static void vcd_print_name(Object object) {
         case SYSTEMT:
         case SIGNALI:
         case SCOPE:
-        case BLOCK:
         case SYSTEMI:
+        case BLOCK:
             /* Print the name if name. */
             /* Trick: SystemT, SignalI, Scope and SystemI have the
              * field name at the same place. */
-            if (((SystemI)object)->name != NULL) {
+            if ((((Block)object)->name != NULL) &&
+                    strlen(((Block)object)->name)>0) {
                 char name[256];
-                strncpy(name,((SystemI)object)->name,256);
+                strncpy(name,((Block)object)->name,256);
                 replace_char(name,':','$');
                 vcd_print("%s",name);
+            } else {
+                /* No name, use the address of the object as name generator.*/
+                vcd_print("$%p",(void*)object);
             }
+            break;
         default: /* Nothing to do */
             break;
     }
@@ -180,7 +185,7 @@ static void vcd_print_scope(Scope scope);
  *  @param block the block to print. */
 static void vcd_print_block(Block block) {
     int i;
-    /* Declares the block. */
+    /* Declares the block if named. */
     vcd_print("$scope module ");
     vcd_print_name((Object)block);
     vcd_print(" $end\n");
