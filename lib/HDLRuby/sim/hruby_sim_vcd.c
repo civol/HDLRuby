@@ -134,14 +134,29 @@ static void vcd_print_var(SignalI signal) {
 }
 
 
-/** Prints a signal.
+/** Prints a signal with its future value if any.
  *  @param signal the signal to show */
-static void vcd_print_signal(SignalI signal) {
-    vcd_print_value(signal->f_value);
-    vcd_print(" ");
-    vcd_print_name((Object)signal);
-    vcd_print("\n");
+static void vcd_print_signal_fvalue(SignalI signal) {
+    if (signal->f_value) {
+        vcd_print_value(signal->f_value);
+        vcd_print(" ");
+        vcd_print_name((Object)signal);
+        vcd_print("\n");
+    }
 }
+
+
+/** Prints a signal with its current value if any
+ *  @param signal the signal to show */
+static void vcd_print_signal_cvalue(SignalI signal) {
+    if (signal->c_value) {
+        vcd_print_value(signal->c_value);
+        vcd_print(" ");
+        vcd_print_name((Object)signal);
+        vcd_print("\n");
+    }
+}
+
 
 
 
@@ -186,8 +201,7 @@ static void vcd_print_header() {
 
     /* Display the initializations. */
     vcd_print("$dumpvars\n");
-    // Maybe nothing to do.
-    // each_all_init_signal(&vcd_print_signal);
+    each_all_signal(&vcd_print_signal_cvalue);
     vcd_print("$end\n");
 }
 
@@ -208,7 +222,7 @@ extern void init_vcd_visualizer(char* name) {
     init_visualizer(&vcd_print_time,
                     &vcd_print_name,
                     &vcd_print_value,
-                    &vcd_print_signal);
+                    &vcd_print_signal_fvalue);
 
     /* Prints the header of the vcd file. */
     vcd_print_header();
