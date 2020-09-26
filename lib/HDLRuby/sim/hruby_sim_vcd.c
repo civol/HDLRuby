@@ -185,6 +185,9 @@ static void vcd_print_scope(Scope scope);
  *  @param block the block to print. */
 static void vcd_print_block(Block block) {
     int i;
+    /* Do not print block with no declaration. */
+    if (block->num_inners == 0) return;
+
     /* Declares the block if named. */
     vcd_print("$scope module ");
     vcd_print_name((Object)block);
