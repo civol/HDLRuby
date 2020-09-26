@@ -249,6 +249,8 @@ static void vcd_print_scope_content(Scope scope) {
 /** Prints the hierarchy of a scope.
  *  @param scope the scope to print. */
 static void vcd_print_scope(Scope scope) {
+    /* Do not print block with no declaration. */
+    if (scope->num_inners == 0 && scope->num_scopes == 0 && scope->num_behaviors == 0) return;
     /* Declares the scope. */
     vcd_print("$scope module ");
     vcd_print_name((Object)scope);
