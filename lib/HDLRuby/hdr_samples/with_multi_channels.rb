@@ -174,13 +174,22 @@ channel(:handshake) do |typ|
 end
 
 
-$mode = :prodcons
 # $mode = :sync
 # $mode = :nsync
 # $mode = :async
+# $mode = :proco  # Producter / Consummer
 # $channel = :register
 # $channel = :handshake
-$channel = :queue
+# $channel = :queue
+
+# The configuration scenarii
+$scenarii = [ [:sync,  :register], [:sync,  :handshake], [:sync,  :queue],
+              [:nsync, :register], [:nsync, :handshake], [:nsync, :queue],
+              [:async, :register], [:async, :handshake], [:async, :queue],
+              [:proco, :register], [:proco, :handshake], [:proco, :queue] ]
+
+# The configuration
+$mode, $channel = $scenarii[11]
 
 # Testing the queue channel.
 system :test_queue do
@@ -199,7 +208,7 @@ system :test_queue do
     ev = $mode == :sync ? clk.posedge : 
          $mode == :nsync ? clk.negedge : clk2.posedge
 
-    if $mode != :prodcons then
+    if $mode != :proco then
         # Sync/Neg sync and async tests mode
         par(ev) do
             hif(rst) do
@@ -263,27 +272,28 @@ system :test_queue do
         rst <= 1
         !3.ns
         clk2 <= 1
-        !1.ns
-        clk3 <= 1
-        !6.ns
+        !3.ns
+        clk3 <= 0
+        !4.ns
         clk <= 1
         !10.ns
         clk <= 0
-        rst <= 0
         !3.ns
         clk2 <= 0
-        !1.ns
+        !3.ns
         clk3 <= 1
-        !6.ns
+        !2.ns
+        rst <= 0
+        !2.ns
         64.times do
             clk <= 1
             !10.ns
             clk <= 0
             !3.ns
             clk2 <= ~clk2
-            !1.ns
+            !3.ns
             hif (clk2 == 0) { clk3 <= ~ clk3 }
-            !6.ns
+            !4.ns
         end
     end
 end
