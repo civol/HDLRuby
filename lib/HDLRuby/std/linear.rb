@@ -222,12 +222,13 @@ module HDLRuby::High::Std
                     avs[i] <= 0
                 end
             end
+            puts "GG"
             hif(req | run) do
                 run <= 1
                 # Computation request.
-                right.read(rv) { rvok <= 1 }
+                hif(~rvok) { right.read(rv) { rvok <= 1 } }
                 lefts.each_with_index do |left,i|
-                    left.read(lvs[i])  { lvoks[i] <= 1 }
+                    hif(~lvoks[i]) { left.read(lvs[i])  { lvoks[i] <= 1 } }
                     # accs[i].read(avs[i])
                     hif(lvoks[i] & rvok) do
                         ack <= 1
