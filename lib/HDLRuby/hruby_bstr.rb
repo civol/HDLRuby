@@ -35,10 +35,13 @@ module HDLRuby
             # Maybe str is an numeric.
             if str.is_a?(Numeric) then
                 # Yes, convert it to a binary string.
-                str = str.to_s(2)
+                num = str
+                str = num.to_s(2)
                 # And fix the sign.
                 if str[0] == "-" then
-                    str = str[1..-1]
+                    # str = str[1..-1]
+                    str = (2**str.size+num).to_s(2)
+                    puts "str=#{str}"
                     sign = "-"
                 else
                     sign = "+"

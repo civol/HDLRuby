@@ -1445,8 +1445,14 @@ module HDLRuby::Low
                 str = self.content.is_a?(BitString) ?
                     self.content.to_s : self.content.to_s(2).rjust(32,"0")
             else
-                sign = self.content>=0 ? "0" : "1"
-                str = self.content.abs.to_s(2).rjust(width,sign).upcase
+                # sign = self.content>=0 ? "0" : "1"
+                # str = self.content.abs.to_s(2).rjust(width,sign).upcase
+                if self.content >= 0 then
+                    str = self.content.to_s(2).rjust(width,"0").upcase
+                else
+                    str = (2**width+self.content).to_s(2).upcase
+                end
+                # puts "content=#{self.content} str=#{str}"
             end
             # Is it a fully defined number?
             if str =~ /^[01]+$/ then
