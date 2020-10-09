@@ -31,5 +31,10 @@ system :fix_test do
         d <= 0
         !10.ns
         d <= d + c 
+        !10.ns
+        a <= -0.375.to_fix(4)
+        b <= 1.625.to_fix(4)
+        !10.ns
+        c <= a * b
     end
 end
