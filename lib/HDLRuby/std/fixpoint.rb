@@ -52,10 +52,18 @@ module HDLRuby::High::Std
                         end
                         # Redefine the multiplication and division for fixed point.
                         typ.define_operator(:*) do |left,right|
-                            (left.as([isize+fsize*2])*right) >> fsize
+                            if (typ.signed?) then
+                                (left.as(signed[isize+fsize*2])*right) >> fsize
+                            else
+                                (left.as([isize+fsize*2])*right) >> fsize
+                            end
                         end
                         typ.define_operator(:/) do |left,right|
-                            (left.as([isize+fsize*2]) << fsize) / right
+                            if (typ.signed?) then
+                                (left.as(signed[isize+fsize*2]) << fsize) / right
+                            else
+                                (left.as([isize+fsize*2]) << fsize) / right
+                            end
                         end
                         typ
                     end
