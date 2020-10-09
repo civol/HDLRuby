@@ -1450,7 +1450,11 @@ module HDLRuby::Low
                 if self.content >= 0 then
                     str = self.content.to_s(2).rjust(width,"0").upcase
                 else
-                    str = (2**width+self.content).to_s(2).upcase
+                    # Compute the extension to the next multiple
+                    # of int_width
+                    ext_width = (((width-1) / Low2C.int_width)+1)*Low2C.int_width
+                    # Convert the string.
+                    str = (2**ext_width+self.content).to_s(2).upcase
                 end
                 # puts "content=#{self.content} str=#{str}"
             end
@@ -1465,7 +1469,7 @@ module HDLRuby::Low
                 res << " };\n"
                 # Create the value.
                 res << " " * (level+1)*3
-                # puts "str=#{str} type width=#{self.type.width}"
+                # puts "str=#{str} type width=#{self.type.width} signed? #{type.signed?}"
                 res << "return make_set_value(#{self.type.to_c(level+1)},1," +
                        "data);\n" 
             else
