@@ -50,8 +50,9 @@ typedef enum {
 
 /* The interface to the type engine. */
 typedef struct FlagsS_ {
-    unsigned int all;
-    unsigned int sign : 1; /* Tells if the type is signed or not. */
+    // unsigned int all;
+    // unsigned int sign : 1; /* Tells if the type is signed or not. */
+    unsigned int sign; /* Tells if the type is signed or not. */
 } FlagsS;
 
 /** The type structure. */

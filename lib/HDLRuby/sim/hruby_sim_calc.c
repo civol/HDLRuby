@@ -70,7 +70,8 @@ static List hash_type[HASH_TYPE_SIZE] = {};
  *  @return the resulting type. */
 static int hash_value(unsigned long long base, unsigned long long number,
                       FlagsS flags) {
-    return ((base+flags.all)^(number)) & 1023;
+    // return ((base+flags.all)^(number)) & 1023;
+    return ((base+flags.sign)^(number)) & 1023;
 }
 
 /** Adds a type to the hash of types.
@@ -109,7 +110,8 @@ static Type get_hash_type(Type base, unsigned long long number) {
         while(elem) {
             Type type = elem->data;
             if ((type->base == bw) && (type->number == number) &&
-                (type->flags.all == flags.all)) {
+                // (type->flags.all == flags.all)) {
+                (type->flags.sign == flags.sign)) {
                 /* The type is found. */
                 return type;
             }
@@ -243,6 +245,7 @@ void resize_value(Value value, int size) {
 void set_value(Value value, int numeric, void* data) {
     value->numeric = numeric;
     if (numeric) {
+    // printf("set_value with data=%llx\n",*(unsigned long long*)data);
         value->data_int = *((unsigned long long*)data);
     } else  {
         memcpy(value->data_str,data,type_width(value->type)*sizeof(char));
@@ -254,6 +257,7 @@ void set_value(Value value, int numeric, void* data) {
  *  @param numeric tell if the value is in numeric form or in bitstring form
  *  @param data the source data */
 Value make_set_value(Type type, int numeric, void* data) {
+    // printf("make_set_value with type->flags.sign=%x\n",type->flags.sign);
     Value value = make_value(type,numeric);
     set_value(value,numeric,data);
     return value;
@@ -1556,6 +1560,7 @@ static Value sub_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value mul_value_numeric(Value src0, Value src1, Value dst) {
+    // printf("mul_value_numeric with src0->data_int=%llx src1->data_int=%llx\n",src0->data_int, src1->data_int);
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
@@ -1823,7 +1828,7 @@ static Value concat_value_numeric_array(int num, int dir,
  *  @param dst the destination value
  *  @return dst */
 static Value cast_value_numeric(Value src, Type type, Value dst) {
-    // printf("cast_value_numeric with src=%llx",src->data_int);
+    // printf("cast_value_numeric with src=%llx\n",src->data_int);
     /* Copy the source to the destination. */
     dst->data_int = src->data_int;
     /* Update the destination type to the cast. */
