@@ -541,12 +541,19 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     # No reset, so can perform the read.
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
-                        target <= dbus_r
-                        blk.call if blk
+                        # target <= dbus_r
+                        # blk.call if blk
+                        seq do
+                            # abus_r <= abus_r + 1
+                            target <= dbus_r
+                            blk.call if blk
+                        end
                     end
-                    # Prepare the read.
-                    abus_r <= abus_r + 1
-                    trig_r <= 1
+                    helse do
+                        # Prepare the read.
+                        abus_r <= abus_r + 1
+                        trig_r <= 1
+                    end
                 end
             end
         end
