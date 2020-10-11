@@ -209,6 +209,7 @@ module HDLRuby::High::Std
         # lv and rv are valid.
         lvoks = lefts.each_with_index.map { |left,i| inner :"lvok#{i}" }
         inner :rvok
+        woks = lefts.each_with_index.map { |left,i| inner :"wok#{i}" }
         # Run flag
         inner :run
         par(ev) do
@@ -218,11 +219,10 @@ module HDLRuby::High::Std
                 rvok <= 0
                 lefts.each_with_index do |left,i|
                     lvoks[i] <= 0
-                    # accs[i].write(0)
-                    avs[i] <= 0
+                    # avs[i] <= 0
+                    woks[i] <= 0
                 end
             end
-            puts "GG"
             hif(req | run) do
                 run <= 1
                 # Computation request.
@@ -230,17 +230,28 @@ module HDLRuby::High::Std
                 lefts.each_with_index do |left,i|
                     hif(~lvoks[i]) { left.read(lvs[i])  { lvoks[i] <= 1 } }
                     # accs[i].read(avs[i])
-                    hif(lvoks[i] & rvok) do
+                    hif(lvoks[i] & rvok & ~woks[i]) do
                         ack <= 1
                         run <= 0
-                        # accs[i].write(add.(avs[i],mul.(lvs[i],rv)))
                         seq do
                             avs[i] <= add.(avs[i],mul.(lvs[i],rv))
-                            accs[i].write(avs[i])
+                            accs[i].write(avs[i]) do
+                                woks[i] <= 1
+                                # seq do
+                                #     lvoks[i] <= 0
+                                #     rvok <= lvoks.reduce(:|)
+                                # end
+                            end
                         end
+                    end
+                    hif (woks.reduce(:&)) do
+                        woks.each { |wok| wok <= 0 }
+                        lvoks.each { | lvok| lvok <=0 }
+                        rvok <= 0
                     end
                 end
             end
+            helse { avs.each {|av| av <= 0 } }
             # helse do
             #     rvok <= 0
             #     lefts.each_with_index do |left,i|
