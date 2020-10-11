@@ -32,6 +32,7 @@ module HDLRuby
         #   and negative when "1".
         # * when not present it is assumed to be within str.
         def initialize(str,sign = nil)
+            # puts "str=#{str}"
             # Maybe str is an numeric.
             if str.is_a?(Numeric) then
                 # Yes, convert it to a binary string.
@@ -74,6 +75,7 @@ module HDLRuby
                 end.reverse.join
             end
             @str += str.to_s.downcase
+            # puts "@str=#{@str}"
             unless @str.match(/^[0-1zx]+$/) then
                 raise "Invalid value for creating a bit string: #{str}"
             end
