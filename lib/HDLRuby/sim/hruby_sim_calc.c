@@ -248,6 +248,7 @@ void set_value(Value value, int numeric, void* data) {
     // printf("set_value with data=%llx\n",*(unsigned long long*)data);
         value->data_int = *((unsigned long long*)data);
     } else  {
+        // printf("data=%s\n",(char*)data);
         memcpy(value->data_str,data,type_width(value->type)*sizeof(char));
     }
 }
@@ -311,6 +312,7 @@ Value copy_value(Value src, Value dst) {
         /* Numeric copy. */
         dst->data_int = fix_numeric_type(dst->type,src->data_int);
     } else {
+        // printf("copy_value with bit string: %s\n",src->data_str);
         /* Resize the destination if required. */
         resize_value(dst,type_width(dst->type));
         /* Bitstring copy up to the end of dst or src. */
@@ -607,12 +609,14 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value mul_value_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("mul_value_defined_bitstring with src0=%llx src1=%llx\n",value2integer(src0),value2integer(src1));
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
 
     /* Perform the multiplication. */
     dst->data_int = value2integer(src0) * value2integer(src1);
+    // printf("dst->data_int=%llx\n",dst->data_int);
     return dst;
 }
 
@@ -1176,7 +1180,7 @@ static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
 static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
         va_list args) 
 {
-    printf("select_value_bitstring with cond=%s\n",cond->data_str);
+    // printf("select_value_bitstring with cond=%s\n",cond->data_str);
     /* Get the first alternative for sizing the result. */
     Value src = va_arg(args,Value);
     /* Compute the width of the result in bits. */
@@ -2670,6 +2674,7 @@ unsigned long long value2integer(Value value) {
     char bit;
     /* Access the bitstring data. */
     char* data_str = value->data_str;
+    // printf("value2integer with data_str=%s\n",data_str);
     /* Copy the bits. */
     for (i=0; i<width && i<LONG_LONG_BIT; ++i) {
         /* Get the bit. */
@@ -2681,12 +2686,17 @@ unsigned long long value2integer(Value value) {
         /* Write the bit. */
         res = (res << 1) | bit;
     }
+    // printf("first res=%llx\n",res);
+    unsigned long long bit0 = (data_str[width-1]-'0') << i;
     /* Perform the sign extension if required. */
     if (i>=width && value->type->flags.sign) {
         for(; i<LONG_LONG_BIT; ++i) {
-            res = (res << 1) | bit;
+            // res = (res << 1) | bit;
+            res |= bit0;
+            bit0 <<= 1;
         }
     }
+    // printf("then res=%llx\n",res);
     return res;
 }
 
