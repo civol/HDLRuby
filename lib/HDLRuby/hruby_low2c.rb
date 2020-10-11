@@ -1475,7 +1475,8 @@ module HDLRuby::Low
             else
                 # No, generate a bit string value.
                 res << " " * (level+1)*3
-                res << "static unsigned char data[] = \"#{str}\";\n"
+                # res << "static unsigned char data[] = \"#{str}\";\n"
+                res << "static unsigned char data[] = \"#{str.reverse}\";\n"
                 # Create the value.
                 res << " " * (level+1)*3
                 res << "return make_set_value(#{self.type.to_c(level+1)},0," +
