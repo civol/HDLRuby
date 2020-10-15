@@ -292,17 +292,38 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                 trig_r <= 0
             end
             # The read procedure.
+        #     par do
+        #         hif(rst == 0) do
+        #             # No reset, so can perform the read.
+        #             hif(trig_r == 1) do
+        #                 # The trigger was previously set, read ok.
+        #                 target <= dbus_r
+        #                 blk.call if blk
+        #             end
+        #             # Prepare the read.
+        #             abus_r <= abus_r + 1
+        #             trig_r <= 1
+        #         end
+        #     end
+            # The read procedure.
             par do
                 hif(rst == 0) do
                     # No reset, so can perform the read.
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
-                        target <= dbus_r
-                        blk.call if blk
+                        # target <= dbus_r
+                        # blk.call if blk
+                        seq do
+                            # abus_r <= abus_r + 1
+                            target <= dbus_r
+                            blk.call if blk
+                        end
                     end
-                    # Prepare the read.
-                    abus_r <= abus_r + 1
-                    trig_r <= 1
+                    helse do
+                        # Prepare the read.
+                        abus_r <= abus_r + 1
+                        trig_r <= 1
+                    end
                 end
             end
         end
@@ -331,18 +352,39 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                 # Reset so switch of the access trigger.
                 trig_r <= 0
             end
+            # # The read procedure.
+            # par do
+            #     hif(rst == 0) do
+            #         # No reset, so can perform the read.
+            #         hif(trig_r == 1) do
+            #             # The trigger was previously set, read ok.
+            #             target <= dbus_r
+            #             blk.call if blk
+            #         end
+            #         # Prepare the read.
+            #         abus_r <= abus_r - 1
+            #         trig_r <= 1
+            #     end
+            # end
             # The read procedure.
             par do
                 hif(rst == 0) do
                     # No reset, so can perform the read.
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
-                        target <= dbus_r
-                        blk.call if blk
+                        # target <= dbus_r
+                        # blk.call if blk
+                        seq do
+                            # abus_r <= abus_r - 1
+                            target <= dbus_r
+                            blk.call if blk
+                        end
                     end
-                    # Prepare the read.
-                    abus_r <= abus_r - 1
-                    trig_r <= 1
+                    helse do
+                        # Prepare the read.
+                        abus_r <= abus_r - 1
+                        trig_r <= 1
+                    end
                 end
             end
         end
@@ -620,18 +662,39 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                 # Reset so switch of the access trigger.
                 trig_r <= 0
             end
+            # # The read procedure.
+            # par do
+            #     hif(rst == 0) do
+            #         # No reset, so can perform the read.
+            #         hif(trig_r == 1) do
+            #             # The trigger was previously set, read ok.
+            #             target <= dbus_r
+            #             blk.call if blk
+            #         end
+            #         # Prepare the read.
+            #         abus_r <= abus_r - 1
+            #         trig_r <= 1
+            #     end
+            # end
             # The read procedure.
             par do
                 hif(rst == 0) do
                     # No reset, so can perform the read.
                     hif(trig_r == 1) do
                         # The trigger was previously set, read ok.
-                        target <= dbus_r
-                        blk.call if blk
+                        # target <= dbus_r
+                        # blk.call if blk
+                        seq do
+                            # abus_r <= abus_r - 1
+                            target <= dbus_r
+                            blk.call if blk
+                        end
                     end
-                    # Prepare the read.
-                    abus_r <= abus_r - 1
-                    trig_r <= 1
+                    helse do
+                        # Prepare the read.
+                        abus_r <= abus_r - 1
+                        trig_r <= 1
+                    end
                 end
             end
         end
