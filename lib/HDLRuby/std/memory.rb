@@ -34,6 +34,7 @@ HDLRuby::High::Std.channel(:mem_sync) do |n,typ,size,clk_e,rst,br_rsts = []|
     size = size.to_i
     # Compute the address bus width from the size.
     awidth = (size-1).width
+    awidth = 1 if awidth == 0
     # Ensure clk_e is an event, if not set it to a positive edge.
     clk_e = clk_e.posedge unless clk_e.is_a?(Event)
 
@@ -209,6 +210,7 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
     size = size.to_i
     # Compute the address bus width from the size.
     awidth = (size-1).width
+    awidth = 1 if awidth == 0
     # Process the table of reset mapping for the branches.
     # Ensures br_srts is a hash.
     br_rsts = br_rsts.to_hash
@@ -321,7 +323,12 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                     end
                     helse do
                         # Prepare the read.
-                        abus_r <= abus_r + 1
+                        # abus_r <= abus_r + 1
+                        if 2**size.width != size then
+                            abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
+                        else
+                            abus_r <= abus_r + 1
+                        end
                         trig_r <= 1
                     end
                 end
@@ -382,7 +389,12 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                     end
                     helse do
                         # Prepare the read.
-                        abus_r <= abus_r - 1
+                        # abus_r <= abus_r - 1
+                        if 2**size.width != size then
+                            abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
+                        else
+                            abus_r <= abus_r - 1
+                        end
                         trig_r <= 1
                     end
                 end
@@ -434,6 +446,7 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
     size = size.to_i
     # Compute the address bus width from the size.
     awidth = (size-1).width
+    awidth = 1 if awidth == 0
     # Process the table of reset mapping for the branches.
     # puts "first br_rsts=#{br_rsts}"
     # if br_rsts.is_a?(Array) then
@@ -593,7 +606,12 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     end
                     helse do
                         # Prepare the read.
-                        abus_r <= abus_r + 1
+                        # abus_r <= abus_r + 1
+                        if 2**size.width != size then
+                            abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
+                        else
+                            abus_r <= abus_r + 1
+                        end
                         trig_r <= 1
                     end
                 end
@@ -630,7 +648,12 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     # No reset, so can perform the write.
                     blk.call if blk
                     # Prepare the write.
-                    abus_w <= abus_w + 1
+                    # abus_w <= abus_w + 1
+                    if 2**size.width != size then
+                        abus_w <= mux((abus_w + 1) == size, abus_w + 1, 0)
+                    else
+                        abus_w <= abus_w + 1
+                    end
                     trig_w <= 1
                     dbus_w <= target
                 end
@@ -692,7 +715,12 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     end
                     helse do
                         # Prepare the read.
-                        abus_r <= abus_r - 1
+                        # abus_r <= abus_r - 1
+                        if 2**size.width != size then
+                            abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
+                        else
+                            abus_r <= abus_r - 1
+                        end
                         trig_r <= 1
                     end
                 end
@@ -729,7 +757,12 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     # No reset, so can perform the write.
                     blk.call if blk
                     # Prepare the write.
-                    abus_w <= abus_w - 1
+                    # abus_w <= abus_w - 1
+                    if 2**size.width != size then
+                        abus_w <= mux(abus_w == 0, abus_w - 1, size - 1)
+                    else
+                        abus_w <= abus_w - 1
+                    end
                     trig_w <= 1
                     dbus_w <= target
                 end
@@ -923,6 +956,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             reader_input rst_name
         end
         # Declares the address counter.
+        awidth = size.width-1
+        awidth = 1 if awidth == 0
         [size.width-1].inner :abus_r
         reader_inout :abus_r
 
@@ -946,7 +981,12 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     end
                     blk.call if blk
                     # Prepare the next read.
-                    abus_r <= abus_r + 1
+                    # abus_r <= abus_r + 1
+                    if 2**size.width != size then
+                        abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
+                    else
+                        abus_r <= abus_r + 1
+                    end
                 end
             end
         end
@@ -985,7 +1025,12 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     end
                     blk.call if blk
                     # Prepare the next write.
-                    abus_w <= abus_w + 1
+                    # abus_w <= abus_w + 1
+                    if 2**size.width != size then
+                        abus_w <= mux((abus_w + 1) == size, abus_w + 1, 0)
+                    else
+                        abus_w <= abus_w + 1
+                    end
                 end
             end
         end
@@ -1003,6 +1048,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             reader_input rst_name
         end
         # Declares the address counter.
+        awidth = size.width - 1
+        awidth = 1 if awidth == 0
         [size.width-1].inner :abus_r
         reader_inout :abus_r
 
@@ -1026,7 +1073,12 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     end
                     blk.call if blk
                     # Prepare the next read.
-                    abus_r <= abus_r - 1
+                    # abus_r <= abus_r - 1
+                    if 2**size.width != size then
+                        abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
+                    else
+                        abus_r <= abus_r - 1
+                    end
                 end
             end
         end
@@ -1065,7 +1117,12 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     end
                     blk.call if blk
                     # Prepare the next write.
-                    abus_w <= abus_w - 1
+                    # abus_w <= abus_w - 1
+                    if 2**size.width != size then
+                        abus_w <= mux(abus_w == 0, abus_w - 1, size - 1)
+                    else
+                        abus_w <= abus_w - 1
+                    end
                 end
             end
         end
@@ -1113,7 +1170,9 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
     size = size.to_i
     # Compute the address bus width from the size.
     awidth = (size*nbanks-1).width
+    awidth = 1 if awidth == 0
     awidth_b = (size-1).width # Bank width
+    awidth_b = 1 if awidth_b == 0
     # Ensures br_srts is a hash.
     br_rsts = br_rsts.to_hash
 
@@ -1274,7 +1333,12 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                         blk.call if blk
                     end
                     # Prepare the read.
-                    abus_r <= abus_r + 1
+                    # abus_r <= abus_r + 1
+                    if 2**size.width != size then
+                        abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
+                    else
+                        abus_r <= abus_r + 1
+                    end
                     trig_r <= 1
                 end
             end
@@ -1310,7 +1374,12 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                     # No reset, so can perform the write.
                     blk.call if blk
                     # Prepare the write.
-                    abus_w <= abus_w + 1
+                    # abus_w <= abus_w + 1
+                    if 2**size.width != size then
+                        abus_w <= mux((abus_w + 1) == size, abus_w + 1, 0)
+                    else
+                        abus_w <= abus_w + 1
+                    end
                     trig_w <= 1
                     dbus_w <= target
                 end
@@ -1351,7 +1420,12 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                         blk.call if blk
                     end
                     # Prepare the read.
-                    abus_r <= abus_r - 1
+                    # abus_r <= abus_r - 1
+                    if 2**size.width != size then
+                        abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
+                    else
+                        abus_r <= abus_r - 1
+                    end
                     trig_r <= 1
                 end
             end
@@ -1388,6 +1462,11 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the write.
                     abus_w <= abus_w - 1
+                    if 2**size.width != size then
+                        abus_w <= mux(abus_w == 0, abus_w - 1, size - 1)
+                    else
+                        abus_w <= abus_w - 1
+                    end
                     trig_w <= 1
                     dbus_w <= target
                 end
