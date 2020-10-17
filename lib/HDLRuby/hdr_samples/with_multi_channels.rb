@@ -135,7 +135,7 @@ channel(:handshake) do |typ|
     # The data signal.
     typ.inner :data
     # The request and acknowledge.
-    typ.inner :req, :ack
+    inner :req, :ack
 
     reader_input :ack, :data
     reader_output :req
