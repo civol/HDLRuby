@@ -956,7 +956,7 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             reader_input rst_name
         end
         # Declares the address counter.
-        awidth = size.width-1
+        awidth = (size-1).width
         awidth = 1 if awidth == 0
         [size.width-1].inner :abus_r
         reader_inout :abus_r
@@ -1048,7 +1048,7 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             reader_input rst_name
         end
         # Declares the address counter.
-        awidth = size.width - 1
+        awidth = (size-1).width
         awidth = 1 if awidth == 0
         [size.width-1].inner :abus_r
         reader_inout :abus_r
