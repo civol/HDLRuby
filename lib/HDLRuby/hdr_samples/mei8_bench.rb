@@ -5,7 +5,7 @@ include HDLRuby::High::Std
 # A simple implementation of the MEI8 processor.
 #
 # In this implementation, the program is hard-coded in an internal ROM
-system :mei8 do |prog_file = "./prog_encrypt.obj"|
+system :mei8 do |prog_file = "./prog.obj"|
     # Clock and reset.
     input :clk, :rst
     # Bus.
