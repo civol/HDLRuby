@@ -958,7 +958,7 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
         # Declares the address counter.
         awidth = (size-1).width
         awidth = 1 if awidth == 0
-        [size.width-1].inner :abus_r
+        [awidth].inner :abus_r
         reader_inout :abus_r
 
         # Defines the read procedure at address +addr+
@@ -1002,7 +1002,9 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             writer_input rst_name
         end
         # Declares the address counter.
-        [size.width-1].inner :abus_w
+        awidth = (size-1).width
+        awidth = 1 if awidth == 0
+        [awidth].inner :abus_w
         writer_inout :abus_w
 
         # Defines the write procedure at address +addr+
@@ -1050,7 +1052,7 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
         # Declares the address counter.
         awidth = (size-1).width
         awidth = 1 if awidth == 0
-        [size.width-1].inner :abus_r
+        [awidth].inner :abus_r
         reader_inout :abus_r
 
         # Defines the read procedure at address +addr+
@@ -1094,7 +1096,9 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             reader_input rst_name
         end
         # Declares the address counter.
-        [size.width-1].inner :abus_w
+        awidth = (size-1).width
+        awidth = 1 if awidth == 0
+        [awidth].inner :abus_w
         reader_inout :abus_w
 
         # Defines the write procedure at address +addr+
