@@ -60,12 +60,16 @@ channel(:queue) do |typ,depth,clk,rst|
             top_block.unshift do
                 rcmd <= 0
                 hrack <= 0
-            end
-            seq do
                 hif(rack) do
                     blk.call if blk
                 end
-                helse do
+            end
+            seq do
+                # hif(rack) do
+                #     blk.call if blk
+                # end
+                # helse do
+                hif(rack==0) do
                     rcmd <= 1 
                     target <= rdata
                 end
@@ -92,12 +96,16 @@ channel(:queue) do |typ,depth,clk,rst|
             top_block.unshift do
                 wcmd <= 0
                 hwack <= 0
-            end
-            seq do
                 hif(wack) do
                     blk.call if blk
                 end
-                helse { wcmd <= 1 }
+            end
+            seq do
+                # hif(wack) do
+                #     blk.call if blk
+                # end
+                # helse 
+                hif(wack==0) { wcmd <= 1 }
                 wdata <= target
             end
         end
@@ -173,48 +181,116 @@ channel(:handshake) do |typ|
     end
 end
 
+# Channel describing a handshake for transmitting data of +typ+ type, reset
+# by +rst+
+channel(:handshake2) do |typ|
+    # The data signal.
+    typ.inner :data
+    # The request and acknowledge.
+    inner :req, :ack
+    # The write flag
+    inner :wf
+
+    reader_input :ack, :data
+    reader_output :req
+
+    # The read primitive.
+    reader do |blk,target|
+        top_block.unshift do
+            req <= 0
+            hif(ack & req == 1) do
+                target <= data
+                req <= 0
+                blk.call if blk
+            end
+        end
+        hif(ack == 0) do
+            req <= 1
+        end
+    end
+
+    writer_input :req
+    writer_output :ack, :data
+    writer_inout :wf
+
+    # The read primitive.
+    writer do |blk,target|
+        top_block.unshift do
+            ack <= 0
+            hif(wf & req & ~ack == 1) do
+                data <= target
+                ack <= 1
+                blk.call if blk
+            end
+            hif(~req) { wf <= 0 }
+        end
+        hif(~ack) do
+            wf <= 1
+        end
+    end
+end
+
 
 # $mode = :sync
 # $mode = :nsync
 # $mode = :async
-# $mode = :proco  # Producter / Consummer
+# $mode = :proco  # Producer / Consummer
+# $mode = :double # Producer and Consummer with double channels.
 # $channel = :register
 # $channel = :handshake
 # $channel = :queue
 
 # The configuration scenarii
-$scenarii = [ [:sync,  :register], [:sync,  :handshake], [:sync,  :queue],
-              [:nsync, :register], [:nsync, :handshake], [:nsync, :queue],
-              [:async, :register], [:async, :handshake], [:async, :queue],
-              [:proco, :register], [:proco, :handshake], [:proco, :queue] ]
+$scenarii = [
+              [:sync,  :register],     #  0
+              [:sync,  :handshake],    #  1
+              [:sync,  :queue],        #  3
+              [:nsync, :register],     #  4
+              [:nsync, :handshake],    #  5
+              [:nsync, :queue],        #  6
+              [:async, :register],     #  7
+              [:async, :handshake],    #  8
+              [:async, :queue],        #  9
+              [:proco, :register],     # 10
+              [:proco, :handshake],    # 11
+              [:proco, :queue],        # 12
+              [:double,:register],     # 13
+              [:double,:handshake],    # 14
+              [:double,:queue]         # 15
+            ]
 
 # The configuration
-$mode, $channel = $scenarii[11]
+# $mode, $channel = $scenarii[11]
+$mode, $channel = $scenarii[ARGV[-1].to_i]
+puts "scenario: #{$scenarii[ARGV[-1].to_i]}"
 
 # Testing the queue channel.
 system :test_queue do
     inner :clk, :rst, :clk2, :clk3
-    [8].inner :idata, :odata
+    [8].inner :idata, :odata, :odata2
     [4].inner :counter
 
     if $channel == :register then
         register(bit[8]).(:my_ch)
+        register(bit[8]).(:my_ch2)
     elsif $channel == :handshake then
         handshake(bit[8],rst).(:my_ch)
+        handshake(bit[8],rst).(:my_ch2)
     elsif $channel == :queue then
         queue(bit[8],5,clk,rst).(:my_ch)
+        queue(bit[8],5,clk,rst).(:my_ch2)
     end
 
     ev = $mode == :sync ? clk.posedge : 
          $mode == :nsync ? clk.negedge : clk2.posedge
 
-    if $mode != :proco then
+    if $mode != :proco && $mode != :double then
         # Sync/Neg sync and async tests mode
         par(ev) do
             hif(rst) do
                 counter <= 0
                 idata <= 0
-                odata <= 0
+                # odata <= 0
             end
             helse do
                 hif (counter < 4) do
@@ -225,7 +301,7 @@ system :test_queue do
                 end
                 helsif ((counter > 10) & (counter < 15)) do
                     my_ch.read(odata) do
-                        idata <= idata - odata
+                        # idata <= idata - odata
                         counter <= counter + 1
                     end
                 end
@@ -234,7 +310,7 @@ system :test_queue do
                 end
             end
         end
-    else
+    elsif $mode == :proco then
         # Producter/consumer mode
         # Producer
         par(clk2.posedge) do
@@ -254,6 +330,25 @@ system :test_queue do
             end
             helse do
                 my_ch.read(odata) do
+                    counter <= counter + 1
+                end
+            end
+        end
+    else
+        # Producer and consumer are commicating through two layers of channels
+        par(ev) do
+            hif(rst) do
+                counter <= 0
+                idata <= 0
+            end
+            helse do
+                my_ch.write(idata) do
+                    idata <= idata + 1
+                end
+                my_ch.read(odata) do
+                    my_ch2.write(odata)
+                end
+                my_ch2.read(odata2) do
                     counter <= counter + 1
                 end
             end
