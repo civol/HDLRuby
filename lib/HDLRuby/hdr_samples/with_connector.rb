@@ -126,7 +126,7 @@ end
 system :with_connectors do
     inner :clk, :rst
     [4].inner :counter, :res_0,:res_1,:res_2,:res_3
-    inner :ack_in
+    inner :ack_in, :ack_out
 
     # The input queue.
     queue(bit[4],4,clk,rst).(:in_qu)
@@ -140,11 +140,37 @@ system :with_connectors do
     # Connect them
     duplicator([4],clk.negedge,in_qu,[out_qu0,out_qu1,out_qu2,out_qu3])
 
+    # # Slow version, always work
+    # par(clk.posedge) do
+    #     ack_in <= 0
+    #     ack_out <= 1
+    #     hif(rst) { counter <= 0 }
+    #     helse do
+    #         hif(ack_out) do
+    #             ack_out <= 0
+    #             in_qu.write(counter)  do
+    #                 ack_in <= 1
+    #                 counter <= counter + 1
+    #             end
+    #         end
+    #         hif(ack_in) do
+    #             out_qu0.read(res_0)
+    #             out_qu1.read(res_1)
+    #             out_qu2.read(res_2)
+    #             out_qu3.read(res_3) { ack_out <= 1 }
+    #         end
+    #     end
+    # end
+
+    # Fast version but assumes connected channels are blocking
     par(clk.posedge) do
+        ack_in <= 0
         hif(rst) { counter <= 0 }
         helse do
-            counter <= counter + 1
-            in_qu.write(counter)  { ack_in <= 1 }
+            in_qu.write(counter)  do
+                ack_in <= 1
+                counter <= counter + 1
+            end
             hif(ack_in) do
                 out_qu0.read(res_0)
                 out_qu1.read(res_1)
