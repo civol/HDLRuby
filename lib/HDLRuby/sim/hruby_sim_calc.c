@@ -1223,6 +1223,8 @@ static Value concat_value_bitstring_array(int num, int dir,
     }
     /* Resize the destination accordignly. */
     resize_value(dst,width);
+    /* Ensure it is not numeric. */
+    dst->numeric = 0;
 
     /* Access the data of the destination. */
     char* dst_data = dst->data_str;
@@ -1233,7 +1235,7 @@ static Value concat_value_bitstring_array(int num, int dir,
         unsigned int idx = dir ? (num-i-1) : i;
         Value value = args[idx];
         unsigned long long cw = type_width(value->type);
-        // printf("value=%s cw=%llu\n",value->data_str,cw);
+        // printf("value=%s cw=%llu pos=%llu\n",value->data_str,cw,pos);
         memcpy(dst_data+pos,value->data_str,cw);
         pos += cw;
     }
