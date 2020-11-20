@@ -125,20 +125,26 @@ end
 # Module for testing the connector.
 system :with_connectors do
     inner :clk, :rst
-    [4].inner :counter, :res_0,:res_1,:res_2,:res_3
+    [4].inner :counter #, :res_0,:res_1,:res_2,:res_3
+    [4*4].inner :res
     inner :ack_in, :ack_out
 
     # The input queue.
     queue(bit[4],4,clk,rst).(:in_qu)
 
-    # The first output queue.
-    queue(bit[4],4,clk,rst).(:out_qu0)
-    queue(bit[4],4,clk,rst).(:out_qu1)
-    queue(bit[4],4,clk,rst).(:out_qu2)
-    queue(bit[4],4,clk,rst).(:out_qu3)
+    # The middle queues.
+    mid_qus = 4.times.map do |i|
+        queue(bit[4],4,clk,rst).(:"mid_qu#{i}")
+    end
 
-    # Connect them
-    duplicator([4],clk.negedge,in_qu,[out_qu0,out_qu1,out_qu2,out_qu3])
+    # The output queue.
+    queue(bit[4*4],4,clk,rst).(:out_qu)
+
+    # Connect the input queue to the middle queues.
+    duplicator(bit[4],clk.negedge,in_qu,mid_qus)
+
+    # Connect the middle queues to the output queue.
+    merger([bit[4]]*4,clk.negedge,mid_qus,out_qu)
 
     # # Slow version, always work
     # par(clk.posedge) do
@@ -154,10 +160,10 @@ system :with_connectors do
     #             end
     #         end
     #         hif(ack_in) do
-    #             out_qu0.read(res_0)
-    #             out_qu1.read(res_1)
-    #             out_qu2.read(res_2)
-    #             out_qu3.read(res_3) { ack_out <= 1 }
+    #             mid_qu0.read(res_0)
+    #             mid_qu1.read(res_1)
+    #             mid_qu2.read(res_2)
+    #             mid_qu3.read(res_3) { ack_out <= 1 }
     #         end
     #     end
     # end
@@ -172,10 +178,11 @@ system :with_connectors do
                 counter <= counter + 1
             end
             hif(ack_in) do
-                out_qu0.read(res_0)
-                out_qu1.read(res_1)
-                out_qu2.read(res_2)
-                out_qu3.read(res_3)
+                # mid_qu0.read(res_0)
+                # mid_qu1.read(res_1)
+                # mid_qu2.read(res_2)
+                # mid_qu3.read(res_3)
+                out_qu.read(res)
             end
         end
     end
