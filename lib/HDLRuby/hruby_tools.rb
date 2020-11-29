@@ -29,8 +29,14 @@ module HDLRuby
     class ::Integer
 
         # Gets the bit width
+        # NOTE: returns infinity if the number is negative.
         def width
-            return Math.log2(self+1).ceil
+            return self >= 0 ? Math.log2(self+1).ceil : 1.0/0.0
+        end
+
+        # Tells if the value is a power of 2.
+        def pow2?
+            return self > 0 && (self & (self - 1) == 0)
         end
     end
 
