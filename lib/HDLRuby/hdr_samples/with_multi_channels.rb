@@ -23,12 +23,6 @@ channel(:queue) do |typ,depth,clk,rst|
     par(clk.posedge) do
         hif(rst) { rptr <= 0; wptr <= 0 }
         helse do
-            # hif(rsync) do
-            #     hif(rptr != wptr) do
-            #         rdata <= buffer[rptr]
-            #     end
-            # end
-            # helse do
             hif(~rsync) do
                 hif (~rreq) { rack <= 0 }
                 hif(rreq & (~rack) & (rptr != wptr)) do
@@ -38,10 +32,6 @@ channel(:queue) do |typ,depth,clk,rst|
                 end
             end
 
-            # hif(wsync) do
-            #     buffer[wptr] <= wdata
-            # end
-            # helse do
             hif(~wsync) do
                 hif (~wreq) { wack <= 0 }
                 hif(wreq & (~wack) & (((wptr+1) % depth) != rptr)) do
@@ -67,7 +57,6 @@ channel(:queue) do |typ,depth,clk,rst|
             end
             seq do
                 hif(rptr != wptr) do
-                    # target <= rdata
                     target <= buffer[rptr]
                     rptr <= (rptr + 1) % depth
                     blk.call if blk
@@ -102,7 +91,6 @@ channel(:queue) do |typ,depth,clk,rst|
                 wreq <= 0
             end
             hif(((wptr+1) % depth) != rptr) do
-                # wdata <= target
                 buffer[wptr] <= target
                 wptr <= (wptr + 1) % depth
                 blk.call if blk
