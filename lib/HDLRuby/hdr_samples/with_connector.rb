@@ -125,7 +125,9 @@ end
 # Module for testing the connector.
 system :with_connectors do
     inner :clk, :rst
-    [4].inner :counter #, :res_0,:res_1,:res_2,:res_3
+
+    # First tester.
+    [4].inner :counter
     [4*4].inner :res
     inner :ack_in, :ack_out
 
@@ -145,6 +147,22 @@ system :with_connectors do
 
     # Connect the middle queues to the output queue.
     merger([bit[4]]*4,clk.negedge,mid_qus,out_qu)
+
+
+    # Second tester.
+    [4].inner :counterb
+    [4].inner :resb
+    inner :ack_inb0, :ack_inb1, :ack_outb
+
+    # The input queues.
+    queue(bit[4],4,clk,rst).(:in_qub0)
+    queue(bit[4],4,clk,rst).(:in_qub1)
+
+    # The output queue.
+    queue(bit[4],4,clk,rst).(:out_qub)
+
+    # Connect then with a serializer.
+    serializer(bit[4],clk.negedge,[in_qub0,in_qub1],out_qub)
 
     # # Slow version, always work
     # par(clk.posedge) do
@@ -171,18 +189,31 @@ system :with_connectors do
     # Fast version but assumes connected channels are blocking
     par(clk.posedge) do
         ack_in <= 0
-        hif(rst) { counter <= 0 }
+        ack_inb0 <= 0
+        ack_inb1 <= 0
+        hif(rst) { counter <= 0; counterb <= 0 }
         helse do
             in_qu.write(counter)  do
                 ack_in <= 1
                 counter <= counter + 1
             end
             hif(ack_in) do
-                # mid_qu0.read(res_0)
-                # mid_qu1.read(res_1)
-                # mid_qu2.read(res_2)
-                # mid_qu3.read(res_3)
                 out_qu.read(res)
+            end
+            hif(~ack_inb0) do
+                in_qub0.write(counterb) do
+                    ack_inb0 <= 1
+                    counterb <= counterb + 1
+                end
+            end
+            helse do
+                in_qub1.write(counterb) do
+                    ack_inb1 <= 1
+                    counterb <= counterb + 1
+                end
+            end
+            hif(ack_inb0 | ack_inb1) do
+                out_qub.read(resb)
             end
         end
     end

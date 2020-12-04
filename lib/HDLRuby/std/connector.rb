@@ -37,7 +37,7 @@ module HDLRuby::High::Std
 
     # Function for generating a connector that merges the output of
     # channels +in_chs+ and connects the result to channel +out_ch+ with
-    # data of +typ+.
+    # data of types from +typs+.
     # The merge is done according to event +ev+.
     function :merger do |typs, ev, in_chs, out_ch|
         ev = ev.posedge unless ev.is_a?(Event)
@@ -62,6 +62,47 @@ module HDLRuby::High::Std
         end
     end
 
+
+    # Function for generating a connector that serialize to the output of
+    # channels +in_chs+ and connects the result to channel +out_ch+ with
+    # data of +typ+.
+    # The merge is done according to event +ev+.
+    function :serializer do |typ, ev, in_chs, out_ch|
+        ev = ev.posedge unless ev.is_a?(Event)
+        size = in_chs.size
+        inner :out_ack
+        # in_reqs = size.times.map { |i| inner(:"in_req#{i}") }
+        in_acks = size.times.map { |i| inner(:"in_ack#{i}") }
+        datas =   size.times.map { |i| typ.inner(:"data#{i}") }
+        # The inpt channel selector
+        [size.width].inner :idx
+        inner :reading
+        par(ev) do
+            # in_reqs.each { |req| req <= 1 }
+            idx <= 0
+            reading <= 0
+            out_ack <= 0
+            # hif(idx == size) { in_reqs.each { |req| req <= 0 } }
+            # hif((idx == 0) & (in_reqs.reduce(_1) { |sum,req| req & sum })) do
+            hif(idx == 0) do
+                hif(~reading) do
+                    size.times { |i| in_acks[i] <= 0 }
+                end
+                reading <= 1
+                in_chs.each_with_index do |ch,i|
+                    ch.read(datas[i]) { in_acks[i] <= 1 }
+                end
+            end
+            hif(in_acks.reduce(_1) { |sum,req| req & sum }) do
+                hcase(idx)
+                datas.each_with_index do |data,i|
+                    hwhen(i) do
+                        out_ch.write(data) { idx <= idx + 1; out_ack <= 1 }
+                    end
+                end
+            end
+        end
+    end
 
 
 end 
