@@ -82,7 +82,7 @@ module HDLRuby::High::Std
             idx <= 0
             reading <= 0
             out_ack <= 0
-            # hif(idx == size) { in_reqs.each { |req| req <= 0 } }
+            hif(idx == size-1) { in_acks.each { |ack| ack <= 0 } }
             # hif((idx == 0) & (in_reqs.reduce(_1) { |sum,req| req & sum })) do
             hif(idx == 0) do
                 hif(~reading) do
@@ -90,7 +90,9 @@ module HDLRuby::High::Std
                 end
                 reading <= 1
                 in_chs.each_with_index do |ch,i|
-                    ch.read(datas[i]) { in_acks[i] <= 1 }
+                    hif(~in_acks[i]) do
+                        ch.read(datas[i]) { in_acks[i] <= 1 }
+                    end
                 end
             end
             hif(in_acks.reduce(_1) { |sum,req| req & sum }) do
