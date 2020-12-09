@@ -1704,6 +1704,127 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
 
 end
 
+
+# Queue memory of +size+ elements of +typ+ typ, syncrhonized on +clk+
+# (positive and negative edges) and reset on +rst+.
+# At each rising edge of +clk+ a read and a write is guaranteed to be
+# completed provided they are triggered.
+#
+# NOTE: this channel does not have any branch.
+HDLRuby::High::Std.channel(:mem_queue) do |typ,size,clk,rst|
+    # The inner buffer of the queue.
+    typ[-size].inner :buffer
+    # The read and write pointers.
+    [size.width].inner :rptr, :wptr
+    # The read and write command signals.
+    inner :rreq, :wreq
+    # The read and write ack signals.
+    inner :rack, :wack
+    # The read/write data registers.
+    typ.inner :rdata, :wdata
+
+    # The flags telling of the channel is synchronized
+    inner :rsync, :wsync
+
+    # The process handling the decoupled access to the buffer.
+    par(clk.posedge) do
+        hif(rst) { rptr <= 0; wptr <= 0 }
+        helse do
+            hif(~rsync) do
+                hif (~rreq) { rack <= 0 }
+                hif(rreq & (~rack) & (rptr != wptr)) do
+                    rdata <= buffer[rptr]
+                    rptr <= (rptr + 1) % depth
+                    rack <= 1
+                end
+            end
+
+            hif(~wsync) do
+                hif (~wreq) { wack <= 0 }
+                hif(wreq & (~wack) & (((wptr+1) % size) != rptr)) do
+                    buffer[wptr] <= wdata
+                    wptr <= (wptr + 1) % size
+                    wack <= 1
+                end
+            end
+        end
+    end
+
+    reader_output :rreq, :rptr, :rsync
+    reader_input :rdata, :rack, :wptr, :buffer
+
+    # The read primitive.
+    reader do |blk,target|
+        if (cur_behavior.on_event?(clk.posedge,clk.negedge)) then
+            # Same clk event, synchrone case: perform a direct access.
+            # Now perform the access.
+            top_block.unshift do
+                rsync <= 1
+                rreq <= 0
+            end
+            seq do
+                hif(rptr != wptr) do
+                    # target <= rdata
+                    target <= buffer[rptr]
+                    rptr <= (rptr + 1) % size
+                    blk.call if blk
+                end
+            end
+        else
+            # Different clk event, perform a decoupled access.
+            top_block.unshift do
+                rsync <= 0
+                rreq <= 0
+            end
+            par do
+                hif (~rack) { rreq <= 1 }
+                helsif(rreq) do
+                    rreq <= 0
+                    target <= rdata
+                    blk.call if blk
+                end
+            end
+        end
+    end
+
+    writer_output :wreq, :wdata, :wptr, :wsync, :buffer
+    writer_input :wack, :rptr
+
+    # The write primitive.
+    writer do |blk,target|
+        if (cur_behavior.on_event?(clk.negedge,clk.posedge)) then
+            # Same clk event, synchrone case: perform a direct access.
+            top_block.unshift do
+                wsync <= 1
+                wreq <= 0
+            end
+            hif(((wptr+1) % size) != rptr) do
+                buffer[wptr] <= target
+                wptr <= (wptr + 1) % size
+                blk.call if blk
+            end
+        else
+            # Different clk event, asynchrone case: perform a decoupled access.
+            top_block.unshift do
+                wsync <= 0
+                wreq <= 0
+            end
+            seq do
+                hif (~wack) do
+                    wreq <= 1
+                    wdata <= target
+                end
+                helsif(wreq) do
+                    wreq <= 0
+                    blk.call if blk
+                end
+            end
+        end
+    end
+end
+
+
+
 # HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
 #     # Ensure typ is a type.
 #     typ = typ.to_type
