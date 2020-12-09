@@ -130,6 +130,7 @@ system :with_connectors do
     [4].inner :counter
     [4*4].inner :res
     inner :ack_in, :ack_out
+    inner :dup_req, :dup_ack
 
     # The input queue.
     queue(bit[4],4,clk,rst).(:in_qu)
@@ -143,7 +144,7 @@ system :with_connectors do
     queue(bit[4*4],4,clk,rst).(:out_qu)
 
     # Connect the input queue to the middle queues.
-    duplicator(bit[4],clk.negedge,in_qu,mid_qus)
+    duplicator(bit[4],clk.negedge,in_qu,mid_qus,dup_req,dup_ack)
 
     # Connect the middle queues to the output queue.
     merger([bit[4]]*4,clk.negedge,mid_qus,out_qu)
@@ -221,6 +222,7 @@ system :with_connectors do
     timed do
         clk <= 0
         rst <= 0
+        dup_req <= 0
         !10.ns
         clk <= 1
         !10.ns
@@ -235,6 +237,13 @@ system :with_connectors do
         !10.ns
         clk <= 0
         rst <= 0
+        4.times do
+            !10.ns
+            clk <= 1
+            !10.ns
+            clk <= 0
+        end
+        dup_req <= 1
         16.times do
             !10.ns
             clk <= 1

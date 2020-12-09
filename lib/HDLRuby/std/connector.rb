@@ -9,13 +9,28 @@ module HDLRuby::High::Std
     # channel +in_ch+ and connect it to channels +out_chs+ with data of
     # +typ+.
     # The duplication is done according to event +ev+.
-    function :duplicator do |typ, ev, in_ch, out_chs|
+    # The optional req and ack arguments are the signals for controlling the
+    # duplicator using a handshake protocol. If set to nil, the duplicator
+    # runs automatically.
+    function :duplicator do |typ, ev, in_ch, out_chs, req = nil, ack = nil|
         ev = ev.poswedge unless ev.is_a?(Event)
-        inner :in_ack, :in_req
+        inner :in_ack
+        inner :in_req
         out_acks = out_chs.size.times.map { |i| inner(:"out_ack#{i}") }
         typ.inner :data
         par(ev) do
-            in_req <= 1
+            if (ack) then
+                # Output ack mode.
+                ack <= 0
+            end
+            if (req) then
+                # Input request mode.
+                in_req <= 0
+                hif(req) { in_req <= 1 }
+            else
+                # Automatic mode.
+                in_req <= 1
+            end
             out_acks.each { |ack| ack <= 0 }
             out_acks.each do |ack| 
                 hif(ack == 1) { in_req <= 0 }
@@ -30,6 +45,10 @@ module HDLRuby::High::Std
                 end
                 hif (out_acks.reduce(_1) { |sum,ack| ack & sum }) do
                     out_acks.each { |ack| ack <= 0 }
+                    if (ack) then
+                        # Output ack mode.
+                        ack <= 1
+                    end
                 end
             end
         end
