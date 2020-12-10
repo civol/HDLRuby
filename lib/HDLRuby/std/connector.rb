@@ -13,7 +13,7 @@ module HDLRuby::High::Std
     # duplicator using a handshake protocol. If set to nil, the duplicator
     # runs automatically.
     function :duplicator do |typ, ev, in_ch, out_chs, req = nil, ack = nil|
-        ev = ev.poswedge unless ev.is_a?(Event)
+        ev = ev.posedge unless ev.is_a?(Event)
         inner :in_ack
         inner :in_req
         out_acks = out_chs.size.times.map { |i| inner(:"out_ack#{i}") }
