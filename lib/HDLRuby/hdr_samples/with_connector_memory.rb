@@ -40,10 +40,14 @@ system :channel_connector do
 
     serializer(typ,clk.negedge,[reader_inputs_x,reader_inputs_h],writer_inputs_serializer)
 
-    # merger([typ]*2,clk.negedge,[reader_inputs_x,reader_inputs_h], writer_inputs_meger)
+    mem_rom(typ, columns[0], clk, rst, inputs_x, rinc: :rst, winc: :rst).(:rom_inputs_r) # 入力値を格納するrom(x)
+    mem_dual(typ, columns[0], clk, rst, rinc: :rst, winc: :rst).(:ram_duplicator0) #
+    mem_dual(typ, columns[0], clk, rst, rinc: :rst, winc: :rst).(:ram_duplicator1) #
+    reader_inputs_r    = rom_inputs_r.branch(:rinc)
+    writer_duplicator0 = ram_duplicator0.branch(:winc)
+    writer_duplicator1 = ram_duplicator1.branch(:winc)
 
-    # duplicator(typ,clk.negedge,reader_inputs_r,[])
-
+    duplicator(typ,clk.posedge,reader_inputs_r,[writer_duplicator0, writer_duplicator1])
 
     timed do
       # リセット

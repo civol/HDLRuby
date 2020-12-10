@@ -289,9 +289,10 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
             rst  = send(rst_name)
             top_block.unshift do
                 # Initialize the address so that the next access is at address 0.
-                hif(rst==1) { abus_r <= -1 }
-                # Reset so switch of the access trigger.
-                trig_r <= 0
+                # hif(rst==1) { abus_r <= -1 }
+                # # Reset so switch of the access trigger.
+                # trig_r <= 0
+                hif(rst==1) { abus_r <= -1; trig_r <= 0 }
             end
             # The read procedure.
         #     par do
@@ -317,6 +318,7 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                         # blk.call if blk
                         seq do
                             # abus_r <= abus_r + 1
+                            trig_r <= 0
                             target <= dbus_r
                             blk.call if blk
                         end
