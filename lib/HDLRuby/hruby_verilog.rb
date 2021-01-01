@@ -11,6 +11,10 @@ include HDLRuby::Verilog
 module HDLRuby::Low
 
 
+    # The list of base types used both in verilog and HDLRuby
+    VERILOG_BASE_TYPES = ["signed"]
+
+
 # Sample of very handy for programming.
 # puts "class=#{self.yes.class}"       # Confirm class of self.yes.
 # puts "methods=#{self.right.methods}" # Confirm method of self.right.
@@ -1349,7 +1353,8 @@ end
 class TypeVector
     # Converts the system to Verilog code.
     def to_verilog
-        if self.base.name.to_s != "bit"
+        # if self.base.name.to_s != "bit"
+        if VERILOG_BASE_TYPES.include?(self.base.name.to_s)
             return " #{self.base.name.to_s}[#{self.range.first}:#{self.range.last}]"
         end
         return " [#{self.range.first}:#{self.range.last}]"
@@ -1750,10 +1755,12 @@ class SystemT
         end
         # And the array types signals.
         self.each_signal do |sig|
-            regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+            # regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+            regs << sig.to_verilog if sig.type.vector? && sig.type.base.vector?
         end
         self.each_inner do |sig|
-            regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+            # regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+            regs << sig.to_verilog if sig.type.vector? && sig.type.base.vector?
         end
 
         # Code generation
