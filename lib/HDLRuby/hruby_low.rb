@@ -1183,6 +1183,11 @@ module HDLRuby::Low
             return false
         end
 
+        # Tells if the type of of vector kind.
+        def vector?
+            return false
+        end
+
         # Gets the bitwidth of the type, by default 0.
         # Bit, signed, unsigned and Float base have a width of 1.
         def width
@@ -1410,7 +1415,7 @@ module HDLRuby::Low
 
             # Sets the delegations
             self.extend Forwardable
-            [ :signed?, :unsigned?, :fixed?, :float?, :leaf?,
+            [ :signed?, :unsigned?, :fixed?, :float?, :leaf?, :vector?,
               :width, :range?, :range, :base?, :base, :types?,
               :get_all_types, :get_type, :each, :each_type, 
               :regular?,
@@ -1465,6 +1470,11 @@ module HDLRuby::Low
     class TypeVector < Type
         # The base type of the vector
         attr_reader :base
+
+        # Tells if the type of of vector kind.
+        def vector?
+            return true
+        end
 
         # Tells if the type has a base.
         def base?
