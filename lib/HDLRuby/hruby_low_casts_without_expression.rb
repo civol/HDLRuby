@@ -174,7 +174,18 @@ module HDLRuby::Low
                 # Need to extract the child.
                 # Create signal holding the child.
                 stmnt = self.statement
-                blk = stmnt.block
+                if (stmnt.is_a?(Connection)) then
+                    # Specific case of connections: need to build
+                    # a new block.
+                    scop = stmnt.parent
+                    scop.delete_connection!(stmnt)
+                    stmnt = Transmit.new(stmnt.left.clone, stmnt.right.clone)
+                    blk = Block.new(:seq)
+                    scop.add_behavior(Behavior.new(blk))
+                    blk.add_statement(stmnt)
+                else
+                    blk = stmnt.block
+                end
                 name = HDLRuby.uniq_name
                 typ = nchild.type
                 sig = blk.add_inner(SignalI.new(name,typ))

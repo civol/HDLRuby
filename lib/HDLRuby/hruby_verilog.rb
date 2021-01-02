@@ -1617,6 +1617,9 @@ class Cast
     #       by traditional verilog.
     def to_verilog
         # return "#{self.type.to_verilog}'(#{self.child.to_verilog})"
+        if self.child.is_a?(Value) then
+            return self.child.to_verilog
+        end
         # Get the type widths, used for computing extensions or truncations.
         cw = self.child.type.width
         sw = self.type.width
