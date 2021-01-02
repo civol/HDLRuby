@@ -61,5 +61,6 @@ system :fix_test do
         !10.ns
         c <= a * b
         !10.ns
+        c <= (a+b) * b
     end
 end

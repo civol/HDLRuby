@@ -19,6 +19,7 @@ require 'HDLRuby/hruby_low_with_port'
 require 'HDLRuby/hruby_low_with_var'
 require 'HDLRuby/hruby_low_without_concat'
 require 'HDLRuby/hruby_low_without_connection'
+require 'HDLRuby/hruby_low_casts_without_expression'
 require 'HDLRuby/hruby_low_cleanup'
 
 require 'HDLRuby/hruby_verilog.rb'
@@ -577,6 +578,7 @@ elsif $options[:verilog] then
     # top_system = $top_system
     # Make description compatible with verilog generation.
     $top_system.each_systemT_deep do |systemT|
+        systemT.casts_without_expression!
         systemT.to_upper_space!
         systemT.to_global_systemTs!
         # systemT.break_types!
