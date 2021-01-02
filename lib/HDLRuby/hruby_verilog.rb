@@ -460,7 +460,10 @@ class Block
                             $fm.fm_par["#{tmt.left.to_verilog}"] = tmt.right
                         end
                         new_block.add_statement(tmt.clone)           
-                    end         
+                    end
+                else
+                    # Other statements are simply added as is.
+                    new_block.add_statement(statement.clone)
                 end
             end
 
@@ -1603,7 +1606,7 @@ end
 class Unary
     # Converts the system to Verilog code.
     def to_verilog
-        return "#{self.operator}#{self.child.to_verilog}"
+        return "#{self.operator[0]}#{self.child.to_verilog}"
     end
 end
 
@@ -1614,10 +1617,34 @@ class Cast
     #       by traditional verilog.
     def to_verilog
         # return "#{self.type.to_verilog}'(#{self.child.to_verilog})"
+        # Get the type widths, used for computing extensions or truncations.
+        cw = self.child.type.width
+        sw = self.type.width
         if self.type.signed? then
-            return "$signed(#{self.child.to_verilog})"
+            # return "$signed(#{self.child.to_verilog})"
+            if (sw>cw) then
+                # Need to sign extend.
+                return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," +
+                  "#{self.child.to_verilog}})"
+            elsif (sw<cw) then
+                # Need to truncate
+                return "$signed(#{self.child.to_verilog}[#{sw-1}:0])"
+            else
+                # Only enforce signed.
+                return "$signed(#{self.child.to_verilog})"
+            end
         else
-            return "$unsigned(#{self.child.to_verilog})"
+            # return "$unsigned(#{self.child.to_verilog})"
+            if (sw>cw) then
+                # Need to extend.
+                return "$unsigned({{#{sw-cw}{1'b0}},#{self.child.to_verilog}})"
+            elsif (sw<cw) then
+                # Need to truncate
+                return "$unsigned(#{self.child.to_verilog}[#{sw-1}:0])"
+            else
+                # Only enforce signed.
+                return "$unsigned(#{self.child.to_verilog})"
+            end
         end
     end
 end
@@ -1675,15 +1702,15 @@ class Delay
     def to_verilog
         time = self.value.to_s
         if(self.unit.to_s == "ps") then
-            return "##{time}"
+            return "##{time};"
         elsif(self.unit.to_s == "ns")
-            return "##{time}000"
+            return "##{time}000;"
         elsif(self.unit.to_s == "us")
-            return "##{time}000000"
+            return "##{time}000000;"
         elsif(self.unit.to_s == "ms")
-            return "##{time}000000000"
+            return "##{time}000000000;"
         elsif(self.unit.to_s == "s")
-            return "##{time}000000000000"
+            return "##{time}000000000000;"
         end
     end
 end
