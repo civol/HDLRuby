@@ -326,7 +326,8 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                     helse do
                         # Prepare the read.
                         # abus_r <= abus_r + 1
-                        if 2**size.width != size then
+                        # if 2**size.width != size then
+                        if 2**awidth != size then
                             abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
                         else
                             abus_r <= abus_r + 1
@@ -392,7 +393,8 @@ HDLRuby::High::Std.channel(:mem_rom) do |typ,size,clk,rst,content,
                     helse do
                         # Prepare the read.
                         # abus_r <= abus_r - 1
-                        if 2**size.width != size then
+                        # if 2**size.width != size then
+                        if 2**awidth != size then
                             abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
                         else
                             abus_r <= abus_r - 1
@@ -609,7 +611,8 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     helse do
                         # Prepare the read.
                         # abus_r <= abus_r + 1
-                        if 2**size.width != size then
+                        # if 2**size.width != size then
+                        if 2**awidth != size then
                             abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
                         else
                             abus_r <= abus_r + 1
@@ -651,7 +654,8 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the write.
                     # abus_w <= abus_w + 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_w <= mux((abus_w + 1) == size, abus_w + 1, 0)
                     else
                         abus_w <= abus_w + 1
@@ -718,7 +722,8 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     helse do
                         # Prepare the read.
                         # abus_r <= abus_r - 1
-                        if 2**size.width != size then
+                        # if 2**size.width != size then
+                        if 2**awidth != size then
                             abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
                         else
                             abus_r <= abus_r - 1
@@ -760,7 +765,8 @@ HDLRuby::High::Std.channel(:mem_dual) do |typ,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the write.
                     # abus_w <= abus_w - 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_w <= mux(abus_w == 0, abus_w - 1, size - 1)
                     else
                         abus_w <= abus_w - 1
@@ -841,9 +847,12 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
 
     # Defines the ports of the memory as branchs of the channel.
     
-    # The number branch (accesser).
+    # # The number branch (accesser).
+    # The number branch (reader/writer).
     brancher(:anum) do
-        size.times { |i| accesser_inout :"reg_#{i}" }
+        # size.times { |i| accesser_inout :"reg_#{i}" }
+        size.times { |i| reader_input :"reg_#{i}" }
+        size.times { |i| writer_output :"reg_#{i}" }
 
         # Defines the read procedure of register number +num+
         # using +target+ as target of access result.
@@ -884,6 +893,39 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
             return chbs
         end
 
+    end
+
+    # The number read branch (reader).
+    brancher(:rnum) do
+        size.times { |i| reader_input :"reg_#{i}" }
+
+        # Defines the read procedure of register number +num+
+        # using +target+ as target of access result.
+        reader do |blk,num,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # The read procedure.
+            par do
+                # No reset, so can perform the read.
+                target <= regs[num]
+                blk.call if blk
+            end
+        end
+    end
+
+    # The number write branch (writer).
+    brancher(:wnum) do
+        size.times { |i| writer_output :"reg_#{i}" }
+
+        # Defines the read procedure of register number +num+
+        # using +target+ as target of access result.
+        writer do |blk,num,target|
+            regs = size.times.map {|i| send(:"reg_#{i}") }
+            # The write procedure.
+            par do
+                regs[num] <= target
+                blk.call if blk
+            end
+        end
     end
 
     
@@ -961,7 +1003,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
         awidth = (size-1).width
         awidth = 1 if awidth == 0
         [awidth].inner :abus_r
-        reader_inout :abus_r
+        # reader_inout :abus_r
+        reader_output :abus_r
 
         # Defines the read procedure at address +addr+
         # using +target+ as target of access result.
@@ -984,7 +1027,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the next read.
                     # abus_r <= abus_r + 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
                     else
                         abus_r <= abus_r + 1
@@ -1030,7 +1074,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the next write.
                     # abus_w <= abus_w + 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_w <= mux((abus_w + 1) == size, abus_w + 1, 0)
                     else
                         abus_w <= abus_w + 1
@@ -1078,7 +1123,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the next read.
                     # abus_r <= abus_r - 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
                     else
                         abus_r <= abus_r - 1
@@ -1124,7 +1170,8 @@ HDLRuby::High::Std.channel(:mem_file) do |typ,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the next write.
                     # abus_w <= abus_w - 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_w <= mux(abus_w == 0, abus_w - 1, size - 1)
                     else
                         abus_w <= abus_w - 1
@@ -1340,7 +1387,8 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                     end
                     # Prepare the read.
                     # abus_r <= abus_r + 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_r <= mux((abus_r + 1) == size, abus_r + 1, 0)
                     else
                         abus_r <= abus_r + 1
@@ -1381,7 +1429,8 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the write.
                     # abus_w <= abus_w + 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_w <= mux((abus_w + 1) == size, abus_w + 1, 0)
                     else
                         abus_w <= abus_w + 1
@@ -1427,7 +1476,8 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                     end
                     # Prepare the read.
                     # abus_r <= abus_r - 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_r <= mux(abus_r == 0, abus_r - 1, size - 1)
                     else
                         abus_r <= abus_r - 1
@@ -1468,7 +1518,8 @@ HDLRuby::High::Std.channel(:mem_bank) do |typ,nbanks,size,clk,rst,br_rsts = {}|
                     blk.call if blk
                     # Prepare the write.
                     abus_w <= abus_w - 1
-                    if 2**size.width != size then
+                    # if 2**size.width != size then
+                    if 2**awidth != size then
                         abus_w <= mux(abus_w == 0, abus_w - 1, size - 1)
                     else
                         abus_w <= abus_w - 1
