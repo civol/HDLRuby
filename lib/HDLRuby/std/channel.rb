@@ -778,15 +778,30 @@ module HDLRuby::High::Std
                 # Port in same system as the channel case.
                 # Add them to the current system.
                 HDLRuby::High.cur_system.open do
-                    locs.each  do |name,sig|
-                        port_pairs << [sig, sig.type.inner(name)]
+                    # locs.each  do |name,sig|
+                    #     port_pairs << [sig, sig.type.inner(name)]
+                    # end
+                    loc_inputs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name),:input]
+                    end
+                    loc_outputs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name),:output]
+                    end
+                    loc_inouts.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name),:inout]
                     end
                 end
                 obj = self
                 # Make the inner connection
-                port_pairs.each do |sig, port|
+                # port_pairs.each do |sig, port|
+                port_pairs.each do |sig, port, dir|
                     sig.parent.open do
-                        port.to_ref <= sig
+                        # port.to_ref <= sig
+                        if dir == :input then
+                            port.to_ref <= sig
+                        else
+                            sig <= port.to_ref
+                        end
                     end
                 end
             else
@@ -796,23 +811,28 @@ module HDLRuby::High::Std
                     # The inputs
                     loc_inputs.each  do |name,sig|
                         # puts "name=#{name} sig.name=#{sig.name}"
-                        port_pairs << [sig, sig.type.input(name)]
+                        port_pairs << [sig, sig.type.input(name),:input]
                     end
                     # The outputs
                     loc_outputs.each do |name,sig| 
-                        port_pairs << [sig, sig.type.output(name)]
+                        port_pairs << [sig, sig.type.output(name),:output]
                     end
                     # The inouts
                     loc_inouts.each  do |name,sig| 
-                        port_pairs << [sig, sig.type.inout(name)]
+                        port_pairs << [sig, sig.type.inout(name),:inout]
                     end
                 end
                 obj = self
                 # Make the connection of the instance.
                 HDLRuby::High.cur_system.on_instance do |inst|
                     obj.scope.open do
-                        port_pairs.each do |sig, port|
-                            RefObject.new(inst,port.to_ref) <= sig
+                        port_pairs.each do |sig, port, dir|
+                            # RefObject.new(inst,port.to_ref) <= sig
+                            if dir == :input then
+                                RefObject.new(inst,port.to_ref) <= sig
+                            else
+                                sig <= RefObject.new(inst,port.to_ref)
+                            end
                         end
                     end
                 end
@@ -870,15 +890,30 @@ module HDLRuby::High::Std
                 # Port in same system as the channel case.
                 # Add them to the current system.
                 HDLRuby::High.cur_system.open do
-                    locs.each  do |name,sig|
-                        port_pairs << [sig, sig.type.inner(name)]
+                    # locs.each  do |name,sig|
+                    #     port_pairs << [sig, sig.type.inner(name)]
+                    # end
+                    loc_inputs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name),:input]
+                    end
+                    loc_outputs.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name),:output]
+                    end
+                    loc_inouts.each  do |name,sig|
+                        port_pairs << [sig, sig.type.inner(name),:inout]
                     end
                 end
                 obj = self
                 # Make the inner connection
-                port_pairs.each do |sig, port|
+                # port_pairs.each do |sig, port|
+                port_pairs.each do |sig, port, dir|
                     sig.parent.open do
-                        port.to_ref <= sig
+                        # port.to_ref <= sig
+                        if dir == :input then
+                            port.to_ref <= sig
+                        else
+                            sig <= port.to_ref
+                        end
                     end
                 end
             else
@@ -887,23 +922,29 @@ module HDLRuby::High::Std
                 HDLRuby::High.cur_system.open do
                     # The inputs
                     loc_inputs.each  do |name,sig|
-                        port_pairs << [sig, sig.type.input(name)]
+                        port_pairs << [sig, sig.type.input(name),:input]
                     end
                     # The outputs
                     loc_outputs.each do |name,sig| 
-                        port_pairs << [sig, sig.type.output(name)]
+                        port_pairs << [sig, sig.type.output(name),:output]
                     end
                     # The inouts
                     loc_inouts.each  do |name,sig| 
-                        port_pairs << [sig, sig.type.inout(name)]
+                        port_pairs << [sig, sig.type.inout(name),:inout]
                     end
                 end
                 obj = self
                 # Make the connection of the instance.
                 HDLRuby::High.cur_system.on_instance do |inst|
                     obj.scope.open do
-                        port_pairs.each do |sig, port|
-                            RefObject.new(inst,port.to_ref) <= sig
+                        port_pairs.each do |sig, port, dir|
+                            # RefObject.new(inst,port.to_ref) <= sig
+                            # RefObject.new(inst,port.to_ref) <= sig
+                            if dir == :input then
+                                RefObject.new(inst,port.to_ref) <= sig
+                            else
+                                sig <= RefObject.new(inst,port.to_ref)
+                            end
                         end
                     end
                 end
