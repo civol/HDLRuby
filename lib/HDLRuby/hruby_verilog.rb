@@ -1725,6 +1725,20 @@ end
 
 # Enhance SystemT with generation of verilog code.
 class SystemT
+    
+    ## Tells if a connection is actually a port connection.
+    def port_output_connection?(connection)
+        return self.each_systemI.find do |systemI|
+            if connection.right.is_a?(RefName) && 
+            connection.right.ref.is_a?(RefName) &&
+            systemI.name == connection.right.ref.name
+                puts "port_connection for right=#{connection.right.name} and systemI=#{systemI.name}"
+                true
+            else
+                false
+            end
+        end
+    end
 
     ## Tells if an expression is a reference to port +systemI.signal+.
     def port_assign?(expr, systemI, signal)
@@ -1776,6 +1790,17 @@ class SystemT
                 end
             end
         end
+        # # puts "regs has clk?: #{regs.include?("clk")}"
+        # # puts "for system #{self.name}"
+        # # Remove the left values of connection, they do not count.
+        # self.scope.each_connection do |connection|
+        #     # Skip port connections.
+        #     next if !self.port_output_connection?(connection) 
+        #     # puts "Not counting left in connection: #{connection.to_verilog}"
+        #     # puts "i.e.: #{connection.left.to_verilog}"
+        #     regs.delete(connection.left.to_verilog)
+        # end
+        # # puts "Now regs has clk?: #{regs.include?("clk")}"
         # And the initialized signals.
         self.each_output do |output|
             regs << output.to_verilog if output.value
@@ -1969,9 +1994,11 @@ class SystemT
 
         code << "\n"
 
+        # puts "For system=#{self.name}"
         # transliation of the instantiation part.
         # Generate the instances connections.
         self.each_systemI do |systemI| 
+            # puts "Processing systemI = #{systemI.name}"
             # Its Declaration.
             code << " " * 3
             systemT = systemI.systemT
