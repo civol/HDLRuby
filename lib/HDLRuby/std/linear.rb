@@ -233,15 +233,16 @@ module HDLRuby::High::Std
                     hif(lvoks[i] & rvok & ~woks[i]) do
                         ack <= 1
                         run <= 0
-                        seq do
-                            avs[i] <= add.(avs[i],mul.(lvs[i],rv))
-                            accs[i].write(avs[i]) do
-                                woks[i] <= 1
-                                # seq do
-                                #     lvoks[i] <= 0
-                                #     rvok <= lvoks.reduce(:|)
-                                # end
-                            end
+                        # seq do
+                        #     avs[i] <= add.(avs[i],mul.(lvs[i],rv))
+                        #     accs[i].write(avs[i]) do
+                        #         woks[i] <= 1
+                        #     end
+                        # end
+                        # Seems that can do without seq.
+                        avs[i] <= add.(avs[i],mul.(lvs[i],rv))
+                        accs[i].write(avs[i]) do
+                            woks[i] <= 1
                         end
                     end
                     hif (woks.reduce(:&)) do
