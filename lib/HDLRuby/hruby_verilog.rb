@@ -1777,6 +1777,12 @@ class SystemT
     # Converts the system to Verilog code.
     def to_verilog
         # Preprocessing
+        # Force seq block to par: ULTRA TEMPORARY! ICIICI
+        self.each_behavior do |behavior|
+            behavior.each_block_deep do |block|
+                block.set_mode!(:par) unless block.is_a?(TimeBlock)
+            end
+        end
         # Detect the registers
         regs = []
         # The left values.
