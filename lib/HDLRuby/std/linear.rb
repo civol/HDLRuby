@@ -229,20 +229,14 @@ module HDLRuby::High::Std
                 hif(~rvok) { right.read(rv) { rvok <= 1 } }
                 lefts.each_with_index do |left,i|
                     hif(~lvoks[i]) { left.read(lvs[i])  { lvoks[i] <= 1 } }
-                    # accs[i].read(avs[i])
                     hif(lvoks[i] & rvok & ~woks[i]) do
                         ack <= 1
                         run <= 0
-                        # seq do
-                        #     avs[i] <= add.(avs[i],mul.(lvs[i],rv))
-                        #     accs[i].write(avs[i]) do
-                        #         woks[i] <= 1
-                        #     end
-                        # end
-                        # Seems that can do without seq.
-                        avs[i] <= add.(avs[i],mul.(lvs[i],rv))
-                        accs[i].write(avs[i]) do
-                            woks[i] <= 1
+                        seq do
+                            avs[i] <= add.(avs[i],mul.(lvs[i],rv))
+                            accs[i].write(avs[i]) do
+                                woks[i] <= 1
+                            end
                         end
                     end
                     hif (woks.reduce(:&)) do
