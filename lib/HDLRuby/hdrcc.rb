@@ -20,6 +20,7 @@ require 'HDLRuby/hruby_low_with_var'
 require 'HDLRuby/hruby_low_without_concat'
 require 'HDLRuby/hruby_low_without_connection'
 require 'HDLRuby/hruby_low_casts_without_expression'
+require 'hruby_low_without_parinseq'
 require 'HDLRuby/hruby_low_cleanup'
 
 require 'HDLRuby/hruby_verilog.rb'
@@ -583,6 +584,7 @@ elsif $options[:verilog] then
         systemT.to_global_systemTs!
         # systemT.break_types!
         # systemT.expand_types!
+        systemT.par_in_seq2seq!
         systemT.initial_concat_to_timed!
         systemT.with_port!
     end

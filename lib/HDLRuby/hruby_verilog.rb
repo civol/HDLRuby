@@ -14,6 +14,9 @@ module HDLRuby::Low
     # The list of base types used both in verilog and HDLRuby
     VERILOG_BASE_TYPES = ["signed"]
 
+    # The list of signals that are actually verilog regs.
+    VERILOG_REGS = []
+
 
 # Sample of very handy for programming.
 # puts "class=#{self.yes.class}"       # Confirm class of self.yes.
@@ -25,7 +28,7 @@ module HDLRuby::Low
 # end
 
 # Global variable used for indentation and structure (temporary).
-$space_count = 0   # Count used for increasing indent by if statement. (temporary)
+# $space_count = 0   # Count used for increasing indent by if statement. (temporary)
 $vector_reg = ""   # For storing signal type at structure declaration. (temporary)
 $vector_cnt = 0    # For allocating numbers at structure declaration.  (temporary)
 
@@ -101,9 +104,11 @@ end
 # Enhance Transmit with generation of verilog code.
 class Transmit
     # Converts the system to Verilog code.
-    def to_verilog(mode = nil)
+    # def to_verilog(mode = nil)
+    def to_verilog(spc = 3)
         # Determine blocking assignment or nonblocking substitution from mode and return it.
-        code = "#{self.left.to_verilog} #{mode == "seq" ? "=" : "<="} #{self.right.to_verilog};\n"
+        # code = "#{self.left.to_verilog} #{mode == "seq" ? "=" : "<="} #{self.right.to_verilog};\n"
+        code = "#{" " * spc}#{self.left.to_verilog} #{self.block.mode == :seq ? "=" : "<="} #{self.right.to_verilog};"
         return code
     end
 end
@@ -111,11 +116,67 @@ end
 # To scheduling to the Block.
 # Enhance Block with generation of verilog code.
 class Block
-    # Converts the system to Verilog code.
-    def to_verilog(mode = nil)
-        # No translation is done in this class.
-        puts "Block to_verilog not found" # For debugging
+    # # Converts the system to Verilog code.
+    # def to_verilog(mode = nil)
+    #     # No translation is done in this class.
+    #     puts "Block to_verilog not found" # For debugging
+    # end
+
+    # Converts the system to Verilog code adding 'spc' spaces at the begining
+    # of each line.
+    def to_verilog(spc = 3)
+            code = "begin"
+            code << " : #{name_to_verilog(self.name)}" if self.name && !self.name.empty?
+            code << "\n" if block.each_inner.any?
+            # Declaration of "inner" part within "always".
+            block.each_inner do |inner|
+                # if regs.include?(inner.name) then
+                if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
+                    # code << "      reg"
+                    code << "#{" " * (spc+3)}reg"
+                else
+                    code << "#{" " * (spc+3)}wire"
+                end
+
+                # Variable has "base", but if there is width etc, it is not in "base".
+                # It is determined by an if.
+                if inner.type.base? 
+                    if inner.type.base.base? 
+                        # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+                    else
+                        # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+                        code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+                    end
+                else
+                    # code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+                    code << " #{inner.type.to_verilog}#{inner.to_verilog}"
+                end
+                if inner.value then
+                    # There is an initial value.
+                    code << " = #{inner.value.to_verilog}"
+                end
+                code << ";\n"
+            end
+
+            # Translate the block that finished scheduling.
+            block.each_statement do |statement|
+                #code  << "\n      #{statement.to_verilog(behavior.block.mode.to_s)}"
+                # code  << "\n#{" "*spc}#{statement.to_verilog(behavior.block.mode.to_s)}"
+                if statement.is_a?(Block) then
+                    code << "\n#{" " * (spc+3)}#{statement.to_verilog(spc+3)}"
+                else
+                    code  << "\n#{statement.to_verilog(spc+3)}"
+                end
+            end
+            # Close the block."
+            code << "\n#{" "*spc}end"
+            return code
     end
+
+
+
+
 
     # Extract and convert to verilog the TimeRepeat statements.
     # NOTE: work only on the current level of the block (should be called
@@ -136,7 +197,7 @@ class Block
             # Declaration of "inner" part within "always".
             block.each_inner do |inner|
                 # if regs.include?(inner.name) then
-                if regs.include?(inner.to_verilog) then
+                if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
                     code << "      reg"
                 else
                     code << "      wire"
@@ -1431,66 +1492,82 @@ class Value
     end
 end
 
+
 # Used to transrate if.
 # Enhance If with generation of verilog code.
 class If
-    # Converts the system to Verilog code.
-    def to_verilog(mode = nil)
+    # # Converts the system to Verilog code.
+    # def to_verilog(mode = nil)
+    # Converts to Verilog code, checking adding 'spc' spaces at the begining
+    # of each line.
+    def to_verilog(spc = 3)
 
         $blocking = false
 
-        if ($space_count == 0) then
-            result = "   " * ($space_count)  # Indented based on space_count.
-        else
-            result = ""
-        end
-        $space_count += 1                  # Add count to be used for indentation.
+        # if ($space_count == 0) then
+        #     result = "   " * ($space_count)  # Indented based on space_count.
+        # else
+        #     result = ""
+        # end
+        # $space_count += 1                  # Add count to be used for indentation.
+        result = " " * spc  # Indented based on space_count.
 
-        result << "if (#{self.condition.to_verilog}) begin\n"
+        # result << "if (#{self.condition.to_verilog}) begin\n"
+        result << "if (#{self.condition.to_verilog}) "
 
 
         # Check if there is yes (if) and output yes or less.
         if self.respond_to? (:yes)
-            self.yes.each_statement do |statement|
-                result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
-            end
-            result << "#{"   " * $space_count}   end\n"
+            # self.yes.each_statement do |statement|
+            #     result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
+            # end
+            # result << "#{"   " * $space_count}   end\n"
+            result << self.yes.to_verilog(spc)
         end
 
         # If noif (else if) exists, it outputs it.
         # Since noif is directly under, respond_to is unnecessary.
         self.each_noif do |condition, block|
-            result << "#{"   " * $space_count}   else if (#{condition.to_verilog}) begin\n"
-            block.each_statement do |statement|
-                result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
-            end
-            result << "#{"   "* $space_count}   end\n"
+            # result << "#{"   " * $space_count}   else if (#{condition.to_verilog}) begin\n"
+            result << "\n#{" "*spc}else if (#{condition.to_verilog}) "
+            # block.each_statement do |statement|
+            #     result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
+            # end
+            # result << "#{"   "* $space_count}   end\n"
+            result << block.to_verilog(spc)
         end
 
         # Check if there is no (else) and output no or less.
-        if self.no.respond_to? (:mode)
-            result << "#{"   " * $space_count}   else begin\n"
-            self.no.each_statement do |statement|
-                result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
-            end
-            result << "#{"   " * $space_count}   end\n"
+        if self.no.respond_to?(:mode)
+            # result << "#{"   " * $space_count}   else begin\n"
+            result << "\n#{" " * spc}else "
+            # self.no.each_statement do |statement|
+            #     result << "#{"   " * $space_count}      #{statement.to_verilog(mode)}"
+            # end
+            # result << "#{"   " * $space_count}   end\n"
+            result << self.no.to_verilog(spc)
         end
 
-        $space_count -= 1 # Since the output ends, reduce the count.
+        # $space_count -= 1 # Since the output ends, reduce the count.
         return result
     end
 end
 
 # Used to translate case
 class Case
-    def to_verilog(mode = nil)
+    # def to_verilog(mode = nil)
+    #
+    # Converts to Verilog code, checking if variables are register
+    # or wire adding 'spc' spaces at the begining of each line.
+    def to_verilog(spc = 3)
 
-        if ($space_count == 0) then
-            result = "   " * ($space_count) # Indented based on space_count.
-        else
-            result = ""
-        end
-        $space_count += 1                 # Add count to be used for indentation.
+        # if ($space_count == 0) then
+        #     result = "   " * ($space_count) # Indented based on space_count.
+        # else
+        #     result = ""
+        # end
+        # $space_count += 1                 # Add count to be used for indentation.
+        result = " " * spc # Indented based on space_count.
 
         result = ""
         result << "case(#{self.value.to_verilog})\n"
@@ -1498,40 +1575,55 @@ class Case
         # n the case statement, each branch is partitioned by when. Process each time when.
         self.each_when do |whens| 
             # Reads and stores the numbers and expressions stored in when.
-            result << "      " + "   " *$space_count + "#{whens.match.to_verilog}: "
-            if whens.statement.each_statement.count > 1 then
-                result << "begin\n"
-                whens.statement.each_statement do |statement|
-                    result << "                  "+ "   " *$space_count +"#{statement.to_verilog}"
-                end
-                result << "             " + "   " *$space_count + "end\n"
-            elsif whens.statement.each_statement.count == 1 then
-                whens.statement.each_statement do |statement|
-                    result << "#{statement.to_verilog}"
-                end
+            # result << "      " + "   " *$space_count + "#{whens.match.to_verilog}: "
+            result << " " * (spc+3) + "#{whens.match.to_verilog}: "
+            
+            # if whens.statement.each_statement.count > 1 then
+            #     result << "begin\n"
+            #     whens.statement.each_statement do |statement|
+            #         result << "                  "+ "   " *$space_count +"#{statement.to_verilog}"
+            #     end
+            #     result << "             " + "   " *$space_count + "end\n"
+            # elsif whens.statement.each_statement.count == 1 then
+            #     whens.statement.each_statement do |statement|
+            #         result << "#{statement.to_verilog}"
+            #     end
+            # else
+            #     # Empty statement case.
+            #     result << "\n"
+            # end
+            if whens.statement.each_statement.count >= 1 then
+                result << whens.statement.to_verilog(spc+3)
             else
-                # Empty statement case.
                 result << "\n"
             end
         end
-        # The default part is stored in default instead of when. Reads and processes in the same way as when.
+        # # The default part is stored in default instead of when. Reads and processes in the same way as when.
+        # if self.default then
+        #     if self.default.each_statement.count > 1 then
+        #         result << "      " + "   " *$space_count + "default: begin\n"
+        #         self.default.each_statement do |statement|
+        #             result << "                  " + "   " *$space_count + "#{statement.to_verilog}"
+        #         end
+        #         result << "                  end\n"
+        #     elsif self.default.each_statement.count == 1 then
+        #         result << "      " + "   " *$space_count + "default: "
+        #         self.default.each_statement do |statement|
+        #             result << "#{statement.to_verilog}"
+        #         end
+        #     end  
+        # end
         if self.default then
-            if self.default.each_statement.count > 1 then
-                result << "      " + "   " *$space_count + "default: begin\n"
-                self.default.each_statement do |statement|
-                    result << "                  " + "   " *$space_count + "#{statement.to_verilog}"
-                end
-                result << "                  end\n"
-            elsif self.default.each_statement.count == 1 then
-                result << "      " + "   " *$space_count + "default: "
-                self.default.each_statement do |statement|
-                    result << "#{statement.to_verilog}"
-                end
-            end  
+            if self.default.each_statement.count >= 1 then
+                result << self.default.each_statement.to_verilog(spc+3)
+            else
+                result << "\n"
+            end
         end
-        result << "   " + "   " *$space_count + "endcase\n" # Conclusion.
+        # result << "   " + "   " *$space_count + "endcase\n" # Conclusion.
+        result << " " * spc + "endcase\n" # Conclusion.
 
-        $space_count -= 1           # Since the output ends, reduce the count.
+        # $space_count -= 1           # Since the output ends, reduce the count.
         return result               # Return case after translation.
     end
 end
@@ -1697,8 +1789,9 @@ end
 # Look at the unit of time, convert the time to ps and output it.
 # One of two people, TimeWait and Delay.
 class TimeWait
-    def to_verilog(mode=nil)
-        return self.delay.to_verilog + "\n"
+    # def to_verilog(mode=nil)
+    def to_verilog(spc = 3)
+        return (" " * spc) + self.delay.to_verilog + "\n"
     end
 end
 class Delay
@@ -1776,15 +1869,9 @@ class SystemT
 
     # Converts the system to Verilog code.
     def to_verilog
-        # Preprocessing
-        # Force seq block to par: ULTRA TEMPORARY! ICIICI
-        self.each_behavior do |behavior|
-            behavior.each_block_deep do |block|
-                block.set_mode!(:par) unless block.is_a?(TimeBlock)
-            end
-        end
         # Detect the registers
-        regs = []
+        # regs = []
+        HDLRuby::Low::VERILOG_REGS.clear
         # The left values.
         self.each_behavior do |behavior|
             # behavior.block.each_statement do |statement|
@@ -1792,7 +1879,9 @@ class SystemT
             # end
             behavior.each_block_deep do |block|
                 block.each_statement do |statement|
-                    regs << statement.left.to_verilog if statement.is_a?(Transmit)
+                    if statement.is_a?(Transmit)
+                        HDLRuby::Low::VERILOG_REGS << statement.left.to_verilog
+                    end
                 end
             end
         end
@@ -1809,19 +1898,27 @@ class SystemT
         # # puts "Now regs has clk?: #{regs.include?("clk")}"
         # And the initialized signals.
         self.each_output do |output|
-            regs << output.to_verilog if output.value
+            # regs << output.to_verilog if output.value
+            HDLRuby::Low::VERILOG_REGS << output.to_verilog if output.value
         end
         self.each_inner do |inner|
-            regs << inner.to_verilog if inner.value
+            # regs << inner.to_verilog if inner.value
+            HDLRuby::Low::VERILOG_REGS << inner.to_verilog if inner.value
         end
         # And the array types signals.
         self.each_signal do |sig|
-            # regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
-            regs << sig.to_verilog if sig.type.vector? && sig.type.base.vector?
+            # # regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+            # regs << sig.to_verilog if sig.type.vector? && sig.type.base.vector?
+            if sig.type.vector? && sig.type.base.vector? then
+                HDLRuby::Low::VERILOG_REGS << sig.to_verilog
+            end
         end
         self.each_inner do |sig|
-            # regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
-            regs << sig.to_verilog if sig.type.vector? && sig.type.base.vector?
+            # # regs << sig.to_verilog if sig.type.is_a?(TypeVector) && sig.type.base.is_a?(TypeVector)
+            # regs << sig.to_verilog if sig.type.vector? && sig.type.base.vector?
+            if sig.type.vector? && sig.type.base.vector? then
+                HDLRuby::Low::VERILOG_REGS << sig.to_verilog
+            end
         end
 
         # Code generation
@@ -1890,7 +1987,8 @@ class SystemT
                 $vector_reg = "#{output.to_verilog}"
                 $vector_cnt = 0
                 output.type.each_type do |type|
-                    if regs.include?(type.name) then
+                    # if regs.include?(type.name) then
+                    if HDLRuby::Low::VERILOG_REGS.include?(type.name) then
                         code << "   output reg"
                     else
                         code << "   output"
@@ -1906,7 +2004,8 @@ class SystemT
                 end        
             else
                 # if regs.include?(output.name) then
-                if regs.include?(output.to_verilog) then
+                # if regs.include?(output.to_verilog) then
+                if HDLRuby::Low::VERILOG_REGS.include?(output.to_verilog) then
                     code << "   output reg"
                 else
                     code << "   output"
@@ -1937,8 +2036,9 @@ class SystemT
 
         # Declare "inner".
         self.each_inner do |inner|
-            # if regs.include?(inner.name) then
-            if regs.include?(inner.to_verilog) then
+            # # if regs.include?(inner.name) then
+            # if regs.include?(inner.to_verilog) then
+            if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
                 code << "   reg"
             else
                 code << "   wire"
@@ -1966,8 +2066,9 @@ class SystemT
         # If there is scope in scope, translate it.
         self.each_scope do |scope|
             scope.each_inner do |inner|
-                # if regs.include?(inner.name) then
-                if regs.include?(inner.to_verilog) then
+                # # if regs.include?(inner.name) then
+                # if regs.include?(inner.to_verilog) then
+                if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
                     code << "   reg "
                 else
                     code << "   wire "
@@ -2058,7 +2159,8 @@ class SystemT
                     code << blk.repeat_to_verilog!
                 end
                 # And generate an initial block.
-                code << "   initial begin\n"
+                # code << "   initial begin\n"
+                code << "   initial "
             else
                 # Generate a standard process.
                 code << "   always @( "
@@ -2083,54 +2185,57 @@ class SystemT
                         code << "#{event.last.type.to_s} #{event.last.ref.to_verilog}"
                     end
                 end
-                code << " ) begin\n"
+                # code << " ) begin\n"
+                code << " ) "
             end
 
-            # Perform "scheduling" using the method "flatten".
-            block = behavior.block.flatten(behavior.block.mode.to_s)
+            # # Perform "scheduling" using the method "flatten".
+            # block = behavior.block.flatten(behavior.block.mode.to_s)
+            # code << block.to_verilog(regs)
+            code << behavior.block.to_verilog
 
-            # Declaration of "inner" part within "always".
-            block.each_inner do |inner|
-                # if regs.include?(inner.name) then
-                if regs.include?(inner.to_verilog) then
-                    code << "      reg"
-                else
-                    code << "      wire"
-                end
+            # # Declaration of "inner" part within "always".
+            # block.each_inner do |inner|
+            #     # if regs.include?(inner.name) then
+            #     if regs.include?(inner.to_verilog) then
+            #         code << "      reg"
+            #     else
+            #         code << "      wire"
+            #     end
 
-                # Variable has "base", but if there is width etc, it is not in "base".
-                # It is determined by an if.
-                if inner.type.base? 
-                    if inner.type.base.base? 
-                        # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
-                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
-                    else
-                        # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
-                        code << "#{inner.type.to_verilog} #{inner.to_verilog}"
-                    end
-                else
-                    # code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
-                    code << " #{inner.type.to_verilog}#{inner.to_verilog}"
-                end
-                if inner.value then
-                    # There is an initial value.
-                    code << " = #{inner.value.to_verilog}"
-                end
-                code << ";\n"
-            end
+            #     # Variable has "base", but if there is width etc, it is not in "base".
+            #     # It is determined by an if.
+            #     if inner.type.base? 
+            #         if inner.type.base.base? 
+            #             # code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog};\n"
+            #             code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+            #         else
+            #             # code << "#{inner.type.to_verilog} #{inner.to_verilog};\n"
+            #             code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+            #         end
+            #     else
+            #         # code << " #{inner.type.to_verilog}#{inner.to_verilog};\n"
+            #         code << " #{inner.type.to_verilog}#{inner.to_verilog}"
+            #     end
+            #     if inner.value then
+            #         # There is an initial value.
+            #         code << " = #{inner.value.to_verilog}"
+            #     end
+            #     code << ";\n"
+            # end
 
-            # Translate the block that finished scheduling.
-            block.each_statement do |statement|
-                code  << "\n      #{statement.to_verilog(behavior.block.mode.to_s)}"
-            end
+            # # Translate the block that finished scheduling.
+            # block.each_statement do |statement|
+            #     code  << "\n      #{statement.to_verilog(behavior.block.mode.to_s)}"
+            # end
 
-            $fm.fm_par.clear()
+            # $fm.fm_par.clear()
 
-            code << "\n   end\n\n"
+            # code << "\n   end\n\n"
         end
 
         # Conclusion.
-        code << "endmodule"
+        code << "\nendmodule"
         return code
     end
 end
