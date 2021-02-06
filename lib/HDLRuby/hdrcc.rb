@@ -461,6 +461,9 @@ elsif $options[:clang] then
     # top_system = $top_system
     # Preprocess the HW description for valid C generation.
     $top_system.each_systemT_deep do |systemT|
+        # Coverts the par blocks in seq blocks to seq blocks to match
+        # the simulation engine.
+        systemT.par_in_seq2seq!
         # Converts the connections to behaviors.
         systemT.connections_to_behaviors!
         # Break the RefConcat.

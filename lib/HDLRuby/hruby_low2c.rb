@@ -178,6 +178,7 @@ module HDLRuby::Low
                 end
             end
             self.scope.each_block_deep do |block|
+            # puts "treating for block=#{Low2C.obj_name(block)} with=#{block.each_inner.count} inners"
                 block.each_inner do |signal|
                     # res << signal.value.to_c_make(level) if signal.value
                     signal.value.each_node_deep do |node|
@@ -837,6 +838,7 @@ module HDLRuby::Low
         ## Generates the content of the h file.
         def to_ch
             res = ""
+            # puts "to_ch for SignalI: #{self.to_c_signal()}"
             # Declare the global variable holding the signal.
             res << "extern SignalI #{self.to_c_signal()};\n\n"
 
@@ -1050,12 +1052,29 @@ module HDLRuby::Low
             raise AnyError, "Internal error: to_c should be implemented in class :#{self.class}"
         end
 
+        ## Generates the content of the h file.
+        def to_ch
+            # By default nothing to generate.
+            return ""
+        end
+
         # Adds the c code of the blocks to +res+ at +level+
         def add_blocks_code(res,level)
             if self.respond_to?(:each_node) then
                 self.each_node do |node|
                     if node.respond_to?(:add_blocks_code) then
                         node.add_blocks_code(res,level)
+                    end
+                end
+            end
+        end
+        
+        # Adds the creation of the blocks to +res+ at +level+.
+        def add_make_block(res,level)
+            if self.respond_to?(:each_node) then
+                self.each_node do |node|
+                    if node.respond_to?(:add_blocks_code) then
+                        node.add_make_block(res,level)
                     end
                 end
             end
@@ -1143,6 +1162,18 @@ module HDLRuby::Low
             # Return the result.
             return res
         end
+
+        ## Generates the content of the h file.
+        def to_ch
+            res = ""
+            # Recurse on the sub statements.
+            res << self.yes.to_ch
+            self.each_noif do |cond,stmnt|
+                res << stmnt.to_ch
+            end
+            res << self.no.to_ch if self.no
+            return res
+        end
     end
 
     ## Extends the When class with generation of HDLRuby::High text.
@@ -1164,9 +1195,19 @@ module HDLRuby::Low
             return res
         end
 
+        ## Generates the content of the h file.
+        def to_ch
+            return self.statement.to_ch
+        end
+
         # Adds the c code of the blocks to +res+ at +level+
         def add_blocks_code(res,level)
             self.statement.add_blocks_code(res,level)
+        end
+
+        # Adds the creation of the blocks to +res+ at +level+.
+        def add_make_block(res,level)
+            self.statement.add_make_block(res,level)
         end
     end
 
@@ -1213,6 +1254,16 @@ module HDLRuby::Low
             res << " " * (level)*3
             res << "}\n"
             # Return the resulting string.
+            return res
+        end
+
+        ## Generates the content of the h file.
+        def to_ch
+            res = ""
+            # Recurse on the whens.
+            self.each_when {|w| res << w.to_ch }
+            # Recurse on the default statement.
+            res << self.default.to_ch if self.default
             return res
         end
     end
@@ -1270,6 +1321,12 @@ module HDLRuby::Low
         # Adds the c code of the blocks to +res+ at +level+
         def add_blocks_code(res,level)
             res << self.to_c_code(level)
+        end
+
+        # Adds the creation of the blocks to +res+ at +level+.
+        def add_make_block(res,level)
+            res << " " * level*3
+            res << "#{Low2C.make_name(self)}();\n"
         end
 
         # Generates the C text of the equivalent HDLRuby::High code.
@@ -1351,6 +1408,11 @@ module HDLRuby::Low
             res << " " * (level+1)*3
             res << "block->function = &#{Low2C.code_name(self)};\n"
 
+            # Generate creation of the sub blocks.
+            self.each_statement do |stmnt|
+                stmnt.add_make_block(res,level+1)
+            end
+
             # Generate the Returns of the result.
             res << "\n"
             res << " " * (level+1)*3
@@ -1373,6 +1435,7 @@ module HDLRuby::Low
 
         ## Generates the content of the h file.
         def to_ch
+            # puts "to_ch for block=#{Low2C.obj_name(self)} with=#{self.each_inner.count} inners"
             res = ""
             # Declare the global variable holding the block.
             res << "extern Block #{Low2C.obj_name(self)};\n\n"
@@ -1382,6 +1445,10 @@ module HDLRuby::Low
 
             # Generate the accesses to the ports.
             self.each_inner  { |inner|  res << inner.to_ch }
+
+            # Recurse on the statements.
+            self.each_statement { |stmnt| res << stmnt.to_ch }
+
 
             return res
         end
