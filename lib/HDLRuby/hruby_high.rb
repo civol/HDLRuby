@@ -347,6 +347,12 @@ module HDLRuby::High
                 end
             end
             @to_includes = mixins
+
+            # The list of systems the current system is expanded from if any.
+            # The first one is the main system, the other ones are the
+            # mixins.
+            @generators = []
+
             # Prepare the instantiation methods
             make_instantiater(name,SystemI,&ruby_block)
         end
@@ -472,6 +478,24 @@ module HDLRuby::High
             @scope.each_export(&ruby_block)
         end
 
+        # Adds a generator system.
+        def add_generator(gen) 
+            unless gen.is_a?(SystemT) then
+                raise "Invalid class for a generator system"
+            end
+            @generators << gen
+        end
+
+        # Iterates over the origin systems.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_generator(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_generator) unless ruby_block
+            # A block? Apply it on each generator.
+            @generators.each(&ruby_block)
+        end
+
         # Gets class containing the extension for the instances.
         def singleton_instance
             @singleton_instanceO.singleton_class
@@ -526,6 +550,10 @@ module HDLRuby::High
             expanded = self.class.new(name.to_s) {}
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| expanded.scope.include(system) }
+
+            # Sets the generators of the expanded result.
+            expanded.add_generator(self)
+            @to_includes.each { |system| expanded.add_generator(system) }
 
             # Fills the scope of the expanded class.
             # puts "Build top with #{self.name} for #{name}"
@@ -730,13 +758,16 @@ module HDLRuby::High
                       "Cannot convert a system without a name to HDLRuby::Low."
             end
             # Create the resulting low system type.
-            systemTlow = HDLRuby::Low::SystemT.new(High.names_create(name),
+            systemTL = HDLRuby::Low::SystemT.new(High.names_create(name),
                                                    self.scope.to_low)
+            # For debugging: set the source high object 
+            systemTL.properties[:low2high] = self.hdr_id
+
             # Fills the interface of the new system 
             # from the included systems.
-            self.fill_low(systemTlow)
+            self.fill_low(systemTL)
             # Return theresulting system.
-            return systemTlow
+            return systemTL
         end
     end
 
@@ -1213,26 +1244,26 @@ module HDLRuby::High
         # Fills a low level scope with self's contents.
         #
         # NOTE: name conflicts are treated in the current NameStack state.
-        def fill_low(scopeLow)
+        def fill_low(scopeL)
             # Adds the content of its included systems.
-            @includes.each_value {|system| system.scope.fill_low(scopeLow) }
+            @includes.each_value {|system| system.scope.fill_low(scopeL) }
             # Adds the declared local system types.
             # NOTE: in the current version of HDLRuby::High, there should not
             # be any of them (only eigen systems are real system types).
-            self.each_systemT { |systemT| scopeLow.add_systemT(systemT.to_low) }
+            self.each_systemT { |systemT| scopeL.add_systemT(systemT.to_low) }
             # Adds the local types.
-            self.each_type { |type| scopeLow.add_type(type.to_low) }
+            self.each_type { |type| scopeL.add_type(type.to_low) }
             # Adds the inner scopes.
-            self.each_scope { |scope| scopeLow.add_scope(scope.to_low) }
+            self.each_scope { |scope| scopeL.add_scope(scope.to_low) }
             # Adds the inner signals.
-            self.each_inner { |inner| scopeLow.add_inner(inner.to_low) }
+            self.each_inner { |inner| scopeL.add_inner(inner.to_low) }
             # Adds the instances.
             # Single ones.
             self.each_systemI do |systemI|
                 # puts "Filling with systemI=#{systemI.name}"
-                systemI_low = scopeLow.add_systemI(systemI.to_low)
+                systemI_low = scopeL.add_systemI(systemI.to_low)
                 # Also add the eigen system to the list of local systems.
-                scopeLow.add_systemT(systemI_low.systemT)
+                scopeL.add_systemT(systemI_low.systemT)
             end
             # Grouped ones.
             self.each_groupI do |name,systemIs|
@@ -1242,42 +1273,45 @@ module HDLRuby::High
                     # puts "systemI.respond_to?=#{systemI.respond_to?(:name=)}"
                     systemI.name = name.to_s + "[#{i}]"
                     # And convert it to low
-                    systemI_low = scopeLow.add_systemI(systemI.to_low())
+                    systemI_low = scopeL.add_systemI(systemI.to_low())
                     # Also add the eigen system to the list of local systems.
-                    scopeLow.add_systemT(systemI_low.systemT)
+                    scopeL.add_systemT(systemI_low.systemT)
                 }
             end
             # Adds the code chunks.
-            self.each_code { |code| scopeLow.add_code(code.to_low) }
+            self.each_code { |code| scopeL.add_code(code.to_low) }
             # Adds the connections.
             self.each_connection { |connection|
                 # puts "connection=#{connection}"
-                scopeLow.add_connection(connection.to_low)
+                scopeL.add_connection(connection.to_low)
             }
             # Adds the behaviors.
             self.each_behavior { |behavior|
-                scopeLow.add_behavior(behavior.to_low)
+                scopeL.add_behavior(behavior.to_low)
             }
         end
 
         # Converts the scope to HDLRuby::Low.
         def to_low()
             # Create the resulting low scope.
-            # scopeLow = HDLRuby::Low::Scope.new()
-            scopeLow = HDLRuby::Low::Scope.new(self.name)
+            # scopeL = HDLRuby::Low::Scope.new()
+            scopeL = HDLRuby::Low::Scope.new(self.name)
+            # For debugging: set the source high object 
+            scopeL.properties[:low2high] = self.hdr_id
+
             # Push the private namespace for the low generation.
             High.space_push(@namespace)
             # Pushes on the name stack for converting the internals of
             # the system.
             High.names_push
             # Adds the content of the actual system.
-            self.fill_low(scopeLow)
+            self.fill_low(scopeL)
             # Restores the name stack.
             High.names_pop
             # Restores the namespace stack.
             High.space_pop
             # Return theresulting system.
-            return scopeLow
+            return scopeL
         end
     end
     
@@ -1493,7 +1527,11 @@ module HDLRuby::High
         #
         # NOTE: should be overridden by other type classes.
         def to_low(name = self.name)
-            return HDLRuby::Low::Type.new(name)
+            # return HDLRuby::Low::Type.new(name)
+            typeL = HDLRuby::Low::Type.new(name)
+            # For debugging: set the source high object 
+            typeL.properties[:low2high] = self.hdr_id
+            return typeL
         end
     end
 
@@ -1630,7 +1668,11 @@ module HDLRuby::High
         #
         # NOTE: should be overridden by other type classes.
         def to_low(name = self.name)
-            return HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+            # return HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+            typeDefL = HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+            # For debugging: set the source high object 
+            typeDefL.properties[:low2high] = self.hdr_id
+            return typeDefL
         end
     end
 
@@ -1678,7 +1720,11 @@ module HDLRuby::High
         #
         # NOTE: should be overridden by other type classes.
         def to_low(name = self.name)
-            return HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+            # return HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+            typeDefL = HDLRuby::Low::TypeDef.new(name,self.def.to_low)
+            # For debugging: set the source high object 
+            typeDefL.properties[:low2high] = self.hdr_id
+            return typeDefL
         end
     end
 
@@ -1689,8 +1735,13 @@ module HDLRuby::High
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
             # Generate and return the new type.
-            return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
+            # return HDLRuby::Low::TypeVector.new(name,self.base.to_low,
+            #                                     self.range.to_low)
+            typeVectorL = HDLRuby::Low::TypeVector.new(name,self.base.to_low,
                                                 self.range.to_low)
+            # For debugging: set the source high object 
+            typeVectorL.properties[:low2high] = self.hdr_id
+            return typeVectorL
         end
     end
 
@@ -1763,8 +1814,13 @@ module HDLRuby::High
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            return HDLRuby::Low::TypeTuple.new(name,self.direction,
+            # return HDLRuby::Low::TypeTuple.new(name,self.direction,
+            #                    *@types.map { |type| type.to_low } )
+            typeTupleL = HDLRuby::Low::TypeTuple.new(name,self.direction,
                                *@types.map { |type| type.to_low } )
+            # For debugging: set the source high object 
+            typeTupleL.properties[:low2high] = self.hdr_id
+            return typeTupleL
         end
     end
 
@@ -1778,8 +1834,13 @@ module HDLRuby::High
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            return HDLRuby::Low::TypeStruct.new(name,self.direction,
+            # return HDLRuby::Low::TypeStruct.new(name,self.direction,
+            #                     @types.map { |name,type| [name,type.to_low] } )
+            typeStructL = HDLRuby::Low::TypeStruct.new(name,self.direction,
                                 @types.map { |name,type| [name,type.to_low] } )
+            # For debugging: set the source high object 
+            typeStructL.properties[:low2high] = self.hdr_id
+            return typeStructL
         end
     end
 
@@ -2011,15 +2072,17 @@ module HDLRuby::High
         def to_low(name = self.name)
             # puts "to_low with #{self} (#{self.name}) #{self.systemT}"
             # Converts the system of the instance to HDLRuby::Low
-            systemTlow = self.systemT.to_low
+            systemTL = self.systemT.to_low
             # Creates the resulting HDLRuby::Low instance
-            systemIlow = HDLRuby::Low::SystemI.new(High.names_create(name),
-                                             systemTlow)
+            systemIL = HDLRuby::Low::SystemI.new(High.names_create(name),
+                                             systemTL)
+            # For debugging: set the source high object 
+            systemIL.properties[:low2high] = self.hdr_id
             # Adds the other systemTs.
             self.each_systemT do |systemT|
-                systemIlow.add_systemT(systemT.to_low) unless systemT == self.systemT
+                systemIL.add_systemT(systemT.to_low) unless systemT == self.systemT
             end
-            return systemIlow
+            return systemIL
         end
     end
 
@@ -2030,11 +2093,19 @@ module HDLRuby::High
     class Chunk < HDLRuby::Low::Chunk
         # Converts the if to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Chunk.new(self.name,
+            # return HDLRuby::Low::Chunk.new(self.name,
+            #                                *self.each_lump.map do |lump|
+            #     lump = lump.respond_to?(:to_low) ? lump.to_low : lump.to_s
+            #     lump
+            # end)
+            chunkL = HDLRuby::Low::Chunk.new(self.name,
                                            *self.each_lump.map do |lump|
                 lump = lump.respond_to?(:to_low) ? lump.to_low : lump.to_s
                 lump
             end)
+            # For debugging: set the source high object 
+            chunkL.properties[:low2high] = self.hdr_id
+            return chunkL
         end
     end
 
@@ -2044,13 +2115,15 @@ module HDLRuby::High
         # Converts the if to HDLRuby::Low.
         def to_low
             # Create the resulting code.
-            res = HDLRuby::Low::Code.new
+            codeL = HDLRuby::Low::Code.new
+            # For debugging: set the source high object 
+            codeL.properties[:low2high] = self.hdr_id
             # Add the low-level events.
-            self.each_event { |event| res.add_event(event.to_low) }
+            self.each_event { |event| codeL.add_event(event.to_low) }
             # Add the low-level code chunks.
-            self.each_chunk { |chunk| res.add_chunk(chunk.to_low) }
+            self.each_chunk { |chunk| codeL.add_chunk(chunk.to_low) }
             # Return the resulting code.
-            return res
+            return codeL
         end
     end
 
@@ -2133,10 +2206,12 @@ module HDLRuby::High
             # no may be nil, so treat it appart
             noL = self.no ? self.no.to_low : nil
             # Now generate the low-level if.
-            low = HDLRuby::Low::If.new(self.condition.to_low,
+            ifL = HDLRuby::Low::If.new(self.condition.to_low,
                                        self.yes.to_low,noL)
-            self.each_noif {|cond,block| low.add_noif(cond.to_low,block.to_low)}
-            return low
+            self.each_noif {|cond,block| ifL.add_noif(cond.to_low,block.to_low)}
+            # For debugging: set the source high object 
+            ifL.properties[:low2high] = self.hdr_id
+            return ifL
         end
     end
 
@@ -2154,8 +2229,13 @@ module HDLRuby::High
 
         # Converts the if to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::When.new(self.match.to_low,
+            # return HDLRuby::Low::When.new(self.match.to_low,
+            #                               self.statement.to_low)
+            whenL = HDLRuby::Low::When.new(self.match.to_low,
                                           self.statement.to_low)
+            # For debugging: set the source high object 
+            whenL.properties[:low2high] = self.hdr_id
+            return whenL
         end
     end
 
@@ -2200,6 +2280,8 @@ module HDLRuby::High
         def to_low
             # Create the low level case.
             caseL = HDLRuby::Low::Case.new(@value.to_low)
+            # For debugging: set the source high object 
+            caseL.properties[:low2high] = self.hdr_id
             # Add each when case.
             self.each_when do |w|
                 caseL.add_when(w.to_low)
@@ -2226,7 +2308,11 @@ module HDLRuby::High
 
         # Converts the delay to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Delay.new(self.value, self.unit)
+            # return HDLRuby::Low::Delay.new(self.value, self.unit)
+            delayL = HDLRuby::Low::Delay.new(self.value, self.unit)
+            # For debugging: set the source high object 
+            delayL.properties[:low2high] = self.hdr_id
+            return delayL
         end
     end
 
@@ -2237,7 +2323,11 @@ module HDLRuby::High
 
         # Converts the wait statement to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::TimeWait.new(self.delay.to_low)
+            # return HDLRuby::Low::TimeWait.new(self.delay.to_low)
+            timeWaitL = HDLRuby::Low::TimeWait.new(self.delay.to_low)
+            # For debugging: set the source high object 
+            timeWaitL.properties[:low2high] = self.hdr_id
+            return timeWaitL
         end
     end
 
@@ -2249,8 +2339,13 @@ module HDLRuby::High
 
         # Converts the repeat statement to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::TimeRepeat.new(self.statement.to_low,
+            # return HDLRuby::Low::TimeRepeat.new(self.statement.to_low,
+            #                                     self.delay.to_low)
+            timeRepeatL = HDLRuby::Low::TimeRepeat.new(self.statement.to_low,
                                                 self.delay.to_low)
+            # For debugging: set the source high object 
+            timeRepeatL.properties[:low2high] = self.hdr_id
+            return timeRepeatL
         end
     end
 
@@ -2571,7 +2666,11 @@ module HDLRuby::High
 
         # Converts the unary expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Cast.new(self.type.to_low,self.child.to_low)
+            # return HDLRuby::Low::Cast.new(self.type.to_low,self.child.to_low)
+            castL =HDLRuby::Low::Cast.new(self.type.to_low,self.child.to_low)
+            # For debugging: set the source high object 
+            castL.properties[:low2high] = self.hdr_id
+            return castL
         end
     end
 
@@ -2588,8 +2687,13 @@ module HDLRuby::High
 
         # Converts the unary expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Unary.new(self.type.to_low, self.operator,
+            # return HDLRuby::Low::Unary.new(self.type.to_low, self.operator,
+            #                                self.child.to_low)
+            unaryL = HDLRuby::Low::Unary.new(self.type.to_low, self.operator,
                                            self.child.to_low)
+            # For debugging: set the source high object 
+            unaryL.properties[:low2high] = self.hdr_id
+            return unaryL
         end
     end
 
@@ -2607,9 +2711,13 @@ module HDLRuby::High
 
         # Converts the binary expression to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::Binary.new(self.operator,
-            return HDLRuby::Low::Binary.new(self.type.to_low, self.operator,
+            # return HDLRuby::Low::Binary.new(self.type.to_low, self.operator,
+            #                                self.left.to_low, self.right.to_low)
+            binaryL = HDLRuby::Low::Binary.new(self.type.to_low, self.operator,
                                            self.left.to_low, self.right.to_low)
+            # For debugging: set the source high object 
+            binaryL.properties[:low2high] = self.hdr_id
+            return binaryL
         end
     end
 
@@ -2631,11 +2739,19 @@ module HDLRuby::High
 
         # Converts the selection expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Select.new(self.type.to_low,"?",
+            # return HDLRuby::Low::Select.new(self.type.to_low,"?",
+            #                                 self.select.to_low,
+            # *self.each_choice.map do |choice|
+            #     choice.to_low
+            # end)
+            selectL = HDLRuby::Low::Select.new(self.type.to_low,"?",
                                             self.select.to_low,
             *self.each_choice.map do |choice|
                 choice.to_low
             end)
+            # For debugging: set the source high object 
+            selectL.properties[:low2high] = self.hdr_id
+            return selectL
         end
     end
 
@@ -2656,11 +2772,19 @@ module HDLRuby::High
 
         # Converts the concatenation expression to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Concat.new(self.type.to_low,
+            # return HDLRuby::Low::Concat.new(self.type.to_low,
+            #     self.each_expression.map do |expr|
+            #         expr.to_low
+            #     end
+            # )
+            concatL = HDLRuby::Low::Concat.new(self.type.to_low,
                 self.each_expression.map do |expr|
                     expr.to_low
                 end
             )
+            # For debugging: set the source high object 
+            concatL.properties[:low2high] = self.hdr_id
+            return concatL
         end
     end
 
@@ -2699,7 +2823,11 @@ module HDLRuby::High
             # Clone the content if possible
             content = self.content.frozen? ? self.content : self.content.clone
             # Create and return the resulting low-level value
-            return HDLRuby::Low::Value.new(self.type.to_low,self.content)
+            # return HDLRuby::Low::Value.new(self.type.to_low,self.content)
+            valueL = HDLRuby::Low::Value.new(self.type.to_low,self.content)
+            # For debugging: set the source high object 
+            valueL.properties[:low2high] = self.hdr_id
+            return valueL
         end
 
     end
@@ -2801,9 +2929,13 @@ module HDLRuby::High
 
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # return HDLRuby::Low::RefName.new(@base.to_ref.to_low,@object.name)
-            return HDLRuby::Low::RefName.new(self.type.to_low,
+            # return HDLRuby::Low::RefName.new(self.type.to_low,
+            #                                  @base.to_ref.to_low,@object.name)
+            refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                              @base.to_ref.to_low,@object.name)
+            # For debugging: set the source high object 
+            refNameL.properties[:low2high] = self.hdr_id
+            return refNameL
         end
 
         # Missing methods are looked for into the refered object.
@@ -2830,11 +2962,19 @@ module HDLRuby::High
 
         # Converts the concat reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefConcat.new(self.type.to_low,
+            # return HDLRuby::Low::RefConcat.new(self.type.to_low,
+            #     self.each_ref.map do |ref|
+            #         ref.to_low
+            #     end
+            # )
+            refConcatL = HDLRuby::Low::RefConcat.new(self.type.to_low,
                 self.each_ref.map do |ref|
                     ref.to_low
                 end
             )
+            # For debugging: set the source high object 
+            refConcatL.properties[:low2high] = self.hdr_id
+            return refConcatL
         end
     end
 
@@ -2851,8 +2991,13 @@ module HDLRuby::High
 
         # Converts the index reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefIndex.new(self.type.to_low,
-                                              self.ref.to_low,self.index.to_low)
+            # return HDLRuby::Low::RefIndex.new(self.type.to_low,
+            #                                 self.ref.to_low,self.index.to_low)
+            refIndexL = HDLRuby::Low::RefIndex.new(self.type.to_low,
+                                            self.ref.to_low,self.index.to_low)
+            # For debugging: set the source high object 
+            refIndexL.properties[:low2high] = self.hdr_id
+            return refIndexL
         end
     end
 
@@ -2869,8 +3014,13 @@ module HDLRuby::High
 
         # Converts the range reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefRange.new(self.type.to_low,
+            # return HDLRuby::Low::RefRange.new(self.type.to_low,
+            #     self.ref.to_low,self.range.to_low)
+            refRangeL = HDLRuby::Low::RefRange.new(self.type.to_low,
                 self.ref.to_low,self.range.to_low)
+            # For debugging: set the source high object 
+            refRangeL.properties[:low2high] = self.hdr_id
+            return refRangeL
         end
     end
 
@@ -2886,9 +3036,13 @@ module HDLRuby::High
 
         # Converts the name reference to HDLRuby::Low.
         def to_low
-            # puts "To low for ref with name=#{self.name} and subref=#{self.ref}"
-            return HDLRuby::Low::RefName.new(self.type.to_low,
+            # return HDLRuby::Low::RefName.new(self.type.to_low,
+            #                                  self.ref.to_low,self.name)
+            refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                              self.ref.to_low,self.name)
+            # For debugging: set the source high object 
+            refNameL.properties[:low2high] = self.hdr_id
+            return refNameL
         end
     end
 
@@ -2920,7 +3074,11 @@ module HDLRuby::High
 
         # Converts the this reference to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::RefThis.new
+            # return HDLRuby::Low::RefThis.new
+            refThisL = HDLRuby::Low::RefThis.new
+            # For debugging: set the source high object 
+            refThisL.properties[:low2high] = self.hdr_id
+            return refThisL
         end
     end
 
@@ -2954,7 +3112,11 @@ module HDLRuby::High
 
         # Converts the event to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Event.new(self.type,self.ref.to_low)
+            # return HDLRuby::Low::Event.new(self.type,self.ref.to_low)
+            eventL = HDLRuby::Low::Event.new(self.type,self.ref.to_low)
+            # For debugging: set the source high object 
+            eventL.properties[:low2high] = self.hdr_id
+            return eventL
         end
     end
 
@@ -2990,8 +3152,13 @@ module HDLRuby::High
 
         # Converts the transmit to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Transmit.new(self.left.to_low,
+            # return HDLRuby::Low::Transmit.new(self.left.to_low,
+            #                                   self.right.to_low)
+            transmitL = HDLRuby::Low::Transmit.new(self.left.to_low,
                                               self.right.to_low)
+            # For debugging: set the source high object 
+            transmitL.properties[:low2high] = self.hdr_id
+            return transmitL
         end
     end
 
@@ -3055,8 +3222,13 @@ module HDLRuby::High
 
         # Converts the connection to HDLRuby::Low.
         def to_low
-            return HDLRuby::Low::Connection.new(self.left.to_low,
+            # return HDLRuby::Low::Connection.new(self.left.to_low,
+            #                                     self.right.to_low)
+            connectionL = HDLRuby::Low::Connection.new(self.left.to_low,
                                                 self.right.to_low)
+            # For debugging: set the source high object 
+            connectionL.properties[:low2high] = self.hdr_id
+            return connectionL
         end
     end
 
@@ -3165,7 +3337,11 @@ module HDLRuby::High
 
         # Converts the system to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            return HDLRuby::Low::SignalI.new(name,self.type.to_low)
+            # return HDLRuby::Low::SignalI.new(name,self.type.to_low)
+            signalIL = HDLRuby::Low::SignalI.new(name,self.type.to_low)
+            # For debugging: set the source high object 
+            signalIL.properties[:low2high] = self.hdr_id
+            return signalIL
         end
     end
 
@@ -3224,8 +3400,13 @@ module HDLRuby::High
 
         # Converts the system to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            return HDLRuby::Low::SignalC.new(name,self.type.to_low,
+            # return HDLRuby::Low::SignalC.new(name,self.type.to_low,
+            #                                  self.value.to_low)
+            signalCL = HDLRuby::Low::SignalC.new(name,self.type.to_low,
                                              self.value.to_low)
+            # For debugging: set the source high object 
+            signalCL.properties[:low2high] = self.hdr_id
+            return signalCL
         end
     end
     
@@ -3436,6 +3617,8 @@ module HDLRuby::High
         def to_low
             # Create the resulting block
             blockL = HDLRuby::Low::Block.new(self.mode)
+            # For debugging: set the source high object 
+            blockL.properties[:low2high] = self.hdr_id
             # Push the namespace for the low generation.
             High.space_push(@namespace)
             # Pushes on the name stack for converting the internals of
@@ -3503,6 +3686,8 @@ module HDLRuby::High
         def to_low
             # Create the resulting block
             blockL = HDLRuby::Low::TimeBlock.new(self.mode)
+            # For debugging: set the source high object 
+            blockL.properties[:low2high] = self.hdr_id
             # Add the inner signals
             self.each_inner { |inner| blockL.add_inner(inner.to_low) }
             # Add the statements
@@ -3594,6 +3779,8 @@ module HDLRuby::High
             eventLs = self.each_event.map { |event| event.to_low }
             # Create and return the resulting low level behavior.
             behaviorL = HDLRuby::Low::Behavior.new(blockL)
+            # For debugging: set the source high object 
+            behaviorL.properties[:low2high] = self.hdr_id
             eventLs.each(&behaviorL.method(:add_event))
             return behaviorL
         end
@@ -3620,9 +3807,11 @@ module HDLRuby::High
             # Create the low level events.
             eventLs = self.each_event.map { |event| event.to_low }
             # Create and return the resulting low level behavior.
-            behaviorL = HDLRuby::Low::TimeBehavior.new(blockL)
+            timeBehaviorL = HDLRuby::Low::TimeBehavior.new(blockL)
+            # For debugging: set the source high object 
+            timeBehaviorL.properties[:low2high] = self.hdr_id
             eventLs.each(&behaviorL.method(:add_event))
-            return behaviorL
+            return timeBehaviorL
         end
     end
 

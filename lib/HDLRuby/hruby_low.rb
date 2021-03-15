@@ -1,5 +1,6 @@
 require "HDLRuby/hruby_bstr"
 require "HDLRuby/hruby_error"
+require "HDLRuby/hruby_decorator"
 require 'forwardable'
 
 
@@ -34,6 +35,9 @@ module HDLRuby::Low
         alias_method :each, :each_value
     end
 
+
+    Hdecorator = HDLRuby::Hdecorator
+
     ##
     # Gives parent definition and access properties to an hardware object.
     module Hparent
@@ -60,6 +64,7 @@ module HDLRuby::Low
             return cur
         end
     end
+
 
 
     ##
@@ -112,6 +117,9 @@ module HDLRuby::Low
                                         &(@scope.method(meth_sym).to_proc))
             end
         end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -376,8 +384,28 @@ module HDLRuby::Low
         #     end
         #     signal
         # end
+    
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on each signal.
+            self.each_signal do |signal|
+                signal.each_deep(&ruby_block)
+            end
+            # Then apply on each scope.
+            self.each_scope do |scope|
+                scope.each_deep(&ruby_block)
+            end
+        end
 
         # Iterates over the systemT deeply if any.
+        #
+        # Returns an enumerator if no ruby block is given.
         def each_systemT_deep(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_systemT_deep) unless ruby_block
@@ -426,6 +454,9 @@ module HDLRuby::Low
             # Initialize the behaviors lists.
             @behaviors = []
         end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -1117,6 +1148,50 @@ module HDLRuby::Low
         #         systemI.each_sensitive_deep(&ruby_block)
         #     end
         # end
+        
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # The apply on each type.
+            self.each_type do |type|
+                type.each_deep(&ruby_block)
+            end
+            # Then apply on each systemT.
+            self.each_systemT do |systemT|
+                systemT.each_deep(&ruby_block)
+            end
+            # Then apply on each scope.
+            self.each_scope do |scope|
+                scope.each_deep(&ruby_block)
+            end
+            # Then apply on each inner signal.
+            self.each_inner do |inner|
+                inner.each_deep(&ruby_block)
+            end
+            # Then apply on each systemI.
+            self.each_systemI do |systemI|
+                systemI.each_deep(&ruby_block)
+            end
+            # Then apply on each code.
+            self.each_code do |code|
+                code.each_deep(&ruby_block)
+            end
+            # Then apply on each connection.
+            self.each_connection do |connection|
+                connection.each_deep(&ruby_block)
+            end
+            # Then apply on each behavior.
+            self.each_behavior do |behavior|
+                behavior.each_deep(&ruby_block)
+            end
+        end
+        
+
 
         # Gets the top scope, i.e. the first scope of the current system.
         def top_scope
@@ -1145,6 +1220,9 @@ module HDLRuby::Low
             # Check and set the name.
             @name = name.to_sym
         end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -1256,6 +1334,7 @@ module HDLRuby::Low
             ruby_block.call(self)
             # And that's all by default.
         end
+        alias_method :each_deep, :each_type_deep
 
         # Converts to a bit vector.
         def to_vector
@@ -1452,6 +1531,8 @@ module HDLRuby::Low
             @def.each_type_deep(&ruby_block)
         end
 
+        alias_method :each_deep, :each_type_deep
+
         # Moved to constructor
         # # Delegate the type methods to the ref.
         # def_delegators :@def,
@@ -1601,6 +1682,8 @@ module HDLRuby::Low
             # And recurse on the base.
             @base.each_type_deep(&ruby_block)
         end
+
+        alias_method :each_deep, :each_type_deep
     end
 
 
@@ -1755,6 +1838,8 @@ module HDLRuby::Low
             # And recurse on the sub types.
             @types.each { |type| type.each_type_deep(&ruby_block) }
         end
+
+        alias_method :each_deep, :each_type_deep
 
         # Tell if the tuple is regular, i.e., all its sub types are equivalent.
         #
@@ -1927,6 +2012,8 @@ module HDLRuby::Low
             @types.each_value { |type| type.each_type_deep(&ruby_block) }
         end
 
+        alias_method :each_deep, :each_type_deep
+
         # Gets the bitwidth of the type, nil for undefined.
         #
         # NOTE: must be redefined for specific types.
@@ -2011,6 +2098,9 @@ module HDLRuby::Low
             # # And set the block
             # @block = block
         end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
 
         # Sets the block if not already set.
         def block=(block)
@@ -2134,6 +2224,22 @@ module HDLRuby::Low
             @block.reverse_each_statement(&ruby_block)
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on each event.
+            self.each_event do |event|
+                event.each_deep(&ruby_block)
+            end
+            # Then apply on the block.
+            self.block.each_deep(&ruby_block)
+        end
+
         # Returns the last statement.
         def last_statement
             @block.last_statement
@@ -2217,6 +2323,9 @@ module HDLRuby::Low
             ref.parent = self
         end
 
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Event)
@@ -2235,6 +2344,20 @@ module HDLRuby::Low
         # NOTE: checks if the event type is :posedge or :negedge
         def on_edge?
             return (@type == :posedge or @type == :negedge)
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the reference.
+            self.ref.each_deep(&ruby_block)
         end
     end
 
@@ -2276,6 +2399,23 @@ module HDLRuby::Low
             else
                 @value = nil
             end
+        end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the value.
+            self.value.each_deep(&ruby_block) if self.value
         end
 
         # Comparison for hash: structural comparison.
@@ -2339,6 +2479,22 @@ module HDLRuby::Low
             # Initialize the list of system layers, the first one
             # being the instantiated system.
             @systemTs = [ @systemT ]
+        end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            
+            # Do not recurse on the systemTs since necesarily processed
+            # before!
         end
 
         # Comparison for hash: structural comparison.
@@ -2457,6 +2613,9 @@ module HDLRuby::Low
             lumps.each { |lump| self.add_lump(lump) }
         end
 
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
         # Adds a +lump+ of code, it is ment to become an expression or
         # some text.
         def add_lump(lump)
@@ -2476,6 +2635,16 @@ module HDLRuby::Low
             # A ruby block? Apply it on each lump.
             @lumps.each(&ruby_block)
         end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+        end
     end
 
 
@@ -2492,6 +2661,9 @@ module HDLRuby::Low
             # Initialize the content.
             @chunks = HashName.new
         end
+
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
 
         # Adds a +chunk+ to the sensitivity list.
         def add_chunk(chunk)
@@ -2555,6 +2727,24 @@ module HDLRuby::Low
             return false
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on each chunk.
+            self.each_chunk do |chunk|
+                chunk.each_deep(&ruby_block)
+            end
+            # Then apply on each event.
+            self.each_event do |event|
+                event.each_deep(&ruby_block)
+            end
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Code)
@@ -2584,11 +2774,20 @@ module HDLRuby::Low
     # NOTE: this is an abstract class which is not to be used directly.
     class Statement
         include Hparent
+        include Hdecorator
         
         # Clones (deeply)
         def clone
             raise AnyError,
                   "Internal error: clone is not defined for class: #{self.class}"
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            raise AnyError,
+                "Internal error: each_deep is not defined for class: #{self.class}"
         end
 
         # Comparison for hash: structural comparison.
@@ -2692,6 +2891,7 @@ module HDLRuby::Low
                 raise AnyError,
                      "Invalid class for a reference (left value): #{left.class}"
             end
+            super()
             @left = left
             # and set its parent.
             left.parent = self
@@ -2702,6 +2902,20 @@ module HDLRuby::Low
             @right = right
             # and set its parent.
             right.parent = self
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the left.
+            self.left.each_deep(&ruby_block)
+            # Then apply on the right.
+            self.right.each_deep(&ruby_block)
         end
 
         # Comparison for hash: structural comparison.
@@ -2793,6 +3007,7 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a condition: #{condition.class}"
             end
+            super()
             @condition = condition
             # And set its parent.
             condition.parent = self
@@ -2813,6 +3028,27 @@ module HDLRuby::Low
 
             # Initialize the list of alternative if statements (elsif)
             @noifs = []
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the condition.
+            self.condition.each_deep(&ruby_block)
+            # Then apply on the yes.
+            self.yes.each_deep(&ruby_block)
+            # The apply on the no.
+            self.no.each_deep(&ruby_block)
+            # Then apply on the alternate ifs.
+            self.each_noif do |cond,stmnt|
+                cond.each_deep(&ruby_block)
+                stmnt.each_deep(&ruby_block)
+            end
         end
 
         # Comparison for hash: structural comparison.
@@ -3000,6 +3236,23 @@ module HDLRuby::Low
             match.parent = statement.parent = self
         end
 
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the match.
+            self.match.each_deep(&ruby_block)
+            # Then apply on the statement.
+            self.statement.each_deep(&ruby_block)
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(When)
@@ -3096,6 +3349,7 @@ module HDLRuby::Low
             unless value.is_a?(Expression)
                 raise AnyError, "Invalid class for a value: #{value.class}"
             end
+            super()
             @value = value
             # And set its parent.
             value.parent = self
@@ -3104,6 +3358,22 @@ module HDLRuby::Low
             # Check and add the whens.
             @whens = []
             whens.each { |w| self.add_when(w) }
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the value.
+            self.value.each_deep(&ruby_block)
+            # Then apply on the whens.
+            self.each_when do |w|
+                w.each_deep(&ruby_block)
+            end
         end
 
         # Comparison for hash: structural comparison.
@@ -3266,6 +3536,21 @@ module HDLRuby::Low
             @unit = unit.to_sym
         end
 
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the value.
+            self.value.each_deep(&ruby_block)
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Delay)
@@ -3298,6 +3583,7 @@ module HDLRuby::Low
             unless delay.is_a?(Delay)
                 raise AnyError, "Invalid class for a delay: #{delay.class}."
             end
+            super()
             @delay = delay
             # And set its parent.
             delay.parent = self
@@ -3308,6 +3594,18 @@ module HDLRuby::Low
             return false unless obj.is_a?(TimeWait)
             return false unless @delay.eql?(obj.delay)
             return true
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the delay.
+            self.delay.each_deep(&ruby_block)
         end
 
         # Hash function.
@@ -3381,6 +3679,7 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a statement: #{statement.class}."
             end
+            super()
             @statement = statement
             # And set its parent.
             statement.parent = self
@@ -3392,6 +3691,20 @@ module HDLRuby::Low
             @delay = delay
             # And set its parent.
             delay.parent = self
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the statement.
+            self.statement.each_deep(&ruby_block)
+            # Then apply on the delay.
+            self.delay.each_deep(&ruby_block)
         end
 
         # Comparison for hash: structural comparison.
@@ -3473,6 +3786,7 @@ module HDLRuby::Low
 
         # Creates a new +mode+ sort of block with possible +name+.
         def initialize(mode, name = :"")
+            super()
             # puts "new block with mode=#{mode} and name=#{name}"
             # Check and set the type.
             @mode = mode.to_sym
@@ -3483,6 +3797,24 @@ module HDLRuby::Low
             @inners = HashName.new
             # Initializes the list of statements.
             @statements = []
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the inners.
+            self.each_inner do |inner|
+                inner.each_deep(&ruby_block)
+            end
+            # Then apply on the statements.
+            self.each_statement do |stmnt|
+                stmnt.each_deep(&ruby_block)
+            end
         end
 
         # Comparison for hash: structural comparison.
@@ -3810,6 +4142,9 @@ module HDLRuby::Low
             end
         end
 
+        # Add decorator capability (modifies intialize to put after).
+        include Hdecorator
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Expression)
@@ -3925,6 +4260,22 @@ module HDLRuby::Low
             @content = content 
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the content if possible.
+            if self.content.respond_to?(:each_deep) then
+                self.content.each_deep(&ruby_block)
+            end
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             # General comparison.
@@ -3992,6 +4343,20 @@ module HDLRuby::Low
             @child = child
             # And set its parent.
             child.parent = self
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the child.
+            self.child.each_deep(&ruby_block)
         end
 
         # Comparison for hash: structural comparison.
@@ -4110,6 +4475,20 @@ module HDLRuby::Low
             child.parent = self
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the child.
+            self.child.each_deep(&ruby_block)
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             # General comparison.
@@ -4196,6 +4575,22 @@ module HDLRuby::Low
             @right = right
             # And set their parents.
             left.parent = right.parent = self
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the left.
+            self.left.each_deep(&ruby_block)
+            # Then apply on the right.
+            self.right.each_deep(&ruby_block)
         end
 
         # Comparison for hash: structural comparison.
@@ -4290,6 +4685,24 @@ module HDLRuby::Low
             @choices = []
             choices.each do |choice|
                 self.add_choice(choice)
+            end
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the select.
+            self.select.each_deep(&ruby_block)
+            # Then apply on the choices.
+            self.each_choice do |choice|
+                choice.each_deep(&ruby_block)
             end
         end
 
@@ -4407,6 +4820,22 @@ module HDLRuby::Low
             @expressions = []
             # Check and add the expressions.
             expressions.each { |expression| self.add_expression(expression) }
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the expressions.
+            self.each_expression do |expr|
+                expr.each_deep(&ruby_block)
+            end
         end
 
         # Comparison for hash: structural comparison.
@@ -4556,6 +4985,22 @@ module HDLRuby::Low
             refs.each { |ref| ref.parent = self }
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the sub references.
+            self.each_ref do |ref|
+                ref.each_deep(&ruby_block)
+            end
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             # General comparison.
@@ -4657,6 +5102,24 @@ module HDLRuby::Low
             index.parent = self
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the reference.
+            self.ref.each_deep(&ruby_block)
+            # Then apply on the index if possible.
+            if self.index.respond_to?(:each_deep) then
+                self.index.each_deep(&ruby_block)
+            end
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             # General comparison.
@@ -4752,6 +5215,27 @@ module HDLRuby::Low
             first.parent = last.parent = self
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the reference.
+            self.ref.each_deep(&ruby_block)
+            # Then apply on the range if possible.
+            if self.range.first.respond_to?(:each_deep) then
+                self.range.first.each_deep(&ruby_block)
+            end
+            if self.range.last.respond_to?(:each_deep) then
+                self.range.last.each_deep(&ruby_block)
+            end
+        end
+
         # Comparison for hash: structural comparison.
         #
         # NOTE: ranges are assumed to be flattened (a range of range is
@@ -4843,6 +5327,20 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+            # Then apply on the reference.
+            self.ref.each_deep(&ruby_block)
+        end
+
         # Get the full name of the reference, i.e. including the sub ref
         # names if any.
         def full_name
@@ -4918,6 +5416,19 @@ module HDLRuby::Low
     #
     # This is the current system.
     class RefThis < Ref 
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the type.
+            self.type.each_deep(&ruby_block)
+        end
+
         # Clones this.
         def clone
             return RefThis.new
