@@ -316,9 +316,9 @@ $optparse = OptionParser.new do |opts|
     opts.on("-p", "--param x,y,z", "Specify the generic parameters") do |p|
         $options[:param] = p
     end
-    opts.on("--version", "Print the version number, then exit") do
-        puts "hdrcc: HDLRuby #{HDLRuby::VERSION} compiler"
-        exit
+    opts.on("--dump","Dump all the properties to yaml files") do |v|
+        $options[:dump] = v
+        $options[:multiple] = v
     end
     # opts.on_tail("-h", "--help", "Show this message") do
     opts.on("-h", "--help", "Show this message") do
@@ -677,4 +677,32 @@ elsif $options[:vhdl] then
             $output << systemT.to_vhdl
         end
     end
+end
+
+# Apply the post drivers if any.
+Hdecorator.each_with_property(:post_driver) do |obj, value|
+    # Load the driver.
+    require_relative(value[0].to_s)
+    # Execute it.
+    send(value[1].to_sym,obj,$output)
+end
+
+# Dump the properties
+if $options[:dump] then
+    # Decorate with the parent ids.
+    Hdecorator.decorate_parent_id
+    
+    # Generate the directory for the properties
+    property_dir = $output + "/properties"
+    unless File.directory?(property_dir)
+        FileUtils.mkdir_p(property_dir)
+    end
+
+    # Dump to one file per key
+    Properties.each_key do |key|
+        File.open(property_dir + "/#{key}.yaml", "w") do |f|
+            Hdecorator.dump(key,f)
+        end
+    end
+    
 end
