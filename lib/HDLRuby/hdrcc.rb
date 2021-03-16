@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'fileutils'
+require 'tempfile'
 require 'HDLRuby'
 require 'HDLRuby/hruby_check.rb'
 # require 'ripper'
@@ -50,12 +51,21 @@ module HDLRuby
         # The required files.
         attr_reader :requires
 
-        # Creates a new loader for a +top_system+ system in file +top_file+
+        # Creates a new loader for a +top_system+ system in file +top_file_name+
         # from directory +dir+ with generic parameters +params+.
+        #
+        # NOTE: +top_file+ can either be a file or a file name.
         def initialize(top_system,top_file,dir,*params)
             # Sets the top and the looking directory.
             @top_system = top_system.to_s
-            @top_file = top_file.to_s
+            # @top_file can either be a file or a string giving the file name.
+            if top_file.respond_to?(:path) then
+                @top_file = top_file
+                @top_file_name = top_file.path
+            else
+                @top_file = nil
+                @top_file_name = top_file.to_s
+            end
             @dir = dir.to_s
             @params = params
 
@@ -82,31 +92,48 @@ module HDLRuby
         end
 
         # Loads a single +file+.
+        #
+        # NOTE: +file+ can either be a file or a file name.
         def read(file)
             # Resolve the file.
-            found = File.join(@dir,file)
-            unless File.exist?(found) then
-                founds = Dir.glob(@std_dirs.map {|path| File.join(path,file) })
-                if founds.empty? then
-                    # No standard file with this name, this is an error.
-                    raise "Unknown required file: #{file}."
-                else
-                    # A standard file is found, skip it since it does not
-                    # need to be read.
-                    # puts "Standard files: #{founds}"
-                    return false
+            if file.respond_to?(:read) then
+                found = file
+            else
+                found = File.join(@dir,file)
+                unless File.exist?(found) then
+                    founds = Dir.glob(@std_dirs.map do |path|
+                        File.join(path,file) 
+                    end)
+                    if founds.empty? then
+                        # No standard file with this name, this is an error.
+                        raise "Unknown required file: #{file}."
+                    else
+                        # A standard file is found, skip it since it does not
+                        # need to be read.
+                        # puts "Standard files: #{founds}"
+                        return false
+                    end
                 end
             end
             # Load the file.
-            # @texts << File.read(File.join(@dir,file) )
             @texts << File.read(found)
-            # @checks << Checker.new(@texts[-1],file)
-            @checks << Checker.new(@texts[-1],found)
+            if found.respond_to?(:path) then
+                @checks << Checker.new(@texts[-1],found.path)
+            else
+                @checks << Checker.new(@texts[-1])
+            end
             return true
         end
 
         # Loads all the files from +file+.
-        def read_all(file = @top_file)
+        def read_all(file = nil)
+            unless file then
+                if @top_file then
+                    file = @top_file
+                else
+                    file = @top_file_name
+                end
+            end
             # puts "read_all with file=#{file}"
             # Read the file
             # read(file)
@@ -174,7 +201,7 @@ module HDLRuby
                     # Maybe it is a parse error, look for it.
                     bind = TOPLEVEL_BINDING.clone
                     eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
-                    eval(@texts[0],bind,@top_file,1)
+                    eval(@texts[0],bind,@top_file_name,1)
                     # No parse error found.
                     raise "Cannot find a top system." unless @top_system
                 end
@@ -183,7 +210,7 @@ module HDLRuby
             bind = TOPLEVEL_BINDING.clone
             eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
             # Process it.
-            eval(@texts[0],bind,@top_file,1)
+            eval(@texts[0],bind,@top_file_name,1)
             # Get the resulting instance
             if @params.empty? then
                 # There is no generic parameter
@@ -310,6 +337,9 @@ $optparse = OptionParser.new do |opts|
     opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
         $options[:debug] = d
     end
+    opts.on("-T","--test","Compile the unit tests.") do |t|
+        $options[:test] = t
+    end
     opts.on("-t", "--top system", "Specify the top system to process") do|t|
         $options[:top] = t
     end
@@ -370,6 +400,19 @@ if $input == nil then
     exit
 end
 
+if ($options[:test]) then
+    $top = "__test__"
+    # Generate the unit test file.
+    $test_file = Tempfile.new('tester.rb',Dir.getwd)
+    $test_file.write("require 'hruby_unit.rb'\nrequire_relative '#{$input}'\n\n" +
+                    "HDLRuby::Unit.test(\"#{$top}\")\n")
+    # $test_file.rewind
+    # puts $test_file.read
+    $test_file.rewind
+    # It is the new input file.
+    $input = $test_file
+end
+
 # Open the output.
 if $output then
     if $options[:multiple] then
@@ -393,6 +436,12 @@ $options[:directory] ||= "./"
 $loader = HDRLoad.new($top,$input,$options[:directory].to_s,*$params)
 $loader.read_all
 $loader.check_all
+
+# Remove the test file if any, it is not needed any longer.
+if $test_file then
+    $test_file.close
+    $test_file.unlink 
+end
 
 if $options[:syntax] then
     if $options[:multiple] then
