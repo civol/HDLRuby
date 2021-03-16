@@ -3810,7 +3810,7 @@ module HDLRuby::High
             timeBehaviorL = HDLRuby::Low::TimeBehavior.new(blockL)
             # For debugging: set the source high object 
             timeBehaviorL.properties[:low2high] = self.hdr_id
-            eventLs.each(&behaviorL.method(:add_event))
+            eventLs.each(&timeBehaviorL.method(:add_event))
             return timeBehaviorL
         end
     end
