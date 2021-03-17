@@ -42,9 +42,8 @@ module HDLRuby::Low
                         right_r = right.resolve if right.respond_to?(:resolve)
                         # puts "right_r=#{right_r.name}" if right_r
                         # puts "right_r.parent=#{right_r.parent.name}" if right_r && right_r.parent
-                        if right.is_a?(Value) then
-                        # if right.immutable? || 
-                        #         (right_r && right_r.immutable?) then
+                        # if right.is_a?(Value) then
+                        if right.immutable? then
                             # Right is value, the new transmit is to add
                             # to the timed block.
                             timed_blk.add_statement(

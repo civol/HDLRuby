@@ -936,8 +936,19 @@ module HDLRuby::High
             # Set the namespace for buidling the scope.
             High.space_push(@namespace)
             # Build the scope.
-            @return_value = High.top_user.instance_eval(&ruby_block)
+            # @return_value = High.top_user.instance_eval(&ruby_block)
+            res = High.top_user.instance_eval(&ruby_block)
             High.space_pop
+            # Now gain access to the result within the sub scope.
+            if (res.is_a?(HRef)) then
+                @return_value = res.type.inner(HDLRuby.uniq_name)
+                High.space_push(@namespace)
+                @return_value <= res
+                High.space_pop
+            else
+                @return_value = res
+            end
+            # This will be the return value.
             @return_value
         end
 
