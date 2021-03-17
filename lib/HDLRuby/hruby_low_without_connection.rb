@@ -43,6 +43,8 @@ module HDLRuby::Low
                         # puts "right_r=#{right_r.name}" if right_r
                         # puts "right_r.parent=#{right_r.parent.name}" if right_r && right_r.parent
                         if right.is_a?(Value) then
+                        # if right.immutable? || 
+                        #         (right_r && right_r.immutable?) then
                             # Right is value, the new transmit is to add
                             # to the timed block.
                             timed_blk.add_statement(
@@ -108,13 +110,15 @@ module HDLRuby::Low
                             # end
                             # Both or neither input/output, make a behavior
                             # for each.
-                            if (left.is_a?(Ref)) then
+                            if (left.is_a?(Ref) && 
+                                    !(left_r && left_r.immutable?)) then
                                 blk = Block.new(:par)
                                 blk.add_statement(
                                     Transmit.new(left.clone,right.clone))
                                 scope.add_behavior(Behavior.new(blk))
                             end
-                            if (right.is_a?(Ref)) then
+                            if (right.is_a?(Ref) &&
+                                    !(right_r && right_r.immutable?)) then
                                 blk = Block.new(:par)
                                 blk.add_statement(
                                     Transmit.new(right.clone,left.clone))
