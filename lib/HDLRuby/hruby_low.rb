@@ -2401,6 +2401,12 @@ module HDLRuby::Low
             end
         end
 
+        # Tells if the signal is immutable (cannot be written.)
+        def immutable?
+            # By default, signals are not immutable.
+            false
+        end
+
         # Add decorator capability (modifies intialize to put after).
         include Hdecorator
 
@@ -2445,6 +2451,11 @@ module HDLRuby::Low
     ##
     # Describes a constant signal.
     class SignalC < SignalI
+        # Tells if the signal is immutable (cannot be written.)
+        def immutable?
+            # Constant signals are immutable.
+            true
+        end
     end
 
     ## 
@@ -4180,6 +4191,11 @@ module HDLRuby::Low
             return !self.leftvalue?
         end
 
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            false
+        end
+
         # Iterates over the expression children if any.
         def each_node(&ruby_block)
             # By default: no child.
@@ -4258,6 +4274,12 @@ module HDLRuby::Low
                 content = HDLRuby::BitString.new(content.to_s)
             end
             @content = content 
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Values are always immutable.
+            true
         end
 
         # Iterates over each object deeply.
@@ -4343,6 +4365,12 @@ module HDLRuby::Low
             @child = child
             # And set its parent.
             child.parent = self
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if the child is immutable.
+            return child.immutable?
         end
 
         # Iterates over each object deeply.
@@ -4475,6 +4503,12 @@ module HDLRuby::Low
             child.parent = self
         end
 
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if the child is immutable.
+            return child.immutable?
+        end
+
         # Iterates over each object deeply.
         #
         # Returns an enumerator if no ruby block is given.
@@ -4575,6 +4609,12 @@ module HDLRuby::Low
             @right = right
             # And set their parents.
             left.parent = right.parent = self
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if both children are immutable.
+            return left.immutable? && right.immutable?
         end
 
         # Iterates over each object deeply.
@@ -4685,6 +4725,15 @@ module HDLRuby::Low
             @choices = []
             choices.each do |choice|
                 self.add_choice(choice)
+            end
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if children are all immutable.
+            return self.select.constant &&
+              self.each_choice.reduce(true) do |r,c|
+                r && c.immutable?
             end
         end
 
@@ -4820,6 +4869,14 @@ module HDLRuby::Low
             @expressions = []
             # Check and add the expressions.
             expressions.each { |expression| self.add_expression(expression) }
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if children are all immutable.
+            return self.each_expression.reduce(true) do |r,c|
+                r && c.immutable?
+            end
         end
 
         # Iterates over each object deeply.
@@ -4985,6 +5042,14 @@ module HDLRuby::Low
             refs.each { |ref| ref.parent = self }
         end
 
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if children are all immutable.
+            return self.each_ref.reduce(true) do |r,c|
+                r && c.immutable?
+            end
+        end
+
         # Iterates over each object deeply.
         #
         # Returns an enumerator if no ruby block is given.
@@ -5102,6 +5167,12 @@ module HDLRuby::Low
             index.parent = self
         end
 
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if the ref is immutable.
+            return self.ref.immutable?
+        end
+
         # Iterates over each object deeply.
         #
         # Returns an enumerator if no ruby block is given.
@@ -5213,6 +5284,12 @@ module HDLRuby::Low
             @range = first..last
             # And set their parents.
             first.parent = last.parent = self
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # Immutable if the ref is immutable.
+            return self.ref.immutable?
         end
 
         # Iterates over each object deeply.
