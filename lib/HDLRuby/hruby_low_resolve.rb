@@ -87,11 +87,32 @@ module HDLRuby::Low
     ##
     #  Extends RefIndex with the capability of finding the object it
     #  refered to.
+    class Ref
+        ## Resolves the name of the reference (if any) and return the
+        #  corresponding object.
+        #  NOTE: return nil if could not resolve.
+        def resolve
+            # By default cannot resolve.
+            return nil
+        end
+    end
+
+
+    ##
+    #  Extends RefIndex with the capability of finding the object it
+    #  refered to.
     class RefIndex
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
             return self.ref.from_systemI?
+        end
+
+        ## Resolves the name of the reference (if any) and return the
+        #  corresponding object.
+        #  NOTE: return nil if could not resolve.
+        def resolve
+            return self.ref.resolve
         end
     end
 
@@ -104,6 +125,13 @@ module HDLRuby::Low
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
             return self.ref.from_systemI?
+        end
+
+        ## Resolves the name of the reference (if any) and return the
+        #  corresponding object.
+        #  NOTE: return nil if could not resolve.
+        def resolve
+            return self.ref.resolve
         end
     end
 
