@@ -14,3 +14,19 @@ system :rom4_8 do
     data1 <= content1[addr]
     data2 <= content2[addr]
 end
+
+
+
+system :test_rom do
+    [2..0].inner :addr
+    [7..0].inner :data0,:data1,:data2
+
+    rom4_8(:my_rom).(addr,data0,data1,data2)
+
+    timed do
+        8.times do |i|
+            addr <= i
+            !10.ns
+        end
+    end
+end

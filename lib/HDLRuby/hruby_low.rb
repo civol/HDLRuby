@@ -1317,6 +1317,11 @@ module HDLRuby::Low
             return false
         end
 
+        # Tells if the type is hierarchical.
+        def hierarchical?
+            return self.base? || self.types?
+        end
+
         # Tell if +type+ is equivalent to current type.
         #
         # NOTE: type can be compatible while not being equivalent, please

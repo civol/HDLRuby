@@ -2504,6 +2504,35 @@ module HDLRuby::High
             return self.ljust(self[-1])
         end
 
+        # Match the type with +typ+:
+        # - Recurse on the sub expr if hierachical type, raising an arror
+        #   if the expression is not hierarchical.
+        # - Directly cast otherwise.
+        def match_type(typ)
+            # Has the type sub types?
+            if typ.types? then
+                unless self.is_a?(Concat) then
+                    raise AnyError,
+                        "Invalid class for assignment to hierarchical: #{self.class}."
+                end
+                return Concat.new(typ,
+                  self.each_expression.zip(typ.each_type).map do |e,t|
+                    e.match_type(t)
+                end)
+            elsif typ.vector? && typ.base.hierarchical? then
+                unless self.is_a?(Concat) then
+                    raise AnyError,
+                        "Invalid class for assignment to hierarchical: #{self.class}."
+                end
+                return Concat.new(typ,
+                  self.each_expression.map do |e|
+                    e.match_type(typ.base)
+                end)
+            else
+                return self.as(typ)
+            end
+        end
+
         # Gets the origin method for operation +op+.
         def self.orig_operator(op)
             return (op.to_s + "_orig").to_sym
@@ -2652,14 +2681,19 @@ module HDLRuby::High
         #
         # NOTE: it is converted afterward to an expression if required.
         def <=(expr)
+            # Cast expr to self if required.
+            expr = expr.to_expr.match_type(self.type)
+            # Generate the transmit.
             if High.top_user.is_a?(HDLRuby::Low::Block) then
                 # We are in a block, so generate and add a Transmit.
                 High.top_user.
-                    add_statement(Transmit.new(self.to_ref,expr.to_expr))
+                    # add_statement(Transmit.new(self.to_ref,expr.to_expr))
+                    add_statement(Transmit.new(self.to_ref,expr))
             else
                 # We are in a system type, so generate and add a Connection.
                 High.top_user.
-                    add_connection(Connection.new(self.to_ref,expr.to_expr))
+                    # add_connection(Connection.new(self.to_ref,expr.to_expr))
+                    add_connection(Connection.new(self.to_ref,expr))
             end
         end
     end
@@ -3269,7 +3303,7 @@ module HDLRuby::High
         # NOTE: +dir+ can be :input, :output, :inout or :inner
         def initialize(name,type,dir,value =  nil)
             # Check the value.
-            value = value.to_expr if value
+            value = value.to_expr.match_type(type) if value
             # Initialize the type structure.
             super(name,type,value)
 
@@ -3368,7 +3402,7 @@ module HDLRuby::High
         # and +value+.
         def initialize(name,type,value)
             # Check the value is a constant.
-            value = value.to_expr
+            value = value.to_expr.match_type(type)
             unless value.constant? then
                 raise AnyError,"Non-constant value assignment to constant."
             end
