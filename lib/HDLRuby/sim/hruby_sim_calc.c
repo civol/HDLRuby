@@ -1620,7 +1620,7 @@ static Value not_value_numeric(Value src, Value dst) {
     dst->numeric = 1;
 
     /* Perform the not. */
-    dst->data_int = fix_numeric_type(dst->type,!src->data_int);
+    dst->data_int = fix_numeric_type(dst->type,~src->data_int);
     return dst;
 }
 
@@ -1731,7 +1731,8 @@ static Value equal_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the !XOR. */
-    dst->data_int = (src0->data_int == src1->data_int);
+    // dst->data_int = (src0->data_int == src1->data_int);
+    dst->data_int = ~(src0->data_int ^ src1->data_int);
     return dst;
 }
 

@@ -3,7 +3,7 @@ system :adder do
     [15..0].input :x,:y
     [16..0].output :s
 
-    s <= x + y
+    s <= x.as(bit[17]) + y
 end
 
 # A benchmark for the adder.
