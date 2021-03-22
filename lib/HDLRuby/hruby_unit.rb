@@ -22,7 +22,7 @@ module HDLRuby::Unit
     #       namespace since it is not meant to be used directly.
     def self.system(name,&ruby_block)
         # Ensure name is a symbol.
-        name = name.to_s.to_sym
+        name = name.to_s.to_sym unless name.is_a?(Symbol)
         # Check if the name is already used or not.
         if @@unit_systems.key?(name) then
             raise UnitError, "Unit test system #{name} already declared."
@@ -31,12 +31,22 @@ module HDLRuby::Unit
     end
 
 
-    # Create a system named +test_name+ executing all the unit tests.
-    def self.test(test_name = "test")
+    # Create a system named +test_name+ executing the unit tests given from
+    # +names+.
+    def self.test(test_name = :test, *names)
+        # If there is no name given, use all the test systems.
+        names = @@unit_systems.each_key if names.empty?
         # Declare the system.
         HDLRuby::High.system test_name do
-            @@unit_systems.each do |name,sys|
-                sys.instantiate(name)
+            # @@unit_systems.each do |name,sys|
+            #     sys.instantiate(name)
+            # end
+            names.each do |name|
+                name = name.to_s.to_sym unless name.is_a?(Symbol)
+                unless @@unit_systems.key?(name) then
+                    raise UnitError, "Unit test #{name} does not exist."
+                end
+                @@unit_systems[name].instantiate(name)
             end
         end
     end

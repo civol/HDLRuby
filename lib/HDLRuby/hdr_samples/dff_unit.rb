@@ -3,7 +3,7 @@
 
 # Declare multiple simple dff-systems and their corresponding test.
 
-1.times do |i|
+3.times do |i|
 
     # A simple D-FF
     system:"dff#{i}" do

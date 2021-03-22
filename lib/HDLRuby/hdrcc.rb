@@ -337,8 +337,11 @@ $optparse = OptionParser.new do |opts|
     opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
         $options[:debug] = d
     end
-    opts.on("-T","--test","Compile the unit tests.") do |t|
+    opts.on("-T","--test t0,t1,t2","Compile the unit tests named t0,t1,...") do |t|
         $options[:test] = t
+    end
+    opts.on("--testall","Compile all the available unit tests.") do |t|
+        $options[:testall] = t
     end
     opts.on("-t", "--top system", "Specify the top system to process") do|t|
         $options[:top] = t
@@ -400,14 +403,23 @@ if $input == nil then
     exit
 end
 
-if ($options[:test]) then
+if ($options[:test] || $options[:testall]) then
     $top = "__test__"
+    tests = $options[:test]
+    if tests then
+        tests = tests.to_s.split(",")
+        tests.map! {|test| ":\"#{test}\"" }
+        tests = ", #{tests.join(",")}"
+    else
+        tests = ""
+    end
     # Generate the unit test file.
     $test_file = Tempfile.new('tester.rb',Dir.getwd)
     $test_file.write("require 'hruby_unit.rb'\nrequire_relative '#{$input}'\n\n" +
-                    "HDLRuby::Unit.test(\"#{$top}\")\n")
+                     "HDLRuby::Unit.test(:\"#{$top}\"#{tests})\n")
     # $test_file.rewind
     # puts $test_file.read
+    # exit
     $test_file.rewind
     # It is the new input file.
     $input = $test_file
@@ -425,7 +437,7 @@ if $output then
         $output = File.open($output,"w")
     end
 else
-    if $option[:multiple] then
+    if $options[:multiple] then
         raise "Need a target directory in multiple files generation mode."
     end
     $output = $stdout
