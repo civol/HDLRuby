@@ -2974,8 +2974,7 @@ module HDLRuby::High
 
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # return HDLRuby::Low::RefName.new(self.type.to_low,
-            #                                  @base.to_ref.to_low,@object.name)
+            # puts "to_low with base=#{@base} @object=#{@object}"
             refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                              @base.to_ref.to_low,@object.name)
             # For debugging: set the source high object 
@@ -3127,10 +3126,23 @@ module HDLRuby::High
         end
     end
 
+    
+    # Sets the current this to +obj+.
+    #
+    # NOTE: do not use a this= style to avoid confusion.
+    def set_this(obj = proc { RefThis.new })
+        if (obj.is_a?(Proc)) then
+            @@this = obj
+        else
+            @@this = proc { RefObject.new(RefThis.new,obj) }
+        end
+    end
+
 
     # Gives access to the *this* reference.
     def this
-        RefThis.new
+        # RefThis.new
+        @@this.call
     end
 
 
@@ -4627,6 +4639,9 @@ def self.configure_high
             end
         end
     end
+
+    # Initialize the this.
+    set_this
 
     # Generate the standard signals
     $clk = Universe.scope.inner :__universe__clk__
