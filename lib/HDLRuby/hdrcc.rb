@@ -353,6 +353,10 @@ $optparse = OptionParser.new do |opts|
         $options[:dump] = v
         $options[:multiple] = v
     end
+    opts.on("--version", "Shows the version of HDLRuby.") do |v|
+        puts VERSION
+        exit
+    end
     # opts.on_tail("-h", "--help", "Show this message") do
     opts.on("-h", "--help", "Show this message") do
         puts opts
