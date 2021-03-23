@@ -15,6 +15,7 @@ module HDLRuby::Unit
     # The set of the unit systems by name.
     @@unit_systems = {}
 
+
     # Declares system +name+ for unit testing.
     # The system is built by executing +ruby_block+.
     #
@@ -27,7 +28,8 @@ module HDLRuby::Unit
         if @@unit_systems.key?(name) then
             raise UnitError, "Unit test system #{name} already declared."
         end
-        @@unit_systems[name] = HDLRuby::High.system(&ruby_block)
+        # @@unit_systems[name] = HDLRuby::High.system(&ruby_block)
+        @@unit_systems[name] = ruby_block
     end
 
 
@@ -38,15 +40,35 @@ module HDLRuby::Unit
         names = @@unit_systems.each_key if names.empty?
         # Declare the system.
         HDLRuby::High.system test_name do
-            # @@unit_systems.each do |name,sys|
-            #     sys.instantiate(name)
-            # end
+
+            # The timed block that contains the bench execurtion code.
+            @@tester = timed {}
+
+            # Generate the test code for each selected test units.
             names.each do |name|
                 name = name.to_s.to_sym unless name.is_a?(Symbol)
                 unless @@unit_systems.key?(name) then
                     raise UnitError, "Unit test #{name} does not exist."
                 end
-                @@unit_systems[name].instantiate(name)
+                sub(name) do
+                    @@myself = self
+                    instance_exec do
+                        # Define the test command that insert code of
+                        # the current test unit to the tester timed block.
+                        def test(&ruby_block)
+                            @@tester.block.open do
+                                # Here the signals are to be taken from
+                                # the test unit and not the timed block.
+                                set_this(@@myself)
+                                ruby_block.call
+                                # Go back to the default current this.
+                                set_this
+                            end
+                        end
+                    end
+                    # Process the test unit.
+                    instance_exec(&@@unit_systems[name])
+                end
             end
         end
     end

@@ -21,7 +21,7 @@
 
         send(:"dff#{i}",:dffI).(clk,rst,d,q,qb)
 
-        timed do
+        test do
             clk <= 0
             rst <= 0
             d   <= 0
