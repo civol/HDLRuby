@@ -419,7 +419,7 @@ if ($options[:test] || $options[:testall]) then
     end
     # Generate the unit test file.
     $test_file = Tempfile.new('tester.rb',Dir.getwd)
-    $test_file.write("require 'hruby_unit.rb'\nrequire_relative '#{$input}'\n\n" +
+    $test_file.write("require 'std/hruby_unit.rb'\nrequire_relative '#{$input}'\n\n" +
                      "HDLRuby::Unit.test(:\"#{$top}\"#{tests})\n")
     # $test_file.rewind
     # puts $test_file.read
