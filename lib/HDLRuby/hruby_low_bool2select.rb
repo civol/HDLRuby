@@ -61,6 +61,20 @@ module HDLRuby::Low
             return self
         end
     end
+
+
+    ## Extends the Print class with functionality for converting booleans
+    #  in assignments to select operators.
+    class Print
+
+        # Converts booleans in assignments to select operators.
+        def boolean_in_assign2select!
+            # Apply on the arguments.
+            self.map_args! { |arg| arg.boolean_in_assign2select }
+            return self
+        end
+    end
+
     
     ## Extends the If class with functionality for converting booleans
     #  in assignments to select operators.
@@ -313,6 +327,21 @@ module HDLRuby::Low
         def boolean_in_assign2select
             # Simply clone.
             return self.clone
+        end
+    end
+
+
+    ## Extends the StringE class with functionality for converting booleans
+    #  in assignments to select operators.
+    class StringE
+
+        # Converts booleans in assignments to select operators.
+        def boolean_in_assign2select
+            # Apply on the content.
+            # Apply on the arguments.
+            return StringE.new(self.content.clone,*self.each_arg.map do |arg|
+                arg.boolean_in_assign2select
+            end)
         end
     end
 end

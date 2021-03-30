@@ -62,6 +62,20 @@ module HDLRuby::Low
             return self
         end
     end
+
+
+    ## Extends the Print class with functionality for extracting 
+    #  expressions from cast.
+    class Print
+
+        # Extracts the expressions from the casts.
+        def casts_without_expression!
+            # Apply on the arguments.
+            self.map_args!(&:casts_without_expression)
+            return self
+        end
+    end
+
     
     ## Extends the If class with functionality for extracting 
     #  expressions from cast.
@@ -321,6 +335,19 @@ module HDLRuby::Low
         def casts_without_expression
             # Simply clone.
             return self.clone
+        end
+    end
+
+
+    ## Extends the StringE class with functionality for extracting 
+    #  expressions from cast.
+    class StringE
+
+        # Extracts the expressions from the casts.
+        def casts_without_expression
+            return StringE.new(self.content,
+                               *self.each_arg.map(&:cast_without_expression))
+            return self
         end
     end
 end

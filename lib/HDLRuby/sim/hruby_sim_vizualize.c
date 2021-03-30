@@ -16,15 +16,22 @@ PrinterS printer;
  *  @param print_time the time printer
  *  @param print_name the name printer
  *  @param print_value the value printer
- *  @param print_signal the signal state printer. */
+ *  @param print_signal the signal state printer
+ *  @param print_string the string printer. */
 void init_visualizer(void (*print_time)(unsigned long long), 
                      void (*print_name)(Object),
                      void (*print_value)(Value),
-                     void (*print_signal)(SignalI)) {
+                     void (*print_signal)(SignalI),
+                     void (*print_string)(const char*),
+                     void (*print_string_name)(Object),
+                     void (*print_string_value)(Value)) {
     printer.print_time = print_time; 
     printer.print_name = print_name; 
     printer.print_value = print_value; 
     printer.print_signal = print_signal; 
+    printer.print_string = print_string;
+    printer.print_string_name = print_string_name;
+    printer.print_string_value = print_string_value;
 }
 
                     
@@ -34,7 +41,7 @@ void init_visualizer(void (*print_time)(unsigned long long),
 
 /** Prints the time.
  *  @param time the time to show. */
-static void default_print_time(unsigned long long time) {
+void default_print_time(unsigned long long time) {
     printf("# %llups",time);
 }
 
@@ -47,7 +54,7 @@ static void default_println_time(unsigned long long time) {
 
 /** Prints the name of an object.
  *  @param object the object to print the name. */
-static void default_print_name(Object object) {
+void default_print_name(Object object) {
     /* Recurse on the owner if any. */
     // printf("owner=%p\n",object->owner);
     if (object->owner != NULL) {
@@ -73,7 +80,7 @@ static void default_print_name(Object object) {
 
 /** Prints a value.
  *  @param value the value to print */
-static void default_print_value(Value value) {
+void default_print_value(Value value) {
     if (value->numeric) {
         unsigned long long width = type_width(value->type);
         unsigned long long mask = 1ULL << (width-1);
@@ -98,6 +105,12 @@ static void default_print_value(Value value) {
             } 
         }
     }
+}
+
+/** Prints a string.
+ *  @param str the string to print. */
+void default_print_string(const char* str) {
+    printf("%s", str);
 }
 
 /** Prints a signal.
@@ -126,5 +139,8 @@ void init_default_visualizer(char* name) {
     init_visualizer(&default_println_time,
                     &default_print_name,
                     &default_print_value,
-                    &default_println_signal);
+                    &default_println_signal,
+                    &default_print_string,
+                    &default_print_name,
+                    &default_print_value);
 }

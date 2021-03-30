@@ -357,6 +357,7 @@ static void vcd_print_header() {
 }
 
 
+
 /* The configuration and initialization of the vcd vizualizer. */
 
 
@@ -373,7 +374,10 @@ extern void init_vcd_visualizer(char* name) {
     init_visualizer(&vcd_print_time,
                     &vcd_print_full_name,
                     &vcd_print_value,
-                    &vcd_print_signal_fvalue);
+                    &vcd_print_signal_fvalue,
+                    &default_print_string,
+                    &default_print_name,
+                    &default_print_value);
 
     /* Prints the header of the vcd file. */
     vcd_print_header();

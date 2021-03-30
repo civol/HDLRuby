@@ -32,6 +32,13 @@ module HDLRuby::Low
             return [1.to_i].pack("i").size*8
         end
 
+        ## Converts string +str+ to a C-compatible string.
+        def self.c_string(str)
+            str = str.gsub(/\n/,"\\n")
+            str.gsub!(/\t/,"\\t")
+            return str
+        end
+
         ## Tells if a +name+ is C-compatible.
         #  To ensure compatibile, assume all the character must have the
         #  same case.
@@ -139,10 +146,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemT class with generation of HDLRuby::High C text.
+    ## Extends the SystemT class with generation of C text.
     class SystemT
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and +hnames+
         # is the list of extra h files to include.
         def to_c(level = 0, *hnames)
@@ -345,10 +352,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with generation of HDLRuby::High C text.
+    ## Extends the Scope class with generation of C text.
     class Scope
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The resulting string.
@@ -498,10 +505,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Type class with generation of HDLRuby::High text.
+    ## Extends the Type class with generation of C text.
     class Type
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # return Low2C.c_name(self.name)
@@ -516,10 +523,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeDef class with generation of HDLRuby::High text.
+    ## Extends the TypeDef class with generation of C text.
     class TypeDef
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # # Simply use the name of the type.
@@ -529,10 +536,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeVector class with generation of HDLRuby::High text.
+    ## Extends the TypeVector class with generation of C text.
     class TypeVector
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The resulting string.
@@ -541,10 +548,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeTuple class with generation of HDLRuby::High text.
+    ## Extends the TypeTuple class with generation of C text.
     class TypeTuple
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         #
         # NOTE: type tuples are converted to bit vector of their contents.
@@ -557,10 +564,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TypeStruct class with generation of HDLRuby::High text.
+    ## Extends the TypeStruct class with generation of C text.
     class TypeStruct
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             return "get_type_struct(#{self.each.join(",") do |key,type|
@@ -570,10 +577,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with generation of HDLRuby::High text.
+    ## Extends the Behavior class with generation of C text.
     class Behavior
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +time+ is a flag telling if the behavior is timed or not.
         def to_c(level = 0, time = false)
@@ -706,10 +713,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBehavior class with generation of HDLRuby::High text.
+    ## Extends the TimeBehavior class with generation of C text.
     class TimeBehavior
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             super(level,true)
@@ -717,10 +724,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Event class with generation of HDLRuby::High text.
+    ## Extends the Event class with generation of C text.
     class Event
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             edge = "ANYEDGE"
@@ -732,7 +739,7 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SignalI class with generation of HDLRuby::High text.
+    ## Extends the SignalI class with generation of C text.
     class SignalI
 
         ## Generates the C text for an access to the signal.
@@ -748,7 +755,7 @@ module HDLRuby::Low
             return res
         end
 
-        ## Generates the C text of the equivalent HDLRuby::High code.
+        ## Generates the C text of the equivalent HDLRuby code.
         #  +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The resulting string.
@@ -850,10 +857,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with generation of HDLRuby::High text.
+    ## Extends the SystemI class with generation of C text.
     class SystemI
 
-        ## Generates the C text of the equivalent HDLRuby::High code.
+        ## Generates the C text of the equivalent HDLRuby code.
         #  +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The resulting string.
@@ -919,7 +926,7 @@ module HDLRuby::Low
     # Extend the Chunk cass with generation of text code.
     class HDLRuby::Low::Chunk
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             res = " " * level
@@ -935,9 +942,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with generation of HDLRuby::High text.
+    ## Extends the SystemI class with generation of C text.
     class Code
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # puts "For behavior: #{self}"
@@ -1042,10 +1049,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with generation of HDLRuby::High text.
+    ## Extends the Statement class with generation of C text.
     class Statement
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # Should never be here.
@@ -1081,10 +1088,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Transmit class with generation of HDLRuby::High text.
+    ## Extends the Transmit class with generation of C text.
     class Transmit
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # Save the state of the value pool.
@@ -1116,11 +1123,48 @@ module HDLRuby::Low
         end
     end
 
+
+    ## Extends the Print class with generation of C text.
+    class Print
+
+        # Generates the C text of the equivalent HDLRuby code.
+        # +level+ is the hierachical level of the object.
+        def to_c(level = 0)
+            # Save the state of the value pool.
+            res = (" " * ((level)*3))
+            res << "{\n"
+            res << (" " * ((level+1)*3))
+            res << "unsigned int pool_state = get_value_pos();\n"
+            # Perform the copy and the touching only if the new content
+            # is different.
+            res << (" " * ((level+1)*3))
+            # Is it a sequential execution model?
+            seq = self.block.mode == :seq ? "_seq" : ""
+            # Generate the print.
+            self.each_arg do |arg|
+                if (arg.is_a?(StringE)) then
+                    res << "printer.print_string(\"" + 
+                        Low2C.c_string(arg.content) + "\");\n"
+                elsif (arg.is_a?(Expression)) then
+                    res << "printer.print_string_value(" + arg.to_c + ");\n"
+                else
+                    res << "printer.print_string_name(" + arg.to_c + ");\n"
+                end
+            end
+            # Restore the value pool state.
+            res << (" " * ((level+1)*3))
+            res << "set_value_pos(pool_state);\n"
+            res << (" " * ((level)*3))
+            res << "}\n"
+            return res
+        end
+    end
+
     
-    ## Extends the If class with generation of HDLRuby::High text.
+    ## Extends the If class with generation of C text.
     class If
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The result string.
@@ -1176,10 +1220,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with generation of HDLRuby::High text.
+    ## Extends the When class with generation of C text.
     class When
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The result string.
@@ -1211,10 +1255,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Case class with generation of HDLRuby::High text.
+    ## Extends the Case class with generation of C text.
     class Case
 
-        # Generates the text of the equivalent HDLRuby::High code.
+        # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             res = ""
@@ -1269,10 +1313,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Delay class with generation of HDLRuby::High text.
+    ## Extends the Delay class with generation of C text.
     class Delay
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             return "make_delay(#{self.value.to_s}," +
@@ -1281,10 +1325,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with generation of HDLRuby::High text.
+    ## Extends the TimeWait class with generation of C text.
     class TimeWait
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The resulting string.
@@ -1297,10 +1341,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with generation of HDLRuby::High text.
+    ## Extends the TimeRepeat class with generation of C text.
     class TimeRepeat
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # The resulting string.
@@ -1315,7 +1359,7 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Block class with generation of HDLRuby::High text.
+    ## Extends the Block class with generation of C text.
     class Block
 
         # Adds the c code of the blocks to +res+ at +level+
@@ -1329,7 +1373,7 @@ module HDLRuby::Low
             res << "#{Low2C.make_name(self)}();\n"
         end
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c_code(level = 0)
             # The resulting string.
@@ -1425,7 +1469,7 @@ module HDLRuby::Low
         end
 
         # Generates the execution of the block C text of the equivalent
-        # HDLRuby::High code.
+        # HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             res = " " * (level)
@@ -1455,22 +1499,22 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with generation of HDLRuby::High text.
+    ## Extends the Block class with generation of C text.
     class TimeBlock
         # TimeBlock is identical to Block in C
     end
 
 
-    ## Extends the Connection class with generation of HDLRuby::High text.
+    ## Extends the Connection class with generation of C text.
     class Connection
         # Nothing required, Transmit is generated identically.
     end
 
 
-    ## Extends the Expression class with generation of HDLRuby::High text.
+    ## Extends the Expression class with generation of C text.
     class Expression
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # Should never be here.
@@ -1479,7 +1523,7 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Value class with generation of HDLRuby::High text.
+    ## Extends the Value class with generation of C text.
     class Value
 
         ## Generates the C text for an access to the value.
@@ -1558,10 +1602,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Cast class with generation of HDLRuby::High text.
+    ## Extends the Cast class with generation of C text.
     class Cast
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             res = "({\n"
@@ -1589,10 +1633,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Operation class with generation of HDLRuby::High text.
+    ## Extends the Operation class with generation of C text.
     class Operation
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # Should never be here.
@@ -1600,10 +1644,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Unary class with generation of HDLRuby::High text.
+    ## Extends the Unary class with generation of C text.
     class Unary
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             res = "({\n"
@@ -1645,80 +1689,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Binary class with generation of HDLRuby::High text.
+    ## Extends the Binary class with generation of C text.
     class Binary
 
-        # # Generates the C text of the equivalent HDLRuby::High code.
-        # # +level+ is the hierachical level of the object.
-        # def to_c(level = 0)
-        #     res = ""
-        #     case self.operator
-        #     when :+ then
-        #         return "add_value(#{self.left.to_c(level)}," + 
-        #                "#{self.right.to_c(level)})"
-        #     when :- then
-        #         return "sub_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :* then
-        #         return "mul_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :/ then
-        #         return "div_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :% then
-        #         return "mod_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :** then
-        #         return "pow_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :& then
-        #         return "and_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :| then
-        #         return "or_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :^ then
-        #         return "xor_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :<<,:ls then
-        #         return "shift_left_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :>>,:rs then
-        #         return "shift_right_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :lr then
-        #         return "rotate_left_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :rr then
-        #         return "rotate_right_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :== then
-        #         return "equal_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :!= then
-        #         # return "not_equal_value(#{self.left.to_c(level)}," +
-        #         #        "#{self.right.to_c(level)})"
-        #         return "xor_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :> then
-        #         return "greater_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :< then
-        #         return "lesser_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :>= then
-        #         return "greater_equal_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     when :<= then
-        #         return "lesser_equal_value(#{self.left.to_c(level)}," +
-        #                "#{self.right.to_c(level)})"
-        #     else
-        #         raise "Invalid binary operator: #{self.operator}."
-        #     end
-        #     return res
-        # end
-
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # res = " " * (level*3)
@@ -1795,17 +1769,12 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Select class with generation of HDLRuby::High text.
+    ## Extends the Select class with generation of C text.
     class Select
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
-            # res = "select_value(#{self.select.to_c(level)}," + 
-            #       "#{self.each_choice.to_a.size}"
-            # self.each_choice { |choice| res << ",#{choice.to_c(level)}" }
-            # res << ")"
-            # return res
             # Gather the possible selection choices.
             expressions = self.each_choice.to_a
             # Create the resulting string.
@@ -1846,10 +1815,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Concat class with generation of HDLRuby::High text.
+    ## Extends the Concat class with generation of C text.
     class Concat
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(level = 0)
             # Gather the content to concat.
@@ -1893,10 +1862,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Ref class with generation of HDLRuby::High text.
+    ## Extends the Ref class with generation of C text.
     class Ref
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(level = 0, left = false)
@@ -1905,10 +1874,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefConcat class with generation of HDLRuby::High text.
+
+    ## Extends the RefConcat class with generation of C text.
     class RefConcat
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(level = 0, left = false)
@@ -1937,10 +1907,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefIndex class with generation of HDLRuby::High text.
+    ## Extends the RefIndex class with generation of C text.
     class RefIndex
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is thehierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(level = 0, left = false)
@@ -1981,22 +1951,13 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefRange class with generation of HDLRuby::High text.
+    ## Extends the RefRange class with generation of C text.
     class RefRange
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(level = 0, left = false)
-            # if left then
-            #     res = "write_range(#{self.ref.to_c(level,left)},"
-            # else
-            #     res = "read_range(#{self.ref.to_c(level,left)},"
-            # end
-            # res << "read64(#{self.range.first.to_c(level)})," +
-            #        "read64(#{self.range.last.to_c(level)})," +
-            #        "#{self.type.base.to_c(level)})"
-            # return res
             # Decide if it is a read or a write
             command = left ? "write" : "read"
             res = "({\n"
@@ -2041,10 +2002,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefName class with generation of HDLRuby::High text.
+
+    ## Extends the RefName class with generation of C text.
     class RefName
 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(level = 0, left = false)
@@ -2061,9 +2023,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefThis class with generation of HDLRuby::High text.
+
+    ## Extends the RefThis class with generation of C text.
     class RefThis 
-        # Generates the C text of the equivalent HDLRuby::High code.
+        # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(level = 0, left = false)
@@ -2077,14 +2040,5 @@ module HDLRuby::Low
         end
     end
 
-    # ## Extends the Numeric class with generation of HDLRuby::High text.
-    # class ::Numeric
-
-    #     # Generates the text of the equivalent HDLRuby::High code.
-    #     # +level+ is the hierachical level of the object.
-    #     def to_c(level = 0)
-    #         return self.to_s
-    #     end
-    # end
 
 end

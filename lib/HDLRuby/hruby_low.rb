@@ -1364,10 +1364,6 @@ module HDLRuby::Low
     # The void type.
     class << (Void = Type.new(:void) )
         include LLeaf
-        # # Get the base type, actually self for leaf types.
-        # def base
-        #     self
-        # end
     end
     
     ##
@@ -1470,6 +1466,11 @@ module HDLRuby::Low
         # end
     end
 
+    ##
+    # The void type.
+    class << (StringT = Type.new(:string) )
+        include LLeaf
+    end
 
 
     ##
@@ -1478,9 +1479,6 @@ module HDLRuby::Low
     # NOTE: type definition are actually type with a name refering to another
     #       type (and equivalent to it).
     class TypeDef < Type
-        # Moved to constructor
-        # extend Forwardable
-
         # The definition of the type.
         attr_reader :def
 
@@ -1538,15 +1536,6 @@ module HDLRuby::Low
 
         alias_method :each_deep, :each_type_deep
 
-        # Moved to constructor
-        # # Delegate the type methods to the ref.
-        # def_delegators :@def,
-        #                :signed?, :unsigned?, :fixed?, :float?, :leaf?,
-        #                :width, :range?, :range, :base?, :base, :types?,
-        #                :get_all_types, :get_type, :each, :each_type, 
-        #                :regular?,
-        #                :each_name,
-        #                :equivalent?
     end
 
 
@@ -3588,6 +3577,122 @@ module HDLRuby::Low
 
 
     ## 
+    # Describes a print statement: not synthesizable!
+    class Print < Statement
+
+        # Creates a new statement for printing +args+.
+        def initialize(*args)
+            super()
+            # Process the arguments.
+            @args = args.map do |arg|
+                arg.parent = self 
+                arg
+            end
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Print)
+            return false if @args.each.zip(obj.each_arg).any? do |a0,a1|
+                !a0.eql?(a1)
+            end
+            return true
+        end
+
+        # Iterates over each argument.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_arg(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_arg) unless ruby_block
+            # A ruby block? First apply it to each argument.
+            @args.each(&ruby_block)
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the arguments.
+            self.each_arg(&ruby_block)
+        end
+
+        # Hash function.
+        def hash
+            return @args.hash
+        end
+
+        # Clones the TimeWait (deeply)
+        def clone
+            return Print.new(*@args.map { |arg| arg.clone })
+        end
+
+        # Iterates over the expression children if any.
+        def each_node(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node) unless ruby_block
+            # A ruby block?
+            # Apply it on each argument.
+            @args.each(&ruby_block)
+        end
+
+        # Iterates over the nodes deeply if any.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And apply it on each argument.
+            @args.each(&ruby_block)
+        end
+
+        # Iterates over the sub blocks.
+        def each_block(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block) unless ruby_block
+            # A ruby block?
+            # Recurse on each argument.
+            @args.each do |arg|
+                arg.each_block(&ruby_block) if arg.respond_to?(:each_block)
+            end
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A ruby block?
+            # Recurse on each argument.
+            @args.each do |arg|
+                if arg.respond_to?(:each_block_deep) then
+                    arg.each_block_deep(&ruby_block)
+                end
+            end
+        end
+
+        # Iterates over all the statements contained in the current block.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # Recurse on each argument.
+            @args.each do |arg|
+                if arg.respond_to?(:each_statement_deep) then
+                    arg.each_statement_deep(&ruby_block)
+                end
+            end
+        end
+
+    end
+
+
+    ## 
     # Describes a wait statement: not synthesizable!
     class TimeWait < Statement
         # The delay to wait.
@@ -3883,7 +3988,6 @@ module HDLRuby::Low
             # No ruby block? Return an enumerator.
             return to_enum(:each_inner) unless ruby_block
             # A ruby block? Apply it on each inner signal instance.
-            # @inners.each_value(&ruby_block)
             @inners.each(&ruby_block)
         end
         alias_method :each_signal, :each_inner
@@ -3974,17 +4078,6 @@ module HDLRuby::Low
         def last_statement
             return @statements[-1]
         end
-
-        # # Deletes +statement+.
-        # def delete_statement(statement)
-        #     if @statements.include?(statement) then
-        #         # Statement is present, delete it.
-        #         @statements.delete(statement)
-        #         # And remove its parent.
-        #         statement.parent = nil
-        #     end
-        #     statement
-        # end
         
         # Iterates over the sub blocks.
         def each_block(&ruby_block)
@@ -4256,22 +4349,11 @@ module HDLRuby::Low
     # Describes a value.
     class Value < Expression
 
-        # Moved to Expression
-        # # The type of value.
-        # attr_reader :type
-
         # The content of the value.
         attr_reader :content
 
         # Creates a new value typed +type+ and containing +content+.
         def initialize(type,content)
-            # Moved to Expression.
-            # # Check and set the type.
-            # if type.is_a?(Type) then
-            #     @type = type
-            # else
-            #     raise AnyError, "Invalid class for a type: #{type.class}."
-            # end
             super(type)
             # Checks and set the content: Ruby Numeric and HDLRuby BitString 
             # are supported. Strings or equivalent are converted to BitString.
@@ -4352,6 +4434,7 @@ module HDLRuby::Low
             return Value.new(@type,@content)
         end
     end
+
 
     ##
     # Describes a cast.
@@ -5525,5 +5608,136 @@ module HDLRuby::Low
         def hash
             return super
         end
+    end
+
+
+
+    ##
+    # Describes a string.
+    #
+    # NOTE: This is not synthesizable!
+    class StringE < Expression
+
+        attr_reader :content
+
+        # Creates a new string whose content is +str+ and is modified using
+        # the objects of +args+.
+        def initialize(content,*args)
+            super(StringT)
+            # Checks and set the content.
+            @content = content.to_s
+            # Process the arguments.
+            @args = args.map do |arg|
+                arg.parent = self 
+                arg
+            end
+        end
+
+        # Tells if the expression is immutable (cannot be written.)
+        def immutable?
+            # String objects are always immutable.
+            true
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(StringE)
+            return false unless @content.eql?(obj.content)
+            return false if @args.each.zip(obj.each_arg).any? do |a0,a1|
+                !a0.eql?(a1)
+            end
+            return true
+        end
+
+        # Iterates over each argument.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_arg(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_arg) unless ruby_block
+            # A ruby block? First apply it to each argument.
+            @args.each(&ruby_block)
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the arguments.
+            self.each_arg(&ruby_block)
+        end
+
+        # Hash function.
+        def hash
+            return @args.hash
+        end
+
+        # Clones the string.
+        def clone
+            return StringE.new(@content.clone,*@args.map {|arg| arg.clone})
+        end
+
+        # Iterates over the expression children if any.
+        def each_node(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node) unless ruby_block
+            # A ruby block?
+            # Apply it on each argument.
+            @args.each(&ruby_block)
+        end
+
+        # Iterates over the nodes deeply if any.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And apply it on each argument.
+            @args.each(&ruby_block)
+        end
+
+        # Iterates over the sub blocks.
+        def each_block(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block) unless ruby_block
+            # A ruby block?
+            # Recurse on each argument.
+            @args.each do |arg|
+                arg.each_block(&ruby_block) if arg.respond_to?(:each_block)
+            end
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A ruby block?
+            # Recurse on each argument.
+            @args.each do |arg|
+                if arg.respond_to?(:each_block_deep) then
+                    arg.each_block_deep(&ruby_block)
+                end
+            end
+        end
+
+        # Iterates over all the statements contained in the current block.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # Recurse on each argument.
+            @args.each do |arg|
+                if arg.respond_to?(:each_statement_deep) then
+                    arg.each_statement_deep(&ruby_block)
+                end
+            end
+        end
+
     end
 end

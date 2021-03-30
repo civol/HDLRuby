@@ -162,6 +162,19 @@ module HDLRuby::Low
             return selects
         end
     end
+
+    ## Extends the String class with functionality for converting select
+    #  expressions to case statements.
+    class Print
+        # Extract the Select expressions.
+        def extract_selects!
+            selects = []
+            self.map_args! do |arg|
+                arg.extract_selects_to!(selects)
+            end
+            return selects
+        end
+    end
     
     ## Extends the If class with functionality for converting select
     #  expressions to case statements.

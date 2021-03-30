@@ -573,10 +573,15 @@ extern void each_all_signal(void (*func)(SignalI));
 /* Interface to the visualization engine. */
 
 typedef struct {
+    /* The simulation prints. */
     void (*print_time)(unsigned long long);
     void (*print_name)(Object);
     void (*print_value)(Value);
     void (*print_signal)(SignalI);
+    /* The custom 'string' prints. */
+    void (*print_string)(const char*);
+    void (*print_string_name)(Object);
+    void (*print_string_value)(Value);
 } PrinterS;
 
 extern PrinterS printer;
@@ -585,11 +590,29 @@ extern PrinterS printer;
  *  @param print_time the time printer
  *  @param print_name the name printer
  *  @param print_value the value printer
- *  @param print_signal the signal state printer. */
+ *  @param print_signal the signal state printer
+ *  @param print_string the string printer
+ *  @param print_string_name the string name printer
+ *  @param print_string_value the string value printer */
 extern void init_visualizer(void (*print_time)(unsigned long long), 
                             void (*print_name)(Object),
                             void (*print_value)(Value),
-                            void (*print_signal)(SignalI));
+                            void (*print_signal)(SignalI),
+                            void (*print_string)(const char*),
+                            void (*print_string_name)(Object),
+                            void (*print_string_value)(Value));
+
+/** Prints a name (default).
+ *  @param signal the signal to show */
+extern void default_print_name(Object);
+
+/** Prints a value (default).
+ *  @param signal the signal to show */
+extern void default_print_value(Value);
+
+/** Prints a string (default).
+ *  @param str the string to print. */
+extern void default_print_string(const char* str);
 
 // /** Prints the time.
 //  *  @param time the time to show. */

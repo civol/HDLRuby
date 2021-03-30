@@ -627,6 +627,64 @@ module HDLRuby::Low
 
 
     ## 
+    # Decribes a print statement.
+    class Print
+
+        # Maps on the arguments.
+        def map_args!(&ruby_block)
+            @args.map! do |arg|
+                arg = ruby_block.call(arg)
+                arg.parent = self unless arg.parent
+                arg
+            end
+        end
+
+        alias_method :map_nodes!, :map_args!
+
+        # Delete an arg.
+        def delete_arg!(arg)
+            if @args.include?(arg) then
+                # The arg is present, delete it.
+                @args.delete(arg)
+                # And remove its parent.
+                arg.parent = nil
+            end
+            arg
+        end
+
+        # Replaces sub arguments using +node2rep+ table indicating the
+        # node to replace and the corresponding replacement.
+        # Returns the actually replaced nodes and their corresponding
+        # replacement.
+        #
+        # NOTE: the replacement is duplicated.
+        def replace_args!(node2rep)
+            # First recurse on the children.
+            res = {}
+            self.each_node do |node|
+                res.merge!(node.replace_args!(node2rep))
+            end
+            # Is there a replacement of on a sub node?
+            self.map_nodes! do |sub|
+                rep = node2rep[sub]
+                if rep then
+                    # Yes, do it.
+                    rep = rep.clone
+                    node = sub
+                    # node.set_parent!(nil)
+                    # And register the replacement.
+                    res[node] = rep
+                    rep
+                else
+                    sub
+                end
+            end
+            return res
+        end
+    end
+
+
+    ## 
     # Describes an if statement.
     class If
 

@@ -1627,6 +1627,18 @@ module HDLRuby::High
         include HbasicType
     end
 
+    # The string type
+    StringT = define_type(:string)
+    class << StringT
+        # Converts the type to HDLRuby::Low.
+        def to_low
+            return Low::StringT
+        end
+
+        include HbasicType
+    end
+
+
     # # The infer type.
     # # Unspecified, but automatically infered when connected.
     # Infer = define_type(:infer)
@@ -2018,7 +2030,8 @@ module HDLRuby::High
             else
                 # No, perform a connection is order of declaration
                 connects.each.with_index do |csig,i|
-                    # puts "csig=#{csig.name} i=#{i}"
+                    csig = csig.to_expr
+                    # puts "csig=#{csig} i=#{i}"
                     # puts "systemT inputs=#{systemT.each_input.to_a.size}"
                     # Gets i-est signal to connect
                     ssig = self.systemT.get_interface_with_included(i)
@@ -3126,6 +3139,27 @@ module HDLRuby::High
         end
     end
 
+    ##
+    # Describes a string.
+    #
+    # NOTE: This is not synthesizable!
+    class StringE < Low::StringE
+        include HExpression
+
+        # Converts to an expression.
+        def to_expr
+            return StringE.new(self.content,*self.each_arg.map(&:to_expr))
+        end
+
+        # Converts the connection to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::StringE.new(self.content,
+                                             *self.each_arg.map(&:to_low))
+        end
+    end
+
+
+
     
     # Sets the current this to +obj+.
     #
@@ -3218,6 +3252,28 @@ module HDLRuby::High
             return transmitL
         end
     end
+
+
+    ## 
+    # Describes a print statement: not synthesizable!
+    class Print < Low::Print
+        High = HDLRuby::High
+
+        include HStatement
+
+        # Creates a new statement for printing +args+.
+        def initialize(*args)
+            # Process the arguments.
+            super(*args.map(&:to_expr))
+        end
+
+        # Converts the connection to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Print.new(*self.each_arg.map(&:to_low))
+        end
+
+    end
+
 
     ## 
     # Describes a connection.
@@ -3536,13 +3592,6 @@ module HDLRuby::High
             # Use its return value.
             return block.return_value
         end
-
-        # # Get the current mode of the block.
-        # #
-        # # NOTE: for name coherency purpose only. 
-        # def block
-        #     return self.mode
-        # end
         
         # Gets the current block.
         def cur_block
@@ -3639,6 +3688,12 @@ module HDLRuby::High
                     "Error: hwhen statement without hcase (#{statement.class})."
             end
             statement.hwhen(match, mode, &ruby_block)
+        end
+
+
+        # Prints.
+        def hprint(*args)
+            self.add_statement(Print.new(*args))
         end
     end
 
@@ -4173,13 +4228,32 @@ module HDLRuby::High
 
     # Extends the String class for computing conversion to expression.
     class ::String
-        # Converts to a new high-level expression.
+        # # Converts to a new high-level expression.
+        # def to_expr
+        #     # Convert the string to a bit string.
+        #     bstr = BitString.new(self)
+        #     # Use it to create the new value.
+        #     return Value.new(Bit[bstr.width],self)
+        # end
+        
+        # Convert to a new high-level expression
         def to_expr
-            # Convert the string to a bit string.
-            bstr = BitString.new(self)
-            # Use it to create the new value.
-            return Value.new(Bit[bstr.width],self)
+            return StringE.new(self)
         end
+
+        # For now deactivated, needs rethinking.
+        # # Rework format to generate HDLRuby string.
+        # alias_method :__format_old__, :%
+        # def %(args)
+        #     # Is there any HW argument?
+        #     if args.any? { |arg| arg.is_a?(HDLRuby::Low::Hparent) } then
+        #         # Yes generate a HDLRuby string.
+        #         return StringE.new(self,*args)
+        #     else
+        #         # No process the format normally.
+        #         self.__format_old__(args)
+        #     end
+        # end
     end
 
 

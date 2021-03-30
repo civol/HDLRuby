@@ -617,10 +617,13 @@ module HDLRuby::Low
         # 
         # NOTE: do not recurse into the sub scopes or behaviors!
         def extract_declares!
-            # Recurse on the whens.
-            return self.each_when.map(&:extract_declares!)
-            # Recurse on the default if any.
-            self.default.extract_declares! if self.default
+            # # Recurse on the whens.
+            # return self.each_when.map(&:extract_declares!)
+            # # Recurse on the default if any.
+            # self.default.extract_declares! if self.default
+            res = self.each_when.map(&:extract_declares!)
+            res += self.default.extract_declares! if self.default
+            return res
         end
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared.

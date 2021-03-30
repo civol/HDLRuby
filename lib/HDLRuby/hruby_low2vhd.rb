@@ -50,6 +50,15 @@ module HDLRuby::Low
             @@alliance = mode ? true : false
         end
 
+
+        ## Converts string +str+ to a VHDL-compatible string.
+        def self.vhdl_string(str)
+            str = str.gsub(/\n/,"\\n")
+            str.gsub!(/\t/,"\\t")
+            return str
+        end
+
+
         ## Generates the pakage requirement for an entity.
         #  +spaces+ are the spaces to put before each line.
         def self.packages(spaces)
@@ -523,7 +532,8 @@ module HDLRuby::Low
                     if inner.value.is_a?(Concat) then
                         # Concat are to be given the expected type of the
                         # elements for casting them equally.
-                        res << " := " << inner.value.to_vhdl(inner.type.base,level)
+                        # res << " := " << inner.value.to_vhdl(inner.type.base,level)
+                        res << " := " << inner.value.to_vhdl(level,inner.type.base)
                     else
                         res << " := " << inner.value.to_vhdl(level)
                     end
@@ -899,6 +909,20 @@ module HDLRuby::Low
             return " " * (level*3) + 
                    self.left.to_vhdl(level) + assign +
                    Low2VHDL.to_type(self.left.type,self.right) + ";\n"
+        end
+    end
+
+    ## Extends the Print class with generation of HDLRuby::High text.
+    class Print
+
+        # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
+        # +level+ is the hierachical level of the object.
+        def to_vhdl(vars,level = 0)
+            # Generate a report statement.
+            return " " * (level*3) + "report " + self.each_arg.map do |arg|
+                arg.to_vhdl
+            end.join(" & ") + ";\n"
         end
     end
     
@@ -1347,7 +1371,8 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby::High code.
         # +type+ is the expected type of the content.
         # +level+ is the hierachical level of the object.
-        def to_vhdl(type,level = 0)
+        # def to_vhdl(type,level = 0)
+        def to_vhdl(level = 0, type = self.type)
             raise "Invalid class for a type: #{type.class}" unless type.is_a?(Type) 
             # The resulting string.
             res = ""
@@ -1485,6 +1510,18 @@ module HDLRuby::Low
     ## Extends the RefThis class with generation of HDLRuby::High text.
     class RefThis 
         # Nothing to generate.
+    end
+
+    ## Extends the StringE class with generation of HDLRuby::High text.
+    class StringE
+
+        # Generates the text of the equivalent HDLRuby::High code.
+        # +level+ is the hierachical level of the object.
+        def to_vhdl(level = 0, std_logic = false)
+            # Generate a report statement.
+            return "\"#{Low2VHDL.vhdl_string(self.content)}\"" +
+                self.each_arg.map { |arg| arg.to_vhdl }.join(" & ")
+        end
     end
 
     ## Extends the Numeric class with generation of HDLRuby::High text.

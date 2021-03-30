@@ -89,6 +89,20 @@ module HDLRuby::Low
 
     end
 
+
+    ## Extends the Print class with fixing of types and constants.
+    class Print
+        # Explicit the types conversions in the statement.
+        def explicit_types!
+            # Recurse on the arguments.
+            self.map_args!(&:explicit_types)
+            return self
+        end
+
+    end
+
+
+
     
     ## Extends the If class with fixing of types and constants.
     class If
@@ -434,6 +448,17 @@ module HDLRuby::Low
         def explicit_types(type = nil)
             # Simply duplicate.
             return self.clone
+        end
+    end
+
+
+    ## Extends the stringE class with fixing of types and constants.
+    class StringE
+        # Explicit the types conversions in the concat where
+        # +type+ is the expected type of the condition if any.
+        def explicit_types(type = nil)
+            return StringE.new(self.content, 
+                               *self.each_arg.map(&:explicit_types))
         end
     end
 
