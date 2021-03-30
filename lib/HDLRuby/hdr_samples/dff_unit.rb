@@ -1,5 +1,5 @@
 # Testing HDLRuby unit test.
-# require 'hruby_unit.rb' 
+# require 'std/hruby_unit.rb' 
 
 # Declare multiple simple dff-systems and their corresponding test.
 
