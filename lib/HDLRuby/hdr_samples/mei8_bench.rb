@@ -28,7 +28,7 @@ system :mei8 do |prog_file = "./prog.obj"|
         bit[7..0][-256].constant mem: # The content of the memory
             ( File.readlines(prog_file).map {|l| l.split[0] }.select do |l|
             ["0","1"].include?(l[2])
-        end.map {|l| l[2..9] } )
+        end.map {|l| l[2..9].to_i(2) } )
         instr <= mem[addr]       # The access procedure
     end
 
