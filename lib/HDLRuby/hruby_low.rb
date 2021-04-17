@@ -2807,6 +2807,15 @@ module HDLRuby::Low
                 "Internal error: hash is not defined for class: #{self.class}"
         end
 
+        # Iterates over each sub statement if any.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_statement(&ruby_block)
+            # No ruby statement? Return an enumerator.
+            return to_enum(:each_statement) unless ruby_block
+            # By default: nothing to do.
+        end
+
         # Get the block of the statement.
         def block
             if self.is_a?(Block)
@@ -3119,7 +3128,24 @@ module HDLRuby::Low
             end
         end
 
+        # Iterates over each sub statement if any.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_statement(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement) unless ruby_block
+            # A ruby block?
+            # Appy it on the statement children.
+            ruby_block.call(@yes)
+            self.each_noif do |next_cond,next_yes|
+                ruby_block.call(next_yes)
+            end
+            ruby_block.call(@no) if @no
+        end
+
         # Iterates over the children (including the condition).
+        #
+        # Returns an enumerator if no ruby block is given.
         def each_node(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_node) unless ruby_block
@@ -3276,6 +3302,17 @@ module HDLRuby::Low
             return When.new(@match.clone,@statement.clone)
         end
 
+        # Iterates over each sub statement if any.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_statement(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement) unless ruby_block
+            # A ruby block?
+            # Appy it on the statement child.
+            ruby_block.call(@statement)
+        end
+
         # Iterates over the sub blocks.
         def each_block(&ruby_block)
             # No ruby block? Return an enumerator.
@@ -3326,7 +3363,8 @@ module HDLRuby::Low
 
         # Gets the top block, i.e. the first block of the current behavior.
         def top_block
-            return self.parent.is_a?(Behavior) ? self : self.parent.top_block
+            # return self.parent.is_a?(Behavior) ? self : self.parent.top_block
+            return self.parent.top_block
         end
 
         # Tell if the statement includes a signal whose name is one of +names+.
@@ -3428,6 +3466,19 @@ module HDLRuby::Low
             # And set its parent.
             default.parent = self
             @default
+        end
+
+        # Iterates over each sub statement if any.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_statement(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement) unless ruby_block
+            # A ruby block?
+            # Apply on each when.
+            @whens.each { |w| w.each_statement(&ruby_block) }
+            # And on the default if any.
+            ruby_block.call(@default) if @default
         end
 
         # Iterates over the match cases.
@@ -4355,12 +4406,22 @@ module HDLRuby::Low
         # Creates a new value typed +type+ and containing +content+.
         def initialize(type,content)
             super(type)
-            # Checks and set the content: Ruby Numeric and HDLRuby BitString 
-            # are supported. Strings or equivalent are converted to BitString.
-            unless content.is_a?(Numeric) or content.is_a?(HDLRuby::BitString)
-                content = HDLRuby::BitString.new(content.to_s)
+            unless content then
+                # Handle the nil content case.
+                unless type.eql?(Void) then
+                    raise AnyError, "A value with nil content must have the Void type."
+                end
+                @content = content
+            else
+                # Checks and set the content: Ruby Numeric and HDLRuby
+                # BitString are supported. Strings or equivalent are
+                # converted to BitString.
+                unless content.is_a?(Numeric) or
+                        content.is_a?(HDLRuby::BitString)
+                    content = HDLRuby::BitString.new(content.to_s)
+                end
+                @content = content 
             end
-            @content = content 
         end
 
         # Tells if the expression is immutable (cannot be written.)
