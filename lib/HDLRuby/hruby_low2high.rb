@@ -77,7 +77,7 @@ module HDLRuby::Low
     class TypeVector
         # Creates a new high type vector.
         def to_high
-            return new HDLRuby::High::TypeVector.new(self.name,
+            return HDLRuby::High::TypeVector.new(self.name,
                                                      self.base.to_high,
                                                      self.range)
         end
@@ -382,8 +382,16 @@ module HDLRuby::Low
     class Value
         # Creates a new high value expression.
         def to_high
-            return HDLRuby::High::Value.new(self.type.to_high,
-                                            self.content.to_high)
+            # Is there a content?
+            if (self.content) then
+                # Yes, use it for creating the new value.
+                return HDLRuby::High::Value.new(self.type.to_high,
+                                                self.content.to_high)
+            else
+                # puts "Self.type.name=#{self.type.name}"
+                # No (this should be a void value).
+                return HDLRuby::High::Value.new(self.type.to_high,nil)
+            end
         end
     end
 
@@ -438,7 +446,7 @@ module HDLRuby::Low
     class Concat
         # Creates a new high concat expression.
         def to_high
-            return HDLRuby::High::Concat.new(self.type,
+            return HDLRuby::High::Concat.new(self.type.to_high,
                                 self.each_expression.map { |ex| ex.to_high })
         end
     end

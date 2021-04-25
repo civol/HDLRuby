@@ -5,7 +5,7 @@ require 'tempfile'
 require 'HDLRuby'
 require 'HDLRuby/hruby_check.rb'
 # require 'ripper'
-require 'HDLRuby/hruby_low2high'
+require 'HDLRuby/hruby_low2hdr'
 require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
 require 'HDLRuby/hruby_low_fix_types'
@@ -479,6 +479,24 @@ end
 # Get the top systemT.
 $top_system = $top_instance.to_low.systemT
 
+
+# Apply the pre drivers if any.
+Hdecorator.each_with_property(:pre_driver) do |obj, value|
+    unless value.is_a?(Array) && value.size == 2 then
+        raise "pre_driver requires a driver file name command name."
+    end
+    # Load the driver.
+    require_relative(value[0].to_s)
+    # Ensure obj is the low version.
+    if obj.properties.key?(:high2low) then
+        # obj is high, get the corresponding low.
+        obj = obj.properties[:high2low][0]
+    end
+    # Execute it.
+    send(value[1].to_sym,obj,*value[2..-1])
+end
+
+
 # Gather the non-HDLRuby code.
 $non_hdlruby = []
 $top_system.each_systemT_deep do |systemT|
@@ -520,7 +538,7 @@ elsif $options[:hdr] then
     #     $output << systemT.to_high
     # end
     # $output << $top_instance.to_low.systemT.to_high
-    $output << $top_system.to_high
+    $output << $top_system.to_hdr
 elsif $options[:clang] then
     # top_system = $top_instance.to_low.systemT
     # top_system = $top_system
