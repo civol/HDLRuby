@@ -1,4 +1,3 @@
-
 module HDLRuby
 
 ##
@@ -38,6 +37,17 @@ module HDLRuby
         def pow2?
             return self > 0 && (self & (self - 1) == 0)
         end
+    end
+
+
+    # Module for adding prefixes to names.
+    module HDLRuby::Prefix
+
+        # Get the prefix 
+        def prefix
+            return self.name + "#"
+        end
+
     end
 
 end
