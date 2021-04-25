@@ -65,6 +65,15 @@ module HDLRuby::High::Std
                                 (left.as([isize+fsize*2]) << fsize) / right
                             end
                         end
+                        # Define the removal of the point.
+                        typ.define_singleton_method(:no_point) do
+                            if (typ.signed?) then
+                                signed[typ.width]
+                            else
+                                bit[typ.width]
+                            end
+                        end
+                        # Return the resulting typ.
                         typ
                     end
                 end

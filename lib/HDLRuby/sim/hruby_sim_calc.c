@@ -325,6 +325,9 @@ Value copy_value(Value src, Value dst) {
 /* Declared afterward. */
 static Value set_bitstring_value(Value src, Value dst);
 
+/* Declared afterward. */
+static Value set_numeric_value(Value src, Value dst);
+
 /** Copies a value to another but without overwritting with Z, the type of 
  *  the destination is preserved.
  *  @param src the source value
@@ -389,6 +392,35 @@ static Value set_bitstring_value(Value src, Value dst) {
         /* And write it. */
         data_str[i] = bit + '0';
     }
+    /* Return the destination. */
+    return dst;
+}
+
+/** Creates a numeric value from a bitstring value.
+ *  @param src the bitstring source value
+ *  @param dst the numeric destination value
+ *  @return dst. */
+static Value set_numeric_value(Value src, Value dst) {
+    /* Compute the width in bits of the source. */
+    unsigned long long width = type_width(src->type);
+    unsigned long long i;
+    /* Set the type and size of the destination from the type of the source.*/
+    dst->type = src->type;
+    dst->numeric = 1;
+
+    /* Access the data of the source and the destination. */
+    char* data_str = src->data_str;
+    unsigned long long data_int = 0;
+
+    /* Make the conversion. */
+    for(i=0; i < width; ++i) {
+        /* Get the bit from the source. */
+        unsigned long long bit = data_str[i] - '0';
+        /* And write it. */
+        data_int |= bit << i;
+    }
+    /* Update the destination. */
+    dst->data_int = data_int;
     /* Return the destination. */
     return dst;
 }
@@ -2069,15 +2101,39 @@ Value sub_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value mul_value(Value src0, Value src1, Value dst) {
+    // printf("mul_value with src0=%llx src1=%llx\n",value2integer(src0),value2integer(src1));
+    // printf("src0->numeric=%d src1->numeric=%d\n",src0->numeric,src1->numeric);
+    // printf("is_defined_value(src0)=%d is_defined_value(src1)=%d\n",is_defined_value(src0),is_defined_value(src1));
     /* Might allocate a new value so save the current pool state. */
     unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
-    if (src0->numeric && src1->numeric) {
-        /* Both sources are numeric. */
-        return mul_value_numeric(src0,src1,dst);
+    if (src0->numeric) {
+        if (src1->numeric) {
+            /* Both sources are numeric. */
+            return mul_value_numeric(src0,src1,dst);
+        } else if (is_defined_value(src1)) {
+            // /* src1 is a defined bitstring, convert src0 to bitstring. */
+            // src0 = set_bitstring_value(src0,get_value());
+            // /* And do a bitstring multiplying. */
+            // return mul_value_defined_bitstring(src0,src1,dst);
+            /* src1 is a defined bitstring, convert it to a numeric. */
+            src1 = set_numeric_value(src1,get_value());
+            /* And do a numeri multiplying. */
+            return mul_value_numeric(src0,src1,dst);
+        }
+    } else if (src1->numeric && is_defined_value(src0)) {
+        // /* src1 is numeric but src0 is a defined bitstring, convert src1 to
+        //  * bitstring. */
+        // src1 = set_bit_string_value(src1,get_value());
+        // /* And do a bitstring multiplying. */
+        // return mul_value_defined_bitstring(src0,src1,dst);
+            /* src0 is a defined bitstring, convert it to a numeric. */
+            src0 = set_numeric_value(src0,get_value());
+            /* And do a numeri multiplying. */
+            return mul_value_numeric(src0,src1,dst);
     } else if (is_defined_value(src0) && is_defined_value(src1)) {
-        /* Both sources can be converted to numeric values. */
+        /* Both sources are defined bitstrings. */
         return mul_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */
