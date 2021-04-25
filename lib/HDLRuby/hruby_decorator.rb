@@ -46,11 +46,13 @@ module HDLRuby
         # Iterate over all the id with their object.
         #
         # Returns an enumerator if no ruby block is given.
+        #
+        # NOTE: converts the hash to an array to allow on-the-fly modification.
         def self.each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
             # A ruby block? Apply it on each object.
-            @@id_map.each(&ruby_block)
+            @@id_map.to_a.each(&ruby_block)
         end
 
         # The decorator also need to add properties to the HDLRuby objects.
