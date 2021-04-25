@@ -1151,6 +1151,18 @@ module HDLRuby::Low
             stmnt.parent = self
         end
 
+        # Replaces statement +org+ by statement +stmnt+.
+        # 
+        # NOTE: does nothing if +org+ is not present.
+        def replace_statement!(org,stmnt)
+            # Checks the statement.
+            unless stmnt.is_a?(Statement)
+                raise AnyError, "Invalid type for a statement: #{stmnt.class}"
+            end
+            idx = @statements.index(org)
+            @statements[idx] = stmnt if idx
+        end
+
         # Maps on the statements.
         def map_statements!(&ruby_block)
             @statements.map! do |stmnt|
