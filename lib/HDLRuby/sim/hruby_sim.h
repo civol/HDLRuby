@@ -451,7 +451,10 @@ typedef struct BehaviorS_ {
 
     int activated;      /* Tells if the behavior is activated or not. */
 
-    int timed;          /* Tell if the behavior is timed or not. */
+    int timed;          /* Tell if the behavior is timed or not:
+                           - 0: not timed
+                           - 1: timed
+                           - 2: timed and finished. */
     unsigned long long active_time; /* The next time the behavior has to be activated. */
     pthread_t thread;   /* The thread assotiated with the behavior (if any).*/
 } BehaviorS;

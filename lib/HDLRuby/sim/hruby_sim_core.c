@@ -285,7 +285,8 @@ void hruby_sim_advance_time() {
     int i;
     for(i=0; i<num_timed_behaviors; ++i) {
         unsigned long long beh_time = timed_behaviors[i]->active_time;
-        if (beh_time < next_time) next_time = beh_time;
+        if (timed_behaviors[i]->timed == 1)
+            if (beh_time < next_time) next_time = beh_time;
     }
     /* Sets the new activation time. */
     hruby_sim_time = next_time;
@@ -310,7 +311,9 @@ void hruby_sim_activate_behaviors_on_time() {
     /* Count the number of behaviors that will be activated. */
     for(i=0; i<num_timed_behaviors; ++i) {
         Behavior beh = timed_behaviors[i];
-        if (beh->active_time == hruby_sim_time) {
+        // printf("beh->active_time=%llu\n",beh->active_time);
+        // if (beh->active_time == hruby_sim_time) {
+        if (beh->timed == 1 && beh->active_time == hruby_sim_time) {
             /* Increase the number of timed behavior to wait for. */
             num_active_behaviors ++;
             // printf("num_active_behaviors = %d\n",num_active_behaviors);
@@ -318,18 +321,19 @@ void hruby_sim_activate_behaviors_on_time() {
     }
     /* Activate the behaviors .*/
     behaviors_can_run = 1;
-    // pthread_cond_signal(&compute_cond); /* No behaviors. */
-    pthread_cond_signal(&hruby_beh_cond); 
-    pthread_mutex_unlock(&hruby_sim_mutex);
     // printf("$2\n");
+    // pthread_cond_signal(&compute_cond); /* No behaviors. */
+    // pthread_cond_signal(&hruby_beh_cond); 
+    pthread_mutex_unlock(&hruby_sim_mutex);
+    pthread_cond_broadcast(&hruby_beh_cond); 
 }
 
 
 /** Wait for the active timed behaviors to advance. */
 void hruby_sim_wait_behaviors() {
-    // printf("$3\n");
     pthread_mutex_lock(&hruby_sim_mutex);
     while(num_active_behaviors > 0) {
+        // printf("$3\n");
         // printf("num_active_behaviors = %d\n",num_active_behaviors);
         // pthread_cond_wait(&active_behaviors_cond, &hruby_sim_mutex);
         pthread_cond_wait(&hruby_sim_cond, &hruby_sim_mutex);
@@ -349,6 +353,7 @@ void* behavior_run(void* arg) {
     pthread_mutex_lock(&hruby_sim_mutex);
     num_active_behaviors -= 1;
     while(!behaviors_can_run) {
+        // printf("cannot run\n");
         // pthread_cond_wait(&compute_cond, &hruby_sim_mutex);
         pthread_cond_wait(&hruby_beh_cond, &hruby_sim_mutex);
     }
@@ -356,12 +361,17 @@ void* behavior_run(void* arg) {
     // printf("#2\n");
     /* Now can start the execution of the behavior. */
     behavior->block->function();
+    // printf("#3\n");
+    /* Now can start the execution of the behavior. */
     /* Stops the behavior. */
     pthread_mutex_lock(&hruby_sim_mutex);
     num_active_behaviors -= 1;
     num_run_behaviors -= 1;
-    pthread_cond_signal(&hruby_sim_cond);
+    // printf("num_run_behaviors=%d\n",num_run_behaviors);
+    behavior->timed = 2;
+    // pthread_cond_signal(&hruby_sim_cond);
     pthread_mutex_unlock(&hruby_sim_mutex);
+    pthread_cond_signal(&hruby_sim_cond);
     /* End the thread. */
     pthread_exit(NULL);
 }
@@ -374,11 +384,13 @@ void hruby_sim_start_timed_behaviors() {
     pthread_mutex_lock(&hruby_sim_mutex);
     /* Sets the end flags to 0. */
     sim_end_flag = 0;
+    /* Tells the behavior can run. */
+    behaviors_can_run = 1;
     /* Create and start the threads. */
     for(i=0; i<num_timed_behaviors; ++i) {
         num_run_behaviors += 1;
         // ++num_active_behaviors;
-        // printf("0 num_active_behaviors = %d\n",num_active_behaviors);
+        // printf("0 num_run_behaviors = %d\n",num_run_behaviors);
         pthread_create(&timed_behaviors[i]->thread,NULL,
                        &behavior_run,timed_behaviors[i]);
     }
@@ -457,7 +469,6 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
  *  @param delay the delay to wait in fs.
  *  @param behavior the current behavior. */
 void hw_wait(unsigned long long delay, Behavior behavior) {
-    // printf("!1\n");
     /* Maybe the thread is to end immediatly. */
     if (sim_end_flag)
         pthread_exit(NULL);
@@ -465,16 +476,20 @@ void hw_wait(unsigned long long delay, Behavior behavior) {
     pthread_mutex_lock(&hruby_sim_mutex);
     /* Indicate the behavior finished current execution. */
     num_active_behaviors -= 1;
-    pthread_cond_signal(&hruby_sim_cond);
+    // printf("!!num_active_behaviors=%d\n",num_active_behaviors);
+    // pthread_cond_signal(&hruby_sim_cond);
     /* Update the behavior's time. */
     behavior->active_time += delay;
     pthread_mutex_unlock(&hruby_sim_mutex);
+    pthread_cond_signal(&hruby_sim_cond);
     /* Wait for being reactivated. */
     while(behavior->active_time > hruby_sim_time) {
         pthread_mutex_lock(&hruby_sim_mutex);
         while(!behaviors_can_run) {
+            // printf("!1\n");
             // pthread_cond_wait(&compute_cond, &hruby_sim_mutex);
             pthread_cond_wait(&hruby_beh_cond, &hruby_sim_mutex);
+            // printf("!2\n");
         }
         pthread_mutex_unlock(&hruby_sim_mutex);
     }
