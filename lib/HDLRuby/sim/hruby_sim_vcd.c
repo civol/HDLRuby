@@ -366,8 +366,8 @@ static void vcd_print_header() {
 extern void init_vcd_visualizer(char* name) {
     /* Open the resulting file with name: <name>.vcd */
     char filename[256];
-    strncpy(filename,name,256);
-    strncat(filename,".vcd",256);
+    strncpy(filename,name,255);
+    strncat(filename,".vcd",255);
     vcd_file = fopen(filename,"w");
 
     /* Initialize the vizualizer printer engine. */
