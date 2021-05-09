@@ -252,6 +252,20 @@ module HDLRuby
 
 end
 
+# Locate an executable from cmd.
+def which(cmd)
+    # Get the possible exetensions (for windows case).
+    exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+    # Look for the command within the executable paths.
+    ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+        exts.each do |ext|
+            exe = File.join(path, "#{cmd}#{ext}")
+            return exe if File.executable?(exe) && !File.directory?(exe)
+        end
+    end
+    nil
+end
+
 
 
 if __FILE__ == $0 then
@@ -655,8 +669,19 @@ elsif $options[:clang] then
             end
         end
         Dir.chdir($output)
-        # Kernel.system("make -s")
-        Kernel.system("cc -o3 -o hruby_simulator *.c -lpthread")
+        # Find the compiler.
+        cc_cmd = which('cc')
+        unless cc_cmd then
+            cc_cmd = which('gcc')
+        end
+        unless cc_cmd then
+            raise "Could not find any compiler, please compile by hand as follows:\n" +
+                "   In folder #{$output} execute:\n" +
+                "     <my compiler> -o hruby_simulator *.c -lpthread\n" +
+                "   Then execute:\n   hruby_simulator"
+        end
+        # Use it.
+        Kernel.system("#{cc_cmd} -o3 -o hruby_simulator *.c -lpthread")
         Kernel.system("./hruby_simulator")
     end
 elsif $options[:verilog] then
