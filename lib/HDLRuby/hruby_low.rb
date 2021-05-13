@@ -1276,6 +1276,18 @@ module HDLRuby::Low
             end
         end
 
+        # Gets the type max value if any.
+        # Default: not defined.
+        def max
+            raise AnyError, "No max value for type #{self}"
+        end
+
+        # Gets the type min value if any.
+        # Default: not defined.
+        def min
+            raise AnyError, "No min value for type #{self}"
+        end
+
         # Get the direction of the type, little or big endian.
         def direction
             # By default, little endian.
@@ -1615,6 +1627,25 @@ module HDLRuby::Low
             first = @range.first.to_i
             last  = @range.last.to_i
             return @base.width * ((first-last).abs + 1)
+        end
+
+        # Gets the type max value if any.
+        def max
+            if (self.signed?) then
+                return (2**(self.width-1))-1
+            else
+                return (2**(self.width))-1
+            end
+        end
+
+        # Gets the type min value if any.
+        # Default: not defined.
+        def min
+            if (self.signed?) then
+                return -(2**(self.width-1))
+            else
+                return 0
+            end
         end
 
         # Get the direction of the type, little or big endian.
