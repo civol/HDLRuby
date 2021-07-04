@@ -609,7 +609,8 @@ module HDLRuby::High
         # possible arguments +args+.
         def instantiate(i_name,*args)
             # Create the eigen type.
-            eigen = self.expand(High.names_create(i_name.to_s + ":T"), *args)
+            # eigen = self.expand(High.names_create(i_name.to_s + ":T"), *args)
+            eigen = self.expand(HDLRuby.uniq_name(i_name.to_s + ":T"), *args)
 
             # Create the instance and sets its eigen system to +eigen+.
             instance = @instance_class.new(i_name,eigen)
@@ -758,8 +759,10 @@ module HDLRuby::High
                       "Cannot convert a system without a name to HDLRuby::Low."
             end
             # Create the resulting low system type.
-            systemTL = HDLRuby::Low::SystemT.new(High.names_create(name),
+            # systemTL = HDLRuby::Low::SystemT.new(High.names_create(name),
+            systemTL = HDLRuby::Low::SystemT.new(HDLRuby.uniq_name(name),
                                                    self.scope.to_low)
+            # puts "New low from system #{self.name}: #{systemTL.name}"
             # For debugging: set the source high object 
             systemTL.properties[:low2high] = self.hdr_id
             self.properties[:high2low] = systemTL
@@ -2655,7 +2658,6 @@ module HDLRuby::High
             end
         end
 
-
         # Converts to a select operator using current expression as
         # condition for one of the +choices+.
         #
@@ -2669,6 +2671,7 @@ module HDLRuby::High
             # Generate the select expression.
             return Select.new(choices[0].type,"?",self.to_expr,*choices)
         end
+
 
 
         # Methods for conversion for HDLRuby::Low: type processing, flattening

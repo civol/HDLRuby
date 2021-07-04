@@ -637,6 +637,7 @@ elsif $options[:clang] then
             name = $output + "/" +
                 HDLRuby::Low::Low2C.c_name(systemT.name) +
                 ".c"
+            # puts "for systemT=#{systemT.name} generating: #{name}"
             # Open the file for current systemT
             outfile = File.open(name,"w")
             # Generate the C code in to.
