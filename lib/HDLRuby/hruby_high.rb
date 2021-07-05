@@ -4237,6 +4237,22 @@ module HDLRuby::High
     #     end
     # end
     
+    # Extends the TrueClass class for computing for conversion to expression.
+    class ::TrueClass
+        # Converts to a new high-level expression.
+        def to_expr
+            return Value.new(Integer,1)
+        end
+    end
+    
+    # Extends the FalseClass class for computing for conversion to expression.
+    class ::FalseClass
+        # Converts to a new high-level expression.
+        def to_expr
+            return Value.new(Integer,0)
+        end
+    end
+    
     # Extends the Integer class for computing for conversion to expression.
     class ::Integer
         # Converts to a new high-level expression.
