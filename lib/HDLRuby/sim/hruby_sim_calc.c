@@ -697,7 +697,27 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
     dst->numeric = 1;
 
     /* Perform the comparison. */
-    dst->data_int = (value2integer(src0) > value2integer(src1));
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) > 
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) > 
+                 (unsigned long long)value2integer(src1));
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) > 
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) > 
+                 (unsigned long long)value2integer(src1));
+        }
+    }
     return dst;
 }
 
@@ -712,7 +732,27 @@ static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the comparison. */
-    dst->data_int = (value2integer(src0) < value2integer(src1));
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) < 
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) < 
+                 (unsigned long long)value2integer(src1));
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) < 
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) < 
+                 (unsigned long long)value2integer(src1));
+        }
+    }
     return dst;
 }
 
@@ -727,7 +767,27 @@ static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value
     dst->numeric = 1;
 
     /* Perform the comparison. */
-    dst->data_int = (value2integer(src0) >= value2integer(src1));
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) >=
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) >=
+                 (unsigned long long)value2integer(src1));
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) >=
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) >=
+                 (unsigned long long)value2integer(src1));
+        }
+    }
     return dst;
 }
 
@@ -742,7 +802,27 @@ static Value lesser_equal_value_defined_bitstring(Value src0, Value src1, Value 
     dst->numeric = 1;
 
     /* Perform the comparison. */
-    dst->data_int = (value2integer(src0) <= value2integer(src1));
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) <=
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((signed long long)value2integer(src0) <=
+                 (unsigned long long)value2integer(src1));
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) <=
+                 (signed long long)value2integer(src1));
+        } else {
+            dst->data_int = 
+                ((unsigned long long)value2integer(src0) <=
+                 (unsigned long long)value2integer(src1));
+        }
+    }
     return dst;
 }
 
@@ -1810,7 +1890,27 @@ static Value greater_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the greater. */
-    dst->data_int = (src0->data_int > src1->data_int);
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)src0->data_int > 
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((signed long long)src0->data_int > 
+                 (unsigned long long)src1->data_int);
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int > 
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int > 
+                 (unsigned long long)src1->data_int);
+        }
+    }
     return dst;
 }
 
@@ -1825,7 +1925,27 @@ static Value lesser_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the lesser. */
-    dst->data_int = (src0->data_int < src1->data_int);
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)src0->data_int < 
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((signed long long)src0->data_int < 
+                 (unsigned long long)src1->data_int);
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int < 
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int < 
+                 (unsigned long long)src1->data_int);
+        }
+    }
     return dst;
 }
 
@@ -1840,7 +1960,27 @@ static Value greater_equal_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the greater or equal. */
-    dst->data_int = (src0->data_int >= src1->data_int);
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)src0->data_int >=
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((signed long long)src0->data_int >=
+                 (unsigned long long)src1->data_int);
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int >=
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int >=
+                 (unsigned long long)src1->data_int);
+        }
+    }
     return dst;
 }
 
@@ -1855,7 +1995,27 @@ static Value lesser_equal_value_numeric(Value src0, Value src1, Value dst) {
     dst->numeric = 1;
 
     /* Perform the lesser or equal. */
-    dst->data_int = (src0->data_int <= src1->data_int);
+    if (src0->type->flags.sign) {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((signed long long)src0->data_int <=
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((signed long long)src0->data_int <=
+                 (unsigned long long)src1->data_int);
+        }
+    } else {
+        if (src1->type->flags.sign) {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int <=
+                 (signed long long)src1->data_int);
+        } else {
+            dst->data_int = 
+                ((unsigned long long)src0->data_int <=
+                 (unsigned long long)src1->data_int);
+        }
+    }
     return dst;
 }
 
