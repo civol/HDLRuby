@@ -1570,7 +1570,9 @@ module HDLRuby::Low
                 # puts "content=#{self.content} str=#{str}"
             end
             # Is it a fully defined number?
-            if str =~ /^[01]+$/ then
+            # NOTE: bignum values are not supported by the simulation engine
+            #       yet, therefore numeric values are limited to 64 max.
+            if str =~ /^[01]+$/ && str.length <= 64 then
                 # Yes, generate a numeral value.
                 res << " " * (level+1)*3
                 res << "static unsigned long long data[] = { "
