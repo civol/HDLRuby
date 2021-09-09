@@ -312,10 +312,18 @@ module HDLRuby::High
 
         include SingletonExtend
 
-        # The public namespace
-        #
-        # NOTE: the private namespace is the namespace of the scope object.
-        attr_reader :public_namespace
+        # # The public namespace
+        # #
+        # # NOTE: the private namespace is the namespace of the scope object.
+        # attr_reader :public_namespace
+        
+
+        # The already declared base systems (to avoid duplicates of same
+        # structures)
+        @@base_systems = {}
+        # The already expanded systems (to avoid duplicates of same
+        # structures)
+        @@expand_systems = {}
 
         ##
         # Creates a new high-level system type named +name+ and inheriting
@@ -333,8 +341,8 @@ module HDLRuby::High
             # eigen class
             @singleton_instanceO = Namespace.new(self.scope)
 
-            # Create the public namespace.
-            @public_namespace = Namespace.new(self.scope)
+            # # Create the public namespace.
+            # @public_namespace = Namespace.new(self.scope)
 
             # Initialize the list of tasks to execute on the instance.
             @on_instances = []
@@ -562,15 +570,17 @@ module HDLRuby::High
             return expanded
         end
 
-        # Make a system eigen of a given +instance+.
-        def eigenize(instance)
+        # # Make a system eigen of a given +instance+.
+        # def eigenize(instance)
+        # Make a system eigen of a given +instance+ for namespace +space+
+        def eigenize(instance,space)
             unless instance.systemT == self then
                 raise "Cannot eigenize system #{self.name} to instance #{instance.name}"
             end
-            # The instance becames the owner.
-            @owner = instance
-            # Fill the public namespace
-            space = self.public_namespace
+            # # The instance becames the owner.
+            # @owner = instance
+            # # Fill the public namespace
+            # space = self.public_namespace
             # Interface signals
             # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
             self.each_signal do |signal|
@@ -608,13 +618,20 @@ module HDLRuby::High
         # Instantiate the system type to an instance named +i_name+ with
         # possible arguments +args+.
         def instantiate(i_name,*args)
-            # Create the eigen type.
-            # eigen = self.expand(High.names_create(i_name.to_s + ":T"), *args)
-            eigen = self.expand(HDLRuby.uniq_name(i_name.to_s + ":T"), *args)
+            # eigen = self.expand(HDLRuby.uniq_name(i_name.to_s + ":T"), *args)
+            # Is there already such an expanded system?
+            eigen = @@expand_systems[[self,args]]
+            unless eigen
+                # No, create the eigen type.
+                eigen = self.expand(HDLRuby.uniq_name(i_name.to_s + ":T"), *args)
+                # And add it the the expanded systems.
+                @@expand_systems[[self,*args]] = eigen
+            end
 
             # Create the instance and sets its eigen system to +eigen+.
             instance = @instance_class.new(i_name,eigen)
-            eigen.eigenize(instance)
+            # eigen.eigenize(instance)
+            eigen.eigenize(instance, instance.public_namespace)
             # puts "instance interface=#{instance.each_signal.to_a.size}"
             # puts "eigen interface=#{eigen.each_signal.to_a.size}"
 
@@ -663,7 +680,13 @@ module HDLRuby::High
                 if ruby_block.arity > 0 then
                     # Yes, must specialize the system with the arguments.
                     # If arguments, create a new system specialized with them
-                    return SystemT.new(:"") { include(obj,*args) }
+                    # return SystemT.new(:"") { include(obj,*args) }
+                    # Is a similar system already existing? Return it if yes.
+                    sys = @@base_systems[[obj,*args]]
+                    return sys if sys
+                    sys = SystemT.new(:"") { include(obj,*args) }
+                    @@base_systems[[obj,*args]] = sys
+                    return sys
                 end
                 # It is the case where it is an instantiation
                 # Get the names from the arguments.
@@ -1985,10 +2008,16 @@ module HDLRuby::High
 
         include SingletonExtend
 
+        # The public namespace of the eigen system 
+        attr_reader :public_namespace
+
         # Creates a new system instance of system type +systemT+ named +name+.
         def initialize(name, systemT)
             # Initialize the system instance structure.
             super(name,systemT)
+
+            # Initialize the public namespace of the eigen system.
+            @public_namespace = Namespace.new(systemT.scope)
 
             # Sets the hdl-like access to the system instance.
             obj = self # For using the right self within the proc
@@ -2075,8 +2104,10 @@ module HDLRuby::High
             # Extend the eigen system.
             @systemT.run(&ruby_block)
             # Update the methods.
-            @systemT.eigenize(self)
-            self.eigen_extend(@systemT.public_namespace)
+            # @systemT.eigenize(self)
+            @systemT.eigenize(self,self.public_namespace)
+            # self.eigen_extend(@systemT.public_namespace)
+            self.eigen_extend(self.public_namespace)
         end
 
         # include Hmissing
@@ -2091,10 +2122,10 @@ module HDLRuby::High
 
         # Methods to transmit to the systemT
         
-        # Gets the public namespace.
-        def public_namespace
-            self.systemT.public_namespace
-        end
+        # # Gets the public namespace.
+        # def public_namespace
+        #     self.systemT.public_namespace
+        # end
 
         # Gets the private namespace.
         def namespace
