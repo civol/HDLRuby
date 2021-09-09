@@ -622,10 +622,11 @@ module HDLRuby::High
             # Is there already such an expanded system?
             eigen = @@expand_systems[[self,args]]
             unless eigen
+                puts "new expansion with self=#{self} args=#{args}"
                 # No, create the eigen type.
                 eigen = self.expand(HDLRuby.uniq_name(i_name.to_s + ":T"), *args)
                 # And add it the the expanded systems.
-                @@expand_systems[[self,*args]] = eigen
+                @@expand_systems[[self,args]] = eigen
             end
 
             # Create the instance and sets its eigen system to +eigen+.
