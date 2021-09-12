@@ -786,7 +786,8 @@ module HDLRuby::High
             end
             # Is there already an identical low system?
             systemTL = @@low_systems[self]
-            return systemTL if systemTL # Yes
+            ## Temporary off
+            # return systemTL if systemTL # Yes
             # No.
             # Create the resulting low system type.
             # systemTL = HDLRuby::Low::SystemT.new(High.names_create(name),
