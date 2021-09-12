@@ -324,6 +324,8 @@ module HDLRuby::High
         # The already expanded systems (to avoid duplicates of same
         # structures)
         @@expand_systems = {}
+        # The already converted to low systems.
+        @@low_systems = {}
 
         ##
         # Creates a new high-level system type named +name+ and inheriting
@@ -782,6 +784,10 @@ module HDLRuby::High
                 raise AnyError, 
                       "Cannot convert a system without a name to HDLRuby::Low."
             end
+            # Is there already an identical low system?
+            systemTL = @@low_systems[self]
+            return systemTL if systemTL # Yes
+            # No.
             # Create the resulting low system type.
             # systemTL = HDLRuby::Low::SystemT.new(High.names_create(name),
             systemTL = HDLRuby::Low::SystemT.new(HDLRuby.uniq_name(name),
@@ -794,6 +800,8 @@ module HDLRuby::High
             # Fills the interface of the new system 
             # from the included systems.
             self.fill_low(systemTL)
+            # Add the system to the low ones.
+            @@low_systems[self] = systemTL
             # Return theresulting system.
             return systemTL
         end

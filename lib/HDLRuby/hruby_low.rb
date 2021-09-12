@@ -521,9 +521,10 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system type: #{systemT.class}"
             end
-            if @systemTs.include?(systemT) then
-                raise AnyError, "SystemT #{systemT.name} already present."
-            end
+            # Must be removed due to reuse of low systems.
+            # if @systemTs.include?(systemT) then
+            #     raise AnyError, "SystemT #{systemT.name} already present."
+            # end
             # Set the parent of the instance
             systemT.parent = self
             # puts "systemT = #{systemT}, parent=#{self}"

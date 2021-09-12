@@ -582,6 +582,9 @@ elsif $options[:clang] then
         # top_system.each_systemT_deep do |systemT|
         #     systemT.connections_to_behaviors!
         # end
+        
+        # Gather the systemTs to generate.
+        HDLRuby::Low::Low2C.make_sysEntries_from($top_system)
 
         # Multiple files generation mode.
         # Generate the h file.
@@ -589,21 +592,16 @@ elsif $options[:clang] then
         $hnames = [ File.basename($hname) ]
         $outfile = File.open($hname,"w")
         # Adds the generated globals
-        $top_system.each_systemT_deep do |systemT|
-            # For the h file.
-            # hname = $output + "/" +
-            #     HDLRuby::Low::Low2C.c_name(systemT.name) +
-            #     ".h"
-            # hnames << File.basename(hname)
-            # # Open the file for current systemT
-            # output = File.open(hname,"w")
+        # $top_system.each_systemT_deep do |systemT|
+        #     # Generate the H code in to.
+        #     $outfile << systemT.to_ch
+        # end
+        HDLRuby::Low::Low2C.each_sysEntryT do |entry|
+            # puts "systemT.name=#{entry.systemT.name}"
             # Generate the H code in to.
-            $outfile << systemT.to_ch
-            # # Close the file.
-            # output.close
-            # # Clears the name.
-            # hname = nil
+            $outfile << entry.systemT.to_ch(entry)
         end
+
         # Adds the globals from the non-HDLRuby code
         $non_hdlruby.each do |code|
             code.each_chunk do |chunk|
@@ -629,25 +627,46 @@ elsif $options[:clang] then
         $main << HDLRuby::Low::Low2C.main("hruby_simulator",
                                          init_visualizer,
                                          $top_system,
-                                         $top_system.each_systemT_deep.to_a.reverse,$hnames)
+                                         # $top_system.each_systemT_deep.to_a.reverse,
+                                         HDLRuby::Low::Low2C.each_sysEntryT.to_a.reverse,
+                                         $hnames)
         $main.close
 
-        $top_system.each_systemT_deep do |systemT|
+        # $top_system.each_systemT_deep do |systemT|
+        #     # For the c file.
+        #     name = $output + "/" +
+        #         HDLRuby::Low::Low2C.c_name(systemT.name) +
+        #         ".c"
+        #     # puts "for systemT=#{systemT.name} generating: #{name}"
+        #     # Open the file for current systemT
+        #     outfile = File.open(name,"w")
+        #     # Generate the C code in to.
+        #     outfile << systemT.to_c(0,*$hnames)
+        #     # Close the file.
+        #     outfile.close
+        #     # Clears the name.
+        #     name = nil
+        # end
+        HDLRuby::Low::Low2C.each_sysEntryT do |entry|
+            systemT = entry.systemT
             # For the c file.
-            name = $output + "/" +
-                HDLRuby::Low::Low2C.c_name(systemT.name) +
+            fname = $output + "/" +
+                # HDLRuby::Low::Low2C.c_name(name) +
+                HDLRuby::Low::Low2C.obj_name(entry,systemT) +
                 ".c"
-            # puts "for systemT=#{systemT.name} generating: #{name}"
+            # puts "for systemT=#{systemT.name} generating: #{fname}"
             # Open the file for current systemT
-            outfile = File.open(name,"w")
+            outfile = File.open(fname,"w")
             # Generate the C code in to.
-            outfile << systemT.to_c(0,*$hnames)
+            # outfile << systemT.to_c(0,*$hnames)
+            outfile << systemT.to_c(entry,0,*$hnames)
             # Close the file.
             outfile.close
             # Clears the name.
-            name = nil
+            fname = nil
         end
     else
+        raise InternalError.new("Single C file generation deprecated.")
         # Single file generation mode.
         $top_system.each_systemT_deep.reverse_each do |systemT|
             $output << systemT.to_ch
