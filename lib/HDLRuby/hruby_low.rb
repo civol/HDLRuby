@@ -1,6 +1,6 @@
 require "HDLRuby/hruby_bstr"
 require "HDLRuby/hruby_error"
-require "HDLRuby/hruby_decorator"
+# require "HDLRuby/hruby_decorator"
 require 'forwardable'
 
 
@@ -36,7 +36,7 @@ module HDLRuby::Low
     end
 
 
-    Hdecorator = HDLRuby::Hdecorator
+    # Hdecorator = HDLRuby::Hdecorator
 
     ##
     # Gives parent definition and access properties to an hardware object.
@@ -118,8 +118,8 @@ module HDLRuby::Low
             end
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -455,8 +455,8 @@ module HDLRuby::Low
             @behaviors = []
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -521,10 +521,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system type: #{systemT.class}"
             end
-            # Must be removed due to reuse of low systems.
-            # if @systemTs.include?(systemT) then
-            #     raise AnyError, "SystemT #{systemT.name} already present."
-            # end
+            if @systemTs.include?(systemT) then
+                raise AnyError, "SystemT #{systemT.name} already present."
+            end
             # Set the parent of the instance
             systemT.parent = self
             # puts "systemT = #{systemT}, parent=#{self}"
@@ -1222,8 +1221,8 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -2125,8 +2124,8 @@ module HDLRuby::Low
             # @block = block
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Sets the block if not already set.
         def block=(block)
@@ -2349,8 +2348,8 @@ module HDLRuby::Low
             ref.parent = self
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -2433,8 +2432,8 @@ module HDLRuby::Low
             false
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Iterates over each object deeply.
         #
@@ -2518,8 +2517,8 @@ module HDLRuby::Low
             @systemTs = [ @systemT ]
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Iterates over each object deeply.
         #
@@ -2650,8 +2649,8 @@ module HDLRuby::Low
             lumps.each { |lump| self.add_lump(lump) }
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Adds a +lump+ of code, it is ment to become an expression or
         # some text.
@@ -2699,8 +2698,8 @@ module HDLRuby::Low
             @chunks = HashName.new
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Adds a +chunk+ to the sensitivity list.
         def add_chunk(chunk)
@@ -2811,7 +2810,7 @@ module HDLRuby::Low
     # NOTE: this is an abstract class which is not to be used directly.
     class Statement
         include Hparent
-        include Hdecorator
+        # include Hdecorator
         
         # Clones (deeply)
         def clone
@@ -3299,8 +3298,8 @@ module HDLRuby::Low
             match.parent = statement.parent = self
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Iterates over each object deeply.
         #
@@ -3624,8 +3623,8 @@ module HDLRuby::Low
             @unit = unit.to_sym
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Iterates over each object deeply.
         #
@@ -4334,8 +4333,8 @@ module HDLRuby::Low
             end
         end
 
-        # Add decorator capability (modifies intialize to put after).
-        include Hdecorator
+        # # Add decorator capability (modifies intialize to put after).
+        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)

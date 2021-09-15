@@ -134,7 +134,7 @@ module HDLRuby::Low
             if self.name && !self.name.empty? then
                 vname = name_to_verilog(self.name)
                 code << " : #{vname}"
-                self.properties[:verilog_name] = vname
+                # self.properties[:verilog_name] = vname
             end
             code << "\n" if block.each_inner.any?
             # Declaration of "inner" part within "always".
@@ -1371,7 +1371,7 @@ module HDLRuby::Low
         # Converts the system to Verilog code using +renamer+ for producing Verilog-compatible names.
         def to_verilog
             vname = name_to_verilog(self.name)
-            self.properties[:verilog_name] = vname
+            # self.properties[:verilog_name] = vname
             return "#{vname}"
         end
 
@@ -1677,7 +1677,7 @@ module HDLRuby::Low
         def to_verilog
             # Convert unusable characters and return them.
             vname = name_to_verilog(self.name)
-            self.properties[:verilog_name] = vname
+            # self.properties[:verilog_name] = vname
             return "#{vname}"
         end
     end
@@ -1842,7 +1842,7 @@ module HDLRuby::Low
             code = "`timescale 1ps/1ps\n\n"
 
             vname = name_to_verilog(self.name)
-            self.properties[:verilog_name] = vname
+            # self.properties[:verilog_name] = vname
             # Output the module name.
             code << "module #{vname}("
 
@@ -2007,7 +2007,7 @@ module HDLRuby::Low
                 systemT = systemI.systemT
                 code << name_to_verilog(systemT.name) << " "
                 vname = name_to_verilog(systemI.name)
-                systemI.properties[:verilog_name] = vname
+                # systemI.properties[:verilog_name] = vname
                 code << vname << "("
                 # Its ports connections
                 # Inputs

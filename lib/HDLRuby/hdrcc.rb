@@ -491,24 +491,28 @@ end
 
 # Generate the result.
 # Get the top systemT.
+puts Time.now
 $top_system = $top_instance.to_low.systemT
+$top_intance = nil # Free as much memory as possible.
+puts "##### Top system built #####"
+puts Time.now
 
 
-# Apply the pre drivers if any.
-Hdecorator.each_with_property(:pre_driver) do |obj, value|
-    unless value.is_a?(Array) && value.size == 2 then
-        raise "pre_driver requires a driver file name command name."
-    end
-    # Load the driver.
-    require_relative(value[0].to_s)
-    # Ensure obj is the low version.
-    if obj.properties.key?(:high2low) then
-        # obj is high, get the corresponding low.
-        obj = obj.properties[:high2low][0]
-    end
-    # Execute it.
-    send(value[1].to_sym,obj,*value[2..-1])
-end
+# # Apply the pre drivers if any.
+# Hdecorator.each_with_property(:pre_driver) do |obj, value|
+#     unless value.is_a?(Array) && value.size == 2 then
+#         raise "pre_driver requires a driver file name command name."
+#     end
+#     # Load the driver.
+#     require_relative(value[0].to_s)
+#     # Ensure obj is the low version.
+#     if obj.properties.key?(:high2low) then
+#         # obj is high, get the corresponding low.
+#         obj = obj.properties[:high2low][0]
+#     end
+#     # Execute it.
+#     send(value[1].to_sym,obj,*value[2..-1])
+# end
 
 
 # Gather the non-HDLRuby code.
@@ -558,15 +562,23 @@ elsif $options[:clang] then
     # top_system = $top_system
     # Preprocess the HW description for valid C generation.
     $top_system.each_systemT_deep do |systemT|
+        puts "seq2seq step..."
         # Coverts the par blocks in seq blocks to seq blocks to match
         # the simulation engine.
         systemT.par_in_seq2seq!
+        puts Time.now
+        puts "connections_to_behaviors step..."
         # Converts the connections to behaviors.
         systemT.connections_to_behaviors!
+        puts Time.now
         # Break the RefConcat.
+        puts "concat_assigns step..."
         systemT.break_concat_assigns! 
+        puts Time.now
         # Explicits the types.
+        puts "explicit_types step..."
         systemT.explicit_types!
+        puts Time.now
     end
     # Generate the C.
     if $options[:multiple] then
@@ -691,14 +703,26 @@ elsif $options[:verilog] then
     # top_system = $top_system
     # Make description compatible with verilog generation.
     $top_system.each_systemT_deep do |systemT|
+        puts "casts_without_expression! step..."
         systemT.casts_without_expression!
+        puts Time.now
+        puts "to_upper_space! step..."
         systemT.to_upper_space!
+        puts Time.now
+        puts "to_global_space! step..."
         systemT.to_global_systemTs!
+        puts Time.now
         # systemT.break_types!
         # systemT.expand_types!
+        puts "par_in_seq2seq! step..."
         systemT.par_in_seq2seq!
+        puts Time.now
+        puts "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
+        puts Time.now
+        puts "with_port! step..."
         systemT.with_port!
+        puts Time.now
     end
     # # Verilog generation
     # $output << top_system.to_verilog
@@ -788,13 +812,13 @@ elsif $options[:vhdl] then
     end
 end
 
-# Apply the post drivers if any.
-Hdecorator.each_with_property(:post_driver) do |obj, value|
-    # Load the driver.
-    require_relative(value[0].to_s)
-    # Execute it.
-    send(value[1].to_sym,obj,$output)
-end
+# # Apply the post drivers if any.
+# Hdecorator.each_with_property(:post_driver) do |obj, value|
+#     # Load the driver.
+#     require_relative(value[0].to_s)
+#     # Execute it.
+#     send(value[1].to_sym,obj,$output)
+# end
 
 # Dump the properties
 if $options[:dump] then
