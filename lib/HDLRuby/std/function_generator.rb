@@ -107,13 +107,15 @@ module HDLRuby::High::Std
         end
 
         # Make the interpolation.
-        diff <= (next_data-base).as(diff.type) * remaining
-        if(otyp.signed?) then
-            interpolated_value <= base + 
-                ([[diff[diff.type.width-1]]*shift_bits,
-                  diff[diff.type.width-1..shift_bits]]).to_expr
-        else
-            interpolated_value <= base + (diff >> shift_bits)
+        par do
+            diff <= (next_data-base).as(diff.type) * remaining
+            if(otyp.signed?) then
+                interpolated_value <= base + 
+                    ([[diff[diff.type.width-1]]*shift_bits,
+                      diff[diff.type.width-1..shift_bits]]).to_expr
+            else
+                interpolated_value <= base + (diff >> shift_bits)
+            end
         end
     end
 
