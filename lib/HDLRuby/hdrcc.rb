@@ -351,6 +351,9 @@ $optparse = OptionParser.new do |opts|
     opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
         $options[:debug] = d
     end
+    opts.on("--time","Displays the time.") do |d|
+        $options[:time] = d
+    end
     opts.on("-T","--test t0,t1,t2","Compile the unit tests named t0,t1,...") do |t|
         $options[:test] = t
     end
@@ -491,11 +494,11 @@ end
 
 # Generate the result.
 # Get the top systemT.
-puts Time.now
+puts Time.now if $options[:time]
 $top_system = $top_instance.to_low.systemT
 $top_intance = nil # Free as much memory as possible.
 puts "##### Top system built #####"
-puts Time.now
+puts Time.now if $options[:time]
 
 
 # # Apply the pre drivers if any.
@@ -566,19 +569,19 @@ elsif $options[:clang] then
         # Coverts the par blocks in seq blocks to seq blocks to match
         # the simulation engine.
         systemT.par_in_seq2seq!
-        puts Time.now
+        puts Time.now if $options[:time]
         puts "connections_to_behaviors step..."
         # Converts the connections to behaviors.
         systemT.connections_to_behaviors!
-        puts Time.now
+        puts Time.now if $options[:time]
         # Break the RefConcat.
         puts "concat_assigns step..."
         systemT.break_concat_assigns! 
-        puts Time.now
+        puts Time.now if $options[:time]
         # Explicits the types.
         puts "explicit_types step..."
         systemT.explicit_types!
-        puts Time.now
+        puts Time.now if $options[:time]
     end
     # Generate the C.
     if $options[:multiple] then
@@ -705,24 +708,24 @@ elsif $options[:verilog] then
     $top_system.each_systemT_deep do |systemT|
         puts "casts_without_expression! step..."
         systemT.casts_without_expression!
-        puts Time.now
+        puts Time.now if $options[:time]
         puts "to_upper_space! step..."
         systemT.to_upper_space!
-        puts Time.now
+        puts Time.now if $options[:time]
         puts "to_global_space! step..."
         systemT.to_global_systemTs!
-        puts Time.now
+        puts Time.now if $options[:time]
         # systemT.break_types!
         # systemT.expand_types!
         puts "par_in_seq2seq! step..."
         systemT.par_in_seq2seq!
-        puts Time.now
+        puts Time.now if $options[:time]
         puts "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
-        puts Time.now
+        puts Time.now if $options[:time]
         puts "with_port! step..."
         systemT.with_port!
-        puts Time.now
+        puts Time.now if $options[:time]
     end
     # # Verilog generation
     # $output << top_system.to_verilog
