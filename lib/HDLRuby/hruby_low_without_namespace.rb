@@ -44,8 +44,10 @@ module HDLRuby::Low
         def to_global_systemTs!
             # Force a name if not.
             self.force_name!
+            # puts "to_global_systemTs! for #{self.name}"
             # For each local systemT
             self.scope.each_systemT.to_a.each do |systemT|
+                # puts "Processing system: #{systemT}"
                 # Rename it for globalization.
                 former = systemT.name
                 self.extend_name!(systemT)
@@ -211,6 +213,7 @@ module HDLRuby::Low
         # Replaces recursively +former+ name by +nname+ until it is redeclared
         # in the internals.
         def replace_names_subs!(former,nname)
+            # puts "replace_names_subs! for #{self} with former=#{former} and nname=#{nname}"
             self.each_type do |type|
                 type.replace_names!(former,nname)
             end
@@ -416,8 +419,9 @@ module HDLRuby::Low
             if self.name == former then
                 self.set_name!(nname)
             end
-            # Recurse on the system type.
-            self.systemT.replace_names!(former,nname)
+            # Not needed since treated through scope and systemT.
+            # # Recurse on the system type.
+            # self.systemT.replace_names!(former,nname)
         end
     end
 
