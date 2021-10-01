@@ -50,4 +50,28 @@ module HDLRuby
 
     end
 
+
+    # Display some messages depending on the verbosity mode.
+    @@verbosity = 1 # The verbosity level: default 1, only critical messages.
+
+    # Sets the verbosity.
+    def self.verbosity=(val)
+        @@verbosity = val.to_i
+    end
+    
+    # Display a critical message.
+    def self.show!(*args)
+        puts(*args) if @@verbosity > 0
+    end
+
+    # Display a common message.
+    def self.show(*args)
+        puts(*args) if @@verbosity > 1
+    end
+
+    # Display a minor message.
+    def self.show?(*args)
+        puts(*args) if @@verbosity > 2
+    end
+
 end

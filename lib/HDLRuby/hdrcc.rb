@@ -110,7 +110,7 @@ module HDLRuby
                     else
                         # A standard file is found, skip it since it does not
                         # need to be read.
-                        # puts "Standard files: #{founds}"
+                        # show? "Standard files: #{founds}"
                         return false
                     end
                 end
@@ -134,7 +134,7 @@ module HDLRuby
                     file = @top_file_name
                 end
             end
-            # puts "read_all with file=#{file}"
+            # show? "read_all with file=#{file}"
             # Read the file
             # read(file)
             unless read(file) then
@@ -158,7 +158,7 @@ module HDLRuby
 
         # Displays the syntax tree of all the files.
         def show_all(outfile = $stdout)
-            # puts "@checks.size=#{@checks.size}"
+            # show? "@checks.size=#{@checks.size}"
             @checks.each { |check| check.show(outfile) }
         end
 
@@ -166,7 +166,7 @@ module HDLRuby
         def get_top
             # Get all the systems.
             systems = @checks.reduce([]) {|ar,check| ar + check.get_all_systems}
-            # puts "First systems=#{systems}"
+            # show? "First systems=#{systems}"
             # Remove the systems that are instantiated or included
             # (they cannot be tops)
             @checks.each do |check|
@@ -183,7 +183,7 @@ module HDLRuby
                     systems -= check.get_inherit_systems(inherit)
                 end
             end
-            # puts "Now systems=#{systems}"
+            # show? "Now systems=#{systems}"
             # Return the first top of the list.
             return systems[-1]
         end
@@ -195,7 +195,7 @@ module HDLRuby
             if @top_system == "" then
                 # No, look for it.
                 @top_system = get_top
-                # puts "@top_system=#{@top_system}"
+                # show? "@top_system=#{@top_system}"
                 unless @top_system then
                     # Not found? Error.
                     # Maybe it is a parse error, look for it.
@@ -238,7 +238,7 @@ module HDLRuby
                 # Dump to a file.
                 if chunk.name != :sim then 
                     # The chunk is to be dumbed to a file.
-                    # puts "Outputing chunk:#{HDLRuby::Low::Low2C.obj_name(chunk)}"
+                    # show? "Outputing chunk:#{HDLRuby::Low::Low2C.obj_name(chunk)}"
                     outfile = File.open(path + "/" +
                                        HDLRuby::Low::Low2C.obj_name(chunk) + "." +
                                        chunk.name.to_s,"w")
@@ -351,8 +351,11 @@ $optparse = OptionParser.new do |opts|
     opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
         $options[:debug] = d
     end
-    opts.on("--time","Displays the time.") do |d|
-        $options[:time] = d
+    opts.on("--verbose","Set verbose mode.") do |d|
+        HDLRuby.verbosity = 2
+    end
+    opts.on("--volubile","Set extreme verbose mode.") do |d|
+        HDLRuby.verbosity = 3
     end
     opts.on("-T","--test t0,t1,t2","Compile the unit tests named t0,t1,...") do |t|
         $options[:test] = t
@@ -399,7 +402,7 @@ $optparse = OptionParser.new do |opts|
 end
 $optparse.parse!
 
-# puts "options=#{$options}"
+# show? "options=#{$options}"
 
 # Check the compatibility of the options
 if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl].include?(op) } > 1 then
@@ -439,7 +442,7 @@ if ($options[:test] || $options[:testall]) then
     $test_file.write("require 'std/hruby_unit.rb'\nrequire_relative '#{$input}'\n\n" +
                      "HDLRuby::Unit.test(:\"#{$top}\"#{tests})\n")
     # $test_file.rewind
-    # puts $test_file.read
+    # show? $test_file.read
     # exit
     $test_file.rewind
     # It is the new input file.
@@ -494,11 +497,11 @@ end
 
 # Generate the result.
 # Get the top systemT.
-puts Time.now if $options[:time]
+HDLRuby.show Time.now
 $top_system = $top_instance.to_low.systemT
 $top_intance = nil # Free as much memory as possible.
-puts "##### Top system built #####"
-puts Time.now if $options[:time]
+HDLRuby.show "##### Top system built #####"
+HDLRuby.show Time.now
 
 
 # # Apply the pre drivers if any.
@@ -565,23 +568,23 @@ elsif $options[:clang] then
     # top_system = $top_system
     # Preprocess the HW description for valid C generation.
     $top_system.each_systemT_deep do |systemT|
-        puts "seq2seq step..."
+        HDLRuby.show "seq2seq step..."
         # Coverts the par blocks in seq blocks to seq blocks to match
         # the simulation engine.
         systemT.par_in_seq2seq!
-        puts Time.now if $options[:time]
-        puts "connections_to_behaviors step..."
+        HDLRuby.show Time.now
+        HDLRuby.show "connections_to_behaviors step..."
         # Converts the connections to behaviors.
         systemT.connections_to_behaviors!
-        puts Time.now if $options[:time]
+        HDLRuby.show Time.now
         # Break the RefConcat.
-        puts "concat_assigns step..."
+        HDLRuby.show "concat_assigns step..."
         systemT.break_concat_assigns! 
-        puts Time.now if $options[:time]
+        HDLRuby.show Time.now
         # Explicits the types.
-        puts "explicit_types step..."
+        HDLRuby.show "explicit_types step..."
         systemT.explicit_types!
-        puts Time.now if $options[:time]
+        HDLRuby.show Time.now
     end
     # Generate the C.
     if $options[:multiple] then
@@ -652,7 +655,7 @@ elsif $options[:clang] then
             name = $output + "/" +
                 HDLRuby::Low::Low2C.c_name(systemT.name) +
                 ".c"
-            # puts "for systemT=#{systemT.name} generating: #{name}"
+            # show? "for systemT=#{systemT.name} generating: #{name}"
             # Open the file for current systemT
             outfile = File.open(name,"w")
             # Generate the C code in to.
@@ -706,26 +709,26 @@ elsif $options[:verilog] then
     # top_system = $top_system
     # Make description compatible with verilog generation.
     $top_system.each_systemT_deep do |systemT|
-        puts "casts_without_expression! step..."
+        HDLRuby.show "casts_without_expression! step..."
         systemT.casts_without_expression!
-        puts Time.now if $options[:time]
-        puts "to_upper_space! step..."
+        HDLRuby.show Time.now
+        HDLRuby.show "to_upper_space! step..."
         systemT.to_upper_space!
-        puts Time.now if $options[:time]
-        puts "to_global_space! step..."
+        HDLRuby.show Time.now
+        HDLRuby.show "to_global_space! step..."
         systemT.to_global_systemTs!
-        puts Time.now if $options[:time]
+        HDLRuby.show Time.now
         # systemT.break_types!
         # systemT.expand_types!
-        puts "par_in_seq2seq! step..."
+        HDLRuby.show "par_in_seq2seq! step..."
         systemT.par_in_seq2seq!
-        puts Time.now if $options[:time]
-        puts "initial_concat_to_timed! step..."
+        HDLRuby.show Time.now
+        HDLRuby.show "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
-        puts Time.now if $options[:time]
-        puts "with_port! step..."
+        HDLRuby.show Time.now
+        HDLRuby.show "with_port! step..."
         systemT.with_port!
-        puts Time.now if $options[:time]
+        HDLRuby.show Time.now
     end
     # # Verilog generation
     # $output << top_system.to_verilog
