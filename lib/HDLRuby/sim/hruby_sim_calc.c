@@ -2171,7 +2171,8 @@ Value read_range_numeric(Value value, long long first, long long last,
     /* Compute the read mask. */
     // unsigned long long mask = ((-1LL) << first) & (~((-1LL) << (last+1)));
     /* NOTE: once again, << 64 does not work like expected. */
-    unsigned long long mask = mask+bw < 64 ? (~((-1LL) << (last+bw))) : -1LL;
+    unsigned long long mask = last+bw < 64 ? (~((-1LL) << (last+bw))) : -1LL;
+    // printf("mask=%llx\n",mask);
     /* Performs the read. */
     unsigned long long data = (value->data_int & mask) >> first;
     /* Write it to the destination. */
