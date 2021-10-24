@@ -2217,7 +2217,9 @@ Value write_range_numeric(Value src, long long first, long long last,
     /* Copy from the source. */
     unsigned long long src_data = src->data_int & ~((-1LL) << (last-first+1));
     /* Cleans the destination where to place the data. */
-    unsigned long long mask = ~(((-1LL) << first) & ~((-1LL) << (last+1)));
+    unsigned long long mask;
+    if (last<63) mask = ~(((-1LL) << first) & ~((-1LL) << (last+1)));
+    else         mask = ~((-1LL)<<first);
     unsigned long long dst_data = dst->data_int & mask;
     // printf("src_data=%llx  mask=%llx dst_data=%llx\n",src_data,mask,dst_data);
     /* Write the data. */
@@ -2948,12 +2950,13 @@ int same_content_value_range(Value value0,
 
 /** Creates a reference to a range inside a signal.
  *  @param signal the signal to refer
+ *  @param typ the type of the elements
  *  @param first the start index of the range
  *  @param last the end index of the range
  *  @return the resulting reference */
-RefRangeS make_ref_rangeS(SignalI signal, unsigned long long first,
+RefRangeS make_ref_rangeS(SignalI signal, Type typ, unsigned long long first,
         unsigned long long last) {
-    RefRangeS result = { signal, first, last };
+    RefRangeS result = { signal, typ, first, last };
     return result;
 }
 

@@ -101,6 +101,7 @@ typedef struct ValueS_ {
 /* The tructure of a reference to a range in a value. */
 typedef struct RefRangeS_ {
     SignalI signal;           /* The refered signal. */
+    Type type;                /* The tyep of the elements. */
     unsigned long long first; /* The first index in the range. */
     unsigned long long last;  /* The last index in the range. */
 } RefRangeS;
@@ -308,11 +309,12 @@ extern int same_content_value_range(Value value0, unsigned long long first,
 
 /** Creates a reference to a range inside a signal.
  *  @param signal the signal to refer
+ *  @param typ the type of the elements.
  *  @param first the start index of the range
  *  @param last the end index of the range
  *  @return the resulting reference */
-extern RefRangeS make_ref_rangeS(SignalI signal, unsigned long long first,
-        unsigned long long last);
+extern RefRangeS make_ref_rangeS(SignalI signal, Type typ, 
+        unsigned long long first, unsigned long long last);
 
 
 /* The interface for the lists. */

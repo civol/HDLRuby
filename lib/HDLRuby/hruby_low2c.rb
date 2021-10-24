@@ -1931,11 +1931,10 @@ module HDLRuby::Low
             res << "ref = #{self.ref.to_c(level+2)};\n"
             # Compute the index.
             res << (" " * ((level+1)*3))
-            # res << "idx = read64(#{self.index.to_c(level+2)});\n"
             res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
             # Make the access.
             res << (" " * ((level+1)*3))
-            # res << "dst = read_range(ref,idx,idx,#{self.ref.type.base.to_c(level)},dst);\n"
+            # puts "self.type.width=#{self.type.width}"
             res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
@@ -1948,7 +1947,9 @@ module HDLRuby::Low
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
         def to_c_signal(level = 0)
+            # puts "to_c_signal for RefIndex"
             return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
+                "#{self.type.to_c(level)}," + 
                 "value2integer(#{self.index.to_c(level)}),value2integer(#{self.index.to_c(level)}))"
         end
     end
@@ -1986,7 +1987,7 @@ module HDLRuby::Low
             # Make the access.
             res << (" " * ((level+1)*3))
             # res << "dst = #{command}_range(ref,first,last,#{self.ref.type.base.to_c(level)},dst);\n"
-            # puts "will read_range for #{self.ref.name} with width=#{self.ref.type.width} with base width=#{self.ref.type.base.width} with range=#{self.ref.type.range} with range=#{self.range.first.content}..#{self.range.last.content}"
+            # puts "#{command}_range with first=#{self.range.first} and last=#{self.range.last}"
             res << "dst = #{command}_range(ref,first,last,#{self.type.base.to_c(level)},dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
