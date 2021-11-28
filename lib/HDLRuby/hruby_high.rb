@@ -2499,7 +2499,11 @@ module HDLRuby::High
 
         # Casts as +type+.
         def as(type)
-            return Cast.new(type.to_type,self.to_expr)
+            if (self.parent)
+                return Cast.new(type.to_type,self.to_expr)
+            else
+                return Cast.new(type.to_type,self)
+            end
         end
 
         # Casts to a bit vector type.
