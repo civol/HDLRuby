@@ -1959,4 +1959,25 @@ module HDLRuby::Low
             # Nothing to do.
         end
     end
+
+    ##
+    # Describes a string.
+    #
+    # NOTE: This is not synthesizable!
+    class StringE
+        
+        # Maps on the arguments.
+        def map_args!(&ruby_block)
+            @args.map! do |arg|
+                arg = ruby_block.call(arg)
+                arg.parent = self unless arg.parent
+                arg
+            end
+        end
+
+        # Maps on the children.
+        def map_nodes!(&ruby_block)
+            self.map_args!(&ruby_block)
+        end
+    end
 end
