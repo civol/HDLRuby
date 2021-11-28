@@ -56,9 +56,9 @@ module HDLRuby::Low
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the left value.
-            self.set_left!(self.left.casts_without_expression)
+            self.set_left!(self.left.casts_without_expression!)
             # Apply on the right value.
-            self.set_right!(self.right.casts_without_expression)
+            self.set_right!(self.right.casts_without_expression!)
             return self
         end
     end
@@ -71,7 +71,7 @@ module HDLRuby::Low
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the arguments.
-            self.map_args!(&:casts_without_expression)
+            self.map_args!(&:casts_without_expression!)
             return self
         end
     end
@@ -84,12 +84,12 @@ module HDLRuby::Low
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the condition.
-            self.set_condition!(self.condition.casts_without_expression)
+            self.set_condition!(self.condition.casts_without_expression!)
             # Apply on the yes.
             self.yes.casts_without_expression!
             # Apply on the noifs.
             @noifs.map! do |cond,stmnt|
-                [cond.casts_without_expression,stmnt.casts_without_expression!]
+                [cond.casts_without_expression!,stmnt.casts_without_expression!]
             end
             # Apply on the no if any.
             self.no.casts_without_expression! if self.no
@@ -104,7 +104,7 @@ module HDLRuby::Low
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the match.
-            self.set_match!(self.match.casts_without_expression)
+            self.set_match!(self.match.casts_without_expression!)
             # Apply on the statement.
             self.statement.casts_without_expression!
             return self
@@ -120,7 +120,7 @@ module HDLRuby::Low
         def casts_without_expression!
             # No need to apply on the value!
             # Apply on the value.
-            self.set_value!(self.value.casts_without_expression)
+            self.set_value!(self.value.casts_without_expression!)
             # Apply on the whens.
             self.each_when(&:casts_without_expression!)
             # Apply on the default if any.
@@ -169,9 +169,10 @@ module HDLRuby::Low
     #  expressions from cast.
     class Value
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Simple clones.
-            return self.clone
+        def casts_without_expression!
+            # # Simple clones.
+            # return self.clone
+            return self
         end
     end
 
@@ -180,9 +181,10 @@ module HDLRuby::Low
     #  expressions from cast.
     class Cast
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the child.
-            nchild = self.child.casts_without_expression
+            nchild = self.child.casts_without_expression!
+            nchild.parent = nil
             # Process the cast.
             unless (nchild.is_a?(Ref)) then
                 # Need to extract the child.
@@ -221,10 +223,11 @@ module HDLRuby::Low
     class Unary
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Recurse on the sub node.
-            return Unary.new(self.type,self.operator,
-                             self.child.casts_without_expression)
+        def casts_without_expression!
+            # # Recurse on the sub node.
+            # return Unary.new(self.type,self.operator,
+            #                  self.child.casts_without_expression)
+            self.set_child!(self.child.casts_without_expression!)
             return self
         end
     end
@@ -235,11 +238,14 @@ module HDLRuby::Low
     class Binary
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Recurse on the sub nodes.
-            return Binary.new(self.type,self.operator,
-                              self.left.casts_without_expression,
-                              self.right.casts_without_expression)
+        def casts_without_expression!
+            # # Recurse on the sub nodes.
+            # return Binary.new(self.type,self.operator,
+            #                   self.left.casts_without_expression,
+            #                   self.right.casts_without_expression)
+            self.set_left!(self.left.casts_without_expression!)
+            self.set_right!(self.right.casts_without_expression!)
+            return self
         end
     end
 
@@ -250,13 +256,15 @@ module HDLRuby::Low
     class Select
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub node.
-            return Select.new(self.type,"?", 
-                              self.select.casts_without_expression,
-                              *self.each_choice.map do |choice|
-                                  choice.casts_without_expression
-                              end )
+            # return Select.new(self.type,"?", 
+            #                   self.select.casts_without_expression,
+            #                   *self.each_choice.map do |choice|
+            #                       choice.casts_without_expression
+            #                   end )
+            self.set_select!(self.select.casts_without_expression!)
+            sef.map_choices! { |choice| choice.casts_without_expression! }
             return self
         end
     end
@@ -266,11 +274,13 @@ module HDLRuby::Low
     #  in assignments to select operators.
     class Concat
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub expressions.
-            return Concat.new(self.type,self.each_expression.map do |expr|
-                expr.casts_without_expression
-            end )
+            # return Concat.new(self.type,self.each_expression.map do |expr|
+            #     expr.casts_without_expression
+            # end )
+            self.map_expressions! {|expr| expr.casts_without_expression! }
+            return self
         end
     end
 
@@ -279,11 +289,13 @@ module HDLRuby::Low
     #  in assignments to select operators.
     class RefConcat
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Recurse on the sub references.
-            return RefConcat.new(self.type,self.each_expression.map do |expr|
-                expr.casts_without_expression
-            end )
+        def casts_without_expression!
+            # # Recurse on the sub references.
+            # return RefConcat.new(self.type,self.each_expression.map do |expr|
+            #     expr.casts_without_expression
+            # end )
+            self.map_expressions! {|expr| expr.casts_without_expression! }
+            return self
         end
     end
 
@@ -292,11 +304,14 @@ module HDLRuby::Low
     #  in assignments to select operators.
     class RefIndex
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub references.
-            return RefIndex.new(self.type,
-                                self.ref.casts_without_expression,
-                                self.index.casts_without_expression)
+            # return RefIndex.new(self.type,
+            #                     self.ref.casts_without_expression,
+            #                     self.index.casts_without_expression)
+            self.set_ref!(self.ref.casts_without_expression!)
+            self.set_index!(self.index.casts_without_expression!)
+            return self
         end
     end
 
@@ -305,12 +320,16 @@ module HDLRuby::Low
     #  in assignments to select operators.
     class RefRange
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub references.
-            return RefRange.new(self.type,
-                                self.ref.casts_without_expression,
-                                self.range.first.casts_without_expression ..
-                                self.range.last.casts_without_expression)
+            # return RefRange.new(self.type,
+            #                     self.ref.casts_without_expression,
+            #                     self.range.first.casts_without_expression ..
+            #                     self.range.last.casts_without_expression)
+            self.set_ref!(self.ref.casts_without_expression!)
+            self.set_range!(self.range.first.casts_without_expression! ..
+                            self.range.last.casts_without_expression!)
+            return self
         end
     end
 
@@ -319,11 +338,13 @@ module HDLRuby::Low
     #  in assignments to select operators.
     class RefName
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub references.
-            return RefName.new(self.type,
-                               self.ref.casts_without_expression,
-                               self.name)
+            # return RefName.new(self.type,
+            #                    self.ref.casts_without_expression,
+            #                    self.name)
+            self.set_ref!(self.ref.casts_without_expression!)
+            return self
         end
     end
 
@@ -332,9 +353,10 @@ module HDLRuby::Low
     #  in assignments to select operators.
     class RefThis 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Simply clone.
-            return self.clone
+        def casts_without_expression!
+            # # Simply clone.
+            # return self.clone
+            return self
         end
     end
 
@@ -344,9 +366,10 @@ module HDLRuby::Low
     class StringE
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            return StringE.new(self.content,
-                               *self.each_arg.map(&:cast_without_expression))
+        def casts_without_expression!
+            # return StringE.new(self.content,
+            #                    *self.each_arg.map(&:casts_without_expression))
+            self.map_args! {|arg| arg.casts_without_expression! }
             return self
         end
     end
