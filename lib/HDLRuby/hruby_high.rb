@@ -1960,6 +1960,9 @@ module HDLRuby::High
                                                          &ruby_block)
                     # ruby_block.call(*args)
                 end
+                # sub do
+                #     ruby_block.call(*args,*other_block)
+                # end
             end
         else
             define_method(name.to_sym) do |*args,&other_block|
@@ -1968,6 +1971,9 @@ module HDLRuby::High
                     HDLRuby::High.top_user.instance_exec(*args,*other_block,
                                                          &ruby_block)
                 end
+                # sub do
+                #     ruby_block.call(*args,*other_block)
+                # end
             end
         end
     end
