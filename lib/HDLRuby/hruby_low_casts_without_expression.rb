@@ -264,7 +264,7 @@ module HDLRuby::Low
             #                       choice.casts_without_expression
             #                   end )
             self.set_select!(self.select.casts_without_expression!)
-            sef.map_choices! { |choice| choice.casts_without_expression! }
+            self.map_choices! { |choice| choice.casts_without_expression! }
             return self
         end
     end
