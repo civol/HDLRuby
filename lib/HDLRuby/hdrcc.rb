@@ -709,9 +709,9 @@ elsif $options[:verilog] then
     # top_system = $top_system
     # Make description compatible with verilog generation.
     $top_system.each_systemT_deep do |systemT|
-        HDLRuby.show "casts_without_expression! step..."
-        systemT.casts_without_expression!
-        HDLRuby.show Time.now
+        # HDLRuby.show "casts_without_expression! step..."
+        # systemT.casts_without_expression!
+        # HDLRuby.show Time.now
         HDLRuby.show "to_upper_space! step..."
         systemT.to_upper_space!
         HDLRuby.show Time.now
