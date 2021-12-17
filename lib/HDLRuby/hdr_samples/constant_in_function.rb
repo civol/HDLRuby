@@ -2,7 +2,7 @@
 
 
 function :func do |addr|
-    bit[4][-4].constant tbl: [ _0000, _0001, _0010, _0011 ]
+    bit[4][-4].constant tbl: [ _1000, _1001, _1010, _1011 ]
     
     tbl[addr]
 end
