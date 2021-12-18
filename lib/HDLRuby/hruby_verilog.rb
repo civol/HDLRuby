@@ -1722,7 +1722,7 @@ module HDLRuby::Low
                     # Need to truncate
                     # return "$unsigned(#{self.child.to_verilog}[#{sw-1}:0])"
                     TruncersI.add((cw-1)..0,(sw-1)..0)
-                    return "$unsigned(#{TruncersI.truncer_name((cw-1)..0,(sw-1)..0)}(#{self.child.to_verilog})"
+                    return "$unsigned(#{TruncersI.truncer_name((cw-1)..0,(sw-1)..0)}(#{self.child.to_verilog}))"
                 else
                     # Only enforce signed.
                     return "$unsigned(#{self.child.to_verilog})"
