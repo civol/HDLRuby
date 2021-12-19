@@ -93,14 +93,14 @@ module HDLRuby::Low
             # And remember where the node was.
             refs = []
             ref_sym2leftvalue = {}
-            ref_parent = []
+            ref_parents = []
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
                     if instance_port?(node) then
                         # puts "port for node: #{node.ref.name}.#{node.name}"
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
-                        ref_parent.add(node.parent)
+                        ref_parents << node.parent
                     end
                 end
             end
@@ -111,7 +111,7 @@ module HDLRuby::Low
                         # puts "leftvalue? #{node.leftvalue?}"
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
-                        ref_parent.add(node.parent)
+                        ref_parents << node.parent
                     end
                 end
             end
@@ -123,7 +123,7 @@ module HDLRuby::Low
             # Replace the references by their corresponding port wires.
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
-                    if ref_parent.include?(node) then
+                    if ref_parents.include?(node) then
                         node.map_nodes! do |expr|
                             portw = ref_sym2portw[expr.to_sym]
                             portw ? portw2ref(portw) : expr
