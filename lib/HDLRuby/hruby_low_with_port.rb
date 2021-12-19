@@ -93,7 +93,7 @@ module HDLRuby::Low
             # And remember where the node was.
             refs = []
             ref_sym2leftvalue = {}
-            ref_parents = []
+            ref_parents = Set.new
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
                     if instance_port?(node) then
