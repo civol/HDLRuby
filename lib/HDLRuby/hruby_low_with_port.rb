@@ -1,3 +1,5 @@
+require 'set'
+
 require "HDLRuby/hruby_error"
 require "HDLRuby/hruby_low_mutable"
 require "HDLRuby/hruby_low2sym"
@@ -88,14 +90,17 @@ module HDLRuby::Low
             # self.each_scope(&:with_port!)
             # Gather the references to instance ports.
             # Also remember if the references were left values or not.
+            # And remember where the node was.
             refs = []
             ref_sym2leftvalue = {}
+            ref_parent = []
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
                     if instance_port?(node) then
                         # puts "port for node: #{node.ref.name}.#{node.name}"
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
+                        ref_parent.add(node.parent)
                     end
                 end
             end
@@ -106,6 +111,7 @@ module HDLRuby::Low
                         # puts "leftvalue? #{node.leftvalue?}"
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
+                        ref_parent.add(node.parent)
                     end
                 end
             end
@@ -117,9 +123,11 @@ module HDLRuby::Low
             # Replace the references by their corresponding port wires.
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
-                    node.map_nodes! do |expr|
-                        portw = ref_sym2portw[expr.to_sym]
-                        portw ? portw2ref(portw) : expr
+                    if ref_parent.include?(node) then
+                        node.map_nodes! do |expr|
+                            portw = ref_sym2portw[expr.to_sym]
+                            portw ? portw2ref(portw) : expr
+                        end
                     end
                 end
             end
