@@ -93,7 +93,8 @@ module HDLRuby::Low
             # And remember where the node was.
             refs = []
             ref_sym2leftvalue = {}
-            ref_parents = Set.new
+            # ref_parents = Set.new
+            ref_parents = []
             self.each_block_deep do |block|
                 block.each_node_deep do |node|
                     if instance_port?(node) then
@@ -101,6 +102,7 @@ module HDLRuby::Low
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
                         ref_parents << node.parent
+                        # ref_parents[node.parent] = node
                     end
                 end
             end
@@ -112,6 +114,7 @@ module HDLRuby::Low
                         refs << node 
                         ref_sym2leftvalue[node.to_sym] = node.leftvalue?
                         ref_parents << node.parent
+                        # ref_parents[node.parent] = node
                     end
                 end
             end
@@ -125,6 +128,7 @@ module HDLRuby::Low
                 block.each_node_deep do |node|
                     if ref_parents.include?(node) then
                         node.map_nodes! do |expr|
+                            next expr unless instance_port?(expr)
                             portw = ref_sym2portw[expr.to_sym]
                             portw ? portw2ref(portw) : expr
                         end
@@ -133,9 +137,12 @@ module HDLRuby::Low
             end
             self.each_connection do |connection|
                 connection.each_node_deep do |node|
-                    node.map_nodes! do |expr|
-                        portw = ref_sym2portw[expr.to_sym]
-                        portw ? portw2ref(portw) : expr
+                    if ref_parents.include?(node) then
+                        node.map_nodes! do |expr|
+                            next expr unless instance_port?(expr)
+                            portw = ref_sym2portw[expr.to_sym]
+                            portw ? portw2ref(portw) : expr
+                        end
                     end
                 end
             end
