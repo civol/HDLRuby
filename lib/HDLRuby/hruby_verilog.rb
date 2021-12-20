@@ -1717,7 +1717,7 @@ module HDLRuby::Low
             else
                 if (sw>cw) then
                     # Need to extend.
-                    return "$unsigned({{#{sw-cw}{1'b0}},#{self.child.to_verilog}}))"
+                    return "$unsigned({{#{sw-cw}{1'b0}},#{self.child.to_verilog}})"
                 elsif (sw<cw) then
                     # Need to truncate
                     # return "$unsigned(#{self.child.to_verilog}[#{sw-1}:0])"
