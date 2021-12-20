@@ -133,7 +133,8 @@ module HDLRuby::Low
             # Get the behaviors.
             behs = self.each_behavior.to_a
             # Remove them from the scope.
-            behs.each { |beh| self.delete_behavior!(beh) }
+            # behs.each { |beh| self.delete_behavior!(beh) }
+            self.delete_all_behaviors!
             # Return the behaviors.
             return behs
         end
@@ -145,7 +146,8 @@ module HDLRuby::Low
             # Get the connections.
             cnxs = self.each_connection.to_a
             # Remove them from the scope.
-            cnxs.each { |beh| self.delete_connection!(beh) }
+            # cnxs.each { |cnx| self.delete_connection!(cnx) }
+            cnxs.delete_all_connections!
             # Return the connections.
             return cnxs
         end
