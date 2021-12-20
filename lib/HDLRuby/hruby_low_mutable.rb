@@ -221,6 +221,12 @@ module HDLRuby::Low
             connection
         end
 
+        # Deletes all the connections.
+        def delete_all_conncetions!
+            @connections.each { |cnx| cnx.parent = nil }
+            @connections = []
+        end
+
         # Deletes a behavior.
         def delete_behavior!(behavior)
             if @behaviors.include?(behavior) then
@@ -229,6 +235,12 @@ module HDLRuby::Low
                 # And remove its parent.
                 behavior.parent = nil
             end
+        end
+
+        # Deletes all the behaviors.
+        def delete_all_behaviors!
+            @behaviors.each { |beh| beh.parent = nil }
+            @behaviors = []
         end
 
         # Deletes the elements related to one of +names+: either they have
