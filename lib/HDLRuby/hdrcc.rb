@@ -728,10 +728,11 @@ elsif $options[:verilog] then
         HDLRuby.show "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
         HDLRuby.show Time.now
-        HDLRuby.show "with_port! step..."
-        systemT.with_port!
-        HDLRuby.show Time.now
+        # HDLRuby.show "with_port! step..."
+        # systemT.with_port!
+        # HDLRuby.show Time.now
     end
+    exit
     # # Verilog generation
     # $output << top_system.to_verilog
     # Generate the Verilog.
