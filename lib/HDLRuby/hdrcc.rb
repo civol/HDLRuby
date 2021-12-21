@@ -34,7 +34,6 @@ require 'HDLRuby/version.rb'
 ##
 # HDLRuby compiler interface program
 #####################################
-HDLRuby.show Time.now
 
 module HDLRuby
 
@@ -487,6 +486,8 @@ if $options[:syntax] then
     $output << $loader.show_all
     exit
 end
+HDLRuby.show Time.now
+HDLRuby.show "##### Starting parser #####"
 
 if $options[:debug] then
     # Debug mode, no error management.
