@@ -34,6 +34,7 @@ require 'HDLRuby/version.rb'
 ##
 # HDLRuby compiler interface program
 #####################################
+HDLRuby.show Time.now
 
 module HDLRuby
 
