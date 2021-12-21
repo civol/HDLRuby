@@ -18,16 +18,16 @@ module HDLRuby
     # Generates an absolute uniq name.
     def self.uniq_name(base = "")
         @@absoluteCounter += 1
-        # name = base.to_s + ":#{@@absoluteCounter}"
-        # # if Symbol.all_symbols.find {|symbol| symbol.to_s == name } then
-        # if @@uniq_names.include?(name) then
-        #     # The symbol exists, try again.
-        #     return self.uniq_name
-        # else
-        #     @@uniq_names.add(name)
-        #     return name.to_sym
-        # end
-        return base.to_s + ":#{@@absoluteCounter}"
+        name = base.to_s + ":#{@@absoluteCounter}"
+        # if Symbol.all_symbols.find {|symbol| symbol.to_s == name } then
+        if @@uniq_names.include?(name) then
+            # The symbol exists, try again.
+            return self.uniq_name
+        else
+            @@uniq_names.add(name)
+            return name.to_sym
+        end
+        # return base.to_s + ":#{@@absoluteCounter}"
     end
 
 
