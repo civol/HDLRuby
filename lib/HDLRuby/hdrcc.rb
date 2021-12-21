@@ -717,14 +717,14 @@ elsif $options[:verilog] then
         HDLRuby.show "to_upper_space! step..."
         systemT.to_upper_space!
         HDLRuby.show Time.now
-        HDLRuby.show "to_global_space! step..."
-        systemT.to_global_systemTs!
-        HDLRuby.show Time.now
+        # HDLRuby.show "to_global_space! step..."
+        # systemT.to_global_systemTs!
+        # HDLRuby.show Time.now
         ## systemT.break_types!
         ## systemT.expand_types!
-        # HDLRuby.show "par_in_seq2seq! step..."
-        # systemT.par_in_seq2seq!
-        # HDLRuby.show Time.now
+        HDLRuby.show "par_in_seq2seq! step..."
+        systemT.par_in_seq2seq!
+        HDLRuby.show Time.now
         HDLRuby.show "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
         HDLRuby.show Time.now
