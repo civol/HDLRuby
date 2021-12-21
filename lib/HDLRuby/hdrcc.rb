@@ -820,6 +820,9 @@ elsif $options[:vhdl] then
     end
 end
 
+HDLRuby.show "##### Code generated #####"
+HDLRuby.show Time.now
+
 # # Apply the post drivers if any.
 # Hdecorator.each_with_property(:post_driver) do |obj, value|
 #     # Load the driver.
