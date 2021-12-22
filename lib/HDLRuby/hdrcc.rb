@@ -734,7 +734,6 @@ elsif $options[:verilog] then
         systemT.with_port!
         HDLRuby.show Time.now
     end
-    exit
     # # Verilog generation
     # $output << top_system.to_verilog
     # Generate the Verilog.
