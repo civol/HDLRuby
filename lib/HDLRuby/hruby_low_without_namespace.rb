@@ -44,7 +44,7 @@ module HDLRuby::Low
         def to_global_systemTs!
             # Force a name if not.
             self.force_name!
-            # puts "to_global_systemTs! for #{self.name}"
+            puts "to_global_systemTs! for #{self.name}"
             # For each local systemT
             self.scope.each_systemT.to_a.each do |systemT|
                 # puts "Processing system: #{systemT}"
