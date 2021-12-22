@@ -470,15 +470,15 @@ module HDLRuby::Low
             return []
         end
 
-        # # Replaces recursively +former+ name by +nname+ until it is redeclared.
-        # def replace_names!(former,nname)
-        #     # By default: try to replace the name recursively.
-        #     self.each_node_deep do |node|
-        #         if node.respond_to?(:name) && node.name == former then
-        #             node.set_name!(nname)
-        #         end
-        #     end
-        # end
+        # Replaces recursively +former+ name by +nname+ until it is redeclared.
+        def replace_names!(former,nname)
+            # By default: try to replace the name recursively.
+            self.each_node_deep do |node|
+                if node.respond_to?(:name) && node.name == former then
+                    node.set_name!(nname)
+                end
+            end
+        end
 
         # Breaks the hierarchical types into sequences of type definitions.
         # Assumes to_upper_space! has been called before.
