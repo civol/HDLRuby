@@ -39,15 +39,15 @@ module HDLRuby::Low
             return str
         end
 
-        ## Tells if a +name+ is C-compatible.
-        #  To ensure compatibile, assume all the character must have the
-        #  same case.
-        def self.c_name?(name)
-            name = name.to_s
-            # First: character check.
-            return false unless name =~ /^[a-zA-Z]|([a-zA-Z][a-zA-Z_0-9]*[a-zA-Z0-9])$/
-            return true
-        end
+        # ## Tells if a +name+ is C-compatible.
+        # #  To ensure compatibile, assume all the character must have the
+        # #  same case.
+        # def self.c_name?(name)
+        #     name = name.to_s
+        #     # First: character check.
+        #     return false unless name =~ /^[a-zA-Z]|([a-zA-Z][a-zA-Z_0-9]*[a-zA-Z0-9])$/
+        #     return true
+        # end
 
         ## Converts a +name+ to a C-compatible name.
         def self.c_name(name)
@@ -69,14 +69,27 @@ module HDLRuby::Low
             return name
         end
 
+        # ## Generates a uniq name for an object.
+        # def self.obj_name(obj)
+        #     if obj.respond_to?(:name) then
+        #         return Low2C.c_name(obj.name.to_s) +
+        #                Low2C.c_name(obj.object_id.to_s)
+        #     else
+        #         return "_" + Low2C.c_name(obj.object_id.to_s)
+        #     end
+        # end
+
+        @@hdrobj2c = {}
+
         ## Generates a uniq name for an object.
         def self.obj_name(obj)
-            if obj.respond_to?(:name) then
-                return Low2C.c_name(obj.name.to_s) +
-                       Low2C.c_name(obj.object_id.to_s)
-            else
-                return "_" + Low2C.c_name(obj.object_id.to_s)
+            oname = @@hdrobj2c[obj.hierarchy]
+            unless oname then
+                name = obj.respond_to?(:name) ? "_#{self.c_name(obj.name)}" : ""
+                oname = "_c#{@@hdrobj2c.size}#{name}"
+                @@hdrobj2c[obj.hierarchy] = oname
             end
+            return oname
         end
 
         ## Generates the name of a makeer for an object.
@@ -746,12 +759,12 @@ module HDLRuby::Low
         #  +level+ is the hierachical level of the object.
         def to_c_signal(level = 0)
             res = Low2C.obj_name(self)
-            # Accumulate the names of each parent until there is no one left.
-            obj = self.parent
-            while(obj) do
-                res << "_" << Low2C.obj_name(obj)
-                obj = obj.parent
-            end
+            # # Accumulate the names of each parent until there is no one left.
+            # obj = self.parent
+            # while(obj) do
+            #     res << "_" << Low2C.obj_name(obj)
+            #     obj = obj.parent
+            # end
             return res
         end
 
@@ -1538,9 +1551,16 @@ module HDLRuby::Low
             return "extern Value #{Low2C.make_name(self)}();"
         end
 
+        @@made_values = []
+
         # Generates the text of the equivalent c.
         # +level+ is the hierachical level of the object.
         def to_c_make(level = 0)
+            # Check is the value maker is already present.
+            maker = Low2C.make_name(self);
+            return "" if @@made_values.include?(maker)
+            @@made_values << maker
+
             # The resulting string.
             res = ""
 
