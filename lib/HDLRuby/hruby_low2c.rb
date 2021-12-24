@@ -83,11 +83,12 @@ module HDLRuby::Low
 
         ## Generates a uniq name for an object.
         def self.obj_name(obj)
-            oname = @@hdrobj2c[obj.hierarchy]
+            id = obj.hierarchy.map! {|obj| obj.object_id}
+            oname = @@hdrobj2c[id]
             unless oname then
                 name = obj.respond_to?(:name) ? "_#{self.c_name(obj.name)}" : ""
                 oname = "_c#{@@hdrobj2c.size}#{name}"
-                @@hdrobj2c[obj.hierarchy] = oname
+                @@hdrobj2c[id] = oname
             end
             return oname
         end
