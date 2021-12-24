@@ -1730,10 +1730,12 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the left.
             res << (" " * ((level+1)*3))
-            res << "src0 = #{self.left.to_c(level+2)};\n"
+            # res << "src0 = #{self.left.to_c(level+2)};\n"
+            res << "src0 = " << self.left.to_c(level+2) << ";\n"
             # Compute the right.
             res << (" " * ((level+1)*3))
-            res << "src1 = #{self.right.to_c(level+2)};\n"
+            # res << "src1 = #{self.right.to_c(level+2)};\n"
+            res << "src1 = " << self.right.to_c(level+2) << ";\n"
             res << (" " * ((level+1)*3))
 
             # Compute the current binary operation.
