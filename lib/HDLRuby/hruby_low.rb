@@ -63,6 +63,17 @@ module HDLRuby::Low
             cur = cur.parent until cur.is_a?(Scope)
             return cur
         end
+
+        # Get the full parents hierachy.
+        def hierarchy
+            res = []
+            cur = self
+            while(cur) do
+                res << cur
+                cur = cur.parent
+            end
+            return res
+        end
     end
 
 
