@@ -2214,7 +2214,8 @@ module HDLRuby::Low
             # puts "self.type.width=#{self.type.width}"
             # res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
             res << "dst = read_range(ref,idx,idx,"
-            res << self.type.to_c(level)
+            # res << self.type.to_c(level)
+            self.type.to_c(res,level)
             res << ",dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
