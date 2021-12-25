@@ -88,7 +88,7 @@ module HDLRuby::Low
             unless oname then
                 # name = obj.respond_to?(:name) ? "_#{self.c_name(obj.name)}" : ""
                 # oname = "_c#{@@hdrobj2c.size}#{name}"
-                oname = "_#{@@hdrobj2c.size}"
+                oname = "_" << @@hdrobj2c.size.to_s(36)
                 @@hdrobj2c[id] = oname
             end
             return oname
