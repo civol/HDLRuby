@@ -131,9 +131,9 @@ module HDLRuby::Low
             res = Low2C.includes(*hnames)
             res << "int main(int argc, char* argv[]) {\n"
             # Build the objects.
-            objs.each { |obj| res << "   #{Low2C.make_name(obj)}();\n" }
+            objs.each { |obj| res << "   " << Low2C.make_name(obj) << "();\n" }
             # Sets the top systemT.
-            res << "   top_system = #{Low2C.obj_name(top)};\n"
+            res << "   top_system = " << Low2C.obj_name(top) << ";\n"
             # Starts the simulation.
             res<< "   hruby_sim_core(\"#{name}\",#{init_visualizer},-1);\n"
             # Close the main.
@@ -154,8 +154,9 @@ module HDLRuby::Low
         ## Generates the code for a wait for time object +obj+ with +level+
         #  identation.
         def self.wait(obj,level)
-            return "hw_wait(#{obj.delay.to_c(level+1)}," + 
-                   "#{Low2C.behavior_access(obj)});\n" 
+            res = "hw_wait(#{obj.delay.to_c(level+1)},"
+            res << Low2C.behavior_access(obj) << ");\n" 
+            return res
         end
     end
 
@@ -166,20 +167,24 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and +hnames+
         # is the list of extra h files to include.
-        def to_c(level = 0, *hnames)
+        # def to_c(level = 0, *hnames)
+        def to_c(res, level = 0, *hnames)
             # The header
-            res = Low2C.includes(*hnames)
+            # res = Low2C.includes(*hnames)
+            res << Low2C.includes(*hnames)
 
             # Declare the global variable holding the system.
-            res << "SystemT #{Low2C.obj_name(self)};\n\n"
+            res << "SystemT " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the signals of the system.
-            self.each_signal { |signal| res << signal.to_c(level) }
+            # self.each_signal { |signal| signal.to_c(level) }
+            self.each_signal { |signal| signal.to_c(res,level) }
 
             # Generate the code for all the blocks included in the system.
             self.scope.each_scope_deep do |scope|
                 scope.each_behavior do |behavior|
-                    res << behavior.block.to_c_code(level)
+                    # res << behavior.block.to_c_code(level)
+                    behavior.block.to_c_code(res,level)
                 end
             end
 
@@ -187,35 +192,38 @@ module HDLRuby::Low
             self.each_signal do |signal|
                 # res << signal.value.to_c_make(level) if signal.value
                 signal.value.each_node_deep do |node|
-                    res << node.to_c_make(level) if node.respond_to?(:to_c_make)
+                    # res << node.to_c_make(level) if node.respond_to?(:to_c_make)
+                    node.to_c_make(res,level) if node.respond_to?(:to_c_make)
                 end if signal.value
             end
             self.scope.each_scope_deep do |scope|
                 scope.each_inner do |signal|
-                    # res << signal.value.to_c_make(level) if signal.value
                     signal.value.each_node_deep do |node|
-                        res << node.to_c_make(level) if node.respond_to?(:to_c_make)
+                        # res << node.to_c_make(level) if node.respond_to?(:to_c_make)
+                        node.to_c_make(res,level) if node.respond_to?(:to_c_make)
                     end if signal.value
                 end
             end
             self.scope.each_block_deep do |block|
             # puts "treating for block=#{Low2C.obj_name(block)} with=#{block.each_inner.count} inners"
                 block.each_inner do |signal|
-                    # res << signal.value.to_c_make(level) if signal.value
                     signal.value.each_node_deep do |node|
-                        res << node.to_c_make(level) if node.respond_to?(:to_c_make)
+                        # res << node.to_c_make(level) if node.respond_to?(:to_c_make)
+                        node.to_c_make(res,level) if node.respond_to?(:to_c_make)
                     end if signal.value
                 end
             end
             self.scope.each_node_deep do |node|
-                res << node.to_c_make(level) if node.is_a?(Value)
+                # res << node.to_c_make(level) if node.is_a?(Value)
+                node.to_c_make(res,level) if node.is_a?(Value)
             end
 
             # Generate the scope.
-            res << self.scope.to_c(level)
+            # res << self.scope.to_c(level)
+            self.scope.to_c(res,level)
 
             # Generate the entity
-            res << "SystemT #{Low2C.make_name(self)}() {\n"
+            res << "SystemT " << Low2C.make_name(self) << "() {\n"
             # Creates the structure.
             res << " " * (level+1)*3
             res << "SystemT systemT = malloc(sizeof(SystemTS));\n"
@@ -225,13 +233,13 @@ module HDLRuby::Low
             # Sets the global variable of the system.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{Low2C.obj_name(self)} = systemT;\n"
+            res << Low2C.obj_name(self) << " = systemT;\n"
 
             # Set the owner if any.
             if @owner then
                 res << " " * (level+1)*3
-                res << "systemT->owner = (Object)" + 
-                       "#{Low2C.obj_name(@owner)};\n"
+                res << "systemT->owner = (Object)"
+                res << Low2C.obj_name(@owner) << ";\n"
             else
                 res << "systemT->owner = NULL;\n"
             end
@@ -245,23 +253,23 @@ module HDLRuby::Low
             res << " " * (level+1)*3
             res << "systemT->num_inputs = #{self.each_input.to_a.size};\n"
             res << " " * (level+1)*3
-            res << "systemT->inputs = calloc(sizeof(SignalI)," +
-                   "systemT->num_inputs);\n"
+            res << "systemT->inputs = calloc(sizeof(SignalI),"
+            res << "systemT->num_inputs);\n"
             self.each_input.with_index do |input,i|
                 res << " " * (level+1)*3
-                res << "systemT->inputs[#{i}] = " +
-                       "#{Low2C.make_name(input)}();\n"
+                res << "systemT->inputs[#{i}] = "
+                res << Low2C.make_name(input) << "();\n"
             end
             # Outputs
             res << " " * (level+1)*3
             res << "systemT->num_outputs = #{self.each_output.to_a.size};\n"
             res << " " * (level+1)*3
-            res << "systemT->outputs = calloc(sizeof(SignalI)," +
-                   "systemT->num_outputs);\n"
+            res << "systemT->outputs = calloc(sizeof(SignalI),"
+            res << "systemT->num_outputs);\n"
             self.each_output.with_index do |output,i|
                 res << " " * (level+1)*3
-                res << "systemT->outputs[#{i}] = " +
-                       "#{Low2C.make_name(output)}();\n"
+                res << "systemT->outputs[#{i}] = "
+                res << Low2C.make_name(output) << "();\n"
             end
             # Inouts
             res << " " * (level+1)*3
@@ -271,14 +279,14 @@ module HDLRuby::Low
                    "systemT->num_inouts);\n"
             self.each_inout.with_index do |inout,i|
                 res << " " * (level+1)*3
-                res << "systemT->inouts[#{i}] = " +
-                       "#{Low2C.make_name(inout)}();\n"
+                res << "systemT->inouts[#{i}] = "
+                res << Low2C.make_name(inout) << "();\n"
             end
 
             # Adds the scope.
             res << "\n"
             res << " " * (level+1)*3
-            res << "systemT->scope = #{Low2C.make_name(self.scope)}();\n"
+            res << "systemT->scope = " << Low2C.make_name(self.scope) << "();\n"
 
             # Generate the Returns of the result.
             res << "\n"
@@ -294,16 +302,17 @@ module HDLRuby::Low
 
         ## Generates the code for an execution starting from the system.
         # +level+ is the hierachical level of the object.
-        def to_c_code(level)
+        # def to_c_code(level)
+        def to_c_code(res,level)
             res << " " * (level*3)
-            res << "#{Low2C.code_name(self)}() {\n"
+            res << Low2C.code_name(self) << "() {\n"
             # res << "printf(\"Executing #{Low2C.code_name(self)}...\\n\");"
             # Launch the execution of all the time behaviors of the
             # system.
             self.each_behavior_deep do |behavior|
                 if behavior.is_a?(HDLRuby::Low::TimeBehavior) then
                     res << " " * (level+1)*3
-                    res << "#{Low2C.code_name(behavior.block)}();\n"
+                    res << Low2C.code_name(behavior.block) << "();\n"
                 end
             end
             # Close the execution procedure.
@@ -315,50 +324,58 @@ module HDLRuby::Low
 
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Declare the global variable holding the signal.
-            res << "extern SystemT #{Low2C.obj_name(self)};\n\n"
+            res << "extern SystemT " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the access to the function making the systemT. */
-            res << "extern SystemT #{Low2C.make_name(self)}();\n\n"
+            res << "extern SystemT " << Low2C.make_name(self) << "();\n\n"
 
             # Generate the accesses to the values.
             self.each_signal do |signal|
                 # res << signal.value.to_ch if signal.value
                 if signal.value then
                     signal.value.each_node_deep do |node|
-                        res << node.to_ch if node.is_a?(Value)
+                        # res << node.to_ch if node.is_a?(Value)
+                        node.to_ch(res) if node.is_a?(Value)
                     end
                 end
             end
             self.scope.each_scope_deep do |scope|
                 scope.each_inner do |signal|
-                    # res << signal.value.to_ch if signal.value
                     if signal.value then
                         signal.value.each_node_deep do |node|
-                            res << node.to_ch if node.is_a?(Value)
+                            # res << node.to_ch if node.is_a?(Value)
+                            node.to_ch(res) if node.is_a?(Value)
                         end
                     end
                 end
             end
             self.scope.each_block_deep do |block|
                 block.each_inner do |signal|
-                    res << signal.value.to_ch if signal.value
+                    # res << signal.value.to_ch if signal.value
+                    signal.value.to_ch(res) if signal.value
                 end
                 block.each_node_deep do |node|
-                    res << node.to_ch if node.is_a?(Value)
+                    # res << node.to_ch if node.is_a?(Value)
+                    node.to_ch(res) if node.is_a?(Value)
                 end
             end
 
             # Generate the accesses to the ports.
-            self.each_input  { |input|  res << input.to_ch }
-            self.each_output { |output| res << output.to_ch }
-            self.each_inout  { |inout|  res << inout.to_ch }
+            # self.each_input  { |input|  res << input.to_ch }
+            self.each_input  { |input|  input.to_ch(res) }
+            # self.each_output { |output| res << output.to_ch }
+            self.each_output { |output| output.to_ch(res) }
+            # self.each_inout  { |inout|  res << inout.to_ch }
+            self.each_inout  { |inout|  inout.to_ch(res) }
 
             # Generate the accesses to the scope.
-            res << self.scope.to_ch << "\n"
-
+            # res << self.scope.to_ch << "\n"
+            self.scope.to_ch(res)
+            res << "\n"
 
             return res;
         end
@@ -371,31 +388,37 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The resulting string.
-            res = ""
+            # res = ""
 
             # Declare the global variable holding the scope.
-            res << "Scope #{Low2C.obj_name(self)};\n\n"
+            res << "Scope " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the code makeing the complex sub components.
 
             # Generates the code for making signals if any.
-            self.each_signal { |signal| res << signal.to_c(level) }
+            # self.each_signal { |signal| res << signal.to_c(level) }
+            self.each_signal { |signal| signal.to_c(res,level) }
             # Generates the code for making signals if any.
-            self.each_systemI { |systemI| res << systemI.to_c(level) }
+            # self.each_systemI { |systemI| res << systemI.to_c(level) }
+            self.each_systemI { |systemI| systemI.to_c(res,level) }
             # Generates the code for making sub scopes if any.
-            self.each_scope { |scope| res << scope.to_c(level) }
+            # self.each_scope { |scope| res << scope.to_c(level) }
+            self.each_scope { |scope| scope.to_c(res,level) }
             # Generate the code for making the behaviors.
-            self.each_behavior { |behavior| res << behavior.to_c(level) }
+            # self.each_behavior { |behavior| res << behavior.to_c(level) }
+            self.each_behavior { |behavior| behavior.to_c(res,level) }
             # Generate the code for making the non-HDLRuby codes.
-            self.each_code { |code| res << code.to_c(level) }
+            # self.each_code { |code| res << code.to_c(level) }
+            self.each_code { |code| code.to_c(res,level) }
 
             # Generate the code of the scope.
             
             # The header of the scope.
             res << " " * level*3
-            res << "Scope #{Low2C.make_name(self)}() {\n"
+            res << "Scope " << Low2C.make_name(self) << "() {\n"
             res << " " * (level+1)*3
             res << "Scope scope = malloc(sizeof(ScopeS));\n"
             res << " " * (level+1)*3
@@ -404,13 +427,13 @@ module HDLRuby::Low
             # Sets the global variable of the scope.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{Low2C.obj_name(self)} = scope;\n"
+            res << Low2C.obj_name(self) << " = scope;\n"
 
             # Set the owner if any.
             if self.parent then
                 res << " " * (level+1)*3
-                res << "scope->owner = (Object)" + 
-                       "#{Low2C.obj_name(self.parent)};\n"
+                res << "scope->owner = (Object)"
+                res << Low2C.obj_name(self.parent) << ";\n"
             else
                 res << "scope->owner = NULL;\n"
             end
@@ -427,44 +450,44 @@ module HDLRuby::Low
                    "scope->num_systemIs);\n"
             self.each_systemI.with_index do |systemI,i|
                 res << " " * (level+1)*3
-                res << "scope->systemIs[#{i}] = " +
-                       "#{Low2C.make_name(systemI)}();\n"
+                res << "scope->systemIs[#{i}] = "
+                res << Low2C.make_name(systemI) << "();\n"
             end
 
             # Add the inner signals declaration.
             res << " " * (level+1)*3
             res << "scope->num_inners = #{self.each_inner.to_a.size};\n"
             res << " " * (level+1)*3
-            res << "scope->inners = calloc(sizeof(SignalI)," +
-                   "scope->num_inners);\n"
+            res << "scope->inners = calloc(sizeof(SignalI),"
+            res << "scope->num_inners);\n"
             self.each_inner.with_index do |inner,i|
                 res << " " * (level+1)*3
-                res << "scope->inners[#{i}] = " +
-                       "#{Low2C.make_name(inner)}();\n"
+                res << "scope->inners[#{i}] = "
+                res << Low2C.make_name(inner) << "();\n"
             end
 
             # Add the sub scopes.
             res << " " * (level+1)*3
             res << "scope->num_scopes = #{self.each_scope.to_a.size};\n"
             res << " " * (level+1)*3
-            res << "scope->scopes = calloc(sizeof(Scope)," +
-                   "scope->num_scopes);\n"
+            res << "scope->scopes = calloc(sizeof(Scope),"
+            res << "scope->num_scopes);\n"
             self.each_scope.with_index do |scope,i|
                 res << " " * (level+1)*3
-                res << "scope->scopes[#{i}] = " +
-                       "#{Low2C.make_name(scope)}();\n"
+                res << "scope->scopes[#{i}] = "
+                res << Low2C.make_name(scope) << "();\n"
             end
 
             # Add the behaviors.
             res << " " * (level+1)*3
             res << "scope->num_behaviors = #{self.each_behavior.to_a.size};\n"
             res << " " * (level+1)*3
-            res << "scope->behaviors = calloc(sizeof(Behavior)," +
-                   "scope->num_behaviors);\n"
+            res << "scope->behaviors = calloc(sizeof(Behavior),"
+            res << "scope->num_behaviors);\n"
             self.each_behavior.with_index do |behavior,i|
                 res << " " * (level+1)*3
-                res << "scope->behaviors[#{i}] = " +
-                       "#{Low2C.make_name(behavior)}();\n"
+                res << "scope->behaviors[#{i}] = "
+                res << Low2C.make_name(behavior) << "();\n"
             end
 
             # Add the non-HDLRuby codes.
@@ -475,8 +498,8 @@ module HDLRuby::Low
                    "scope->num_codes);\n"
             self.each_code.with_index do |code,i|
                 res << " " * (level+1)*3
-                res << "scope->codes[#{i}] = " +
-                       "#{Low2C.make_name(code)}();\n"
+                res << "scope->codes[#{i}] = "
+                res << Low2C.make_name(code) << "();\n"
             end
 
             # Generate the Returns of the result.
@@ -491,28 +514,34 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Declare the global variable holding the signal.
-            res << "extern Scope #{Low2C.obj_name(self)};\n\n"
+            res << "extern Scope " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the access to the function making the scope.
-            res << "extern Scope #{Low2C.make_name(self)}();\n\n"
+            res << "extern Scope " << Low2C.make_name(self) << "();\n\n"
 
             # Generate the accesses to the system instances.
-            self.each_systemI { |systemI| res << systemI.to_ch }
+            # self.each_systemI { |systemI| res << systemI.to_ch }
+            self.each_systemI { |systemI| systemI.to_ch(res) }
 
             # Generate the accesses to the signals.
-            self.each_inner { |inner| res << inner.to_ch }
+            # self.each_inner { |inner| res << inner.to_ch }
+            self.each_inner { |inner| inner.to_ch(res) }
 
             # Generate the access to the sub scopes.
-            self.each_scope { |scope| res << scope.to_ch }
+            # self.each_scope { |scope| res << scope.to_ch }
+            self.each_scope { |scope| scope.to_ch(res) }
 
             # Generate the access to the behaviors.
-            self.each_behavior { |behavior| res << behavior.to_ch }
+            # self.each_behavior { |behavior| res << behavior.to_ch }
+            self.each_behavior { |behavior| behavior.to_ch(res) }
 
             # Generate the access to the non-HDLRuby code.
-            self.each_behavior { |code| res << code.to_ch }
+            # self.each_behavior { |code| res << code.to_ch }
+            self.each_behavior { |code| code.to_ch(res) }
 
             return res;
         end
@@ -524,16 +553,18 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            # return Low2C.c_name(self.name)
-            # return Low2C.type_name(Bit) + "()"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             if self.name == :bit || self.name == :unsigned then
-                return "get_type_bit()"
+                # return "get_type_bit()"
+                res << "get_type_bit()"
             elsif self.name == :signed then
-                return "get_type_signed()"
+                # return "get_type_signed()"
+                res << "get_type_signed()"
             else
                 raise "Unknown type: #{self.name}"
             end
+            return res
         end
     end
 
@@ -542,11 +573,12 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            # # Simply use the name of the type.
-            # return Low2C.type_name(self.name) + "()"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Simply return the defined type.
-            return self.def.to_c(level)
+            # return self.def.to_c(level)
+            self.def.to_c(res,level)
+            return res
         end
     end
 
@@ -555,10 +587,15 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The resulting string.
-            return "get_type_vector(#{self.base.to_c(level+1)}," +
-                   "#{self.size})"
+            # return "get_type_vector(#{self.base.to_c(level+1)}," +
+            #        "#{self.size})"
+            res << "get_type_vector("
+            self.base.to_c(res,level+1)
+            res << ",#{self.size})"
+            return res
         end
     end
 
@@ -569,11 +606,11 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         #
         # NOTE: type tuples are converted to bit vector of their contents.
-        def to_c(level = 0)
-            # return "get_type_tuple(#{self.each.to_a.join(",") do |type|
-            #    type.to_c(level+1)
-            # end})"
-            return self.to_vector.to_c(level)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # return self.to_vector.to_c(level)
+            self.to_vector.to_c(res,level)
+            return res
         end
     end
 
@@ -583,10 +620,15 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            return "get_type_struct(#{self.each.join(",") do |key,type|
-                "\"#{key.to_s}\",#{type.to_c(level+1)}"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # return "get_type_struct(#{self.each.join(",") do |key,type|
+            #     "\"#{key.to_s}\",#{type.to_c(level+1)}"
+            # end})"
+            res << "get_type_struct(#{self.each.join(",") do |key,type|
+                "\"#{key.to_s}\",#{type.to_c("",level+1)}"
             end})"
+            return res
         end
     end
 
@@ -597,19 +639,20 @@ module HDLRuby::Low
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +time+ is a flag telling if the behavior is timed or not.
-        def to_c(level = 0, time = false)
+        # def to_c(level = 0, time = false)
+        def to_c(res, level = 0, time = false)
             # puts "For behavior: #{self}"
-            # The resulting string.
-            res = ""
+            # # The resulting string.
+            # res = ""
 
             # Declare the global variable holding the behavior.
-            res << "Behavior #{Low2C.obj_name(self)};\n\n"
+            res << "Behavior " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the code of the behavior.
             
             # The header of the behavior.
             res << " " * level*3
-            res << "Behavior #{Low2C.make_name(self)}() {\n"
+            res << "Behavior " << Low2C.make_name(self) << "() {\n"
             res << " " * (level+1)*3
 
             # Allocate the behavior.
@@ -620,7 +663,7 @@ module HDLRuby::Low
             # Sets the global variable of the behavior.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{Low2C.obj_name(self)} = behavior;\n"
+            res << Low2C.obj_name(self) << " = behavior;\n"
 
             # Register it as a time behavior if it is one of them. */
             if time then
@@ -631,8 +674,8 @@ module HDLRuby::Low
             # Set the owner if any.
             if self.parent then
                 res << " " * (level+1)*3
-                res << "behavior->owner = (Object)" + 
-                       "#{Low2C.obj_name(self.parent)};\n"
+                res << "behavior->owner = (Object)"
+                res << Low2C.obj_name(self.parent) << ";\n"
             else
                 res << "behavior->owner = NULL;\n"
             end
@@ -669,14 +712,17 @@ module HDLRuby::Low
             res << " " * (level+1)*3
             res << "behavior->num_events = #{events.size};\n"
             res << " " * (level+1)*3
-            res << "behavior->events = calloc(sizeof(Event)," +
-                   "behavior->num_events);\n"
+            res << "behavior->events = calloc(sizeof(Event),"
+            res << "behavior->num_events);\n"
             # Then, create and add them.
             events.each_with_index do |event,i|
                 # puts "for event=#{event}"
                 # Add the event.
                 res << " " * (level+1)*3
-                res << "behavior->events[#{i}] = #{event.to_c};\n"
+                # res << "behavior->events[#{i}] = #{event.to_c};\n"
+                res << "behavior->events[#{i}] = "
+                event.to_c(res)
+                res << ";\n"
                 
                 # Register the behavior as activable on this event.
                 # Select the active field.
@@ -685,20 +731,22 @@ module HDLRuby::Low
                 field = "neg" if event.type == :negedge
                 # puts "Adding #{field} event: #{event}\n"
                 # Get the target signal access
-                sigad = event.ref.resolve.to_c_signal
+                # sigad = event.ref.resolve.to_c_signal
+                sigad = ""
+                event.ref.resolve.to_c_signal(sigad)
                 # Add the behavior to the relevant field.
                 res << " " * (level+1)*3
                 res << "#{sigad}->num_#{field} += 1;\n"
                 res << " " * (level+1)*3
-                res << "#{sigad}->#{field} = realloc(#{sigad}->#{field}," +
-                       "#{sigad}->num_#{field}*sizeof(Object));\n"
-                res << "#{sigad}->#{field}[#{sigad}->num_#{field}-1] = " +
-                       "(Object)behavior;\n"
+                res << "#{sigad}->#{field} = realloc(#{sigad}->#{field},"
+                res << "#{sigad}->num_#{field}*sizeof(Object));\n"
+                res << "#{sigad}->#{field}[#{sigad}->num_#{field}-1] = "
+                res << "(Object)behavior;\n"
             end
 
             # Adds the block.
             res << " " * (level+1)*3
-            res << "behavior->block = #{Low2C.make_name(self.block)}();\n"
+            res << "behavior->block = " << Low2C.make_name(self.block) << "();\n"
 
             # Generate the Returns of the result.
             res << "\n"
@@ -712,16 +760,18 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Declare the global variable holding the signal.
-            res << "extern Behavior #{Low2C.obj_name(self)};\n\n"
+            res << "extern Behavior " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the access to the function making the behavior.
-            res << "extern Behavior #{Low2C.make_name(self)}();\n\n"
+            res << "extern Behavior " << Low2C.make_name(self) << "();\n\n"
 
             # Generate the accesses to the block of the behavior.
-            res << self.block.to_ch
+            # res << self.block.to_ch
+            self.block.to_ch(res)
 
             return res;
         end
@@ -732,8 +782,10 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            super(level,true)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # super(level,true)
+            super(res,level,true)
         end
     end
 
@@ -743,12 +795,17 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             edge = "ANYEDGE"
             edge = "POSEDGE" if self.type == :posedge
             edge = "NEGEDGE" if self.type == :negedge
-            return "make_event(#{edge}," +
-                   "#{self.ref.resolve.to_c_signal(level+1)})"
+            # return "make_event(#{edge}," +
+            #        "#{self.ref.resolve.to_c_signal(level+1)})"
+            res << "make_event(#{edge},"
+            self.ref.resolve.to_c_signal(res,level+1)
+            res << ")"
+            return res
         end
     end
 
@@ -758,8 +815,10 @@ module HDLRuby::Low
 
         ## Generates the C text for an access to the signal.
         #  +level+ is the hierachical level of the object.
-        def to_c_signal(level = 0)
-            res = Low2C.obj_name(self)
+        # def to_c_signal(level = 0)
+        def to_c_signal(res,level = 0)
+            # res = Low2C.obj_name(self)
+            res << Low2C.obj_name(self)
             # # Accumulate the names of each parent until there is no one left.
             # obj = self.parent
             # while(obj) do
@@ -771,16 +830,20 @@ module HDLRuby::Low
 
         ## Generates the C text of the equivalent HDLRuby code.
         #  +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The resulting string.
-            res = ""
+            # res = ""
 
             # Declare the global variable holding the signal.
-            res << "SignalI #{self.to_c_signal(level+1)};\n\n"
+            # res << "SignalI #{self.to_c_signal(level+1)};\n\n"
+            res << "SignalI "
+            self.to_c_signal(res,level+1)
+            res << ";\n\n"
 
             # The header of the signal generation.
             res << " " * level*3
-            res << "SignalI #{Low2C.make_name(self)}() {\n"
+            res << "SignalI " << Low2C.make_name(self) << "() {\n"
             res << " " * (level+1)*3
             res << "SignalI signalI = malloc(sizeof(SignalIS));\n"
             res << " " * (level+1)*3
@@ -789,13 +852,15 @@ module HDLRuby::Low
             # Sets the global variable of the signal.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{self.to_c_signal(level+1)} = signalI;\n"
+            # res << "#{self.to_c_signal(level+1)} = signalI;\n"
+            self.to_c_signal(res,level+1)
+            res << " = signalI;\n"
 
             # Set the owner if any.
             if self.parent then
                 res << " " * (level+1)*3
-                res << "signalI->owner = (Object)" + 
-                       "#{Low2C.obj_name(self.parent)};\n"
+                res << "signalI->owner = (Object)"
+                res << Low2C.obj_name(self.parent) << ";\n"
             else
                 res << "signalI->owner = NULL;\n"
             end
@@ -805,7 +870,10 @@ module HDLRuby::Low
             res << "signalI->name = \"#{self.name}\";\n"
             # Set the type.
             res << " " * (level+1)*3
-            res << "signalI->type = #{self.type.to_c(level+2)};\n"
+            # res << "signalI->type = #{self.type.to_c(level+2)};\n"
+            res << "signalI->type = "
+            self.type.to_c(res,level+2)
+            res << ";\n"
             # Set the current and the next value.
             res << " " * (level+1)*3
             res << "signalI->c_value = make_value(signalI->type,0);\n"
@@ -818,8 +886,11 @@ module HDLRuby::Low
             if self.value then
                 # There is an initial value.
                 res << " " * (level+1)*3
-                res << "copy_value(#{self.value.to_c(level+2)}," +
-                       "signalI->c_value);\n"
+                # res << "copy_value(#{self.value.to_c(level+2)}," +
+                #        "signalI->c_value);\n"
+                res << "copy_value("
+                self.value.to_c(res,level+2)
+                res << ",signalI->c_value);\n"
             end
 
             # Initially the signal can be overwritten by anything.
@@ -857,14 +928,18 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # puts "to_ch for SignalI: #{self.to_c_signal()}"
             # Declare the global variable holding the signal.
-            res << "extern SignalI #{self.to_c_signal()};\n\n"
+            # res << "extern SignalI #{self.to_c_signal()};\n\n"
+            res << "extern SignalI "
+            self.to_c_signal(res)
+            res << ";\n\n"
 
             # Generate the access to the function making the behavior.
-            res << "extern SignalI #{Low2C.make_name(self)}();\n\n"
+            res << "extern SignalI " << Low2C.make_name(self) << "();\n\n"
 
             return res;
         end
@@ -876,16 +951,17 @@ module HDLRuby::Low
 
         ## Generates the C text of the equivalent HDLRuby code.
         #  +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The resulting string.
-            res = ""
+            # res = ""
 
             # Declare the global variable holding the signal.
-            res << "SystemI #{Low2C.obj_name(self)};\n\n"
+            res << "SystemI " << Low2C.obj_name(self) << ";\n\n"
 
             # The header of the signal generation.
             res << " " * level*3
-            res << "SystemI #{Low2C.make_name(self)}() {\n"
+            res << "SystemI " << Low2C.make_name(self) << "() {\n"
             res << " " * (level+1)*3
             res << "SystemI systemI = malloc(sizeof(SystemIS));\n"
             res << " " * (level+1)*3
@@ -894,13 +970,13 @@ module HDLRuby::Low
             # Sets the global variable of the system instance.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{Low2C.obj_name(self)} = systemI;\n"
+            res << Low2C.obj_name(self) << " = systemI;\n"
 
             # Set the owner if any.
             if self.parent then
                 res << " " * (level+1)*3
-                res << "systemI->owner = (Object)" + 
-                       "#{Low2C.obj_name(self.parent)};\n"
+                res << "systemI->owner = (Object)"
+                res << Low2C.obj_name(self.parent) << ";\n"
             else
                 res << "systemI->owner = NULL;\n"
             end
@@ -910,7 +986,7 @@ module HDLRuby::Low
             res << "systemI->name = \"#{self.name}\";\n"
             # Set the type.
             res << " " * (level+1)*3
-            res << "systemI->system = #{Low2C.obj_name(self.systemT)};\n"
+            res << "systemI->system = " << Low2C.obj_name(self.systemT) << ";\n"
 
             # Generate the return of the signal.
             res << "\n"
@@ -924,13 +1000,14 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Declare the global variable holding the signal.
-            res << "extern SystemI #{Low2C.obj_name(self)};\n\n"
+            res << "extern SystemI " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the access to the function making the systemT. */
-            res << "extern SystemI #{Low2C.make_name(self)}();\n\n"
+            res << "extern SystemI " << Low2C.make_name(self) << "();\n\n"
 
             return res
         end
@@ -942,15 +1019,28 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            res = " " * level
-            res << self.each_lump.map do |lump|
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # res = " " * level
+            res << " " * level
+            # res << self.each_lump.map do |lump|
+            #     if !lump.is_a?(String) then
+            #         lump.respond_to?(:to_c) ? lump.to_c(level+1) : lump.to_s
+            #     else
+            #         lump
+            #     end
+            # end.join
+            self.each_lump do |lump|
                 if !lump.is_a?(String) then
-                    lump.respond_to?(:to_c) ? lump.to_c(level+1) : lump.to_s
+                    if lump.respond_to?(:to_c) then
+                        lump.to_c(res,level+1)
+                    else
+                        res << lump.to_s
+                    end
                 else
-                    lump
+                    res << lump
                 end
-            end.join
+            end
             return res
         end
     end
@@ -960,19 +1050,20 @@ module HDLRuby::Low
     class Code
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # puts "For behavior: #{self}"
             # The resulting string.
-            res = ""
+            # res = ""
 
             # Declare the global variable holding the behavior.
-            res << "Code #{Low2C.obj_name(self)};\n\n"
+            res << "Code " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the code of the behavior.
             
             # The header of the behavior.
             res << " " * level*3
-            res << "Code #{Low2C.make_name(self)}() {\n"
+            res << "Code " << Low2C.make_name(self) << "() {\n"
             res << " " * (level+1)*3
 
             # Allocate the code.
@@ -983,13 +1074,13 @@ module HDLRuby::Low
             # Sets the global variable of the code.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{Low2C.obj_name(self)} = code;\n"
+            res << Low2C.obj_name(self) << " = code;\n"
 
             # Set the owner if any.
             if self.parent then
                 res << " " * (level+1)*3
-                res << "code->owner = (Object)" + 
-                       "#{Low2C.obj_name(self.parent)};\n"
+                res << "code->owner = (Object)"
+                res << Low2C.obj_name(self.parent) << ";\n"
             else
                 res << "code->owner = NULL;\n"
             end
@@ -1011,7 +1102,10 @@ module HDLRuby::Low
                 # puts "for event=#{event}"
                 # Add the event.
                 res << " " * (level+1)*3
-                res << "code->events[#{i}] = #{event.to_c};\n"
+                # res << "code->events[#{i}] = #{event.to_c};\n"
+                res << "code->events[#{i}] = "
+                event.to_c(res)
+                res << ";\n"
                 
                 # Register the behavior as activable on this event.
                 # Select the active field.
@@ -1019,7 +1113,9 @@ module HDLRuby::Low
                 field = "pos" if event.type == :posedge
                 field = "neg" if event.type == :negedge
                 # Get the target signal access
-                sigad = event.ref.resolve.to_c_signal
+                # sigad = event.ref.resolve.to_c_signal
+                sigad = ""
+                event.ref.resolve.to_c_signal(sigad)
                 # Add the code to the relevant field.
                 res << " " * (level+1)*3
                 res << "#{sigad}->num_#{field} += 1;\n"
@@ -1033,7 +1129,10 @@ module HDLRuby::Low
             # Adds the function to execute.
             function = self.each_chunk.find { |chunk| chunk.name == :sim }
             res << " " * (level+1)*3
-            res << "code->function = &#{function.to_c};\n"
+            # res << "code->function = &#{function.to_c};\n"
+            res << "code->function = &"
+            function.to_c(res)
+            res << ";\n"
 
             # Generate the Returns of the result.
             res << "\n"
@@ -1047,16 +1146,18 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Declare the global variable holding the signal.
-            res << "extern Behavior #{Low2C.obj_name(self)};\n\n"
+            res << "extern Behavior " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the access to the function making the behavior.
-            res << "extern Behavior #{Low2C.make_name(self)}();\n\n"
+            res << "extern Behavior " << Low2C.make_name(self) << "();\n\n"
 
             # Generate the accesses to the block of the behavior.
-            res << self.block.to_ch
+            # res << self.block.to_ch
+            self.block.to_ch(res)
 
             return res;
         end
@@ -1068,15 +1169,18 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Should never be here.
             raise AnyError, "Internal error: to_c should be implemented in class :#{self.class}"
         end
 
         ## Generates the content of the h file.
-        def to_ch
+        # def to_ch
+        def to_ch(res)
             # By default nothing to generate.
-            return ""
+            # return ""
+            return res
         end
 
         # Adds the c code of the blocks to +res+ at +level+
@@ -1107,9 +1211,11 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Save the state of the value pool.
-            res = (" " * ((level)*3))
+            # res = (" " * ((level)*3))
+            res << (" " * ((level)*3))
             res << "{\n"
             res << (" " * ((level+1)*3))
             res << "unsigned int pool_state = get_value_pos();\n"
@@ -1121,12 +1227,29 @@ module HDLRuby::Low
             # Generate the assignment.
             if (self.left.is_a?(RefName)) then
                 # Direct assignment to a signal, simple transmission.
-                res << "transmit_to_signal#{seq}(#{self.right.to_c(level)},"+
-                    "#{self.left.to_c_signal(level)});\n"
+                # res << "transmit_to_signal#{seq}(#{self.right.to_c(level)},"+
+                #     "#{self.left.to_c_signal(level)});\n"
+                res << "transmit_to_signal#{seq}("
+                self.right.to_c(res,level)
+                res << ","
+                self.left.to_c_signal(res,level)
+                res << ");\n"
             else
                 # Assignment inside a signal (RefIndex or RefRange).
-                res << "transmit_to_signal_range#{seq}(#{self.right.to_c(level)},"+
-                    "#{self.left.to_c_signal(level)});\n"
+                # res << "transmit_to_signal_range#{seq}(#{self.right.to_c(level)},"+
+                #     "#{self.left.to_c_signal(level)});\n"
+                res << "transmit_to_signal_range#{seq}("
+                self.right.to_c(res,level)
+                res << ","
+                self.left.to_c_signal(res,level)
+                res << ");\n"
+                # res << "transmit_to_signal_range#{seq}(#{self.right.to_c(level)},"+
+                #     "#{self.left.to_c_signal(level)});\n"
+                res << "transmit_to_signal_range#{seq}("
+                self.right.to_c(res,level)
+                res << ","
+                self.left.to_c_signal(res,level)
+                res << ");\n"
             end
             # Restore the value pool state.
             res << (" " * ((level+1)*3))
@@ -1143,9 +1266,11 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Save the state of the value pool.
-            res = (" " * ((level)*3))
+            # res = (" " * ((level)*3))
+            res << (" " * ((level)*3))
             res << "{\n"
             res << (" " * ((level+1)*3))
             res << "unsigned int pool_state = get_value_pos();\n"
@@ -1160,9 +1285,15 @@ module HDLRuby::Low
                     res << "printer.print_string(\"" + 
                         Low2C.c_string(arg.content) + "\");\n"
                 elsif (arg.is_a?(Expression)) then
-                    res << "printer.print_string_value(" + arg.to_c + ");\n"
+                    # res << "printer.print_string_value(" + arg.to_c + ");\n"
+                    res << "printer.print_string_value("
+                    arg.to_c(res)
+                    res << ");\n"
                 else
-                    res << "printer.print_string_name(" + arg.to_c + ");\n"
+                    # res << "printer.print_string_name(" + arg.to_c + ");\n"
+                    res << "printer.print_string_name("
+                    arg.to_c(res)
+                    res << ");\n"
                 end
             end
             # Restore the value pool state.
@@ -1180,13 +1311,18 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The result string.
-            res = " " * level*3
+            # res = " " * level*3
+            res << " " * level*3
             # Compute the condition.
             res << "{\n"
             res << " " * (level+1)*3
-            res << "Value cond = " << self.condition.to_c(level+1) << ";\n"
+            # res << "Value cond = " << self.condition.to_c(level+1) << ";\n"
+            res << "Value cond = "
+            self.condition.to_c(res,level+1)
+            res << ";\n"
             # Ensure the condition is testable.
             res << " " * (level+1)*3
             res << "if (is_defined_value(cond)) {\n"
@@ -1194,21 +1330,28 @@ module HDLRuby::Low
             res << " " * (level+2)*3
             res << "if (value2integer(cond)) {\n"
             # Generate the yes part.
-            res << self.yes.to_c(level+3)
+            # res << self.yes.to_c(level+3)
+            self.yes.to_c(res,level+3)
             res << " " * level*3
             res << "}\n"
             # Generate the alternate if parts.
             self.each_noif do |cond,stmnt|
                 res << " " * level*3
-                res << "else if (value2integer(" << cond.to_c(level+1) << ")) {\n"
-                res << stmnt.to_c(level+1)
+                # res << "else if (value2integer(" << cond.to_c(level+1) << ")) {\n"
+                res << "else if (value2integer("
+                cond.to_c(res,level+1)
+                res << ")) {\n"
+                # res << stmnt.to_c(level+1)
+                stmnt.to_c(res,level+1)
                 res << " " * level*3
                 res << "}\n"
             end
             # Generate the no part if any.
             if self.no then
                 res << " " * level*3
-                res << "else {\n" << self.no.to_c(level+1)
+                # res << "else {\n" << self.no.to_c(level+1)
+                res << "else {\n"
+                self.no.to_c(res,level+1)
                 res << " " * level*3
                 res << "}\n"
             end
@@ -1222,14 +1365,18 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Recurse on the sub statements.
-            res << self.yes.to_ch
+            # res << self.yes.to_ch
+            self.yes.to_ch(res)
             self.each_noif do |cond,stmnt|
-                res << stmnt.to_ch
+                # res << stmnt.to_ch
+                stmnt.to_ch(res)
             end
-            res << self.no.to_ch if self.no
+            # res << self.no.to_ch if self.no
+            self.no.to_ch(res) if self.no
             return res
         end
     end
@@ -1239,13 +1386,19 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The result string.
-            res = " " * level*3
+            # res = " " * level*3
+            res << " " * level*3
             # Generate the match.
-            res << "case " << self.match.to_c(level+1) << ": {\n"
+            # res << "case " << self.match.to_c(level+1) << ": {\n"
+            res << "case "
+            self.match.to_c(res,level+1)
+            res << ": {\n"
             # Generate the statement.
-            res << self.statement.to_c(level+1)
+            # res << self.statement.to_c(level+1)
+            self.statement.to_c(res,level+1)
             # Adds a break
             res << " " * (level+1)*3 << "break;\n"
             res << " " * level*3 << "}\n"
@@ -1254,8 +1407,11 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            return self.statement.to_ch
+        # def to_ch
+        def to_ch(res)
+            # return self.statement.to_ch
+            self.statement.to_ch(res)
+            return res
         end
 
         # Adds the c code of the blocks to +res+ at +level+
@@ -1274,12 +1430,16 @@ module HDLRuby::Low
 
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            res = ""
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # res = ""
             # Compute the selection value.
             res << "{\n"
             res << " " * (level+1)*3
-            res << "Value value = " << self.value.to_c(level+1) << ";\n"
+            # res << "Value value = " << self.value.to_c(level+1) << ";\n"
+            res << "Value value = "
+            self.value.to_c(res,level+1)
+            res << ";\n"
             # Ensure the selection value is testable.
             res << " " * (level+1)*3
             res << "if (is_defined_value(value)) {\n"
@@ -1294,15 +1454,20 @@ module HDLRuby::Low
                     res << "else "
                 end
                 res << "if (value2integer(value) == "
-                res << "value2integer(" << w.match.to_c(level+2) << ")) {\n"
-                res << w.statement.to_c(level+3)
+                # res << "value2integer(" << w.match.to_c(level+2) << ")) {\n"
+                res << "value2integer("
+                w.match.to_c(res,level+2)
+                res << ")) {\n"
+                # res << w.statement.to_c(level+3)
+                w.statement.to_c(res,level+3)
                 res << " " * (level+2)*3
                 res << "}\n"
             end
             if self.default then
                 res << " " * (level+2)*3
                 res << "else {\n"
-                res << self.default.to_c(level+3)
+                # res << self.default.to_c(level+3)
+                self.default.to_c(res,level+3)
                 res << " " * (level+2)*3
                 res << "}\n"
             end
@@ -1316,12 +1481,15 @@ module HDLRuby::Low
         end
 
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
+        # def to_ch
+        def to_ch(res)
+            # res = ""
             # Recurse on the whens.
-            self.each_when {|w| res << w.to_ch }
+            # self.each_when {|w| res << w.to_ch }
+            self.each_when {|w| w.to_ch(res) }
             # Recurse on the default statement.
-            res << self.default.to_ch if self.default
+            # res << self.default.to_ch if self.default
+            self.default.to_ch(res) if self.default
             return res
         end
     end
@@ -1332,9 +1500,13 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            return "make_delay(#{self.value.to_s}," +
-                   "#{Low2C.unit_name(self.unit)})"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # return "make_delay(#{self.value.to_s}," +
+            #        "#{Low2C.unit_name(self.unit)})"
+            res << "make_delay(#{self.value.to_s},"
+            res << Low2C.unit_name(self.unit) << ")"
+            return res
         end
     end
 
@@ -1344,12 +1516,17 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The resulting string.
-            res = " " * level*3
+            # res = " " * level*3
+            res << " " * level*3
             # Generate the wait.
-            res << "hw_wait(#{self.delay.to_c(level+1)}," +
-                "#{Low2C.behavior_access(self)});\n"
+            # res << "hw_wait(#{self.delay.to_c(level+1)}," +
+            #     "#{Low2C.behavior_access(self)});\n"
+            res << "hw_wait("
+            self.delay.to_c(res,level+1)
+            res << "," << Low2C.behavior_access(self) << ");\n"
             # Return the resulting string.
             return res
         end
@@ -1360,13 +1537,17 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # The resulting string.
-            res = " " * level*3
+            # res = " " * level*3
+            res << " " * level*3
             # Generate an infinite loop executing the block and waiting.
             res << "for(;;) {\n"
-            res << "#{self.to_c(level+1)}\n"
-            res = " " * (level+1)*3
+            # res << "#{self.statement.to_c(level+1)}\n"
+            self.statement.to_c(res,level+1)
+            res << "\n"
+            res << " " * (level+1)*3
             res << Low2C.wait_code(self,level)
             # Return the resulting string.
             return res
@@ -1378,24 +1559,27 @@ module HDLRuby::Low
 
         # Adds the c code of the blocks to +res+ at +level+
         def add_blocks_code(res,level)
-            res << self.to_c_code(level)
+            # res << self.to_c_code(level)
+            self.to_c_code(res,level)
+            return res
         end
 
         # Adds the creation of the blocks to +res+ at +level+.
         def add_make_block(res,level)
             res << " " * level*3
-            res << "#{Low2C.make_name(self)}();\n"
+            res << Low2C.make_name(self) << "();\n"
         end
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c_code(level = 0)
+        # def to_c_code(level = 0)
+        def to_c_code(res,level = 0)
             # The resulting string.
-            res = ""
+            # res = ""
             # puts "generating self=#{self.object_id}"
 
             # Declare the global variable holding the block.
-            res << "Block #{Low2C.obj_name(self)};\n\n"
+            res << "Block " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the c code of the sub blocks if any.
             self.each_statement do |stmnt|
@@ -1404,11 +1588,12 @@ module HDLRuby::Low
 
             # Generate the execution function.
             res << " " * level*3
-            res << "void #{Low2C.code_name(self)}() {\n"
+            res << "void " << Low2C.code_name(self) << "() {\n"
             # res << "printf(\"Executing #{Low2C.code_name(self)}...\\n\");"
             # Generate the statements.
             self.each_statement do |stmnt|
-                res << stmnt.to_c(level+1)
+                # res << stmnt.to_c(level+1)
+                stmnt.to_c(res,level+1)
             end
             # Close the execution function.
             res << " " * level*3
@@ -1416,11 +1601,12 @@ module HDLRuby::Low
 
 
             # Generate the signals.
-            self.each_signal { |signal| res << signal.to_c(level) }
+            # self.each_signal { |signal| res << signal.to_c(level) }
+            self.each_signal { |signal| signal.to_c(res,level) }
 
             # The header of the block.
             res << " " * level*3
-            res << "Block #{Low2C.make_name(self)}() {\n"
+            res << "Block " << Low2C.make_name(self) << "() {\n"
             res << " " * (level+1)*3
             res << "Block block = malloc(sizeof(BlockS));\n"
             res << " " * (level+1)*3
@@ -1429,7 +1615,7 @@ module HDLRuby::Low
             # Sets the global variable of the block.
             res << "\n"
             res << " " * (level+1)*3
-            res << "#{Low2C.obj_name(self)} = block;\n"
+            res << Low2C.obj_name(self) << " = block;\n"
 
             # Set the owner if any.
             if self.parent then
@@ -1440,8 +1626,8 @@ module HDLRuby::Low
                 end
                 # Set it as the real parent.
                 res << " " * (level+1)*3
-                res << "block->owner = (Object)" + 
-                       "#{Low2C.obj_name(true_parent)};\n"
+                res << "block->owner = (Object)" 
+                res << Low2C.obj_name(true_parent) << ";\n"
             else
                 res << "block->owner = NULL;\n"
             end
@@ -1458,13 +1644,13 @@ module HDLRuby::Low
                    "block->num_inners);\n"
             self.each_inner.with_index do |inner,i|
                 res << " " * (level+1)*3
-                res << "block->inners[#{i}] = " +
-                       "#{Low2C.make_name(inner)}();\n"
+                res << "block->inners[#{i}] = "
+                res << Low2C.make_name(inner) << "();\n"
             end
 
             # Sets the execution function.
             res << " " * (level+1)*3
-            res << "block->function = &#{Low2C.code_name(self)};\n"
+            res << "block->function = &" << Low2C.code_name(self) << ";\n"
 
             # Generate creation of the sub blocks.
             self.each_statement do |stmnt|
@@ -1485,28 +1671,32 @@ module HDLRuby::Low
         # Generates the execution of the block C text of the equivalent
         # HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            res = " " * (level)
-            res << "#{Low2C.code_name(self)}();\n"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # res = " " * (level)
+            res << " " * (level)
+            res << Low2C.code_name(self) << "();\n"
             return res
         end
 
         ## Generates the content of the h file.
-        def to_ch
+        # def to_ch
+        def to_ch(res)
             # puts "to_ch for block=#{Low2C.obj_name(self)} with=#{self.each_inner.count} inners"
-            res = ""
+            # res = ""
             # Declare the global variable holding the block.
-            res << "extern Block #{Low2C.obj_name(self)};\n\n"
+            res << "extern Block " << Low2C.obj_name(self) << ";\n\n"
 
             # Generate the access to the function making the block. */
-            res << "extern Block #{Low2C.make_name(self)}();\n\n"
+            res << "extern Block " << Low2C.make_name(self) << "();\n\n"
 
             # Generate the accesses to the ports.
-            self.each_inner  { |inner|  res << inner.to_ch }
+            # self.each_inner  { |inner|  res << inner.to_ch }
+            self.each_inner  { |inner|  inner.to_ch(res) }
 
             # Recurse on the statements.
-            self.each_statement { |stmnt| res << stmnt.to_ch }
-
+            # self.each_statement { |stmnt| res << stmnt.to_ch }
+            self.each_statement { |stmnt| stmnt.to_ch(res) }
 
             return res
         end
@@ -1530,7 +1720,8 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Should never be here.
             raise AnyError, "Internal error: to_c should be implemented in class :#{self.class}"
         end
@@ -1542,32 +1733,40 @@ module HDLRuby::Low
 
         ## Generates the C text for an access to the value.
         #  +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            return "#{Low2C.make_name(self)}()"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # return "#{Low2C.make_name(self)}()"
+            res << Low2C.make_name(self) << "()"
+            return res
         end
     
         ## Generates the content of the h file.
-        def to_ch
-            res = ""
-            return "extern Value #{Low2C.make_name(self)}();"
+        # def to_ch
+        def to_ch(res)
+            # res = ""
+            # return "extern Value #{Low2C.make_name(self)}();"
+            res << "extern Value " << Low2C.make_name(self) << "();"
+            return res
         end
 
         @@made_values = []
 
         # Generates the text of the equivalent c.
         # +level+ is the hierachical level of the object.
-        def to_c_make(level = 0)
+        # def to_c_make(level = 0)
+        def to_c_make(res,level = 0)
             # Check is the value maker is already present.
             maker = Low2C.make_name(self);
-            return "" if @@made_values.include?(maker)
+            # return "" if @@made_values.include?(maker)
+            return res if @@made_values.include?(maker)
             @@made_values << maker
 
             # The resulting string.
-            res = ""
+            # res = ""
 
             # The header of the value generation.
             res << " " * level*3
-            res << "Value #{Low2C.make_name(self)}() {\n"
+            res << "Value " << Low2C.make_name(self) << "() {\n"
 
             # Declares the data.
             # Create the bit string.
@@ -1605,8 +1804,11 @@ module HDLRuby::Low
                 # Create the value.
                 res << " " * (level+1)*3
                 # puts "str=#{str} type width=#{self.type.width} signed? #{type.signed?}"
-                res << "return make_set_value(#{self.type.to_c(level+1)},1," +
-                       "data);\n" 
+                # res << "return make_set_value(#{self.type.to_c(level+1)},1," +
+                #        "data);\n" 
+                res << "return make_set_value("
+                self.type.to_c(res,level+1)
+                res << ",1,data);\n" 
             else
                 # No, generate a bit string value.
                 res << " " * (level+1)*3
@@ -1614,8 +1816,11 @@ module HDLRuby::Low
                 res << "static unsigned char data[] = \"#{str.reverse}\";\n"
                 # Create the value.
                 res << " " * (level+1)*3
-                res << "return make_set_value(#{self.type.to_c(level+1)},0," +
-                       "data);\n" 
+                # res << "return make_set_value(#{self.type.to_c(level+1)},0," +
+                #        "data);\n" 
+                res << "return make_set_value("
+                self.type.to_c(res,level+1)
+                res << ",0,data);\n" 
             end
 
             # Close the value.
@@ -1631,8 +1836,10 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            res = "({\n"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # res = "({\n"
+            res << "({\n"
             # Overrides the upper src0 and dst...
             res << (" " * ((level+1)*3))
             res << "Value src0, dst = get_value();\n"
@@ -1641,10 +1848,16 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the child.
             res << (" " * ((level+1)*3))
-            res << "src0 = #{self.child.to_c(level+2)};\n"
+            # res << "src0 = #{self.child.to_c(level+2)};\n"
+            res << "src0 = "
+            self.child.to_c(res,level+2)
+            res << ";\n"
             res << (" " * ((level+1)*3))
-            res += "dst = cast_value(src0," +
-                "#{self.type.to_c(level+1)},dst);\n"
+            # res += "dst = cast_value(src0," +
+            #     "#{self.type.to_c(level+1)},dst);\n"
+            res << "dst = cast_value(src0,"
+            self.type.to_c(res,level+1)
+            res << ",dst);\n"
             # Restore the value pool state.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
@@ -1662,7 +1875,8 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Should never be here.
             raise AnyError, "Internal error: to_c should be implemented in class :#{self.class}"
         end
@@ -1673,8 +1887,10 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            res = "({\n"
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
+            # res = "({\n"
+            res << "({\n"
             # Overrides the upper src0 and dst...
             res << (" " * ((level+1)*3))
             res << "Value src0, dst;\n"
@@ -1689,15 +1905,21 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the child.
             res << (" " * ((level+1)*3))
-            res << "src0 = #{self.child.to_c(level+2)};\n"
+            # res << "src0 = #{self.child.to_c(level+2)};\n"
+            res << "src0 = "
+            self.child.to_c(res,level+2)
+            res << ";\n"
             res << (" " * ((level+1)*3))
             case self.operator
             when :~ then
-                res += "dst = not_value(src0,dst);\n"
+                res << "dst = not_value(src0,dst);\n"
             when :-@ then
-                res += "dst = neg_value(src0,dst);\n"
+                res << "dst = neg_value(src0,dst);\n"
             when :+@ then
-                res += "dst = #{self.child.to_c(level)};\n"
+                # res << "dst = #{self.child.to_c(level)};\n"
+                res << "dst = "
+                self.child.to_c(res,level)
+                res << ";\n"
             else
                 raise "Invalid unary operator: #{self.operator}."
             end
@@ -1718,9 +1940,10 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
-            # res = " " * (level*3)
-            res = "({\n"
+        # def to_c(level = 0)
+        def to_c(res, level = 0)
+            # res = "({\n"
+            res << "({\n"
             # Overrides the upper src0, src1 and dst...
             # And allocates a new value for dst.
             res << (" " * ((level+1)*3))
@@ -1730,57 +1953,60 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the left.
             res << (" " * ((level+1)*3))
-            # res << "src0 = #{self.left.to_c(level+2)};\n"
-            res << "src0 = " << self.left.to_c(level+2) << ";\n"
+            # res << "src0 = " << self.left.to_c(level+2) << ";\n"
+            res << "src0 = "
+            self.left.to_c(res,level+2)
+            res << ";\n"
             # Compute the right.
             res << (" " * ((level+1)*3))
-            # res << "src1 = #{self.right.to_c(level+2)};\n"
-            res << "src1 = " << self.right.to_c(level+2) << ";\n"
+            # res << "src1 = " << self.right.to_c(level+2) << ";\n"
+            res << "src1 = "
+            self.right.to_c(res,level+2)
+            res << ";\n"
             res << (" " * ((level+1)*3))
 
             # Compute the current binary operation.
             case self.operator
             when :+ then
-                res += "dst = add_value(src0,src1,dst);\n"
+                res << "dst = add_value(src0,src1,dst);\n"
             when :- then
-                res += "dst = sub_value(src0,src1,dst);\n"
+                res << "dst = sub_value(src0,src1,dst);\n"
             when :* then
-                res += "dst = mul_value(src0,src1,dst);\n"
+                res << "dst = mul_value(src0,src1,dst);\n"
             when :/ then
-                res += "dst = div_value(src0,src1,dst);\n"
+                res << "dst = div_value(src0,src1,dst);\n"
             when :% then
-                res += "dst = mod_value(src0,src1,dst);\n"
+                res << "dst = mod_value(src0,src1,dst);\n"
             when :** then
-                res += "dst = pow_value(src0,src1,dst);\n"
+                res << "dst = pow_value(src0,src1,dst);\n"
             when :& then
-                res += "dst = and_value(src0,src1,dst);\n"
+                res << "dst = and_value(src0,src1,dst);\n"
             when :| then
-                res += "dst = or_value(src0,src1,dst);\n"
+                res << "dst = or_value(src0,src1,dst);\n"
             when :^ then
-                res += "dst = xor_value(src0,src1,dst);\n"
+                res << "dst = xor_value(src0,src1,dst);\n"
             when :<<,:ls then
-                res += "dst = shift_left_value(src0,src1,dst);\n"
+                res << "dst = shift_left_value(src0,src1,dst);\n"
             when :>>,:rs then
-                res += "dst = shift_right_value(src0,src1,dst);\n"
+                res << "dst = shift_right_value(src0,src1,dst);\n"
             when :lr then
-                res += "dst = rotate_left_value(src0,src1,dst);\n"
+                res << "dst = rotate_left_value(src0,src1,dst);\n"
             when :rr then
-                res += "dst = rotate_right_value(src0,src1,dst);\n"
+                res << "dst = rotate_right_value(src0,src1,dst);\n"
             when :== then
-                res += "dst = equal_value(src0,src1,dst);\n" +
-                       "dst = reduce_or_value(dst,dst);"
+                res << "dst = equal_value(src0,src1,dst);\n"
+                res << "dst = reduce_or_value(dst,dst);"
             when :!= then
-                # res += "dst = not_equal_value(src0,src1,dst);\n"
-                res += "dst = xor_value(src0,src1,dst);\n" +
-                       "dst = reduce_or_value(dst,dst);"
+                res << "dst = xor_value(src0,src1,dst);\n"
+                res << "dst = reduce_or_value(dst,dst);"
             when :> then
-                res += "dst = greater_value(src0,src1,dst);\n"
+                res << "dst = greater_value(src0,src1,dst);\n"
             when :< then
-                res += "dst = lesser_value(src0,src1,dst);\n"
+                res << "dst = lesser_value(src0,src1,dst);\n"
             when :>= then
-                res += "dst = greater_equal_value(src0,src1,dst);\n"
+                res << "dst = greater_equal_value(src0,src1,dst);\n"
             when :<= then
-                res += "dst = lesser_equal_value(src0,src1,dst);\n"
+                res << "dst = lesser_equal_value(src0,src1,dst);\n"
             else
                 raise "Invalid binary operator: #{self.operator}."
             end
@@ -1800,20 +2026,23 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Gather the possible selection choices.
             expressions = self.each_choice.to_a
             # Create the resulting string.
-            # res = " " * (level*3)
-            res = "({\n"
+            # res = "({\n"
+            res << "({\n"
             # Overrides the upper sel, src0, src1, ..., and dst...
             # And allocates a new value for dst.
             res << (" " * ((level+1)*3))
             res << "Value sel;\n"
             res << (" " * ((level+1)*3))
-            res << "Value #{expressions.size.times.map do |i| 
+            res << "Value "
+            res << expressions.size.times.map do |i| 
                 "src#{i}"
-            end.join(",")};\n"
+            end.join(",")
+            res << ";\n"
             res << (" " * ((level+1)*3))
             res << "Value dst = get_value();\n"
             # Save the state of the value pool.
@@ -1821,16 +2050,23 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the selection.
             res << (" " * ((level+1)*3))
-            res << "sel = #{self.select.to_c(level+2)};\n"
+            # res << "sel = #{self.select.to_c(level+2)};\n"
+            res << "sel = "
+            self.select.to_c(res,level+2)
+            res << ";\n"
             # Compute each choice expression.
             expressions.each_with_index do |expr,i|
                 res << (" " * ((level+1)*3))
-                res << "src#{i} = #{expr.to_c(level+2)};\n"
+                # res << "src#{i} = #{expr.to_c(level+2)};\n"
+                res << "src#{i} = "
+                expr.to_c(res,level+2)
+                res << ";\n"
             end
             # Compute the resulting selection.
             res << (" " * ((level+1)*3))
             res << "select_value(sel,dst,#{expressions.size},"
-            res << "#{expressions.size.times.map { |i| "src#{i}" }.join(",")}"
+            # res << "#{expressions.size.times.map { |i| "src#{i}" }.join(",")}"
+            res << expressions.size.times.map { |i| "src#{i}" }.join(",")
             res << ");\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
@@ -1838,6 +2074,7 @@ module HDLRuby::Low
             # Close the computation.
             res << (" " * (level*3))
             res << "dst; })"
+            return res
         end
     end
 
@@ -1846,18 +2083,21 @@ module HDLRuby::Low
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        def to_c(level = 0)
+        # def to_c(level = 0)
+        def to_c(res,level = 0)
             # Gather the content to concat.
             expressions = self.each_expression.to_a
             # Create the resulting string.
-            # res = " " * (level*3)
-            res = "({\n"
+            # res = "({\n"
+            res << "({\n"
             # Overrides the upper src0, src1, ..., and dst...
             # And allocates a new value for dst.
             res << (" " * ((level+1)*3))
-            res << "Value #{expressions.size.times.map do |i| 
+            res << "Value "
+            res << expressions.size.times.map do |i| 
                 "src#{i}"
-            end.join(",")};\n"
+            end.join(",")
+            res << ";\n"
             res << (" " * ((level+1)*3))
             res << "Value dst = get_value();\n"
             # Save the state of the value pool.
@@ -1866,14 +2106,17 @@ module HDLRuby::Low
             # Compute each sub expression.
             expressions.each_with_index do |expr,i|
                 res << (" " * ((level+1)*3))
-                res << "src#{i} = #{expr.to_c(level+2)};\n"
+                # res << "src#{i} = #{expr.to_c(level+2)};\n"
+                res << "src#{i} = "
+                expr.to_c(res,level+2)
+                res << ";\n"
             end
             # Compute the direction.
             # Compute the resulting concatenation.
             res << (" " * ((level+1)*3))
             res << "concat_value(#{expressions.size},"
             res << "#{self.type.direction == :little ? 1 : 0},dst,"
-            res << "#{expressions.size.times.map { |i| "src#{i}" }.join(",")}"
+            res << expressions.size.times.map { |i| "src#{i}" }.join(",")
             res << ");\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
@@ -1894,7 +2137,8 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
-        def to_c(level = 0, left = false)
+        # def to_c(level = 0, left = false)
+        def to_c(res,level = 0, left = false)
             # Should never be here.
             raise AnyError, "Internal error: to_c should be implemented in class :#{self.class}"
         end
@@ -1907,7 +2151,8 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
-        def to_c(level = 0, left = false)
+        # def to_c(level = 0, left = false)
+        def to_c(res,level = 0, left = false)
             raise "RefConcat cannot be converted to C directly, please use break_concat_assign!."
             # # The resulting string.
             # res = "ref_concat(#{self.each_ref.to_a.size}"
@@ -1920,7 +2165,8 @@ module HDLRuby::Low
 
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
-        def to_c_signal(level = 0)
+        # def to_c_signal(level = 0)
+        def to_c_signal(res,level = 0)
             raise "RefConcat cannot be converted to C directly, please use break_concat_assign!."
             # # The resulting string.
             # res = "sig_concat(#{self.each_ref.to_a.size}"
@@ -1939,8 +2185,10 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is thehierachical level of the object and
         # +left+ tells if it is a left value or not.
-        def to_c(level = 0, left = false)
-            res = "({\n"
+        # def to_c(level = 0, left = false)
+        def to_c(res,level = 0, left = false)
+            # res = "({\n"
+            res << "({\n"
             # And allocates a new value for dst.
             res << (" " * ((level+1)*3))
             res << "Value ref,dst = get_value();\n"
@@ -1951,29 +2199,50 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the reference.
             res << (" " * ((level+1)*3))
-            res << "ref = #{self.ref.to_c(level+2)};\n"
+            # res << "ref = #{self.ref.to_c(level+2)};\n"
+            res << "ref = "
+            self.ref.to_c(res,level+2)
+            res << ";\n"
             # Compute the index.
             res << (" " * ((level+1)*3))
-            res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
+            # res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
+            res << "idx = value2integer("
+            res << self.index.to_c(res,level+2)
+            res << ");\n"
             # Make the access.
             res << (" " * ((level+1)*3))
             # puts "self.type.width=#{self.type.width}"
-            res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
+            # res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
+            res << "dst = read_range(ref,idx,idx,"
+            res << self.type.to_c(level)
+            res << ",dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
             # Close the computation.
             res << (" " * (level*3))
             res << "dst; })"
+            return res
         end
 
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
-        def to_c_signal(level = 0)
+        # def to_c_signal(level = 0)
+        def to_c_signal(res,level = 0)
             # puts "to_c_signal for RefIndex"
-            return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
-                "#{self.type.to_c(level)}," + 
-                "value2integer(#{self.index.to_c(level)}),value2integer(#{self.index.to_c(level)}))"
+            # return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
+            #     "#{self.type.to_c(level)}," + 
+            #     "value2integer(#{self.index.to_c(level)}),value2integer(#{self.index.to_c(level)}))"
+            res << "make_ref_rangeS("
+            self.ref.to_c_signal(res,level)
+            res << ","
+            self.type.to_c(res,level)
+            res << ",value2integer("
+            self.index.to_c(res,level)
+            res << "),value2integer("
+            self.index.to_c(res,level)
+            res << "))"
+            return res
         end
     end
 
@@ -1984,10 +2253,12 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
-        def to_c(level = 0, left = false)
+        # def to_c(level = 0, left = false)
+        def to_c(res,level = 0, left = false)
             # Decide if it is a read or a write
             command = left ? "write" : "read"
-            res = "({\n"
+            # res = "({\n"
+            res << "({\n"
             # Overrides the upper ref and dst...
             # And allocates a new value for dst.
             res << (" " * ((level+1)*3))
@@ -1999,33 +2270,51 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the reference.
             res << (" " * ((level+1)*3))
-            res << "ref = #{self.ref.to_c(level+2)};\n"
+            # res << "ref = #{self.ref.to_c(level+2)};\n"
+            res << "ref = "
+            self.ref.to_c(res,level+2)
+            res << ";\n"
             # Compute the range.
             res << (" " * ((level+1)*3))
-            # res << "first = read64(#{self.range.first.to_c(level+2)});\n"
-            res << "first = value2integer(#{self.range.first.to_c(level+2)});\n"
+            # res << "first = value2integer(#{self.range.first.to_c(level+2)});\n"
+            res << "first = value2integer("
+            self.range.first.to_c(res,level+2)
+            res << ");\n"
             res << (" " * ((level+1)*3))
-            # res << "last = read64(#{self.range.last.to_c(level+2)});\n"
-            res << "last = value2integer(#{self.range.last.to_c(level+2)});\n"
+            # res << "last = value2integer(#{self.range.last.to_c(level+2)});\n"
+            res << "last = value2integer("
+            self.range.last.to_c(res,level+2)
+            res << ");\n"
             # Make the access.
             res << (" " * ((level+1)*3))
-            # res << "dst = #{command}_range(ref,first,last,#{self.ref.type.base.to_c(level)},dst);\n"
             # puts "#{command}_range with first=#{self.range.first} and last=#{self.range.last}"
-            res << "dst = #{command}_range(ref,first,last,#{self.type.base.to_c(level)},dst);\n"
+            # res << "dst = #{command}_range(ref,first,last,#{self.type.base.to_c(level)},dst);\n"
+            res << "dst = #{command}_range(ref,first,last,"
+            self.type.base.to_c(res,level)
+            res << ",dst);\n"
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
             res << "set_value_pos(pool_state);\n"
             # Close the computation.
             res << (" " * (level*3))
             res << "dst; })"
+            return res
         end
 
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
-        def to_c_signal(level = 0)
-            # return to_c(level,true)
-            return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
-                "value2integer(#{self.range.first.to_c(level)}),value2integer(#{self.range.last.to_c(level)}))"
+        # def to_c_signal(level = 0)
+        def to_c_signal(res,level = 0)
+            # return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
+            #     "value2integer(#{self.range.first.to_c(level)}),value2integer(#{self.range.last.to_c(level)}))"
+            res << "make_ref_rangeS("
+            self.ref.to_c_signal(res,level)
+            res << ",value2integer("
+            self.range.first.to_c(res,level)
+            res << "),value2integer("
+            self.range.last.to_c(res,level)
+            res << "))"
+            return res
         end
     end
 
@@ -2036,17 +2325,24 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
-        def to_c(level = 0, left = false)
+        # def to_c(level = 0, left = false)
+        def to_c(res,level = 0, left = false)
             # puts "RefName to_c for #{self.name}"
-            return "#{self.resolve.to_c_signal(level+1)}->" +
-                   (left ? "f_value" : "c_value")
+            # return "#{self.resolve.to_c_signal(level+1)}->" +
+            #        (left ? "f_value" : "c_value")
+            self.resolve.to_c_signal(res,level+1)
+            res << "->" << (left ? "f_value" : "c_value")
+            return res
         end
 
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
-        def to_c_signal(level = 0)
+        # def to_c_signal(level = 0)
+        def to_c_signal(res,level = 0)
             # puts "to_c_signal with self=#{self.name}, resolve=#{self.resolve}"
-            return "#{self.resolve.to_c_signal(level+1)}"
+            # return "#{self.resolve.to_c_signal(level+1)}"
+            self.resolve.to_c_signal(res,level+1)
+            return res
         end
     end
 
@@ -2056,14 +2352,20 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.
-        def to_c(level = 0, left = false)
-            return "this()"
+        # def to_c(level = 0, left = false)
+        def to_c(res,level = 0, left = false)
+            # return "this()"
+            res << "this()"
+            return res
         end
 
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
-        def to_c_signal(level = 0)
-            return "this()"
+        # def to_c_signal(level = 0)
+        def to_c_signal(res,level = 0)
+            # return "this()"
+            res << "this()"
+            return res
         end
     end
 

@@ -610,26 +610,29 @@ elsif $options[:clang] then
         $outfile = File.open($hname,"w")
         # Adds the generated globals
         $top_system.each_systemT_deep do |systemT|
-            # For the h file.
-            # hname = $output + "/" +
-            #     HDLRuby::Low::Low2C.c_name(systemT.name) +
-            #     ".h"
-            # hnames << File.basename(hname)
-            # # Open the file for current systemT
-            # output = File.open(hname,"w")
+            # # For the h file.
+            # # hname = $output + "/" +
+            # #     HDLRuby::Low::Low2C.c_name(systemT.name) +
+            # #     ".h"
+            # # hnames << File.basename(hname)
+            # # # Open the file for current systemT
+            # # output = File.open(hname,"w")
             # Generate the H code in to.
-            $outfile << systemT.to_ch
-            # # Close the file.
-            # output.close
-            # # Clears the name.
-            # hname = nil
+            # $outfile << systemT.to_ch
+            systemT.to_ch($outfile)
+            # # # Close the file.
+            # # output.close
+            # # # Clears the name.
+            # # hname = nil
         end
         # Adds the globals from the non-HDLRuby code
         $non_hdlruby.each do |code|
             code.each_chunk do |chunk|
                 if chunk.name == :sim then
-                    $outfile << "extern " + 
-                        HDLRuby::Low::Low2C.prototype(chunk.to_c)
+                    # $outfile << "extern " + 
+                    #     HDLRuby::Low::Low2C.prototype(chunk.to_c)
+                    $outfile << "extern "
+                    $outfile << HDLRuby::Low::Low2C.prototype(chunk.to_c(""))
                 end
             end
         end
@@ -661,7 +664,8 @@ elsif $options[:clang] then
             # Open the file for current systemT
             outfile = File.open(name,"w")
             # Generate the C code in to.
-            outfile << systemT.to_c(0,*$hnames)
+            # outfile << systemT.to_c(0,*$hnames)
+            systemT.to_c(outfile,0,*$hnames)
             # Close the file.
             outfile.close
             # Clears the name.
@@ -670,8 +674,10 @@ elsif $options[:clang] then
     else
         # Single file generation mode.
         $top_system.each_systemT_deep.reverse_each do |systemT|
-            $output << systemT.to_ch
-            $output << systemT.to_c
+            # $output << systemT.to_ch
+            systemT.to_ch($output)
+            # $output << systemT.to_c
+            systemT.to_c($output)
         end
         # Adds the main code.
         $output << HDLRuby::Low::Low2C.main(top_system,
