@@ -86,8 +86,9 @@ module HDLRuby::Low
             id = obj.hierarchy.map! {|obj| obj.object_id}
             oname = @@hdrobj2c[id]
             unless oname then
-                name = obj.respond_to?(:name) ? "_#{self.c_name(obj.name)}" : ""
-                oname = "_c#{@@hdrobj2c.size}#{name}"
+                # name = obj.respond_to?(:name) ? "_#{self.c_name(obj.name)}" : ""
+                # oname = "_c#{@@hdrobj2c.size}#{name}"
+                oname = "_#{@@hdrobj2c.size}"
                 @@hdrobj2c[id] = oname
             end
             return oname
