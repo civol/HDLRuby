@@ -833,6 +833,7 @@ module HDLRuby::Low
         #  +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
+            return res
             # The resulting string.
             # res = ""
 
