@@ -220,6 +220,20 @@ Value shift_right_value(Value src0, Value src1, Value dst);
  *  @return dst */
 extern Value equal_value(Value src0, Value src1, Value dst);
 
+/** Computes the C equal of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+extern Value equal_value_c(Value src0, Value src1, Value dst);
+
+/** Computes the C not equal of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+extern Value not_equal_value_c(Value src0, Value src1, Value dst);
+
 /** Computes the greater comparision of two values.
  *  @param src0 the first source value of the comparison
  *  @param src1 the second source value of the comparison
@@ -712,3 +726,22 @@ extern Value write_range(Value src, long long first, long long last,
  *  @return dst */
 extern Value write_range_no_z(Value src, long long first, long long last,
         Type base, Value dst);
+
+
+/** Stack-based computations. */
+
+
+/** Unary calculation.
+ *  @param src0 the left value
+ *  @param oper the operator function
+ *  @return the destination
+ **/
+extern Value unary(Value src0, Value (*oper)(Value,Value));
+
+/** Binary calculation.
+ *  @param src0 the left value
+ *  @param src1 the right value
+ *  @param oper the operator function
+ *  @return the destination
+ **/
+extern Value binary(Value src0, Value src1, Value (*oper)(Value,Value,Value));

@@ -2657,6 +2657,28 @@ Value equal_value(Value src0, Value src1, Value dst) {
 }
 
 
+/** Computes the C equal of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+Value equal_value_c(Value src0, Value src1, Value dst) {
+    dst = equal_value(src0,src1,dst);
+    return reduce_or_value(dst,dst);
+}
+
+
+/** Computes the C not equal of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+Value not_equal_value_c(Value src0, Value src1, Value dst) {
+    dst = xor_value(src0,src1,dst);
+    return reduce_or_value(dst,dst);
+}
+
+
 
 /** Computes the greater comparision of two general values.
  *  @param src0 the first source value of the addition
