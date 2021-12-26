@@ -1948,20 +1948,20 @@ module HDLRuby::Low
             # Overrides the upper src0, src1 and dst...
             # And allocates a new value for dst.
             res << (" " * ((level+1)*3))
-            res << "Value s0,s1,d=get_value();\n"
+            res << "Value src0,src1,dst = get_value();\n"
             # Save the state of the value pool.
             res << (" " * ((level+1)*3))
-            res << "unsigned ps=get_value_pos();\n"
+            res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the left.
             res << (" " * ((level+1)*3))
             # res << "src0 = " << self.left.to_c(level+2) << ";\n"
-            res << "s0="
+            res << "src0 = "
             self.left.to_c(res,level+2)
             res << ";\n"
             # Compute the right.
             res << (" " * ((level+1)*3))
             # res << "src1 = " << self.right.to_c(level+2) << ";\n"
-            res << "s1="
+            res << "src1 = "
             self.right.to_c(res,level+2)
             res << ";\n"
             res << (" " * ((level+1)*3))
@@ -1969,54 +1969,54 @@ module HDLRuby::Low
             # Compute the current binary operation.
             case self.operator
             when :+ then
-                res << "d=add_value(s0,s1,d);\n"
+                res << "dst = add_value(src0,src1,dst);\n"
             when :- then
-                res << "d=sub_value(s0,s1,d);\n"
+                res << "dst = sub_value(src0,src1,dst);\n"
             when :* then
-                res << "d=mul_value(s0,s1,d);\n"
+                res << "dst = mul_value(src0,src1,dst);\n"
             when :/ then
-                res << "d=div_value(s0,s1,d);\n"
+                res << "dst = div_value(src0,src1,dst);\n"
             when :% then
-                res << "d=mod_value(s0,s1,d);\n"
+                res << "dst = mod_value(src0,src1,dst);\n"
             when :** then
-                res << "d=pow_value(s0,s1,d);\n"
+                res << "dst = pow_value(src0,src1,dst);\n"
             when :& then
-                res << "d=and_value(s0,s1,d);\n"
+                res << "dst = and_value(src0,src1,dst);\n"
             when :| then
-                res << "d=or_value(s0,s1,d);\n"
+                res << "dst = or_value(src0,src1,dst);\n"
             when :^ then
-                res << "d=xor_value(s0,s1,d);\n"
+                res << "dst = xor_value(src0,src1,dst);\n"
             when :<<,:ls then
-                res << "d=shift_left_value(s0,s1,d);\n"
+                res << "dst = shift_left_value(src0,src1,dst);\n"
             when :>>,:rs then
-                res << "d=shift_right_value(s0,s1,d);\n"
+                res << "dst = shift_right_value(src0,src1,dst);\n"
             when :lr then
-                res << "d=rotate_left_value(s0,s1,d);\n"
+                res << "dst = rotate_left_value(src0,src1,dst);\n"
             when :rr then
-                res << "d=rotate_right_value(s0,s1,d);\n"
+                res << "dst = rotate_right_value(src0,src1,dst);\n"
             when :== then
-                res << "d=equal_value(s0,s1,d);\n"
-                res << "d=reduce_or_value(d,d);"
+                res << "dst = equal_value(src0,src1,dst);\n"
+                res << "dst = reduce_or_value(dst,dst);"
             when :!= then
-                res << "d=xor_value(s0,s1,d);\n"
-                res << "d=reduce_or_value(d,d);"
+                res << "dst = xor_value(src0,src1,dst);\n"
+                res << "dst = reduce_or_value(dst,dst);"
             when :> then
-                res << "d=greater_value(s0,s1,d);\n"
+                res << "dst = greater_value(src0,src1,dst);\n"
             when :< then
-                res << "d=lesser_value(s0,s1,d);\n"
+                res << "dst = lesser_value(src0,src1,dst);\n"
             when :>= then
-                res << "d=greater_equal_value(s0,s1,d);\n"
+                res << "dst = greater_equal_value(src0,src1,dst);\n"
             when :<= then
-                res << "d=lesser_equal_value(s0,s1,d);\n"
+                res << "dst = lesser_equal_value(src0,src1,dst);\n"
             else
                 raise "Invalid binary operator: #{self.operator}."
             end
             # Restore the state of the value pool.
             res << (" " * ((level+1)*3))
-            res << "set_value_pos(ps);\n"
+            res << "set_value_pos(pool_state);\n"
             # Close the computation.
             res << (" " * (level*3))
-            res << "d;})"
+            res << "dst;})"
 
             return res
         end
