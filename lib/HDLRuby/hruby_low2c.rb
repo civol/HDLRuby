@@ -1886,50 +1886,77 @@ module HDLRuby::Low
     ## Extends the Unary class with generation of C text.
     class Unary
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # res = "({\n"
+        #     res << "({\n"
+        #     # Overrides the upper src0 and dst...
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value src0, dst;\n"
+        #     if (self.operator != :+@) then
+        #         # And allocates a new value for dst unless the operator
+        #         # is +@ that does not compute anything.
+        #         res << (" " * ((level+1)*3))
+        #         res << "dst = get_value();\n"
+        #     end
+        #     # Save the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Compute the child.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "src0 = #{self.child.to_c(level+2)};\n"
+        #     res << "src0 = "
+        #     self.child.to_c(res,level+2)
+        #     res << ";\n"
+        #     res << (" " * ((level+1)*3))
+        #     case self.operator
+        #     when :~ then
+        #         res << "dst = not_value(src0,dst);\n"
+        #     when :-@ then
+        #         res << "dst = neg_value(src0,dst);\n"
+        #     when :+@ then
+        #         # res << "dst = #{self.child.to_c(level)};\n"
+        #         res << "dst = "
+        #         self.child.to_c(res,level)
+        #         res << ";\n"
+        #     else
+        #         raise "Invalid unary operator: #{self.operator}."
+        #     end
+        #     # Restore the value pool state.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     # Close the computation
+        #     res << (" " * (level*3))
+        #     res << "dst; })"
+
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # res = "({\n"
-            res << "({\n"
-            # Overrides the upper src0 and dst...
-            res << (" " * ((level+1)*3))
-            res << "Value src0, dst;\n"
-            if (self.operator != :+@) then
-                # And allocates a new value for dst unless the operator
-                # is +@ that does not compute anything.
-                res << (" " * ((level+1)*3))
-                res << "dst = get_value();\n"
+            if (self.operator == :+@) then
+                # No computation required.
+                self.child.to_c(res,level+2)
+                return res
             end
-            # Save the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
-            # Compute the child.
-            res << (" " * ((level+1)*3))
-            # res << "src0 = #{self.child.to_c(level+2)};\n"
-            res << "src0 = "
+            # Some computation required.
+            # Adds the source.
+            res << "unary("
             self.child.to_c(res,level+2)
-            res << ";\n"
-            res << (" " * ((level+1)*3))
+            res << ","
+            # Adds the operation
             case self.operator
             when :~ then
-                res << "dst = not_value(src0,dst);\n"
+                res << "&not_value"
             when :-@ then
-                res << "dst = neg_value(src0,dst);\n"
-            when :+@ then
-                # res << "dst = #{self.child.to_c(level)};\n"
-                res << "dst = "
-                self.child.to_c(res,level)
-                res << ";\n"
+                res << "&neg_value"
             else
                 raise "Invalid unary operator: #{self.operator}."
             end
-            # Restore the value pool state.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
-            # Close the computation
-            res << (" " * (level*3))
-            res << "dst; })"
+            res << ")"
 
             return res
         end
@@ -1939,84 +1966,144 @@ module HDLRuby::Low
     ## Extends the Binary class with generation of C text.
     class Binary
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res, level = 0)
+        #     # res = "({\n"
+        #     res << "({\n"
+        #     # Overrides the upper src0, src1 and dst...
+        #     # And allocates a new value for dst.
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value src0,src1,dst = get_value();\n"
+        #     # Save the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Compute the left.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "src0 = " << self.left.to_c(level+2) << ";\n"
+        #     res << "src0 = "
+        #     self.left.to_c(res,level+2)
+        #     res << ";\n"
+        #     # Compute the right.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "src1 = " << self.right.to_c(level+2) << ";\n"
+        #     res << "src1 = "
+        #     self.right.to_c(res,level+2)
+        #     res << ";\n"
+        #     res << (" " * ((level+1)*3))
+
+        #     # Compute the current binary operation.
+        #     case self.operator
+        #     when :+ then
+        #         res << "dst = add_value(src0,src1,dst);\n"
+        #     when :- then
+        #         res << "dst = sub_value(src0,src1,dst);\n"
+        #     when :* then
+        #         res << "dst = mul_value(src0,src1,dst);\n"
+        #     when :/ then
+        #         res << "dst = div_value(src0,src1,dst);\n"
+        #     when :% then
+        #         res << "dst = mod_value(src0,src1,dst);\n"
+        #     when :** then
+        #         res << "dst = pow_value(src0,src1,dst);\n"
+        #     when :& then
+        #         res << "dst = and_value(src0,src1,dst);\n"
+        #     when :| then
+        #         res << "dst = or_value(src0,src1,dst);\n"
+        #     when :^ then
+        #         res << "dst = xor_value(src0,src1,dst);\n"
+        #     when :<<,:ls then
+        #         res << "dst = shift_left_value(src0,src1,dst);\n"
+        #     when :>>,:rs then
+        #         res << "dst = shift_right_value(src0,src1,dst);\n"
+        #     when :lr then
+        #         res << "dst = rotate_left_value(src0,src1,dst);\n"
+        #     when :rr then
+        #         res << "dst = rotate_right_value(src0,src1,dst);\n"
+        #     when :== then
+        #         res << "dst = equal_value(src0,src1,dst);\n"
+        #         res << "dst = reduce_or_value(dst,dst);"
+        #     when :!= then
+        #         res << "dst = xor_value(src0,src1,dst);\n"
+        #         res << "dst = reduce_or_value(dst,dst);"
+        #     when :> then
+        #         res << "dst = greater_value(src0,src1,dst);\n"
+        #     when :< then
+        #         res << "dst = lesser_value(src0,src1,dst);\n"
+        #     when :>= then
+        #         res << "dst = greater_equal_value(src0,src1,dst);\n"
+        #     when :<= then
+        #         res << "dst = lesser_equal_value(src0,src1,dst);\n"
+        #     else
+        #         raise "Invalid binary operator: #{self.operator}."
+        #     end
+        #     # Restore the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     # Close the computation.
+        #     res << (" " * (level*3))
+        #     res << "dst;})"
+
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res, level = 0)
-            # res = "({\n"
-            res << "({\n"
-            # Overrides the upper src0, src1 and dst...
-            # And allocates a new value for dst.
-            res << (" " * ((level+1)*3))
-            res << "Value src0,src1,dst = get_value();\n"
-            # Save the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
-            # Compute the left.
-            res << (" " * ((level+1)*3))
-            # res << "src0 = " << self.left.to_c(level+2) << ";\n"
-            res << "src0 = "
+            # Call the binary stach computation.
+            res << "binary("
+            # Set the left.
             self.left.to_c(res,level+2)
-            res << ";\n"
-            # Compute the right.
-            res << (" " * ((level+1)*3))
-            # res << "src1 = " << self.right.to_c(level+2) << ";\n"
-            res << "src1 = "
+            res << ","
+            # Set the right.
             self.right.to_c(res,level+2)
-            res << ";\n"
-            res << (" " * ((level+1)*3))
-
-            # Compute the current binary operation.
+            res << ","
+            # Set the operation.
             case self.operator
             when :+ then
-                res << "dst = add_value(src0,src1,dst);\n"
+                res << "&add_value"
             when :- then
-                res << "dst = sub_value(src0,src1,dst);\n"
+                res << "&sub_value"
             when :* then
-                res << "dst = mul_value(src0,src1,dst);\n"
+                res << "&mul_value"
             when :/ then
-                res << "dst = div_value(src0,src1,dst);\n"
+                res << "&div_value"
             when :% then
-                res << "dst = mod_value(src0,src1,dst);\n"
+                res << "&mod_value"
             when :** then
-                res << "dst = pow_value(src0,src1,dst);\n"
+                res << "&pow_value"
             when :& then
-                res << "dst = and_value(src0,src1,dst);\n"
+                res << "&and_value"
             when :| then
-                res << "dst = or_value(src0,src1,dst);\n"
+                res << "&or_value"
             when :^ then
-                res << "dst = xor_value(src0,src1,dst);\n"
+                res << "&xor_value"
             when :<<,:ls then
-                res << "dst = shift_left_value(src0,src1,dst);\n"
+                res << "&shift_left_value"
             when :>>,:rs then
-                res << "dst = shift_right_value(src0,src1,dst);\n"
+                res << "&shift_right_value"
             when :lr then
-                res << "dst = rotate_left_value(src0,src1,dst);\n"
+                res << "&rotate_left_value"
             when :rr then
-                res << "dst = rotate_right_value(src0,src1,dst);\n"
+                res << "&rotate_right_value"
             when :== then
-                res << "dst = equal_value(src0,src1,dst);\n"
-                res << "dst = reduce_or_value(dst,dst);"
+                res << "&equal_value_c"
             when :!= then
-                res << "dst = xor_value(src0,src1,dst);\n"
-                res << "dst = reduce_or_value(dst,dst);"
+                res << "&not_equal_value_c"
             when :> then
-                res << "dst = greater_value(src0,src1,dst);\n"
+                res << "&greater_value"
             when :< then
-                res << "dst = lesser_value(src0,src1,dst);\n"
+                res << "&lesser_value"
             when :>= then
-                res << "dst = greater_equal_value(src0,src1,dst);\n"
+                res << "&greater_equal_value"
             when :<= then
-                res << "dst = lesser_equal_value(src0,src1,dst);\n"
+                res << "&lesser_equal_value"
             else
                 raise "Invalid binary operator: #{self.operator}."
             end
-            # Restore the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
             # Close the computation.
-            res << (" " * (level*3))
-            res << "dst;})"
+            res << ")"
 
             return res
         end
