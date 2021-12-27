@@ -42,3 +42,17 @@ Value binary(Value src0, Value src1, Value (*oper)(Value,Value,Value)) {
     set_value_pos(pool_state);
     return dst;
 }
+
+/** Cast calculation.
+ *  @param src0 the value to cast.
+ *  @param typ the type to cast to.
+ *  @return the destination.
+ **/
+Value cast(Value src0, Type typ) {
+    Value dst = get_value();
+    unsigned int pool_state = get_value_pos();
+    dst = cast_value(src0,typ,dst);
+    set_value_pos(pool_state);
+    return dst;
+}
+

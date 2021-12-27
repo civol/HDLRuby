@@ -745,3 +745,10 @@ extern Value unary(Value src0, Value (*oper)(Value,Value));
  *  @return the destination
  **/
 extern Value binary(Value src0, Value src1, Value (*oper)(Value,Value,Value));
+
+/** Cast calculation.
+ *  @param src0 the value to cast.
+ *  @param typ the type to cast to.
+ *  @return the destination.
+ **/
+Value cast(Value src0, Type typ);
