@@ -2295,7 +2295,7 @@ module HDLRuby::Low
             res << (" " * ((level+1)*3))
             # res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
             res << "idx = value2integer("
-            res << self.index.to_c(res,level+2)
+            self.index.to_c(res,level+2)
             res << ");\n"
             # Make the access.
             res << (" " * ((level+1)*3))
