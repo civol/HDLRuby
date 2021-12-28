@@ -2398,7 +2398,6 @@ module HDLRuby::Low
             res << ");\n"
             return res
         end
-    end
 
         # Generates the C text of expression for the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
