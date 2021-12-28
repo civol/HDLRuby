@@ -893,9 +893,9 @@ module HDLRuby::Low
                 res << " " * (level+1)*3
                 # res << "copy_value(#{self.value.to_c(level+2)}," +
                 #        "signalI->c_value);\n"
-                res << "copy_value("
+                res << "copy_value(({"
                 self.value.to_c(res,level+2)
-                res << ",signalI->c_value);\n"
+                res << "}),signalI->c_value);\n"
             end
 
             # Initially the signal can be overwritten by anything.
