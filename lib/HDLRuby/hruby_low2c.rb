@@ -2392,8 +2392,8 @@ module HDLRuby::Low
             # Compute the resulting concatenation.
             res << (" " * ((level+1)*3))
             res << "d=sconcat(#{expressions.size},"
-            res << self.type.direction == :little ? "1" : "0"
-            res << "#{self.type.direction == :little ? 1 : 0},dst,"
+            res << (self.type.direction == :little ? "1" : "0")
+            res << ",dst,"
             res << expressions.size.times.map { |i| "src#{i}" }.join(",")
             res << ");\n"
             return res

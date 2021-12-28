@@ -2815,9 +2815,7 @@ Value select_value(Value cond, Value dst, unsigned int num, ...) {
 Value concat_valueV(int num, int dir, Value dst, va_list args) {
     unsigned long long width = 0;
     int numeric = 1, i;
-    va_list args;
     Value* values = alloca(num*sizeof(Value)); /* The values to concatenate. */
-    va_start(args,dst);
     /* Copy the arguments to values for easier processing. */
     for(i=0; i<num; ++i) {
         values[i] = va_arg(args,Value);
@@ -2853,14 +2851,13 @@ Value concat_valueV(int num, int dir, Value dst, va_list args) {
         /* The sub values are now all bitstrings. */
         concat_value_bitstring_array(num,dir,dst,values);
     }
-    va_end(args);
     return dst;
 }
 Value concat_value(int num, int dir, Value dst, ...) {
     Value dst;
     va_list args;
     va_start(args,dst);
-    dst = concat_ValueV(num,dir,dst,args);
+    dst = concat_valueV(num,dir,dst,args);
     va_end(args);
     return dst;
 }

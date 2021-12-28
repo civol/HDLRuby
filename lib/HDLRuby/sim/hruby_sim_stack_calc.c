@@ -65,7 +65,7 @@ Value sconcat(int num, int dir, ...) {
     unsigned int pool_state = get_value_pos();
     va_list args;
     va_start(args,dir);
-    dst = concat_valuesV(num,dir,dst,args);
+    dst = concat_valueV(num,dir,dst,args);
     va_end(args);
     set_value_pos(pool_state);
     return dst;
