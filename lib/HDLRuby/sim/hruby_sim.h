@@ -4,6 +4,7 @@
  **/
 
 #include <pthread.h>
+#include <stdarg.h>
 
 
 /* The interface to the HDLRuby objects C models. */
