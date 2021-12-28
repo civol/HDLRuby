@@ -2812,7 +2812,7 @@ Value select_value(Value cond, Value dst, unsigned int num, ...) {
  *  @param num the number of values to concat
  *  @param dst the destination value
  *  @return dst */
-Value concat_value(int num, int dir, Value dst, ...) {
+Value concat_valueV(int num, int dir, Value dst, va_list args) {
     unsigned long long width = 0;
     int numeric = 1, i;
     va_list args;
@@ -2856,7 +2856,14 @@ Value concat_value(int num, int dir, Value dst, ...) {
     va_end(args);
     return dst;
 }
-
+Value concat_value(int num, int dir, Value dst, ...) {
+    Value dst;
+    va_list args;
+    va_start(args,dst);
+    dst = concat_ValueV(num,dir,dst,args);
+    va_end(args);
+    return dst;
+}
 
 /** Casts a value to another type.
  *  @param src the source value

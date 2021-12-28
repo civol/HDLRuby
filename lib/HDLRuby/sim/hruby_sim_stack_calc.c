@@ -56,6 +56,21 @@ Value cast(Value src0, Type typ) {
     return dst;
 }
 
+/* Concat values.
+ * @param num the number of values to concat.
+ * @param dir the direction.
+ * @param vals the values to concat. */
+Value sconcat(int num, int dir, ...) {
+    Value dst = get_value();
+    unsigned int pool_state = get_value_pos();
+    va_list args;
+    va_start(args,dst);
+    dst = concat_valuesV(num,dir,args);
+    va_end(args);
+    set_value_pos(pool_state);
+    return dst;
+}
+
 /* Read access calculation.
  * @param src0  the value to access in.
  * @param first the start index.

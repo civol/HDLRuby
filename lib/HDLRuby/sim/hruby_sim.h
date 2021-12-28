@@ -275,6 +275,7 @@ extern Value select_value(Value cond, Value dst, unsigned int num, ...);
  *  @param dst the destination value
  *  @return dst */
 extern Value concat_value(int num, int dir, Value dst, ...);
+extern Value concat_valueV(int num, int dir, Value dst, va_list args);
 
 /** Casts a value to another type.
  *  @param src the source value
@@ -752,6 +753,12 @@ extern Value binary(Value src0, Value src1, Value (*oper)(Value,Value,Value));
  *  @return the destination.
  **/
 extern Value cast(Value src0, Type typ);
+
+/* Concat values.
+ * @param num the number of values to concat.
+ * @param dir the direction.
+ * @param vals the values to concat. */
+extern Value sconcat(int num, int dir, ...);
 
 /* Read access calculation.
  * @param src0  the value to access in.
