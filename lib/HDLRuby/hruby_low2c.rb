@@ -845,6 +845,10 @@ module HDLRuby::Low
             # The header of the signal generation.
             res << " " * level*3
             res << "SignalI " << Low2C.make_name(self) << "() {\n"
+            res << " " * level*3
+            res << "Value l,r,d;\n"
+            res << " " * (level+1)*3
+            res << "unsigned long long i;\n"
             res << " " * (level+1)*3
             res << "SignalI signalI = malloc(sizeof(SignalIS));\n"
             res << " " * (level+1)*3
@@ -2314,6 +2318,51 @@ module HDLRuby::Low
     ## Extends the Concat class with generation of C text.
     class Concat
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # Gather the content to concat.
+        #     expressions = self.each_expression.to_a
+        #     # Create the resulting string.
+        #     # res = "({\n"
+        #     res << "({\n"
+        #     # Overrides the upper src0, src1, ..., and dst...
+        #     # And allocates a new value for dst.
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value "
+        #     res << expressions.size.times.map do |i| 
+        #         "src#{i}"
+        #     end.join(",")
+        #     res << ";\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value dst = get_value();\n"
+        #     # Save the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Compute each sub expression.
+        #     expressions.each_with_index do |expr,i|
+        #         res << (" " * ((level+1)*3))
+        #         # res << "src#{i} = #{expr.to_c(level+2)};\n"
+        #         res << "src#{i} = "
+        #         expr.to_c(res,level+2)
+        #         res << ";\n"
+        #     end
+        #     # Compute the direction.
+        #     # Compute the resulting concatenation.
+        #     res << (" " * ((level+1)*3))
+        #     res << "concat_value(#{expressions.size},"
+        #     res << "#{self.type.direction == :little ? 1 : 0},dst,"
+        #     res << expressions.size.times.map { |i| "src#{i}" }.join(",")
+        #     res << ");\n"
+        #     # Restore the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     # Close the computation.
+        #     res << (" " * (level*3))
+        #     res << "dst; })"
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
@@ -2321,7 +2370,6 @@ module HDLRuby::Low
             # Gather the content to concat.
             expressions = self.each_expression.to_a
             # Create the resulting string.
-            # res = "({\n"
             res << "({\n"
             # Overrides the upper src0, src1, ..., and dst...
             # And allocates a new value for dst.
@@ -2338,10 +2386,9 @@ module HDLRuby::Low
             res << "unsigned int pool_state = get_value_pos();\n"
             # Compute each sub expression.
             expressions.each_with_index do |expr,i|
-                res << (" " * ((level+1)*3))
-                # res << "src#{i} = #{expr.to_c(level+2)};\n"
-                res << "src#{i} = "
                 expr.to_c(res,level+2)
+                res << (" " * ((level+1)*3))
+                res << "src#{i} = d"
                 res << ";\n"
             end
             # Compute the direction.
