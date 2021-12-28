@@ -2373,6 +2373,7 @@ module HDLRuby::Low
             # Gather the content to concat.
             expressions = self.each_expression.to_a
             # Create the resulting string.
+            res << (" " * (level*3))
             res << "{\n"
             # Overrides the upper src0, src1, ..., and dst...
             # And allocates a new value for dst.
@@ -2396,6 +2397,8 @@ module HDLRuby::Low
             res << ",d,"
             res << expressions.size.times.map { |i| "src#{i}" }.join(",")
             res << ");\n"
+            res << (" " * (level*3))
+            res << "}\n"
             return res
         end
 
