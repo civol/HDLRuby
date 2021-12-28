@@ -29,5 +29,9 @@ system :if_bench do
         !10.ns
         x <= 5
         !10.ns
+        x[7] <= 1
+        !10.ns
+        x[6] <= 1
+        !10.ns
     end
 end
