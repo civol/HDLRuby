@@ -1,16 +1,19 @@
 # Test the comparison operators.
 
-# A benchmark for the case statement.
+# A benchmark for the index access..
 system :if_bench do
-    [8].inner :x, :y
+    [8].inner :x
+    inner :b0,:b1,:b2,:b3,:b4,:b5,:b6,:b7
 
     par do
-        hcase(x)
-        hwhen(0) { y <= _10000000 }
-        hwhen(1) { y <= _10000001 }
-        hwhen(2) { y <= _10000010 }
-        hwhen(3) { y <= _10000011 }
-        helse    { y <= _00000000 }
+        b0 <= x[0]
+        b1 <= x[1]
+        b2 <= x[2]
+        b3 <= x[3]
+        b4 <= x[4]
+        b5 <= x[5]
+        b6 <= x[6]
+        b7 <= x[7]
     end
 
     timed do
