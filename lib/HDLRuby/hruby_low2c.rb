@@ -893,9 +893,9 @@ module HDLRuby::Low
                 res << " " * (level+1)*3
                 # res << "copy_value(#{self.value.to_c(level+2)}," +
                 #        "signalI->c_value);\n"
-                res << "copy_value(({"
-                self.value.to_c(res,level+2)
-                res << "}),signalI->c_value);\n"
+                res << "copy_value("
+                self.value.to_c_expr(res,level+2)
+                res << ",signalI->c_value);\n"
             end
 
             # Initially the signal can be overwritten by anything.
@@ -1851,12 +1851,18 @@ module HDLRuby::Low
 
         ## Generates the C text for an access to the value.
         #  +level+ is the hierachical level of the object.
-        # def to_c(level = 0)
         def to_c(res,level = 0)
             # res << Low2C.make_name(self) << "()"
             # return res
             res << (" " * (level*3))
             res << "d=" << Low2C.make_name(self) << "();\n"
+            return res
+        end
+
+        ## Generates the C text for an expression access to the value.
+        #  +level+ is the hierachical level of the object.
+        def to_c_expr(res,level = 0)
+            res << Low2C.make_name(self) << "()"
             return res
         end
     
