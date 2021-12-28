@@ -56,3 +56,30 @@ Value cast(Value src0, Type typ) {
     return dst;
 }
 
+/* Read access calculation.
+ * @param src0  the value to access in.
+ * @param first the start index.
+ * @param last  the end index.
+ * @param typ   the data type of the access. */
+Value sread(Value src0, unsigned long long first,
+                         unsigned long long last, Type typ) {
+    Value dst = get_value();
+    unsigned int pool_state = get_value_pos();
+    dst = read_range(src0,first,last,typ,dst);
+    set_value_pos(pool_state);
+    return dst;
+}
+
+/* Write access calculation.
+ * @param src0  the value to access in.
+ * @param first the start index.
+ * @param last  the end index.
+ * @param typ   the data type of the access. */
+Value swrite(Value src0, unsigned long long first,
+                         unsigned long long last, Type typ) {
+    Value dst = get_value();
+    unsigned int pool_state = get_value_pos();
+    dst = write_range(src0,first,last,typ,dst);
+    set_value_pos(pool_state);
+    return dst;
+}

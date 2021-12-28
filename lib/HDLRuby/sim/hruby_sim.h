@@ -751,4 +751,20 @@ extern Value binary(Value src0, Value src1, Value (*oper)(Value,Value,Value));
  *  @param typ the type to cast to.
  *  @return the destination.
  **/
-Value cast(Value src0, Type typ);
+extern Value cast(Value src0, Type typ);
+
+/* Read access calculation.
+ * @param src0  the value to access in.
+ * @param first the start index.
+ * @param last  the end index.
+ * @param typ   the data type of the access. */
+extern Value sread(Value src0, unsigned long long first,
+                               unsigned long long last, Type typ);
+
+/* Write access calculation.
+ * @param src0  the value to access in.
+ * @param first the start index.
+ * @param last  the end index.
+ * @param typ   the data type of the access. */
+extern Value swrite(Value src0, unsigned long long first,
+                                unsigned long long last, Type typ);

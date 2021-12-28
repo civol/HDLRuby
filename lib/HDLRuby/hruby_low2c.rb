@@ -1324,56 +1324,104 @@ module HDLRuby::Low
     ## Extends the If class with generation of C text.
     class If
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # The result string.
+        #     # res = " " * level*3
+        #     res << " " * level*3
+        #     # Compute the condition.
+        #     res << "{\n"
+        #     res << " " * (level+1)*3
+        #     # res << "Value cond = " << self.condition.to_c(level+1) << ";\n"
+        #     res << "Value cond = "
+        #     self.condition.to_c(res,level+1)
+        #     res << ";\n"
+        #     # Ensure the condition is testable.
+        #     res << " " * (level+1)*3
+        #     res << "if (is_defined_value(cond)) {\n"
+        #     # The condition is testable.
+        #     res << " " * (level+2)*3
+        #     res << "if (value2integer(cond)) {\n"
+        #     # Generate the yes part.
+        #     # res << self.yes.to_c(level+3)
+        #     self.yes.to_c(res,level+3)
+        #     res << " " * level*3
+        #     res << "}\n"
+        #     # Generate the alternate if parts.
+        #     self.each_noif do |cond,stmnt|
+        #         res << " " * level*3
+        #         # res << "else if (value2integer(" << cond.to_c(level+1) << ")) {\n"
+        #         res << "else if (value2integer("
+        #         cond.to_c(res,level+1)
+        #         res << ")) {\n"
+        #         # res << stmnt.to_c(level+1)
+        #         stmnt.to_c(res,level+1)
+        #         res << " " * level*3
+        #         res << "}\n"
+        #     end
+        #     # Generate the no part if any.
+        #     if self.no then
+        #         res << " " * level*3
+        #         # res << "else {\n" << self.no.to_c(level+1)
+        #         res << "else {\n"
+        #         self.no.to_c(res,level+1)
+        #         res << " " * level*3
+        #         res << "}\n"
+        #     end
+        #     # Close the if.
+        #     res << " " * (level+1)*3
+        #     res << "}\n"
+        #     res << " " * (level)*3
+        #     res << "}\n"
+        #     # Return the result.
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        # def to_c(level = 0)
         def to_c(res,level = 0)
             # The result string.
             # res = " " * level*3
             res << " " * level*3
             # Compute the condition.
             res << "{\n"
-            res << " " * (level+1)*3
-            # res << "Value cond = " << self.condition.to_c(level+1) << ";\n"
-            res << "Value cond = "
             self.condition.to_c(res,level+1)
             res << ";\n"
             # Ensure the condition is testable.
             res << " " * (level+1)*3
-            res << "if (is_defined_value(cond)) {\n"
+            res << "if (is_defined_value(d)) {\n"
             # The condition is testable.
             res << " " * (level+2)*3
-            res << "if (value2integer(cond)) {\n"
+            res << "if (value2integer(d)) {\n"
             # Generate the yes part.
-            # res << self.yes.to_c(level+3)
             self.yes.to_c(res,level+3)
             res << " " * level*3
             res << "}\n"
             # Generate the alternate if parts.
             self.each_noif do |cond,stmnt|
-                res << " " * level*3
-                # res << "else if (value2integer(" << cond.to_c(level+1) << ")) {\n"
-                res << "else if (value2integer("
+                res << " " * (level*3)
+                res << "else if (value2integer(({\n"
                 cond.to_c(res,level+1)
+                res << " " * ((level+1)*3)
+                res << "d;})"
                 res << ")) {\n"
-                # res << stmnt.to_c(level+1)
                 stmnt.to_c(res,level+1)
-                res << " " * level*3
+                res << " " * (level*3)
                 res << "}\n"
             end
             # Generate the no part if any.
             if self.no then
-                res << " " * level*3
-                # res << "else {\n" << self.no.to_c(level+1)
+                res << " " * (level*3)
                 res << "else {\n"
                 self.no.to_c(res,level+1)
                 res << " " * level*3
                 res << "}\n"
             end
             # Close the if.
-            res << " " * (level+1)*3
+            res << " " * ((level+1)*3)
             res << "}\n"
-            res << " " * (level)*3
+            res << " " * (level*3)
             res << "}\n"
             # Return the result.
             return res
@@ -1443,37 +1491,85 @@ module HDLRuby::Low
     ## Extends the Case class with generation of C text.
     class Case
 
+        # # Generates the text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # res = ""
+        #     # Compute the selection value.
+        #     res << "{\n"
+        #     res << " " * (level+1)*3
+        #     # res << "Value value = " << self.value.to_c(level+1) << ";\n"
+        #     res << "Value value = "
+        #     self.value.to_c(res,level+1)
+        #     res << ";\n"
+        #     # Ensure the selection value is testable.
+        #     res << " " * (level+1)*3
+        #     res << "if (is_defined_value(value)) {\n"
+        #     # The condition is testable.
+        #     # Generate the case as a succession of if statements.
+        #     first = true
+        #     self.each_when do |w|
+        #         res << " " * (level+2)*3
+        #         if first then
+        #             first = false
+        #         else
+        #             res << "else "
+        #         end
+        #         res << "if (value2integer(value) == "
+        #         # res << "value2integer(" << w.match.to_c(level+2) << ")) {\n"
+        #         res << "value2integer("
+        #         w.match.to_c(res,level+2)
+        #         res << ")) {\n"
+        #         # res << w.statement.to_c(level+3)
+        #         w.statement.to_c(res,level+3)
+        #         res << " " * (level+2)*3
+        #         res << "}\n"
+        #     end
+        #     if self.default then
+        #         res << " " * (level+2)*3
+        #         res << "else {\n"
+        #         # res << self.default.to_c(level+3)
+        #         self.default.to_c(res,level+3)
+        #         res << " " * (level+2)*3
+        #         res << "}\n"
+        #     end
+        #     # Close the case.
+        #     res << " " * (level+1)*3
+        #     res << "}\n"
+        #     res << " " * (level)*3
+        #     res << "}\n"
+        #     # Return the resulting string.
+        #     return res
+        # end
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # res = ""
             # Compute the selection value.
             res << "{\n"
-            res << " " * (level+1)*3
-            # res << "Value value = " << self.value.to_c(level+1) << ";\n"
-            res << "Value value = "
             self.value.to_c(res,level+1)
-            res << ";\n"
+            res << " " * ((level+1)*3)
+            res << "Value v=d;\n"
             # Ensure the selection value is testable.
-            res << " " * (level+1)*3
-            res << "if (is_defined_value(value)) {\n"
+            res << " " * ((level+1)*3)
+            res << "if (is_defined_value(v)) {\n"
             # The condition is testable.
             # Generate the case as a succession of if statements.
             first = true
             self.each_when do |w|
-                res << " " * (level+2)*3
+                res << " " * ((level+2)*3)
                 if first then
                     first = false
                 else
                     res << "else "
                 end
-                res << "if (value2integer(value) == "
-                # res << "value2integer(" << w.match.to_c(level+2) << ")) {\n"
-                res << "value2integer("
+                res << "if (value2integer(v) == "
+                res << "value2integer(({\n"
+                res << " " * ((level+2)*3)
                 w.match.to_c(res,level+2)
+                res << "d;})"
                 res << ")) {\n"
-                # res << w.statement.to_c(level+3)
                 w.statement.to_c(res,level+3)
                 res << " " * (level+2)*3
                 res << "}\n"
@@ -1481,7 +1577,6 @@ module HDLRuby::Low
             if self.default then
                 res << " " * (level+2)*3
                 res << "else {\n"
-                # res << self.default.to_c(level+3)
                 self.default.to_c(res,level+3)
                 res << " " * (level+2)*3
                 res << "}\n"
@@ -1606,6 +1701,8 @@ module HDLRuby::Low
             res << "void " << Low2C.code_name(self) << "() {\n"
             res << " " * (level+1)*3
             res << "Value l,r,d;\n"
+            res << " " * (level+1)*3
+            res << "unsigned long long i;\n"
             # res << "printf(\"Executing #{Low2C.code_name(self)}...\\n\");"
             # Generate the statements.
             self.each_statement do |stmnt|
@@ -2318,66 +2415,106 @@ module HDLRuby::Low
     ## Extends the RefIndex class with generation of C text.
     class RefIndex
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is thehierachical level of the object and
+        # # +left+ tells if it is a left value or not.
+        # # def to_c(level = 0, left = false)
+        # def to_c(res,level = 0, left = false)
+        #     # res = "({\n"
+        #     res << "({\n"
+        #     # And allocates a new value for dst.
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value ref,dst = get_value();\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned long long idx;\n"
+        #     # Save the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Compute the reference.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "ref = #{self.ref.to_c(level+2)};\n"
+        #     res << "ref = "
+        #     self.ref.to_c(res,level+2)
+        #     res << ";\n"
+        #     # Compute the index.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
+        #     res << "idx = value2integer("
+        #     self.index.to_c(res,level+2)
+        #     res << ");\n"
+        #     # Make the access.
+        #     res << (" " * ((level+1)*3))
+        #     # puts "self.type.width=#{self.type.width}"
+        #     # res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
+        #     res << "dst = read_range(ref,idx,idx,"
+        #     # res << self.type.to_c(level)
+        #     self.type.to_c(res,level)
+        #     res << ",dst);\n"
+        #     # Restore the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     # Close the computation.
+        #     res << (" " * (level*3))
+        #     res << "dst; })"
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is thehierachical level of the object and
         # +left+ tells if it is a left value or not.
-        # def to_c(level = 0, left = false)
         def to_c(res,level = 0, left = false)
-            # res = "({\n"
-            res << "({\n"
-            # And allocates a new value for dst.
-            res << (" " * ((level+1)*3))
-            res << "Value ref,dst = get_value();\n"
-            res << (" " * ((level+1)*3))
-            res << "unsigned long long idx;\n"
-            # Save the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the reference.
-            res << (" " * ((level+1)*3))
-            # res << "ref = #{self.ref.to_c(level+2)};\n"
-            res << "ref = "
-            self.ref.to_c(res,level+2)
-            res << ";\n"
-            # Compute the index.
-            res << (" " * ((level+1)*3))
-            # res << "idx = value2integer(#{self.index.to_c(level+2)});\n"
-            res << "idx = value2integer("
-            self.index.to_c(res,level+2)
-            res << ");\n"
-            # Make the access.
-            res << (" " * ((level+1)*3))
-            # puts "self.type.width=#{self.type.width}"
-            # res << "dst = read_range(ref,idx,idx,#{self.type.to_c(level)},dst);\n"
-            res << "dst = read_range(ref,idx,idx,"
-            # res << self.type.to_c(level)
-            self.type.to_c(res,level)
-            res << ",dst);\n"
-            # Restore the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
-            # Close the computation.
+            self.ref.to_c(res,level)
             res << (" " * (level*3))
-            res << "dst; })"
+            res << "l=d;\n"
+            # Compute the index.
+            self.index.to_c(res,level)
+            res << (" " * (level*3))
+            res << "i=value2integer(d);\n"
+            # Make the access.
+            res << (" " * (level*3))
+            if (left) then
+                res << "d=swrite(l,i,i,"
+            else
+                res << "d=sread(l,i,i,"
+            end
+            self.type.to_c(res,level)
+            res << ");\n"
             return res
         end
 
+        # # Generates the C text for reference as left value to a signal.
+        # # +level+ is the hierarchical level of the object.
+        # # def to_c_signal(level = 0)
+        # def to_c_signal(res,level = 0)
+        #     # puts "to_c_signal for RefIndex"
+        #     res << "make_ref_rangeS("
+        #     self.ref.to_c_signal(res,level)
+        #     res << ","
+        #     self.type.to_c(res,level)
+        #     res << ",value2integer("
+        #     self.index.to_c(res,level)
+        #     res << "),value2integer("
+        #     self.index.to_c(res,level)
+        #     res << "))"
+        #     return res
+        # end
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
         # def to_c_signal(level = 0)
         def to_c_signal(res,level = 0)
             # puts "to_c_signal for RefIndex"
-            # return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
-            #     "#{self.type.to_c(level)}," + 
-            #     "value2integer(#{self.index.to_c(level)}),value2integer(#{self.index.to_c(level)}))"
             res << "make_ref_rangeS("
             self.ref.to_c_signal(res,level)
             res << ","
             self.type.to_c(res,level)
-            res << ",value2integer("
+            res << ",value2integer(({\n"
             self.index.to_c(res,level)
-            res << "),value2integer("
+            res << " " * ((level+1)*3)
+            res << "d;})"
+            res << "),value2integer(({\n"
             self.index.to_c(res,level)
+            res << " " * ((level+1)*3)
+            res << "d;})"
             res << "))"
             return res
         end
@@ -2387,69 +2524,109 @@ module HDLRuby::Low
     ## Extends the RefRange class with generation of C text.
     class RefRange
 
-        # Generates the C text of the equivalent HDLRuby code.
-        # +level+ is the hierachical level of the object and
-        # +left+ tells if it is a left value or not.
-        # def to_c(level = 0, left = false)
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object and
+        # # +left+ tells if it is a left value or not.
+        # # def to_c(level = 0, left = false)
+        # def to_c(res,level = 0, left = false)
+        #     # Decide if it is a read or a write
+        #     command = left ? "write" : "read"
+        #     # res = "({\n"
+        #     res << "({\n"
+        #     # Overrides the upper ref and dst...
+        #     # And allocates a new value for dst.
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value ref,dst = get_value();\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned long long first,last;\n"
+        #     # Save the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Compute the reference.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "ref = #{self.ref.to_c(level+2)};\n"
+        #     res << "ref = "
+        #     self.ref.to_c(res,level+2)
+        #     res << ";\n"
+        #     # Compute the range.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "first = value2integer(#{self.range.first.to_c(level+2)});\n"
+        #     res << "first = value2integer("
+        #     self.range.first.to_c(res,level+2)
+        #     res << ");\n"
+        #     res << (" " * ((level+1)*3))
+        #     # res << "last = value2integer(#{self.range.last.to_c(level+2)});\n"
+        #     res << "last = value2integer("
+        #     self.range.last.to_c(res,level+2)
+        #     res << ");\n"
+        #     # Make the access.
+        #     res << (" " * ((level+1)*3))
+        #     # puts "#{command}_range with first=#{self.range.first} and last=#{self.range.last}"
+        #     # res << "dst = #{command}_range(ref,first,last,#{self.type.base.to_c(level)},dst);\n"
+        #     res << "dst = #{command}_range(ref,first,last,"
+        #     self.type.base.to_c(res,level)
+        #     res << ",dst);\n"
+        #     # Restore the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     # Close the computation.
+        #     res << (" " * (level*3))
+        #     res << "dst; })"
+        #     return res
+        # end
         def to_c(res,level = 0, left = false)
-            # Decide if it is a read or a write
-            command = left ? "write" : "read"
-            # res = "({\n"
-            res << "({\n"
-            # Overrides the upper ref and dst...
-            # And allocates a new value for dst.
-            res << (" " * ((level+1)*3))
-            res << "Value ref,dst = get_value();\n"
-            res << (" " * ((level+1)*3))
-            res << "unsigned long long first,last;\n"
-            # Save the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the reference.
-            res << (" " * ((level+1)*3))
-            # res << "ref = #{self.ref.to_c(level+2)};\n"
-            res << "ref = "
-            self.ref.to_c(res,level+2)
-            res << ";\n"
-            # Compute the range.
-            res << (" " * ((level+1)*3))
-            # res << "first = value2integer(#{self.range.first.to_c(level+2)});\n"
-            res << "first = value2integer("
-            self.range.first.to_c(res,level+2)
-            res << ");\n"
-            res << (" " * ((level+1)*3))
-            # res << "last = value2integer(#{self.range.last.to_c(level+2)});\n"
-            res << "last = value2integer("
-            self.range.last.to_c(res,level+2)
-            res << ");\n"
-            # Make the access.
-            res << (" " * ((level+1)*3))
-            # puts "#{command}_range with first=#{self.range.first} and last=#{self.range.last}"
-            # res << "dst = #{command}_range(ref,first,last,#{self.type.base.to_c(level)},dst);\n"
-            res << "dst = #{command}_range(ref,first,last,"
-            self.type.base.to_c(res,level)
-            res << ",dst);\n"
-            # Restore the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
-            # Close the computation.
+            self.ref.to_c(res,level)
             res << (" " * (level*3))
-            res << "dst; })"
+            res << "l=d;\n"
+            # Compute the range.
+            self.range.first.to_c(res,level)
+            res << (" " * (level*3))
+            res << "i=value2integer(d);\n"
+            self.range.last.to_c(res,level)
+            # Make the access.
+            res << (" " * (level*3))
+            if left then
+                res << "d=swrite(l,i,value2integer(d),"
+            else
+                res << "d=sread(l,i,value2integer(d),"
+            end
+            self.type.base.to_c(res,level)
+            res << ");\n"
             return res
         end
 
+        # # Generates the C text for reference as left value to a signal.
+        # # +level+ is the hierarchical level of the object.
+        # # def to_c_signal(level = 0)
+        # def to_c_signal(res,level = 0)
+        #     # return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
+        #     #     "value2integer(#{self.range.first.to_c(level)}),value2integer(#{self.range.last.to_c(level)}))"
+        #     res << "make_ref_rangeS("
+        #     self.ref.to_c_signal(res,level)
+        #     res << ",value2integer("
+        #     self.range.first.to_c(res,level)
+        #     res << "),value2integer("
+        #     self.range.last.to_c(res,level)
+        #     res << "))"
+        #     return res
+        # end
         # Generates the C text for reference as left value to a signal.
         # +level+ is the hierarchical level of the object.
         # def to_c_signal(level = 0)
         def to_c_signal(res,level = 0)
-            # return "make_ref_rangeS(#{self.ref.to_c_signal(level)}," +
-            #     "value2integer(#{self.range.first.to_c(level)}),value2integer(#{self.range.last.to_c(level)}))"
             res << "make_ref_rangeS("
             self.ref.to_c_signal(res,level)
-            res << ",value2integer("
+            res << ","
+            self.type.base.to_c(res,level)
+            res << ",value2integer(({\n"
             self.range.first.to_c(res,level)
-            res << "),value2integer("
+            res << " " * ((level+1)*3)
+            res << "d;})"
+            res << "),value2integer(({\n"
             self.range.last.to_c(res,level)
+            res << " " * ((level+1)*3)
+            res << "d;})"
             res << "))"
             return res
         end
