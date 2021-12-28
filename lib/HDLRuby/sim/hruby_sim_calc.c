@@ -2854,7 +2854,6 @@ Value concat_valueV(int num, int dir, Value dst, va_list args) {
     return dst;
 }
 Value concat_value(int num, int dir, Value dst, ...) {
-    Value dst;
     va_list args;
     va_start(args,dst);
     dst = concat_valueV(num,dir,dst,args);
