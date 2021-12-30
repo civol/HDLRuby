@@ -845,10 +845,10 @@ module HDLRuby::Low
             # The header of the signal generation.
             res << " " * level*3
             res << "SignalI " << Low2C.make_name(self) << "() {\n"
-            res << " " * level*3
-            res << "Value l,r,d;\n"
-            res << " " * (level+1)*3
-            res << "unsigned long long i;\n"
+            # res << " " * level*3
+            # res << "Value l,r,d;\n"
+            # res << " " * (level+1)*3
+            # res << "unsigned long long i;\n"
             res << " " * (level+1)*3
             res << "SignalI signalI = malloc(sizeof(SignalIS));\n"
             res << " " * (level+1)*3
@@ -2614,9 +2614,9 @@ module HDLRuby::Low
             # Make the access.
             res << (" " * (level*3))
             if (left) then
-                res << "d=swriteI("
+                res << "swriteI("
             else
-                res << "d=sreadI("
+                res << "sreadI("
             end
             self.type.to_c(res,level)
             res << ");\n"
@@ -2731,7 +2731,7 @@ module HDLRuby::Low
             if left then
                 res << "swriteR("
             else
-                res << "d=sreadR("
+                res << "sreadR("
             end
             self.type.base.to_c(res,level)
             res << ");\n"
