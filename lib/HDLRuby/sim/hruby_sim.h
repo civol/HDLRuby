@@ -277,6 +277,7 @@ extern Value select_value(Value cond, Value dst, unsigned int num, ...);
  *  @return dst */
 extern Value concat_value(int num, int dir, Value dst, ...);
 extern Value concat_valueV(int num, int dir, Value dst, va_list args);
+extern Value concat_valueP(int num, int dir, Value dst, Value* args);
 
 /** Casts a value to another type.
  *  @param src the source value
@@ -398,6 +399,17 @@ extern unsigned int get_value_pos();
 /** Restores the state of the value pool.
  *  @param pos the new position in the pool */
 extern void set_value_pos(unsigned int pos);
+
+/** Saves to current state of the value pool to the pool state stack. */
+extern void save_value_pos();
+#define SV save_value_pos();
+
+/** Restores the state of the value pool from the state stack. */
+extern void restore_value_pos();
+#define RV restore_value_pos();
+
+
+
 
 /** An HDLRuby object. */
 typedef struct ObjectS_ {
@@ -732,47 +744,57 @@ extern Value write_range_no_z(Value src, long long first, long long last,
 
 /** Stack-based computations. */
 
+/** Push a value.
+ *  @param val the value to push. */
+extern void push(Value val);
+
+/** Pops a value.
+ *  @return the value. */
+extern Value pop();
 
 /** Unary calculation.
- *  @param src0 the left value
  *  @param oper the operator function
  *  @return the destination
  **/
-extern Value unary(Value src0, Value (*oper)(Value,Value));
+extern Value unary(Value (*oper)(Value,Value));
 
 /** Binary calculation.
- *  @param src0 the left value
- *  @param src1 the right value
  *  @param oper the operator function
  *  @return the destination
  **/
-extern Value binary(Value src0, Value src1, Value (*oper)(Value,Value,Value));
+extern Value binary(Value (*oper)(Value,Value,Value));
 
 /** Cast calculation.
- *  @param src0 the value to cast.
  *  @param typ the type to cast to.
  *  @return the destination.
  **/
-extern Value cast(Value src0, Type typ);
+extern Value cast(Type typ);
 
 /* Concat values.
  * @param num the number of values to concat.
- * @param dir the direction.
- * @param vals the values to concat. */
-extern Value sconcat(int num, int dir, ...);
+ * @param dir the direction. */
+extern Value sconcat(int num, int dir);
 
 /* Read access calculation.
- * @param src0  the value to access in.
- * @param first the start index.
- * @param last  the end index.
  * @param typ   the data type of the access. */
-extern Value sread(Value src0, unsigned long long first,
-                               unsigned long long last, Type typ);
+extern Value sread(Type typ);
 
 /* Write access calculation.
- * @param src0  the value to access in.
- * @param first the start index.
- * @param last  the end index.
  * @param typ   the data type of the access. */
-extern Value swrite(Value src0, unsigned long long first,
-                                unsigned long long last, Type typ);
+extern Value swrite(Type typ);
+
+/* Transmit a value to a signal in parallel. 
+ * @param sig the signal to transmit to. */
+extern void transmit(SignalI sig);
+
+/* Transmit a value to a signal in sequence.
+ * @param sig the signal to transmit to. */
+extern void transmit_seq(SignalI sig);
+
+/* Transmit a value to a range in a signal in parallel. 
+ * @param ref the ref to the range of the signal to transmit to. */
+extern void transmitR(RefRangeS ref);
+
+/* Transmit a value to a range in a signal in sequence. 
+ * @param ref the ref to the range of the signal to transmit to. */
+extern void transmitR_seq(RefRangeS ref);

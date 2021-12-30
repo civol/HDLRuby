@@ -62,3 +62,29 @@ unsigned int get_value_pos() {
 void set_value_pos(unsigned int pos) {
     pool_pos = pos;
 }
+
+
+#define POOL_STATE_STACK_SIZE 0x10000
+/* The stack of pool states. */
+static unsigned int pool_state_stack[POOL_STATE_STACK_SIZE];
+static int pool_state_head = POOL_STATE_STACK_SIZE;
+
+/** Saves to current state of the value pool to the pool state stack. */
+extern void save_value_pos() {
+    if (pool_state_head > 0) {
+        pool_state_stack[--pool_state_head] = get_value_pos();
+    } else {
+        perror("Pool state stack full.");
+        exit(1);
+    }
+}
+
+/** Restores the state of the value pool from the state stack. */
+extern void restore_value_pos() {
+    if (pool_state_head < POOL_STATE_STACK_SIZE) {
+        set_value_pos(pool_state_stack[pool_state_head++]);
+    } else {
+        perror("Pool state stack empty.");
+        exit(1);
+    }
+}

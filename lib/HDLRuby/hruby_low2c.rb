@@ -1214,67 +1214,100 @@ module HDLRuby::Low
     ## Extends the Transmit class with generation of C text.
     class Transmit
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # Save the state of the value pool.
+        #     # res = (" " * ((level)*3))
+        #     res << (" " * ((level)*3))
+        #     res << "{\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Perform the copy and the touching only if the new content
+        #     # is different.
+        #     # res << (" " * ((level+1)*3))
+        #     # Is it a sequential execution model?
+        #     seq = self.block.mode == :seq ? "_seq" : ""
+        #     # # Generate the assignment.
+        #     # if (self.left.is_a?(RefName)) then
+        #     #     # Direct assignment to a signal, simple transmission.
+        #     #     res << "transmit_to_signal#{seq}("
+        #     #     self.right.to_c(res,level)
+        #     #     res << ","
+        #     #     self.left.to_c_signal(res,level)
+        #     #     res << ");\n"
+        #     # else
+        #     #     # Assignment inside a signal (RefIndex or RefRange).
+        #     #     res << "transmit_to_signal_range#{seq}("
+        #     #     self.right.to_c(res,level)
+        #     #     res << ","
+        #     #     self.left.to_c_signal(res,level)
+        #     #     res << ");\n"
+        #     #     ### Why twice ???
+        #     #     res << "transmit_to_signal_range#{seq}("
+        #     #     self.right.to_c(res,level)
+        #     #     res << ","
+        #     #     self.left.to_c_signal(res,level)
+        #     #     res << ");\n"
+        #     # end
+        #     # Generate the assignment.
+        #     if (self.left.is_a?(RefName)) then
+        #         # Generate the right value.
+        #         self.right.to_c(res,level+1)
+        #         # Direct assignment to a signal, simple transmission.
+        #         res << (" " * ((level+1)*3))
+        #         res << "transmit_to_signal#{seq}(d,"
+        #         # Generate the left value (target signal).
+        #         self.left.to_c_signal(res,level+1)
+        #         res << ");\n"
+        #     else
+        #         # Generate the right value.
+        #         self.right.to_c(res,level+1)
+        #         # Assignment inside a signal (RefIndex or RefRange).
+        #         res << "transmit_to_signal_range#{seq}(d,"
+        #         # Generate the left value (target signal).
+        #         self.left.to_c_signal(res,level+1)
+        #         res << ");\n"
+        #     end
+        #     # Restore the value pool state.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     res << (" " * ((level)*3))
+        #     res << "}\n"
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # Save the state of the value pool.
-            # res = (" " * ((level)*3))
-            res << (" " * ((level)*3))
-            res << "{\n"
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Perform the copy and the touching only if the new content
             # is different.
-            # res << (" " * ((level+1)*3))
             # Is it a sequential execution model?
             seq = self.block.mode == :seq ? "_seq" : ""
-            # # Generate the assignment.
-            # if (self.left.is_a?(RefName)) then
-            #     # Direct assignment to a signal, simple transmission.
-            #     res << "transmit_to_signal#{seq}("
-            #     self.right.to_c(res,level)
-            #     res << ","
-            #     self.left.to_c_signal(res,level)
-            #     res << ");\n"
-            # else
-            #     # Assignment inside a signal (RefIndex or RefRange).
-            #     res << "transmit_to_signal_range#{seq}("
-            #     self.right.to_c(res,level)
-            #     res << ","
-            #     self.left.to_c_signal(res,level)
-            #     res << ");\n"
-            #     ### Why twice ???
-            #     res << "transmit_to_signal_range#{seq}("
-            #     self.right.to_c(res,level)
-            #     res << ","
-            #     self.left.to_c_signal(res,level)
-            #     res << ");\n"
-            # end
             # Generate the assignment.
             if (self.left.is_a?(RefName)) then
                 # Generate the right value.
-                self.right.to_c(res,level+1)
+                self.right.to_c(res,level)
                 # Direct assignment to a signal, simple transmission.
-                res << (" " * ((level+1)*3))
-                res << "transmit_to_signal#{seq}(d,"
+                res << (" " * (level*3))
+                res << "transmit#{seq}("
                 # Generate the left value (target signal).
                 self.left.to_c_signal(res,level+1)
                 res << ");\n"
             else
                 # Generate the right value.
-                self.right.to_c(res,level+1)
+                self.right.to_c(res,level)
                 # Assignment inside a signal (RefIndex or RefRange).
-                res << "transmit_to_signal_range#{seq}(d,"
+                res << "transmitR#{seq}("
                 # Generate the left value (target signal).
                 self.left.to_c_signal(res,level+1)
                 res << ");\n"
             end
             # Restore the value pool state.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
-            res << (" " * ((level)*3))
-            res << "}\n"
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
     end
@@ -1283,43 +1316,68 @@ module HDLRuby::Low
     ## Extends the Print class with generation of C text.
     class Print
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # Save the state of the value pool.
+        #     # res = (" " * ((level)*3))
+        #     res << (" " * ((level)*3))
+        #     res << "{\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Perform the copy and the touching only if the new content
+        #     # is different.
+        #     res << (" " * ((level+1)*3))
+        #     # Is it a sequential execution model?
+        #     seq = self.block.mode == :seq ? "_seq" : ""
+        #     # Generate the print.
+        #     self.each_arg do |arg|
+        #         if (arg.is_a?(StringE)) then
+        #             res << "printer.print_string(\"" + 
+        #                 Low2C.c_string(arg.content) + "\");\n"
+        #         elsif (arg.is_a?(Expression)) then
+        #             # res << "printer.print_string_value(" + arg.to_c + ");\n"
+        #             res << "printer.print_string_value("
+        #             arg.to_c(res)
+        #             res << ");\n"
+        #         else
+        #             # res << "printer.print_string_name(" + arg.to_c + ");\n"
+        #             res << "printer.print_string_name("
+        #             arg.to_c(res)
+        #             res << ");\n"
+        #         end
+        #     end
+        #     # Restore the value pool state.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     res << (" " * ((level)*3))
+        #     res << "}\n"
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # Save the state of the value pool.
-            # res = (" " * ((level)*3))
-            res << (" " * ((level)*3))
-            res << "{\n"
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
-            # Perform the copy and the touching only if the new content
-            # is different.
-            res << (" " * ((level+1)*3))
-            # Is it a sequential execution model?
-            seq = self.block.mode == :seq ? "_seq" : ""
-            # Generate the print.
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
+            # Generate the print for each argument.
             self.each_arg do |arg|
                 if (arg.is_a?(StringE)) then
+                    res << (" " * (level*3))
                     res << "printer.print_string(\"" + 
                         Low2C.c_string(arg.content) + "\");\n"
                 elsif (arg.is_a?(Expression)) then
-                    # res << "printer.print_string_value(" + arg.to_c + ");\n"
-                    res << "printer.print_string_value("
                     arg.to_c(res)
-                    res << ");\n"
+                    res << (" " * (level*3))
+                    res << "printer.print_string_value(pop());\n"
                 else
-                    # res << "printer.print_string_name(" + arg.to_c + ");\n"
-                    res << "printer.print_string_name("
                     arg.to_c(res)
-                    res << ");\n"
+                    res << "printer.print_string_name(pop());\n"
                 end
             end
             # Restore the value pool state.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
-            res << (" " * ((level)*3))
-            res << "}\n"
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
     end
@@ -1855,7 +1913,8 @@ module HDLRuby::Low
             # res << Low2C.make_name(self) << "()"
             # return res
             res << (" " * (level*3))
-            res << "d=" << Low2C.make_name(self) << "();\n"
+            # res << "d=" << Low2C.make_name(self) << "();\n"
+            res << "push(" << Low2C.make_name(self) << "());\n"
             return res
         end
 
@@ -1997,13 +2056,17 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Generate the child.
             self.child.to_c(res,level)
             res << (" " * (level*3))
-            res << "d=cast(d,"
+            # res << "d=cast(d,"
+            res << "cast("
             self.type.to_c(res,level+1)
             res << ");\n"
-
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
     end
@@ -2080,15 +2143,13 @@ module HDLRuby::Low
                 self.child.to_c(res,level)
                 return res
             end
-            # # Some computation required.
-            # # Adds the source.
-            # res << "unary("
-            # self.child.to_c(res,level+2)
-            # res << ","
+            # Some computation required.
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Generate the child.
             self.child.to_c(res,level)
             res << (" " * (level*3))
-            res << "d=unary(d,"
+            res << "unary("
             # Adds the operation
             case self.operator
             when :~ then
@@ -2098,8 +2159,9 @@ module HDLRuby::Low
             else
                 raise "Invalid unary operator: #{self.operator}."
             end
-            # res << ")"
             res << ");\n"
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
 
             return res
         end
@@ -2194,25 +2256,15 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res, level = 0)
-            # # Call the binary stach computation.
-            # res << "binary("
-            # # Set the left.
-            # self.left.to_c(res,level+2)
-            # res << ","
-            # # Set the right.
-            # self.right.to_c(res,level+2)
-            # res << ","
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Generate the left computation.
             self.left.to_c(res,level)
-            res << (" " * (level*3))
-            res << "l=d;\n"
             # Generate the right computation.
             self.right.to_c(res,level)
-            res << (" " * (level*3))
-            res << "r=d;\n"
             # Generate the binary.
             res << (" " * (level*3))
-            res << "d=binary(l,r,"
+            res << "binary("
             # Set the operation.
             case self.operator
             when :+ then
@@ -2257,8 +2309,9 @@ module HDLRuby::Low
                 raise "Invalid binary operator: #{self.operator}."
             end
             # Close the computation.
-            # res << ")"
             res << ");\n"
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
 
             return res
         end
@@ -2267,56 +2320,77 @@ module HDLRuby::Low
     ## Extends the Select class with generation of C text.
     class Select
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # Gather the possible selection choices.
+        #     expressions = self.each_choice.to_a
+        #     # Create the resulting string.
+        #     # res = "({\n"
+        #     res << "({\n"
+        #     # Overrides the upper sel, src0, src1, ..., and dst...
+        #     # And allocates a new value for dst.
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value sel;\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value "
+        #     res << expressions.size.times.map do |i| 
+        #         "src#{i}"
+        #     end.join(",")
+        #     res << ";\n"
+        #     res << (" " * ((level+1)*3))
+        #     res << "Value dst = get_value();\n"
+        #     # Save the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "unsigned int pool_state = get_value_pos();\n"
+        #     # Compute the selection.
+        #     res << (" " * ((level+1)*3))
+        #     # res << "sel = #{self.select.to_c(level+2)};\n"
+        #     res << "sel = "
+        #     self.select.to_c(res,level+2)
+        #     res << ";\n"
+        #     # Compute each choice expression.
+        #     expressions.each_with_index do |expr,i|
+        #         res << (" " * ((level+1)*3))
+        #         # res << "src#{i} = #{expr.to_c(level+2)};\n"
+        #         res << "src#{i} = "
+        #         expr.to_c(res,level+2)
+        #         res << ";\n"
+        #     end
+        #     # Compute the resulting selection.
+        #     res << (" " * ((level+1)*3))
+        #     res << "select_value(sel,dst,#{expressions.size},"
+        #     # res << "#{expressions.size.times.map { |i| "src#{i}" }.join(",")}"
+        #     res << expressions.size.times.map { |i| "src#{i}" }.join(",")
+        #     res << ");\n"
+        #     # Restore the state of the value pool.
+        #     res << (" " * ((level+1)*3))
+        #     res << "set_value_pos(pool_state);\n"
+        #     # Close the computation.
+        #     res << (" " * (level*3))
+        #     res << "dst; })"
+        #     return res
+        # end
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
-        # def to_c(level = 0)
         def to_c(res,level = 0)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Gather the possible selection choices.
             expressions = self.each_choice.to_a
             # Create the resulting string.
-            # res = "({\n"
-            res << "({\n"
-            # Overrides the upper sel, src0, src1, ..., and dst...
-            # And allocates a new value for dst.
-            res << (" " * ((level+1)*3))
-            res << "Value sel;\n"
-            res << (" " * ((level+1)*3))
-            res << "Value "
-            res << expressions.size.times.map do |i| 
-                "src#{i}"
-            end.join(",")
-            res << ";\n"
-            res << (" " * ((level+1)*3))
-            res << "Value dst = get_value();\n"
-            # Save the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
             # Compute the selection.
-            res << (" " * ((level+1)*3))
-            # res << "sel = #{self.select.to_c(level+2)};\n"
-            res << "sel = "
-            self.select.to_c(res,level+2)
-            res << ";\n"
+            self.select.to_c(res,level)
             # Compute each choice expression.
             expressions.each_with_index do |expr,i|
-                res << (" " * ((level+1)*3))
-                # res << "src#{i} = #{expr.to_c(level+2)};\n"
-                res << "src#{i} = "
-                expr.to_c(res,level+2)
-                res << ";\n"
+                expr.to_c(res,level)
             end
             # Compute the resulting selection.
-            res << (" " * ((level+1)*3))
-            res << "select_value(sel,dst,#{expressions.size},"
-            # res << "#{expressions.size.times.map { |i| "src#{i}" }.join(",")}"
-            res << expressions.size.times.map { |i| "src#{i}" }.join(",")
-            res << ");\n"
-            # Restore the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
-            # Close the computation.
             res << (" " * (level*3))
-            res << "dst; })"
+            res << "select(#{expressions.size});\n"
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
     end
@@ -2370,35 +2444,21 @@ module HDLRuby::Low
         # Generates the C text for the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(res,level = 0)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Gather the content to concat.
             expressions = self.each_expression.to_a
-            # Create the resulting string.
-            res << (" " * (level*3))
-            res << "{\n"
-            # Overrides the upper src0, src1, ..., and dst...
-            # And allocates a new value for dst.
-            res << (" " * ((level+1)*3))
-            res << "Value "
-            res << expressions.size.times.map do |i| 
-                "src#{i}"
-            end.join(",")
-            res << ";\n"
             # Compute each sub expression.
             expressions.each_with_index do |expr,i|
                 expr.to_c(res,level+2)
-                res << (" " * ((level+1)*3))
-                res << "src#{i} = d;\n"
             end
-            # Compute the direction.
             # Compute the resulting concatenation.
             res << (" " * ((level+1)*3))
-            res << "d=sconcat(#{expressions.size},"
+            res << "sconcat(#{expressions.size},"
             res << (self.type.direction == :little ? "1" : "0")
-            res << ",d,"
-            res << expressions.size.times.map { |i| "src#{i}" }.join(",")
             res << ");\n"
-            res << (" " * (level*3))
-            res << "}\n"
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
 
@@ -2419,9 +2479,8 @@ module HDLRuby::Low
             res << ";\n"
             res << (" " * ((level+1)*3))
             res << "Value dst = get_value();\n"
-            # Save the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "unsigned int pool_state = get_value_pos();\n"
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Compute each sub expression.
             expressions.each_with_index do |expr,i|
                 res << (" " * ((level+1)*3))
@@ -2436,9 +2495,8 @@ module HDLRuby::Low
             res << "#{self.type.direction == :little ? 1 : 0},dst,"
             res << expressions.size.times.map { |i| "src#{i}" }.join(",")
             res << ");\n"
-            # Restore the state of the value pool.
-            res << (" " * ((level+1)*3))
-            res << "set_value_pos(pool_state);\n"
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Close the computation.
             res << (" " * (level*3))
             res << "dst; })"
@@ -2546,23 +2604,24 @@ module HDLRuby::Low
         # +level+ is thehierachical level of the object and
         # +left+ tells if it is a left value or not.
         def to_c(res,level = 0, left = false)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Compute the reference.
             self.ref.to_c(res,level)
-            res << (" " * (level*3))
-            res << "l=d;\n"
             # Compute the index.
             self.index.to_c(res,level)
             res << (" " * (level*3))
-            res << "i=value2integer(d);\n"
             # Make the access.
             res << (" " * (level*3))
             if (left) then
-                res << "d=swrite(l,i,i,"
+                res << "d=swriteI("
             else
-                res << "d=sread(l,i,i,"
+                res << "d=sreadI("
             end
             self.type.to_c(res,level)
             res << ");\n"
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
 
@@ -2659,24 +2718,25 @@ module HDLRuby::Low
         #     return res
         # end
         def to_c(res,level = 0, left = false)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "SV;\n"
             # Compute the reference.
             self.ref.to_c(res,level)
-            res << (" " * (level*3))
-            res << "l=d;\n"
+            # res << (" " * (level*3))
             # Compute the range.
             self.range.first.to_c(res,level)
-            res << (" " * (level*3))
-            res << "i=value2integer(d);\n"
             self.range.last.to_c(res,level)
             # Make the access.
             res << (" " * (level*3))
             if left then
-                res << "d=swrite(l,i,value2integer(d),"
+                res << "swriteR("
             else
-                res << "d=sread(l,i,value2integer(d),"
+                res << "d=sreadR("
             end
             self.type.base.to_c(res,level)
             res << ");\n"
+            # Restore the value pool state.
+            res << (" " * (level*3)) << "RV;\n"
             return res
         end
 
@@ -2731,10 +2791,12 @@ module HDLRuby::Low
             # return res
             # puts "RefName to_c for #{self.name}"
             res << (" " * (level*3))
-            res << "d="
+            # res << "d="
+            res << "push("
             self.resolve.to_c_signal(res,level+1)
             res << "->" << (left ? "f_value" : "c_value")
-            res << ";\n"
+            # res << ";\n"
+            res << ");\n"
             return res
         end
 
