@@ -1961,19 +1961,6 @@ module HDLRuby::Low
                 str = self.content.is_a?(BitString) ?
                     self.content.to_s : self.content.to_s(2).rjust(32,"0")
             else
-                if (self.content.abs.width <= Low2C.int_width) then
-                    # Fast short cut for small values.
-                    res << " " * (level+1)*3
-                    res << "static unsigned int data[] = { "
-                    res << self.content.to_s << "};\n"
-                    res << " " * (level+1)*3
-                    res << "return make_set_value("
-                    self.type.to_c(res,level+1)
-                    res << ",1,data);\n" 
-                    res << " " * level*3
-                    res << "}"
-                    return res
-                end
                 # sign = self.content>=0 ? "0" : "1"
                 # str = self.content.abs.to_s(2).rjust(width,sign).upcase
                 if self.content >= 0 then
