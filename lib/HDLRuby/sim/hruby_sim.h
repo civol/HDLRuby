@@ -775,13 +775,28 @@ extern Value cast(Type typ);
  * @param dir the direction. */
 extern Value sconcat(int num, int dir);
 
-/* Read access calculation.
- * @param typ   the data type of the access. */
-extern Value sread(Type typ);
+/* Index read calculation.
+ * @param typ the data type of the access. */
+extern Value sreadI(Type typ);
 
-/* Write access calculation.
- * @param typ   the data type of the access. */
-extern Value swrite(Type typ);
+/* Index write calculation.
+ * @param typ the data type of the access. */
+extern swriteI(Type typ);
+
+/* Range read calculation.
+ * @param typ the data type of the access. */
+extern sreadR(Type typ);
+
+/* Range write calculation.
+ * @param typ the data type of the access. */
+Value swriteR(Type typ) {
+    // printf("swriteR\n");
+    Value dst = get_value();
+    unsigned long long last = value2integer(pop());
+    unsigned long long first = value2integer(pop());
+    dst = write_range(pop(),first,last,typ,dst);
+    return dst;
+}
 
 /* Transmit a value to a signal in parallel. 
  * @param sig the signal to transmit to. */
