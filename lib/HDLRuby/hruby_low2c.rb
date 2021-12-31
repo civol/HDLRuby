@@ -835,8 +835,6 @@ module HDLRuby::Low
         def to_c(res,level = 0)
             # The resulting string.
             # res = ""
-            # TEMPORARY
-            return res
 
             # Declare the global variable holding the signal.
             # res << "SignalI #{self.to_c_signal(level+1)};\n\n"
@@ -1942,6 +1940,8 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         # def to_c_make(level = 0)
         def to_c_make(res,level = 0)
+            # TEMPORARY
+            return res
             # Check is the value maker is already present.
             maker = Low2C.make_name(self);
             # return "" if @@made_values.include?(maker)
