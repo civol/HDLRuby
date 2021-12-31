@@ -835,6 +835,8 @@ module HDLRuby::Low
         def to_c(res,level = 0)
             # The resulting string.
             # res = ""
+            # TEMPORARY
+            return res
 
             # Declare the global variable holding the signal.
             # res << "SignalI #{self.to_c_signal(level+1)};\n\n"
