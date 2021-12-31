@@ -1934,24 +1934,25 @@ module HDLRuby::Low
             return res
         end
 
-        @@made_values = []
+        @@made_values = Set.new
 
         # Generates the text of the equivalent c.
         # +level+ is the hierachical level of the object.
         # def to_c_make(level = 0)
         def to_c_make(res,level = 0)
-            # # Check is the value maker is already present.
-            # maker = Low2C.make_name(self);
-            # # return "" if @@made_values.include?(maker)
-            # return res if @@made_values.include?(maker)
-            # @@made_values << maker
+            # Check is the value maker is already present.
+            maker = Low2C.make_name(self);
+            # return "" if @@made_values.include?(maker)
+            return res if @@made_values.include?(maker)
+            @@made_values.add(maker)
 
             # The resulting string.
             # res = ""
 
             # The header of the value generation.
             res << " " * level*3
-            res << "Value " << Low2C.make_name(self) << "() {\n"
+            # res << "Value " << Low2C.make_name(self) << "() {\n"
+            res << "Value " << maker << "() {\n"
 
             # Declares the data.
             # Create the bit string.
