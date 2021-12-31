@@ -69,10 +69,11 @@ void set_value_pos(unsigned int pos) {
 static unsigned int pool_state_stack[POOL_STATE_STACK_SIZE];
 static int pool_state_head = POOL_STATE_STACK_SIZE;
 
-/** Saves to current state of the value pool to the pool state stack. */
+/** Saves to current state of the value pool to the pool state stack.
+ *  NOTE: +1 is for anticipating a further allocation. */
 extern void save_value_pos() {
     if (pool_state_head > 0) {
-        pool_state_stack[--pool_state_head] = get_value_pos();
+        pool_state_stack[--pool_state_head] = get_value_pos()+1;
     } else {
         perror("Pool state stack full.");
         exit(1);

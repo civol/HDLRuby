@@ -400,7 +400,8 @@ extern unsigned int get_value_pos();
  *  @param pos the new position in the pool */
 extern void set_value_pos(unsigned int pos);
 
-/** Saves to current state of the value pool to the pool state stack. */
+/** Saves the current state+1 of the value pool to the pool state stack.
+ *  NOTE: +1 is for anticipating a further allocation. */
 extern void save_value_pos();
 #define SV save_value_pos();
 

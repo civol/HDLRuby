@@ -83,9 +83,10 @@ Value binary(Value (*oper)(Value,Value,Value)) {
  *  @return the destination.
  **/
 Value cast(Type typ) {
-    // printf("cast\n");
+    // printf("cast\n"); 
     Value dst = get_value();
-    dst = cast_value(pop(),typ,dst);
+    Value src = pop();
+    dst = cast_value(src,typ,dst);
     push(dst);
     return dst;
 }
