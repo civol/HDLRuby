@@ -781,22 +781,15 @@ extern Value sreadI(Type typ);
 
 /* Index write calculation.
  * @param typ the data type of the access. */
-extern swriteI(Type typ);
+extern Value swriteI(Type typ);
 
 /* Range read calculation.
  * @param typ the data type of the access. */
-extern sreadR(Type typ);
+extern Value sreadR(Type typ);
 
 /* Range write calculation.
  * @param typ the data type of the access. */
-Value swriteR(Type typ) {
-    // printf("swriteR\n");
-    Value dst = get_value();
-    unsigned long long last = value2integer(pop());
-    unsigned long long first = value2integer(pop());
-    dst = write_range(pop(),first,last,typ,dst);
-    return dst;
-}
+extern Value swriteR(Type typ);
 
 /* Transmit a value to a signal in parallel. 
  * @param sig the signal to transmit to. */
