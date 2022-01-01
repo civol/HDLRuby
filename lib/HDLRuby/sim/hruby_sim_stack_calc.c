@@ -58,7 +58,7 @@ static Value* popn(int num) {
  **/
 Value unary(Value (*oper)(Value,Value)) {
     // printf("unary\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     dst = oper(pop(),dst);
     push(dst);
     return dst;
@@ -70,7 +70,7 @@ Value unary(Value (*oper)(Value,Value)) {
  **/
 Value binary(Value (*oper)(Value,Value,Value)) {
     // printf("binary\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     Value r = pop();
     Value l = pop();
     dst = oper(l,r,dst);
@@ -84,7 +84,7 @@ Value binary(Value (*oper)(Value,Value,Value)) {
  **/
 Value cast(Type typ) {
     // printf("cast\n"); 
-    Value dst = get_value();
+    Value dst = get_top_value();
     Value src = pop();
     dst = cast_value(src,typ,dst);
     push(dst);
@@ -96,7 +96,7 @@ Value cast(Type typ) {
  * @param dir the direction. */
 Value sconcat(int num, int dir) {
     // printf("sconcat\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     dst = concat_valueP(num,dir,dst,popn(num));
     return dst;
 }
@@ -105,7 +105,7 @@ Value sconcat(int num, int dir) {
  * @param typ the data type of the access. */
 Value sreadI(Type typ) {
     // printf("sreadI\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     unsigned long long idx = value2integer(pop());
     dst = read_range(pop(),idx,idx,typ,dst);
     return dst;
@@ -115,7 +115,7 @@ Value sreadI(Type typ) {
  * @param typ the data type of the access. */
 Value swriteI(Type typ) {
     // printf("swriteI\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     unsigned long long idx = value2integer(pop());
     dst = write_range(pop(),idx,idx,typ,dst);
     return dst;
@@ -125,7 +125,7 @@ Value swriteI(Type typ) {
  * @param typ the data type of the access. */
 Value sreadR(Type typ) {
     // printf("sreadR\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     unsigned long long last = value2integer(pop());
     unsigned long long first = value2integer(pop());
     dst = read_range(pop(),first,last,typ,dst);
@@ -136,7 +136,7 @@ Value sreadR(Type typ) {
  * @param typ the data type of the access. */
 Value swriteR(Type typ) {
     // printf("swriteR\n");
-    Value dst = get_value();
+    Value dst = get_top_value();
     unsigned long long last = value2integer(pop());
     unsigned long long first = value2integer(pop());
     dst = write_range(pop(),first,last,typ,dst);

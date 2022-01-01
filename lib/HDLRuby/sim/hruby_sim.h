@@ -390,6 +390,9 @@ extern Elem remove_list(List list);
 /** Get a fresh value. */
 extern Value get_value();
 
+/** Get the current top value. */
+Value get_top_value();
+
 /** Frees the last value of the pool. */
 extern void free_value();
 
@@ -400,13 +403,14 @@ extern unsigned int get_value_pos();
  *  @param pos the new position in the pool */
 extern void set_value_pos(unsigned int pos);
 
-/** Saves the current state+1 of the value pool to the pool state stack.
- *  NOTE: +1 is for anticipating a further allocation. */
+/** Saves the current state+1 of the value pool to the pool state stack. */
 extern void save_value_pos();
-#define SV save_value_pos();
 
 /** Restores the state of the value pool from the state stack. */
 extern void restore_value_pos();
+
+/** Macros for short control of the pool of values. */
+#define SV get_value();save_value_pos();
 #define RV restore_value_pos();
 
 

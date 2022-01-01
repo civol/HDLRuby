@@ -47,6 +47,16 @@ Value get_value() {
     return pool_values[pool_pos++];
 }
 
+/** Get the current top value. */
+Value get_top_value() {
+    if (pool_pos > 0)
+        return pool_values[pool_pos-1];
+    else {
+        perror("Pool of values is empty.");
+        exit(1);
+    }
+}
+
 /** Frees the last value of the pool. */
 void free_value() {
     if (pool_pos > 0) pool_pos--;
@@ -69,11 +79,10 @@ void set_value_pos(unsigned int pos) {
 static unsigned int pool_state_stack[POOL_STATE_STACK_SIZE];
 static int pool_state_head = POOL_STATE_STACK_SIZE;
 
-/** Saves to current state of the value pool to the pool state stack.
- *  NOTE: +1 is for anticipating a further allocation. */
+/** Saves to current state of the value pool to the pool state stack. */
 extern void save_value_pos() {
     if (pool_state_head > 0) {
-        pool_state_stack[--pool_state_head] = get_value_pos()+1;
+        pool_state_stack[--pool_state_head] = get_value_pos();
     } else {
         perror("Pool state stack full.");
         exit(1);
