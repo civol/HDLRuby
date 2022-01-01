@@ -2652,11 +2652,11 @@ module HDLRuby::Low
             res << ",value2integer(({\n"
             self.index.to_c(res,level)
             res << " " * ((level+1)*3)
-            res << "d;})"
+            res << "pop();})"
             res << "),value2integer(({\n"
             self.index.to_c(res,level)
             res << " " * ((level+1)*3)
-            res << "d;})"
+            res << "pop();})"
             res << "))"
             return res
         end
@@ -2765,11 +2765,11 @@ module HDLRuby::Low
             res << ",value2integer(({\n"
             self.range.first.to_c(res,level)
             res << " " * ((level+1)*3)
-            res << "d;})"
+            res << "pop();})"
             res << "),value2integer(({\n"
             self.range.last.to_c(res,level)
             res << " " * ((level+1)*3)
-            res << "d;})"
+            res << "pop();})"
             res << "))"
             return res
         end
