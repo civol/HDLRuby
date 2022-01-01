@@ -796,18 +796,28 @@ extern Value sreadR(Type typ);
  * @param typ the data type of the access. */
 extern Value swriteR(Type typ);
 
-/* Transmit a value to a signal in parallel. 
+/** Check if the top value is defined. */
+extern int is_defined();
+
+/** Convert the top value to an integer. */
+extern unsigned long long to_integer();
+
+/** Check if a value is true.
+ *  Actually check if it is defined and convert it to integer. */
+extern unsigned long long is_true();
+
+/* Transmit the top value to a signal in parallel. 
  * @param sig the signal to transmit to. */
 extern void transmit(SignalI sig);
 
-/* Transmit a value to a signal in sequence.
+/* Transmit the top value to a signal in sequence.
  * @param sig the signal to transmit to. */
 extern void transmit_seq(SignalI sig);
 
-/* Transmit a value to a range in a signal in parallel. 
+/* Transmit the top value to a range in a signal in parallel. 
  * @param ref the ref to the range of the signal to transmit to. */
 extern void transmitR(RefRangeS ref);
 
-/* Transmit a value to a range in a signal in sequence. 
+/* Transmit the top value to a range in a signal in sequence. 
  * @param ref the ref to the range of the signal to transmit to. */
 extern void transmitR_seq(RefRangeS ref);

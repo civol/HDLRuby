@@ -143,29 +143,50 @@ Value swriteR(Type typ) {
     return dst;
 }
 
-/* Transmit a value to a signal in parallel. 
- * @param sig the signal to transmit to. */
+/** Check if the top value is defined. */
+int is_defined() {
+    return is_defined_value(pop());
+}
+
+/** Convert the top value to an integer. */
+unsigned long long to_integer() {
+    return value2integer(pop());
+}
+
+/** Check if a value is true.
+ *  Actually check if it is defined and convert it to integer. */
+unsigned long long is_true() {
+    Value val = pop();
+    if (is_defined_value(val)) {
+        return value2integer(val);
+    } else {
+        return 0;
+    }
+}
+
+/** Transmit the top value to a signal in parallel. 
+ *  @param sig the signal to transmit to. */
 void transmit(SignalI sig) {
     // printf("transmit\n");
     transmit_to_signal(pop(),sig);
 }
 
-/* Transmit a value to a signal in sequence.
- * @param sig the signal to transmit to. */
+/** Transmit the top value to a signal in sequence.
+ *  @param sig the signal to transmit to. */
 void transmit_seq(SignalI sig) {
     // printf("transmit_seq\n");
     transmit_to_signal_seq(pop(),sig);
 }
 
-/* Transmit a value to a range in a signal in parallel. 
- * @param ref the ref to the range of the signal to transmit to. */
+/** Transmit a value to a range in a signal in parallel. 
+ *  @param ref the ref to the range of the signal to transmit to. */
 void transmitR(RefRangeS ref) {
     // printf("transmitR\n");
     transmit_to_signal_range(pop(),ref);
 }
 
-/* Transmit a value to a range in a signal in sequence. 
- * @param ref the ref to the range of the signal to transmit to. */
+/** Transmit a value to a range in a signal in sequence. 
+ *  @param ref the ref to the range of the signal to transmit to. */
 void transmitR_seq(RefRangeS ref) {
     // printf("transmitR_seq\n");
     transmit_to_signal_range_seq(pop(),ref);

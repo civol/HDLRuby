@@ -1443,33 +1443,26 @@ module HDLRuby::Low
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(res,level = 0)
-            # The result string.
-            # res = " " * level*3
             res << " " * level*3
             # Compute the condition.
-            res << "{\n"
-            self.condition.to_c(res,level+1)
-            res << ";\n"
-            # Ensure the condition is testable.
-            res << " " * (level+1)*3
-            res << "if (is_defined_value(d)) {\n"
-            # The condition is testable.
-            res << " " * (level+2)*3
-            res << "if (value2integer(d)) {\n"
+            self.condition.to_c(res,level)
+            # Check is the value is true.
+            res << " " * level*3
+            res << "if (is_true()) {\n"
             # Generate the yes part.
-            self.yes.to_c(res,level+3)
+            self.yes.to_c(res,level+1)
             res << " " * level*3
             res << "}\n"
             # Generate the alternate if parts.
             self.each_noif do |cond,stmnt|
                 res << " " * (level*3)
-                res << "else if (value2integer(({\n"
+                res << "else {\n"
                 cond.to_c(res,level+1)
+                # Check is the value is true.
+                res << " " * (level+1)*3
+                res << "if (is_true()) {\n"
+                stmnt.to_c(res,level+2)
                 res << " " * ((level+1)*3)
-                res << "d;})"
-                res << ")) {\n"
-                stmnt.to_c(res,level+1)
-                res << " " * (level*3)
                 res << "}\n"
             end
             # Generate the no part if any.
@@ -1480,11 +1473,16 @@ module HDLRuby::Low
                 res << " " * level*3
                 res << "}\n"
             end
-            # Close the if.
-            res << " " * ((level+1)*3)
-            res << "}\n"
-            res << " " * (level*3)
-            res << "}\n"
+            # Close the noifs.
+            self.each_noif do |cond,stmnt|
+                res << " " * (level*3)
+                res << "}\n"
+            end
+            # # Close the if.
+            # res << " " * ((level+1)*3)
+            # res << "}\n"
+            # res << " " * (level*3)
+            # res << "}\n"
             # Return the result.
             return res
         end
@@ -1762,9 +1760,9 @@ module HDLRuby::Low
             res << " " * level*3
             res << "void " << Low2C.code_name(self) << "() {\n"
             res << " " * (level+1)*3
-            res << "Value l,r,d;\n"
-            res << " " * (level+1)*3
-            res << "unsigned long long i;\n"
+            # res << "Value l,r,d;\n"
+            # res << " " * (level+1)*3
+            # res << "unsigned long long i;\n"
             # res << "printf(\"Executing #{Low2C.code_name(self)}...\\n\");"
             # Generate the statements.
             self.each_statement do |stmnt|
@@ -1849,8 +1847,8 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # res = " " * (level)
-            res << " " * (level)
+            # res = " " * (level*3)
+            res << " " * (level*3)
             res << Low2C.code_name(self) << "();\n"
             return res
         end
