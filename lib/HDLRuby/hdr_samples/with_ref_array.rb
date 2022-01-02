@@ -4,10 +4,10 @@ system :with_concat do
     [8].inner :count
     [8].inner :val0,:val1
     [3].inner :val2
-    [4].inner :val3
+    [8].inner :val3
 
     val2 <= val0[4..2]
-    val3 <= val1[7..4]
+    val3[6..3] <= val1[7..4]
 
     timed do
         val0 <= _00001111
