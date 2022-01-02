@@ -42,9 +42,9 @@ Value pop() {
  *  @param num the number of values to pop.
  *  @return a pointer on the first value (in heap order!). */
 static Value* popn(int num) {
-    if (head+num < STACK_SIZE) {
+    if (head+num <= STACK_SIZE) {
         head += num;
-        return &stack[head];
+        return &stack[head-num];
     } else {
         perror("Not enough values in computation stack.\n");
         exit(1);
@@ -95,9 +95,14 @@ Value cast(Type typ) {
  * @param num the number of values to concat.
  * @param dir the direction. */
 Value sconcat(int num, int dir) {
-    // printf("sconcat\n");
+    Value* vals = alloca(num*sizeof(Value));
     Value dst = get_top_value();
-    dst = concat_valueP(num,dir,dst,popn(num));
+    int i;
+    // printf("sconcat\n");
+    /* Get the values to concat from the stack. */
+    for(i=1;i<=num;++i) vals[num-i] = pop();
+    dst = concat_valueP(num,dir,dst,vals);
+    push(dst);
     return dst;
 }
 
@@ -108,6 +113,7 @@ Value sreadI(Type typ) {
     Value dst = get_top_value();
     unsigned long long idx = value2integer(pop());
     dst = read_range(pop(),idx,idx,typ,dst);
+    push(dst);
     return dst;
 }
 
@@ -118,6 +124,7 @@ Value swriteI(Type typ) {
     Value dst = get_top_value();
     unsigned long long idx = value2integer(pop());
     dst = write_range(pop(),idx,idx,typ,dst);
+    push(dst);
     return dst;
 }
 
@@ -129,6 +136,7 @@ Value sreadR(Type typ) {
     unsigned long long last = value2integer(pop());
     unsigned long long first = value2integer(pop());
     dst = read_range(pop(),first,last,typ,dst);
+    push(dst);
     return dst;
 }
 
@@ -140,6 +148,7 @@ Value swriteR(Type typ) {
     unsigned long long last = value2integer(pop());
     unsigned long long first = value2integer(pop());
     dst = write_range(pop(),first,last,typ,dst);
+    push(dst);
     return dst;
 }
 
