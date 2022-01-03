@@ -38,6 +38,17 @@ Value pop() {
     }
 }
 
+/** Access the top value of the stack without removing it.
+ *  @return the value. */
+Value peek() {
+    if (head < STACK_SIZE) {
+        return stack[head];
+    } else {
+        perror("Computation stack empty.\n");
+        exit(1);
+    }
+}
+
 /** Pops multiple values.
  *  @param num the number of values to pop.
  *  @return a pointer on the first value (in heap order!). */

@@ -757,6 +757,10 @@ extern void push(Value val);
  *  @return the value. */
 extern Value pop();
 
+/** Access the top value of the stack without removing it.
+ *  @return the value. */
+extern Value peek();
+
 /** Unary calculation.
  *  @param oper the operator function
  *  @return the destination
