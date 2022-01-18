@@ -410,7 +410,8 @@ extern void save_value_pos();
 extern void restore_value_pos();
 
 /** Macros for short control of the pool of values. */
-#define SV get_value();save_value_pos();
+#define SV save_value_pos();
+#define PV push(get_value());save_value_pos();
 #define RV restore_value_pos();
 
 

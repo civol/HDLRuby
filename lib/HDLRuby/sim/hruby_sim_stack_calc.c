@@ -69,10 +69,11 @@ static Value* popn(int num) {
  **/
 Value unary(Value (*oper)(Value,Value)) {
     // printf("unary\n");
-    Value dst = get_top_value();
-    dst = oper(pop(),dst);
-    push(dst);
-    return dst;
+    // Value dst = get_top_value();
+    // dst = oper(pop(),dst);
+    // push(dst);
+    // return dst;
+    return oper(pop(),peek());
 }
 
 /** Binary calculation.
@@ -81,12 +82,15 @@ Value unary(Value (*oper)(Value,Value)) {
  **/
 Value binary(Value (*oper)(Value,Value,Value)) {
     // printf("binary\n");
-    Value dst = get_top_value();
+    // Value dst = get_top_value();
+    // Value r = pop();
+    // Value l = pop();
+    // dst = oper(l,r,dst);
+    // push(dst);
+    // return dst;
     Value r = pop();
     Value l = pop();
-    dst = oper(l,r,dst);
-    push(dst);
-    return dst;
+    return oper(l,r,peek());
 }
 
 /** Cast calculation.
@@ -95,72 +99,93 @@ Value binary(Value (*oper)(Value,Value,Value)) {
  **/
 Value cast(Type typ) {
     // printf("cast\n"); 
-    Value dst = get_top_value();
-    Value src = pop();
-    dst = cast_value(src,typ,dst);
-    push(dst);
-    return dst;
+    // Value dst = get_top_value();
+    // Value src = pop();
+    // dst = cast_value(src,typ,dst);
+    // push(dst);
+    // return dst;
+    return cast_value(pop(),typ,peek());
 }
 
 /* Concat values.
  * @param num the number of values to concat.
  * @param dir the direction. */
 Value sconcat(int num, int dir) {
+    // Value* vals = alloca(num*sizeof(Value));
+    // Value dst = get_top_value();
+    // int i;
+    // // printf("sconcat\n");
+    // /* Get the values to concat from the stack. */
+    // for(i=1;i<=num;++i) vals[num-i] = pop();
+    // dst = concat_valueP(num,dir,dst,vals);
+    // push(dst);
+    // return dst;
     Value* vals = alloca(num*sizeof(Value));
-    Value dst = get_top_value();
     int i;
     // printf("sconcat\n");
     /* Get the values to concat from the stack. */
     for(i=1;i<=num;++i) vals[num-i] = pop();
-    dst = concat_valueP(num,dir,dst,vals);
-    push(dst);
-    return dst;
+    return concat_valueP(num,dir,peek(),vals);
 }
 
 /* Index read calculation.
  * @param typ the data type of the access. */
 Value sreadI(Type typ) {
+    // // printf("sreadI\n");
+    // Value dst = get_top_value();
+    // unsigned long long idx = value2integer(pop());
+    // dst = read_range(pop(),idx,idx,typ,dst);
+    // push(dst);
+    // return dst;
     // printf("sreadI\n");
-    Value dst = get_top_value();
     unsigned long long idx = value2integer(pop());
-    dst = read_range(pop(),idx,idx,typ,dst);
-    push(dst);
-    return dst;
+    return read_range(pop(),idx,idx,typ,peek());
 }
 
 /* Index write calculation.
  * @param typ the data type of the access. */
 Value swriteI(Type typ) {
+    // // printf("swriteI\n");
+    // Value dst = get_top_value();
+    // unsigned long long idx = value2integer(pop());
+    // dst = write_range(pop(),idx,idx,typ,dst);
+    // push(dst);
+    // return dst;
     // printf("swriteI\n");
-    Value dst = get_top_value();
     unsigned long long idx = value2integer(pop());
-    dst = write_range(pop(),idx,idx,typ,dst);
-    push(dst);
-    return dst;
+    return write_range(pop(),idx,idx,typ,peek());
 }
 
 /* Range read calculation.
  * @param typ the data type of the access. */
 Value sreadR(Type typ) {
+    // // printf("sreadR\n");
+    // Value dst = get_top_value();
+    // unsigned long long last = value2integer(pop());
+    // unsigned long long first = value2integer(pop());
+    // dst = read_range(pop(),first,last,typ,dst);
+    // push(dst);
+    // return dst;
     // printf("sreadR\n");
-    Value dst = get_top_value();
     unsigned long long last = value2integer(pop());
     unsigned long long first = value2integer(pop());
-    dst = read_range(pop(),first,last,typ,dst);
-    push(dst);
-    return dst;
+    return read_range(pop(),first,last,typ,peek());
 }
 
 /* Range write calculation.
  * @param typ the data type of the access. */
 Value swriteR(Type typ) {
+    // // printf("swriteR\n");
+    // Value dst = get_top_value();
+    // unsigned long long last = value2integer(pop());
+    // unsigned long long first = value2integer(pop());
+    // dst = write_range(pop(),first,last,typ,dst);
+    // push(dst);
+    // return dst;
     // printf("swriteR\n");
-    Value dst = get_top_value();
     unsigned long long last = value2integer(pop());
     unsigned long long first = value2integer(pop());
-    dst = write_range(pop(),first,last,typ,dst);
-    push(dst);
-    return dst;
+    return write_range(pop(),first,last,typ,peek());
 }
 
 /** Check if the top value is defined. */

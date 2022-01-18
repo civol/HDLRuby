@@ -1360,7 +1360,7 @@ module HDLRuby::Low
         # def to_c(level = 0)
         def to_c(res,level = 0)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Generate the print for each argument.
             self.each_arg do |arg|
                 if (arg.is_a?(StringE)) then
@@ -2056,7 +2056,7 @@ module HDLRuby::Low
         # def to_c(level = 0)
         def to_c(res,level = 0)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Generate the child.
             self.child.to_c(res,level)
             res << (" " * (level*3))
@@ -2144,7 +2144,7 @@ module HDLRuby::Low
             end
             # Some computation required.
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Generate the child.
             self.child.to_c(res,level)
             res << (" " * (level*3))
@@ -2256,7 +2256,7 @@ module HDLRuby::Low
         # def to_c(level = 0)
         def to_c(res, level = 0)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Generate the left computation.
             self.left.to_c(res,level)
             # Generate the right computation.
@@ -2375,7 +2375,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_c(res,level = 0)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Gather the possible selection choices.
             expressions = self.each_choice.to_a
             # Create the resulting string.
@@ -2444,7 +2444,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_c(res,level = 0)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Gather the content to concat.
             expressions = self.each_expression.to_a
             # Compute each sub expression.
@@ -2604,7 +2604,7 @@ module HDLRuby::Low
         # +left+ tells if it is a left value or not.
         def to_c(res,level = 0, left = false)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Compute the reference.
             self.ref.to_c(res,level)
             # Compute the index.
@@ -2718,7 +2718,7 @@ module HDLRuby::Low
         # end
         def to_c(res,level = 0, left = false)
             # Save the value pool state.
-            res << (" " * (level*3)) << "SV;\n"
+            res << (" " * (level*3)) << "PV;\n"
             # Compute the reference.
             self.ref.to_c(res,level)
             # res << (" " * (level*3))
