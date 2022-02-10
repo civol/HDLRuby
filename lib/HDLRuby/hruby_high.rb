@@ -256,9 +256,9 @@ module HDLRuby::High
                                     SignalI.new(name,type,:inner))
                             elsif name.is_a?(Hash) then
                                 # Names associated with values.
-                                names.each do |name,value|
+                                name.each do |key,value|
                                     res = self.add_inner(
-                                        SignalI.new(name,type,:inner,value))
+                                        SignalI.new(key,type,:inner,value))
                                 end
                             else
                                 raise AnyError,
@@ -3496,7 +3496,8 @@ module HDLRuby::High
         # Converts the system to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
             # return HDLRuby::Low::SignalI.new(name,self.type.to_low)
-            signalIL = HDLRuby::Low::SignalI.new(name,self.type.to_low)
+            valueL = self.value ? self.value.to_low : nil
+            signalIL = HDLRuby::Low::SignalI.new(name,self.type.to_low,valueL)
             # # For debugging: set the source high object 
             # signalIL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = signalIL
