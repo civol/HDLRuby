@@ -5342,7 +5342,8 @@ module HDLRuby::Low
         def initialize(type,ref,index)
             super(type)
             # Check and set the accessed reference.
-            unless ref.is_a?(Ref) then
+            # unless ref.is_a?(Ref) then
+            unless ref.is_a?(Expression) then
                 raise AnyError, "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref

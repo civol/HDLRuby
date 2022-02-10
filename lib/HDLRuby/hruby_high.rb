@@ -3081,7 +3081,8 @@ module HDLRuby::High
         # Converts to a new reference.
         def to_ref
             return RefIndex.new(self.type,
-                                self.ref.to_ref,self.index.to_expr)
+                                # self.ref.to_ref,self.index.to_expr)
+                                self.ref.to_expr,self.index.to_expr)
         end
 
         # Converts the index reference to HDLRuby::Low.
