@@ -754,6 +754,9 @@ extern Value write_range_no_z(Value src, long long first, long long last,
  *  @param val the value to push. */
 extern void push(Value val);
 
+/** Duplicates a value in the stack. */
+extern void dup();
+
 /** Pops a value.
  *  @return the value. */
 extern Value pop();

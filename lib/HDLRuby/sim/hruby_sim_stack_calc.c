@@ -27,6 +27,17 @@ void push(Value val) {
     }
 }
 
+/** Duplicates a value in the stack. */
+void dup() {
+    if (head > 0 && head < STACK_SIZE) {
+        Value val = stack[head];
+        stack[--head] = val;
+    } else {
+        perror("Cannot dup in computation stack.\n");
+        exit(1);
+    }
+}
+
 /** Pops a value.
  *  @return the value. */
 Value pop() {

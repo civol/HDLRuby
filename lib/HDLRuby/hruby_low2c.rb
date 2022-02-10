@@ -1610,26 +1610,18 @@ module HDLRuby::Low
             res << "{\n"
             self.value.to_c(res,level+1)
             res << " " * ((level+1)*3)
-            res << "Value v=d;\n"
+            res << "dup();\n"
             # Ensure the selection value is testable.
             res << " " * ((level+1)*3)
-            res << "if (is_defined_value(v)) {\n"
+            res << "if (is_defined()) {\n"
             # The condition is testable.
             # Generate the case as a succession of if statements.
-            first = true
             self.each_when do |w|
                 res << " " * ((level+2)*3)
-                if first then
-                    first = false
-                else
-                    res << "else "
-                end
-                res << "if (value2integer(v) == "
-                res << "value2integer(({\n"
+                res << "dup();\n"
                 res << " " * ((level+2)*3)
                 w.match.to_c(res,level+2)
-                res << "d;})"
-                res << ")) {\n"
+                res << "if (to_integer() == to_integer()) {\n"
                 w.statement.to_c(res,level+3)
                 res << " " * (level+2)*3
                 res << "}\n"
@@ -1642,6 +1634,8 @@ module HDLRuby::Low
                 res << "}\n"
             end
             # Close the case.
+            res << " " * (level+1)*3
+            res << "pop();\n" # Remove the testing value.
             res << " " * (level+1)*3
             res << "}\n"
             res << " " * (level)*3
