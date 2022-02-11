@@ -550,10 +550,14 @@ module HDLRuby::High
             expanded = self.class.new(name.to_s) {}
             # Include the mixin systems given when declaring the system.
             @to_includes.each { |system| expanded.scope.include(system) }
+            # Include the previously includeds. */
+            self.scope.each_included { |system| expanded.scope.include(system) }
 
             # Sets the generators of the expanded result.
             expanded.add_generator(self)
             @to_includes.each { |system| expanded.add_generator(system) }
+            # Also for the previously includeds. */
+            self.scope.each_included.each { |system| expanded.add_generator(system) }
 
             # Fills the scope of the expanded class.
             # puts "Build top with #{self.name} for #{name}"
@@ -1237,6 +1241,7 @@ module HDLRuby::High
             end
             # Adds it the list of includeds
             @includes[include_name] = system
+            # puts "@includes=#{@includes}"
             
         end
 
@@ -2033,10 +2038,25 @@ module HDLRuby::High
                 connects.each do |key,value|
                     # Gets the signal corresponding to connect.
                     signal = self.get_signal(key)
+                    unless signal then
+                        # Look into the included systems.
+                        self.systemT.scope.each_included do |included|
+                            signal = included.get_signal(key)
+                            break if signal
+                        end
+                    end
                     # Check if it is an output.
                     isout = self.get_output(key)
+                    unless isout then
+                        # Look into the inlucded systems.
+                        self.systemT.scope.each_included do |included|
+                            isout = included.get_output(key)
+                            break if isout
+                        end
+                    end
                     # Convert it to a reference.
                     ref = RefObject.new(self.to_ref,signal)
+                    # puts "key=#{key} value=#{value} signal=#{signal} ref=#{ref}"
                     # Make the connection.
                     if isout then
                         value <= ref
