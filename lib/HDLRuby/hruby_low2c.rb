@@ -356,8 +356,13 @@ module HDLRuby::Low
             end
             self.scope.each_block_deep do |block|
                 block.each_inner do |signal|
-                    # res << signal.value.to_ch if signal.value
-                    signal.value.to_ch(res) if signal.value
+                    # signal.value.to_ch(res) if signal.value
+                    if signal.value then
+                        signal.value.each_node_deep do |node|
+                            # res << node.to_ch if node.is_a?(Value)
+                            node.to_ch(res) if node.is_a?(Value)
+                        end
+                    end
                 end
                 block.each_node_deep do |node|
                     # res << node.to_ch if node.is_a?(Value)
