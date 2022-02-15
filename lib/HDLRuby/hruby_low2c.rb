@@ -2459,7 +2459,6 @@ module HDLRuby::Low
             res << (" " * (level*3)) << "RV;\n"
             return res
         end
-        alias_method :to_c_expr, :to_c
 
         # # Generates the C text of expression for the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -2501,6 +2500,24 @@ module HDLRuby::Low
         #     res << "dst; })"
         #     return res
         # end
+        def to_c_expr(res,level = 0)
+            # Save the value pool state.
+            res << "({ PV;"
+            # Gather the content to concat.
+            expressions = self.each_expression.to_a
+            # Compute each sub expression.
+            expressions.each_with_index do |expr,i|
+                expr.to_c(res,level+2)
+            end
+            # Compute the resulting concatenation.
+            res << (" " * ((level+1)*3))
+            res << "sconcat(#{expressions.size},"
+            res << (self.type.direction == :little ? "1" : "0")
+            res << ");\n"
+            # Restore the value pool state.
+            res << "RV; pop();})"
+            return res
+        end
     end
 
 
