@@ -2801,17 +2801,11 @@ module HDLRuby::Low
         # +left+ tells if it is a left value or not.
         # def to_c(level = 0, left = false)
         def to_c(res,level = 0, left = false)
-            # # puts "RefName to_c for #{self.name}"
-            # self.resolve.to_c_signal(res,level+1)
-            # res << "->" << (left ? "f_value" : "c_value")
-            # return res
             # puts "RefName to_c for #{self.name}"
             res << (" " * (level*3))
-            # res << "d="
             res << "push("
             self.resolve.to_c_signal(res,level+1)
             res << "->" << (left ? "f_value" : "c_value")
-            # res << ";\n"
             res << ");\n"
             return res
         end
