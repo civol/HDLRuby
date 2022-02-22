@@ -4058,6 +4058,7 @@ module HDLRuby::Low
 
         # Adds inner signal +signal+.
         def add_inner(signal)
+            # puts "add inner=#{signal.name} in block=#{self}"
             # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
@@ -4087,6 +4088,7 @@ module HDLRuby::Low
 
         ## Gets an inner signal by +name+.
         def get_inner(name)
+            # puts "name=#{name}, inners=#{@inners.each_key.to_a}"
             return @inners[name.to_sym]
         end
         alias_method :get_signal, :get_inner

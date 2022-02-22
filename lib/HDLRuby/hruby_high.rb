@@ -944,18 +944,20 @@ module HDLRuby::High
             # Set the namespace for buidling the scope.
             High.space_push(@namespace)
             # Build the scope.
-            # @return_value = High.top_user.instance_eval(&ruby_block)
-            res = High.top_user.instance_eval(&ruby_block)
+            @return_value = High.top_user.instance_eval(&ruby_block)
+            # res = High.top_user.instance_eval(&ruby_block)
             High.space_pop
-            # Now gain access to the result within the sub scope.
-            if (res.is_a?(HRef)) then
-                @return_value = res.type.inner(HDLRuby.uniq_name)
-                High.space_push(@namespace)
-                @return_value <= res
-                High.space_pop
-            else
-                @return_value = res
-            end
+            # # Now gain access to the result within the sub scope.
+            # # if (res.is_a?(HRef)) then
+            # if (res.is_a?(HExpression)) then
+            #     High.space_push(@namespace)
+            #     @return_value = res.type.inner(HDLRuby.uniq_name)
+            #     @return_value <= res
+            #     High.space_pop
+            #     @return_value = RefObject.new(self,@return_value)
+            # else
+            #     @return_value = res
+            # end
             # This will be the return value.
             @return_value
         end
@@ -1965,9 +1967,6 @@ module HDLRuby::High
                                                          &ruby_block)
                     # ruby_block.call(*args)
                 end
-                # sub do
-                #     ruby_block.call(*args,*other_block)
-                # end
             end
         else
             define_method(name.to_sym) do |*args,&other_block|
@@ -1975,10 +1974,8 @@ module HDLRuby::High
                 sub(HDLRuby.uniq_name(name)) do
                     HDLRuby::High.top_user.instance_exec(*args,*other_block,
                                                          &ruby_block)
+                    # ruby_block.call(*args,*other_block)
                 end
-                # sub do
-                #     ruby_block.call(*args,*other_block)
-                # end
             end
         end
     end
@@ -3007,6 +3004,7 @@ module HDLRuby::High
 
         # Creates a new reference from a +base+ reference and named +object+.
         def initialize(base,object)
+            # puts "New RefObjet with base=#{base}, object=#{object.name}"
             if object.respond_to?(:type) then
                 # Typed object, so typed reference.
                 super(object.type)
@@ -3043,7 +3041,7 @@ module HDLRuby::High
 
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # puts "to_low with base=#{@base} @object=#{@object}"
+            # puts "to_low with base=#{@base} @object=#{@object.name}"
             refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                              @base.to_ref.to_low,@object.name)
             # # For debugging: set the source high object 
@@ -3608,6 +3606,15 @@ module HDLRuby::High
             High.space_push(@namespace)
             @return_value = High.top_user.instance_eval(&ruby_block)
             High.space_pop
+            # if @return_value.is_a?(HExpression) then
+            #     res = @return_value
+            #     High.space_push(@namespace)
+            #     @return_value = res.type.inner(HDLRuby.uniq_name)
+            #     puts "@return_value name=#{@return_value.name}"
+            #     @return_value <= res
+            #     High.space_pop
+            #     @return_value = RefObject.new(self,@return_value)
+            # end
             @return_value
         end
 
@@ -3797,7 +3804,7 @@ module HDLRuby::High
         # Converts the block to HDLRuby::Low.
         def to_low
             # Create the resulting block
-            blockL = HDLRuby::Low::Block.new(self.mode)
+            blockL = HDLRuby::Low::Block.new(self.mode,self.name)
             # # For debugging: set the source high object 
             # blockL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = blockL
