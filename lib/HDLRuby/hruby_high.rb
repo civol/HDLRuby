@@ -133,6 +133,8 @@ module HDLRuby::High
     module Hmissing
         High = HDLRuby::High
 
+        NAMES = { }
+
         # Missing methods may be immediate values, if not, they are looked up
         # in the upper level of the namespace if any.
         def method_missing(m, *args, &ruby_block)
@@ -140,6 +142,20 @@ module HDLRuby::High
             # Is the missing method an immediate value?
             value = m.to_value
             return value if value and args.empty?
+            # Or is it a uniq name generator?
+            if (m[-1] == '?') then
+                # Yes
+                m = m[0..-2]
+                return NAMES[m] = HDLRuby.uniq_name(m)
+            end
+            # Is in a previous uniq name?
+            if (m[-1] == '!') then
+                pm = m[0..-2]
+                if NAMES.key?(pm) then
+                    # Yes, returns the current corresponding uniq name.
+                    return self.send(NAMES[pm],*args,&ruby_block)
+                end
+            end
             # No, is there an upper namespace, i.e. is the current object
             # present in the space?
             if High.space_index(self) then
