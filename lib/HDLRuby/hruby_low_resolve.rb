@@ -50,9 +50,25 @@ module HDLRuby::Low
             return found if found
             # Maybe it is a sub scope.
             return self.each_scope.find { |scope| scope.name == name }
+            # Maybe it in the behavior.
+            return self.behavior.get_by_name
         end
     end
 
+    ##
+    #  Extends Behavior with the capability of finding one of its inner object
+    #  by name.
+    class Behavior
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            if (self.block.name == name.to_sym) then
+                return self.block
+            end
+            return self.block.get_by_name(name)
+        end
+    end
 
     ##
     #  Extends SystemI with the capability of finding one of its inner object
@@ -79,7 +95,16 @@ module HDLRuby::Low
             # Ensure the name is a symbol.
             name = name.to_sym
             # Look in the signals.
-            return self.get_inner(name)
+            found = self.get_inner(name)
+            return found if found
+            # Check the sub blocks names.
+            self.each_block do |block|
+                # puts "block=#{block.name}"
+                if (block.name == name) then
+                    return block
+                end
+            end
+            return nil
         end
     end
 
@@ -199,6 +224,7 @@ module HDLRuby::Low
             if self.ref.is_a?(RefName) then
                 # puts "ref name=#{self.ref.name}"
                 obj = self.ref.resolve
+                # puts "obj=#{obj}"
                 # Look into the object for the name.
                 return obj.get_by_name(self.name)
             else
@@ -208,12 +234,15 @@ module HDLRuby::Low
                 while parent
                     # puts "parent=#{parent}"
                     if parent.respond_to?(:get_by_name) then
+                        # puts "get_by_name"
                         found = parent.get_by_name(self.name)
+                        # puts "found" if found
                         return found if found
                     end
                     parent = parent.parent
                 end
                 # Not found.
+                # puts "Not found!"
                 return nil
             end
         end
