@@ -1,5 +1,3 @@
-$count = 0
-
 # Rom access generator, def case.
 def rom_gen(addr,&func)
     bit[8][-8].constant tbl? => 8.times.map {|i| func.(i).to_i }
@@ -15,7 +13,7 @@ system :test_rom do
     data0 <= rom_gen(addr) { |i| i*i }
     data1 <= rom_gen(addr) { |i| i*i }
 
-    par(addr) do
+    par do
         data2 <= rom_gen(addr) { |i| i*i }
         data3 <= rom_gen(addr) { |i| i*i }
     end
