@@ -707,6 +707,10 @@ module HDLRuby::Low
                 end.to_a
                 # Keep only one ref per signal.
                 refs.uniq! { |node| node.full_name }
+                # Remove the inner signals from the list.
+                self.block.each_inner do |inner|
+                    refs.delete_if {|r| r.name == inner.name }
+                end
                 # Generate the event.
                 events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
                 # Add them to the behavior for further processing.
@@ -1898,6 +1902,16 @@ module HDLRuby::Low
             # Should never be here.
             raise AnyError, "Internal error: to_c should be implemented in class :#{self.class}"
         end
+
+        ## Generates the C text for an expression access to the expression,
+        #  default case.
+        #  +level+ is the hierachical level of the object.
+        def to_c_expr(res,level = 0)
+            res << "({"
+            self.to_c(res,level+1)
+            res << (" " * ((level+1)*3))
+            res << "pop();})"
+        end
     end
 
 
@@ -2460,64 +2474,64 @@ module HDLRuby::Low
             return res
         end
 
-        # # Generates the C text of expression for the equivalent HDLRuby code.
-        # # +level+ is the hierachical level of the object.
+        # # # Generates the C text of expression for the equivalent HDLRuby code.
+        # # # +level+ is the hierachical level of the object.
+        # # def to_c_expr(res,level = 0)
+        # #     # Gather the content to concat.
+        # #     expressions = self.each_expression.to_a
+        # #     # Create the resulting string.
+        # #     res << "({\n"
+        # #     # Overrides the upper src0, src1, ..., and dst...
+        # #     # And allocates a new value for dst.
+        # #     res << (" " * ((level+1)*3))
+        # #     res << "Value "
+        # #     res << expressions.size.times.map do |i| 
+        # #         "src#{i}"
+        # #     end.join(",")
+        # #     res << ";\n"
+        # #     res << (" " * ((level+1)*3))
+        # #     res << "Value dst = get_value();\n"
+        # #     # Save the value pool state.
+        # #     res << (" " * (level*3)) << "SV;\n"
+        # #     # Compute each sub expression.
+        # #     expressions.each_with_index do |expr,i|
+        # #         res << (" " * ((level+1)*3))
+        # #         res << "src#{i} = "
+        # #         expr.to_c_expr(res,level+2)
+        # #         res << ";\n"
+        # #     end
+        # #     # Compute the direction.
+        # #     # Compute the resulting concatenation.
+        # #     res << (" " * ((level+1)*3))
+        # #     res << "concat_value(#{expressions.size},"
+        # #     res << "#{self.type.direction == :little ? 1 : 0},dst,"
+        # #     res << expressions.size.times.map { |i| "src#{i}" }.join(",")
+        # #     res << ");\n"
+        # #     # Save the value pool state.
+        # #     res << (" " * (level*3)) << "SV;\n"
+        # #     # Close the computation.
+        # #     res << (" " * (level*3))
+        # #     res << "dst; })"
+        # #     return res
+        # # end
         # def to_c_expr(res,level = 0)
+        #     # Save the value pool state.
+        #     res << "({ PV;"
         #     # Gather the content to concat.
         #     expressions = self.each_expression.to_a
-        #     # Create the resulting string.
-        #     res << "({\n"
-        #     # Overrides the upper src0, src1, ..., and dst...
-        #     # And allocates a new value for dst.
-        #     res << (" " * ((level+1)*3))
-        #     res << "Value "
-        #     res << expressions.size.times.map do |i| 
-        #         "src#{i}"
-        #     end.join(",")
-        #     res << ";\n"
-        #     res << (" " * ((level+1)*3))
-        #     res << "Value dst = get_value();\n"
-        #     # Save the value pool state.
-        #     res << (" " * (level*3)) << "SV;\n"
         #     # Compute each sub expression.
         #     expressions.each_with_index do |expr,i|
-        #         res << (" " * ((level+1)*3))
-        #         res << "src#{i} = "
-        #         expr.to_c_expr(res,level+2)
-        #         res << ";\n"
+        #         expr.to_c(res,level+2)
         #     end
-        #     # Compute the direction.
         #     # Compute the resulting concatenation.
         #     res << (" " * ((level+1)*3))
-        #     res << "concat_value(#{expressions.size},"
-        #     res << "#{self.type.direction == :little ? 1 : 0},dst,"
-        #     res << expressions.size.times.map { |i| "src#{i}" }.join(",")
+        #     res << "sconcat(#{expressions.size},"
+        #     res << (self.type.direction == :little ? "1" : "0")
         #     res << ");\n"
-        #     # Save the value pool state.
-        #     res << (" " * (level*3)) << "SV;\n"
-        #     # Close the computation.
-        #     res << (" " * (level*3))
-        #     res << "dst; })"
+        #     # Restore the value pool state.
+        #     res << "RV; pop();})"
         #     return res
         # end
-        def to_c_expr(res,level = 0)
-            # Save the value pool state.
-            res << "({ PV;"
-            # Gather the content to concat.
-            expressions = self.each_expression.to_a
-            # Compute each sub expression.
-            expressions.each_with_index do |expr,i|
-                expr.to_c(res,level+2)
-            end
-            # Compute the resulting concatenation.
-            res << (" " * ((level+1)*3))
-            res << "sconcat(#{expressions.size},"
-            res << (self.type.direction == :little ? "1" : "0")
-            res << ");\n"
-            # Restore the value pool state.
-            res << "RV; pop();})"
-            return res
-        end
     end
 
 
