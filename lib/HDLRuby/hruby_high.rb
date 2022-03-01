@@ -848,8 +848,7 @@ module HDLRuby::High
             # Initialize the set of included systems.
             @includes = {}
 
-            # Builds the scope if a ruby block is provided
-            # (which means the scope is not the top of a system).
+            # Builds the scope if a ruby block is provided.
             self.build(&ruby_block) if block_given?
         end
 
@@ -1105,10 +1104,12 @@ module HDLRuby::High
         # Declares a sub scope with possible +name+ and built from +ruby_block+.
         def sub(name = :"", &ruby_block)
             # Creates the new scope.
-            scope = Scope.new(name,&ruby_block)
-            # puts "new scope=#{scope}"
+            # scope = Scope.new(name,&ruby_block)
+            scope = Scope.new(name)
             # Add it
             self.add_scope(scope)
+            # Build it.
+            scope.build(&ruby_block)
             # puts "self=#{self}"
             # puts "self scopes=#{self.each_scope.to_a.join(",")}"
             # Use its return value
