@@ -900,11 +900,12 @@ module HDLRuby::Low
             if self.value then
                 # There is an initial value.
                 res << " " * (level+1)*3
-                # res << "copy_value(#{self.value.to_c(level+2)}," +
-                #        "signalI->c_value);\n"
+                # res << "copy_value("
+                # self.value.to_c_expr(res,level+2)
+                # res << ",signalI->c_value);\n"
                 res << "copy_value("
                 self.value.to_c_expr(res,level+2)
-                res << ",signalI->c_value);\n"
+                res << ",signalI->f_value);\n"
             end
 
             # Initially the signal can be overwritten by anything.

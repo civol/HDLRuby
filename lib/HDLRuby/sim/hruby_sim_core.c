@@ -108,7 +108,7 @@ void register_signal(SignalI signal) {
 /** Recursively update the signals until no (untimed) behavior are
  *  activated. */
 void hruby_sim_update_signals() {
-    // printf("hruby_sim_update_signals...\n");
+     // printf("hruby_sim_update_signals...\n");
     /* As long as the list of touched signals is not empty go on computing. */
     while(!empty_list(touched_signals) || !empty_list(touched_signals_seq)) {
         // printf("## Checking touched signals.\n");
@@ -121,7 +121,6 @@ void hruby_sim_update_signals() {
             /* Is there a change? */
             if (same_content_value(sig->c_value,sig->f_value)) continue;
             /* Yes, process the signal. */
-            // println_signal(sig);
             printer.print_signal(sig);
             // printf("c_value="); printer.print_value(sig->c_value);
             // printf("\nf_value="); printer.print_value(sig->f_value); printf("\n");
@@ -441,6 +440,10 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
         /* Update the signal values (recursively executing blocks locked
          * on the signals). */
         hruby_sim_update_signals(); 
+        if (hruby_sim_time == 0) {
+            /* Initially touch all the signals. */
+            each_all_signal(&touch_signal);
+        }
         if (num_run_behaviors <= 0) break;
         /* Advance time to next timestep. */
         hruby_sim_advance_time();
