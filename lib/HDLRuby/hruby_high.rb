@@ -2685,6 +2685,20 @@ module HDLRuby::High
         #
         # NOTE: +rng+ can be a single expression in which case it is an index.
         def [](rng)
+            if rng.is_a?(::Range) then
+                first = rng.first
+                if (first.is_a?(::Integer)) then
+                    first = self.type.size+first if first < 0
+                end
+                last = rng.last
+                if (last.is_a?(::Integer)) then
+                    last = self.type.size+last if last < 0
+                end
+                rng = first..last
+            end
+            if rng.is_a?(::Integer) && rng < 0 then
+                rng = self.type.size+rng
+            end
             if rng.respond_to?(:to_expr) then
                 # Number range: convert it to an expression.
                 rng = rng.to_expr

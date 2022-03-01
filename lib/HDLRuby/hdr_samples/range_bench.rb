@@ -3,13 +3,16 @@
 # A benchmark for the index access..
 system :if_bench do
     [8].inner :x
-    [2].inner :r0,:r1,:r2,:r3
+    [2].inner :r0,:r1,:r2,:r3, :r4
+    inner :r5
 
     par do
         r0 <= x[1..0]
         r1 <= x[3..2]
         r2 <= x[5..4]
         r3 <= x[7..6]
+        r4 <= x[-1..-2]
+        r5 <= x[-1]
     end
 
     timed do
