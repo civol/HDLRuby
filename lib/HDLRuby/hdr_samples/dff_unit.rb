@@ -6,7 +6,7 @@
 3.times do |i|
 
     # A simple D-FF
-    system:"dff#{i}" do
+    system :"dff#{i}" do
         input :clk, :rst, :d
         output :q, :qb
 
