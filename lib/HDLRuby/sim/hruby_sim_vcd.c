@@ -85,7 +85,7 @@ static void vcd_print_name(Object object) {
                 vcd_print("%s",name);
             } else {
                 /* No name, use the address of the object as name generator.*/
-                vcd_print("$%p",(void*)object);
+                vcd_print("x$%p",(void*)object);
             }
             break;
         default: /* Nothing to do */
