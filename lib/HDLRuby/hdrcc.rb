@@ -647,12 +647,19 @@ elsif $options[:clang] then
         init_visualizer = $options[:vcd] ? "init_vcd_visualizer" :
                                            "init_default_visualizer"
 
+        # Gather the system to generate and sort them in the right order
+        # to ensure references are generated before being used.
+        # Base: reverse order of the tree.
+        # Then, multiple configuration of a system instance must be
+        # reverversed so that the base configuration is generated first.
+        c_systems = $top_system.each_systemT_deep_ref
         # Generate the code of the main function.
         # HDLRuby start code
         $main << HDLRuby::Low::Low2C.main("hruby_simulator",
                                          init_visualizer,
                                          $top_system,
-                                         $top_system.each_systemT_deep.to_a.reverse,$hnames)
+                                         c_systems,
+                                         $hnames)
         $main.close
 
         $top_system.each_systemT_deep do |systemT|

@@ -71,7 +71,7 @@ module HDLRuby::Low
     class Statement
         # Explicit the types conversions in the statement.
         def explicit_types!
-            raise "Should implement explicit_types for class #{self.class}."
+            raise "Should implement explicit_types! for class #{self.class}."
         end
     end
 
@@ -98,7 +98,26 @@ module HDLRuby::Low
             self.map_args!(&:explicit_types)
             return self
         end
+    end
 
+
+    ## Extends the Configure class with fixing of types and constants.
+    class Configure
+        # Explicit the types conversions in the statement.
+        def explicit_types!
+            # Nothing to do.
+            return self
+        end
+    end
+
+
+    ## Extends the TimeTerminate class with fixing of types and constants.
+    class TimeTerminate
+        # Explicit the types conversions in the statement.
+        def explicit_types!
+            # Nothing to do.
+            return self
+        end
     end
 
 

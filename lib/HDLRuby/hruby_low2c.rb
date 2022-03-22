@@ -135,6 +135,8 @@ module HDLRuby::Low
             objs.each { |obj| res << "   " << Low2C.make_name(obj) << "();\n" }
             # Sets the top systemT.
             res << "   top_system = " << Low2C.obj_name(top) << ";\n"
+            # Enable it.
+            res << "   set_enable_system(top_system,1);\n"
             # Starts the simulation.
             res<< "   hruby_sim_core(\"#{name}\",#{init_visualizer},-1);\n"
             # Close the main.
@@ -170,6 +172,7 @@ module HDLRuby::Low
         # is the list of extra h files to include.
         # def to_c(level = 0, *hnames)
         def to_c(res, level = 0, *hnames)
+            # puts "SystemT.to_c with name=#{Low2C.obj_name(self)}#{@wrapper ? " and wrapper=#{Low2C.obj_name(@wrapper)}" : ""}"
             # The header
             # res = Low2C.includes(*hnames)
             res << Low2C.includes(*hnames)
@@ -179,7 +182,16 @@ module HDLRuby::Low
 
             # Generate the signals of the system.
             # self.each_signal { |signal| signal.to_c(level) }
-            self.each_signal { |signal| signal.to_c(res,level) }
+            if ((defined? @wrapper) && @wrapper) then
+                # It is a reconfiguring system, alias the signals.
+                wrap_signals = @wrapper.each_signal.to_a
+                self.each_signal.with_index do |signal,i|
+                    signal.to_c_alias(res,wrap_signals[i],level)
+                end
+            else
+                # It is a single system, default generation.
+                self.each_signal { |signal| signal.to_c(res,level) }
+            end
 
             # Generate the code for all the blocks included in the system.
             self.scope.each_scope_deep do |scope|
@@ -686,6 +698,10 @@ module HDLRuby::Low
                 res << "behavior->owner = NULL;\n"
             end
 
+            # Set the behavior as not enabled. */
+            res << " " * (level+1)*3
+            res << "behavior->enabled = 0;\n"
+
             # Set the behavior as inactive. */
             res << " " * (level+1)*3
             res << "behavior->activated = 0;\n"
@@ -842,11 +858,8 @@ module HDLRuby::Low
         #  +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # The resulting string.
-            # res = ""
-
+            # puts "Signal.to_c with name: #{Low2C.obj_name(self)}"
             # Declare the global variable holding the signal.
-            # res << "SignalI #{self.to_c_signal(level+1)};\n\n"
             res << "SignalI "
             self.to_c_signal(res,level+1)
             res << ";\n\n"
@@ -854,6 +867,7 @@ module HDLRuby::Low
             # The header of the signal generation.
             res << " " * level*3
             res << "SignalI " << Low2C.make_name(self) << "() {\n"
+
             # res << " " * level*3
             # res << "Value l,r,d;\n"
             # res << " " * (level+1)*3
@@ -866,7 +880,6 @@ module HDLRuby::Low
             # Sets the global variable of the signal.
             res << "\n"
             res << " " * (level+1)*3
-            # res << "#{self.to_c_signal(level+1)} = signalI;\n"
             self.to_c_signal(res,level+1)
             res << " = signalI;\n"
 
@@ -958,6 +971,43 @@ module HDLRuby::Low
 
             return res;
         end
+
+        ## Generates the C text of the equivalent HDLRuby code in case
+        #  the signals is actually an alias to another signal.
+        #  +other+ is the target signal of the alias.
+        #  +level+ is the hierachical level of the object.
+        def to_c_alias(res,target,level = 0)
+            # puts "Signal.to_c_alias with name: #{Low2C.obj_name(self)}"
+            # The resulting string.
+            # res = ""
+
+            # Declare the global variable holding the signal.
+            res << "SignalI "
+            self.to_c_signal(res,level+1)
+            res << ";\n\n"
+
+            # The header of the signal generation.
+            res << " " * level*3
+            res << "SignalI " << Low2C.make_name(self) << "() {\n"
+
+            res << "SignalI signalI = #{Low2C.obj_name(target)};\n"
+
+            # Sets the global variable of the signal.
+            res << "\n"
+            res << " " * (level+1)*3
+            self.to_c_signal(res,level+1)
+            res << " = signalI;\n"
+
+            # Generate the return of the signal.
+            res << "\n"
+            res << " " * (level+1)*3
+            res << "return signalI;\n"
+
+            # Close the signal.
+            res << " " * level*3
+            res << "};\n\n"
+            return res
+        end
     end
 
 
@@ -999,9 +1049,22 @@ module HDLRuby::Low
             # Set the name
             res << " " * (level+1)*3
             res << "systemI->name = \"#{self.name}\";\n"
-            # Set the type.
+            # # Set the type.
+            # res << " " * (level+1)*3
+            # res << "systemI->system = " << Low2C.obj_name(self.systemT) << ";\n"
+            # Set the systems.
+            num_sys = self.each_systemT.to_a.size
             res << " " * (level+1)*3
-            res << "systemI->system = " << Low2C.obj_name(self.systemT) << ";\n"
+            res << "systemI->num_systems = #{num_sys};\n"
+            res << " " * (level+1)*3
+            res << "systemI->systems = calloc(sizeof(SystemT), #{num_sys});\n"
+            self.each_systemT.with_index do |sysT,i|
+                res << " " * (level+1)*3
+                res << "systemI->systems[#{i}] = #{Low2C.obj_name(sysT)};\n"
+            end
+
+            # Configure the instance to current systemT.
+            res << (" " * (level*3)) << "configure(systemI,0);\n"
 
             # Generate the return of the signal.
             res << "\n"
@@ -1099,6 +1162,10 @@ module HDLRuby::Low
             else
                 res << "code->owner = NULL;\n"
             end
+
+            # Set the code as enabled (for now, may change in a near future). */
+            res << " " * (level+1)*3
+            res << "code->enabled = 1;\n"
 
             # Set the code as inactive. */
             res << " " * (level+1)*3
@@ -1389,6 +1456,28 @@ module HDLRuby::Low
             # Restore the value pool state.
             res << (" " * (level*3)) << "RV;\n"
             return res
+        end
+    end
+
+    ## Extends the TimeTerminate class with generation of C text.
+    class TimeTerminate
+
+        # Generates the C text of the equivalent HDLRuby code.
+        # +level+ is the hierachical level of the object.
+        def to_c(res,level = 0)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "terminate();\n"
+        end
+    end
+
+    ## Extends the Configure class with generation of C text.
+    class Configure
+
+        # Generates the C text of the equivalent HDLRuby code.
+        # +level+ is the hierachical level of the object.
+        def to_c(res,level = 0)
+            # Save the value pool state.
+            res << (" " * (level*3)) << "configure(#{Low2C.obj_name(self.ref.resolve)},#{self.index});\n"
         end
     end
 

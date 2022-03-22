@@ -467,7 +467,10 @@ typedef struct SystemIS_ {
     Object owner;       /* The owner if any. */
 
     char* name;         /* The name of the signal. */
-    SystemT system;     /* The instantiated system. */
+    SystemT system;     /* The currently instantiated system. */
+
+    int num_systems;    /* The number of systems possibly instantiated here. */
+    SystemT* systems;   /* The systems possibly instantiated here. */
 } SystemIS;
 
 
@@ -499,6 +502,8 @@ typedef struct BehaviorS_ {
     Event* events;      /* The events of the behavior. */
     Block block;        /* The block of the behavior. */
 
+    int enabled;        /* Tells if the behavior is enabled or not. */
+
     int activated;      /* Tells if the behavior is activated or not. */
 
     int timed;          /* Tell if the behavior is timed or not:
@@ -518,6 +523,8 @@ typedef struct CodeS_ {
     int num_events;     /* The number of events. */
     Event* events;      /* The events of the behavior. */
     void (*function)(); /* The function to execute for the code. */
+
+    int enabled;        /* Tells if the behavior is enabled or not. */
 
     int activated;      /* Tells if the code is activated or not. */
 } CodeS;
@@ -623,6 +630,16 @@ extern unsigned long long make_delay(int value, Unit unit);
  * @param func function to applie on each signal. */
 extern void each_all_signal(void (*func)(SignalI));
 
+
+/** Configure a system instance.
+ *  @param systemI the system instance to configure.
+ *  @param idx the index of the target system. */
+extern void configure(SystemI systemI, int idx);
+
+
+/** Terminates the simulation. */
+extern void terminate();
+
 /* Interface to the visualization engine. */
 
 typedef struct {
@@ -700,6 +717,11 @@ extern void init_default_visualizer(char* name);
 extern void init_vcd_visualizer(char* name);
 
 /* The interface to the simulator core. */
+
+/** Sets the enable status of the behaviors of a system type. 
+ *  @param systemT the system type to process.
+ *  @param status the enable status. */
+extern void set_enable_system(SystemT systemT, int status);
 
 /** The simulation core function.
  *  @param name the name of the simulation.

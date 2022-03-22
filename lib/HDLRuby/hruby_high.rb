@@ -2119,6 +2119,54 @@ module HDLRuby::High
             self.eigen_extend(@systemT.public_namespace)
         end
 
+        # Adds alternative system +systemT+
+        def choice(configuration = {})
+            # Process the argument.
+            configuration.each do |k,v|
+                k = k.to_sym
+                unless v.is_a?(SystemT) then
+                    raise "Invalid class for a system type: #{v.class}"
+                end
+                # Create an eigen system.
+                eigen = v.instantiate(HDLRuby.uniq_name(self.name)).systemT
+                # Ensure its interface corresponds.
+                my_signals = self.each_signal.to_a
+                if (eigen.each_signal.with_index.find { |sig,i|
+                    !sig.eql?(my_signals[i])
+                }) then
+                raise "Invalid system for configuration: #{systemT.name}." 
+                end
+                # Add it.
+                # At the HDLRuby::High level
+                @choices = { self.name => self.systemT } unless @choices
+                @choices[k] = eigen
+                # At the HDLRuby::Low level
+                self.add_systemT(eigen)
+            end
+        end
+
+        # (Re)Configuration of system instance to systemT designated by +sys+.
+        # +sys+ may be the index or the name of the configuration, the first
+        # configuration being named by the systemI name.
+        def configure(sys)
+            if sys.respond_to?(:to_i) then
+                # The argument is an index.
+                # Create the (re)configuration node.
+                High.top_user.add_statement(
+                    Configure.new(RefObject.new(RefThis.new,self),sys.to_i))
+            else
+                # The argument is a name (should be).
+                # Get the index corresponding to the name.
+                num = @choices.find_index { |k,_| k == sys.to_sym }
+                unless num then
+                    raise "Invalid name for configuration: #{sys.to_s}"
+                end
+                # Create the (re)configuration node.
+                High.top_user.add_statement(
+                    Configure.new(RefObject.new(RefThis.new,self),num))
+            end
+        end
+
         # include Hmissing
 
         # Missing methods are looked for in the public namespace of the
@@ -2155,8 +2203,11 @@ module HDLRuby::High
             # systemIL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = systemIL
             # Adds the other systemTs.
-            self.each_systemT do |systemT|
-                systemIL.add_systemT(systemT.to_low) unless systemT == self.systemT
+            self.each_systemT do |systemTc|
+                if systemTc != self.systemT
+                    systemTcL = systemTc.to_low
+                    systemIL.add_systemT(systemTcL)
+                end
             end
             return systemIL
         end
@@ -2432,6 +2483,18 @@ module HDLRuby::High
             return timeRepeatL
         end
     end
+
+    ## 
+    # Describes a timed terminate statement: not synthesizable!
+    class TimeTerminate < Low::TimeTerminate
+        include HStatement
+
+        # Converts the repeat statement to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::TimeTerminate.new
+        end
+    end
+
 
 
     ##
@@ -3370,6 +3433,27 @@ module HDLRuby::High
 
 
     ## 
+    # Describes a systemI (re)configure statement: not synthesizable!
+    class Configure < Low::Configure
+        High = HDLRuby::High
+
+        include HStatement
+
+        # Creates a new (re)configure statement for system instance refered
+        # by +ref+ with system number +num+.
+        def initialize(ref,num)
+            super(ref,num)
+        end
+
+        # Converts the connection to HDLRuby::Low.
+        def to_low
+            return HDLRuby::Low::Configure.new(self.ref.to_low, self.index)
+        end
+
+    end
+
+
+    ## 
     # Describes a connection.
     class Connection < Low::Connection
         High = HDLRuby::High
@@ -3801,6 +3885,11 @@ module HDLRuby::High
         # Prints.
         def hprint(*args)
             self.add_statement(Print.new(*args))
+        end
+
+        # Terminate the simulation.
+        def terminate
+            self.add_statement(TimeTerminate.new)
         end
     end
 

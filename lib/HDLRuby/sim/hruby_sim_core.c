@@ -253,8 +253,8 @@ void hruby_sim_update_signals() {
             if (obj->kind == BEHAVIOR) {
                 /* Behavior case. */
                 Behavior beh = (Behavior)obj;
-                /* Is the code really activated? */
-                if (beh->activated) {
+                /* Is the code really enabled and activated? */
+                if (beh->enabled && beh->activated) {
                     /* Yes, execute it. */
                     beh->block->function();
                     /* And deactivate it. */
@@ -264,7 +264,7 @@ void hruby_sim_update_signals() {
                 /* Other code case. */
                 Code cod = (Code)obj;
                 /* Is the code really activated? */
-                if (cod->activated) {
+                if (cod->enabled && cod->activated) {
                     /* Yes, execute it. */
                     cod->function();
                     /* And deactivate it. */
@@ -291,6 +291,19 @@ void hruby_sim_advance_time() {
     hruby_sim_time = next_time;
     // println_time(hruby_sim_time);
     printer.print_time(hruby_sim_time);
+}
+
+/** Sets the enable status of the behaviors of a system type. 
+ *  @param systemT the system type to process.
+ *  @param status the enable status. */
+void set_enable_system(SystemT systemT, int status) {
+    int i;
+    int num = systemT->scope->num_behaviors;
+    Behavior*  behs = systemT->scope->behaviors;
+
+    for(i=0; i<num; ++i) {
+        behs[i]->enabled = status;
+    }
 }
 
 
@@ -359,7 +372,8 @@ void* behavior_run(void* arg) {
     pthread_mutex_unlock(&hruby_sim_mutex);
     // printf("#2\n");
     /* Now can start the execution of the behavior. */
-    behavior->block->function();
+    if (behavior->enabled)
+        behavior->block->function();
     // printf("#3\n");
     /* Now can start the execution of the behavior. */
     /* Stops the behavior. */
@@ -635,11 +649,35 @@ unsigned long long make_delay(int value, Unit unit) {
 
 
 
-/* Iterate over all the signals.
- * @param func function to applie on each signal. */
+/** Iterates over all the signals.
+ *  @param func function to applie on each signal. */
 void each_all_signal(void (*func)(SignalI)) {
     int i;
     for(i = 0; i<num_all_signals; ++i) {
         func(all_signals[i]);
     }
+}
+
+
+/** Configure a system instance.
+ *  @param systemI the system instance to configure.
+ *  @param idx the index of the target system. */
+void configure(SystemI systemI, int idx) {
+    int i;
+    // printf("Configure to: %i\n",idx);
+    /* Sets the current system type. */
+    systemI->system = systemI->systems[idx];
+    /* Disable all the behaviors of the system instance. */
+    for(i=0; i<systemI->num_systems; ++i) {
+        if (i != idx)
+            set_enable_system(systemI->systems[i],0);
+    }
+    /* Enable the current system. */
+    set_enable_system(systemI->systems[idx],1);
+}
+
+
+/** Terminates the simulation. */
+void terminate() {
+    exit(0);
 }

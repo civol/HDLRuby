@@ -163,7 +163,7 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the String class with functionality for converting select
+    ## Extends the Print class with functionality for converting select
     #  expressions to case statements.
     class Print
         # Extract the Select expressions.
@@ -173,6 +173,16 @@ module HDLRuby::Low
                 arg.extract_selects_to!(selects)
             end
             return selects
+        end
+    end
+
+    ## Extends the TimeTerminate class with functionality for converting select
+    #  expressions to case statements.
+    class TimeTerminate
+        # Extract the Select expressions.
+        def extract_selects!
+            # Nothing to extract.
+            return []
         end
     end
     

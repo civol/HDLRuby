@@ -8,6 +8,9 @@ module HDLRuby::High::Std
     ## Describes a high-level reconfigurable component type.
     class ReconfT
 
+        extend Gem::Deprecate
+        deprecate :initialize, Configure, 2022, 3
+
         # The name of the reconfigurable component type.
         attr_reader :name
 

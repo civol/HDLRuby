@@ -925,6 +925,18 @@ module HDLRuby::Low
             end.join(" & ") + ";\n"
         end
     end
+
+    ## Extends the TimeTerminate class with generation of HDLRuby::High text.
+    class TimeTerminate
+
+        # Generates the text of the equivalent HDLRuby::High code.
+        # +vars+ is the list of the variables and
+        # +level+ is the hierachical level of the object.
+        def to_vhdl(vars,level = 0)
+            # Generate a report statement.
+            return " " * (level*3) + "finish;\n"
+        end
+    end
     
     ## Extends the If class with generation of HDLRuby::High text.
     class If

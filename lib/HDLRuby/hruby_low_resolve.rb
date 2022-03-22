@@ -242,7 +242,7 @@ module HDLRuby::Low
                     parent = parent.parent
                 end
                 # Not found.
-                # puts "Not found!"
+                puts "Not found!"
                 return nil
             end
         end

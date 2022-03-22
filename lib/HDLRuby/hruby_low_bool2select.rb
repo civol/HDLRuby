@@ -75,6 +75,18 @@ module HDLRuby::Low
         end
     end
 
+
+    ## Extends the TimeTerminate class with functionality for converting booleans
+    #  in assignments to select operators.
+    class TimeTerminate
+
+        # Converts booleans in assignments to select operators.
+        def boolean_in_assign2select!
+            # Nothing to do.
+            return self
+        end
+    end
+
     
     ## Extends the If class with functionality for converting booleans
     #  in assignments to select operators.

@@ -171,12 +171,20 @@ module HDLRuby::Low
 
     # Enhance Print with generation of verilog code.
     class Print
-        # Converts the system to Verilog code.
+        # Converts the print to Verilog code.
         def to_verilog(spc = 3)
             code = "#{" " * spc}$write(#{self.each_arg.map do |arg|
             arg.to_verilog
             end.join(",") });"
             return code
+        end
+    end
+
+    # Enhance TimeTerminate with generation of verilog code.
+    class TimeTerminate
+        # Converts the terminate to Verilog code.
+        def to_verilog(spc = 3)
+            return "#{" " * spc}$finish;"
         end
     end
 

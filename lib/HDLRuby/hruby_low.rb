@@ -165,6 +165,22 @@ module HDLRuby::Low
 
 
 
+        # Handling the (re)configuration.
+
+        # Gets the configuration wrapper if any.
+        def wrapper
+            return defined? @wrapper ? @wrapper : nil
+        end
+
+        # Sets the configuration wrapper to +systemT+.
+        def wrapper=(systemT)
+            unless systemT.is_a?(SystemT) then
+                raise "Invalid class for a wrapper system type: #{systemT}."
+            end
+            @wrapper = systemT
+        end
+
+
         # Handling the signals.
 
         # Adds input +signal+.
@@ -431,6 +447,27 @@ module HDLRuby::Low
                     end
                 end
             end
+        end
+
+        # Iterates over the systemT deeply if any in order of reference
+        # to ensure the refered elements are processed first.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_systemT_deep_ref(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemT_deep_ref) unless ruby_block
+            # A ruby block? 
+            # Recurse on the systemT accessible through the instances.
+            self.scope.each_scope_deep do |scope|
+                scope.each_systemI do |systemI|
+                    # systemI.systemT.each_systemT_deep(&ruby_block)
+                    systemI.each_systemT do |systemT|
+                        systemT.each_systemT_deep_ref(&ruby_block)
+                    end
+                end
+            end
+            # Finally apply it to current.
+            ruby_block.call(self)
         end
     end
 
@@ -2500,8 +2537,8 @@ module HDLRuby::Low
     # NOTE: an instance can actually represented muliple layers
     #       of systems, the first one being the one actually instantiated
     #       in the final RTL code.
-    #       This layring can be used for describing software or partial
-    #       reconfiguration.
+    #       This layering can be used for describing software or partial
+    #       (re)configuration.
     class SystemI
 
         include Hparent
@@ -2564,13 +2601,16 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
-        ## Adds a system layer.
+        ## Adds a system configuration.
         def add_systemT(systemT)
             # puts "add_systemT #{systemT.name} to systemI #{self.name}"
             # Check and add the systemT.
             if !systemT.is_a?(SystemT) then
                 raise AnyError, "Invalid class for a system type: #{systemT.class}"
             end
+            # Set the base configuration of the added system.
+            systemT.wrapper = self.systemT
+            # Add it.
             @systemTs << systemT
         end
 
@@ -3781,6 +3821,93 @@ module HDLRuby::Low
                 end
             end
         end
+    end
+
+
+    ## 
+    # Describes a system instance (re)configuration statement: not synthesizable!
+    class Configure < Statement
+
+        # attr_reader :systemI, :systemT, :index
+        attr_reader :ref, :index
+
+        # Creates a new (re)configure statement of system instance refered by
+        # +ref+ with system number +index+
+        def initialize(ref,index)
+            super()
+            # Process the arguments.
+            index = index.to_i
+            unless ref.is_a?(Ref) then
+                raise "Invalid class for a reference: #{ref.class}."
+            end
+            # Sets the arguments.
+            @ref = ref
+            ref.parent = self
+            @index = index
+            # @systemT = systemI.each_systemT.to_a[index]
+            # # Check the systemT is valid.
+            # unless @systemT then
+            #     raise "Invalid configuration index: #{index}."
+            # end
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Configure)
+            return false unless @ref.eql?(obj.ref)
+            return false unless @index.eql?(obj.index)
+            return true
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the reference.
+            @ref.each_deep(&ruby_block)
+        end
+
+        # Hash function.
+        def hash
+            return (@ref.hash + @index.hash).hash
+        end
+
+        # Clones (deeply)
+        def clone
+            return Configure.new(@ref.clone,@index)
+        end
+
+        # Iterates over the nodes deeply if any.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the reference.
+            @ref.each_node_deep(&ruby_block)
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A ruby block?
+            # Nothing more to do anyway.
+        end
+
+        # Iterates over all the statements contained in the current block.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # And that's all.
+        end
 
     end
 
@@ -3987,6 +4114,82 @@ module HDLRuby::Low
         end
         
     end
+
+
+    ## 
+    # Describes a timed terminate statement: not synthesizable!
+    class TimeTerminate < Statement
+
+        # Creates a new timed terminate statement that terminate execution.
+        def initialize
+            super()
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And that's all.
+        end
+
+        # Iterates over all the nodes.
+        def each_node(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node) unless ruby_block
+            # A ruby block?
+            # Nothing to do anyway.
+        end
+
+        # Iterates over all the nodes deeply.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block?
+            # Apply of current node.
+            ruby_block.call(self)
+            # And that's all.
+        end
+
+        # Iterates over all the statements deeply.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply of current node.
+            ruby_block.call(self)
+            # And that's all.
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A ruby block?
+            # Nothing to do anyway.
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(TimeTerminate)
+            return true
+        end
+
+        # Hash function.
+        def hash
+            return TimeTerminate.hash
+        end
+
+        # Clones the TimeRepeat (deeply)
+        def clone
+            return TimeTerminate.new
+        end
+    end
+
+
 
 
     ## 
