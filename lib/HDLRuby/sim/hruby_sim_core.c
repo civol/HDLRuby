@@ -293,17 +293,33 @@ void hruby_sim_advance_time() {
     printer.print_time(hruby_sim_time);
 }
 
+
+/** Sets the enamble status of the behaviors of a scope.
+ *  @param scope the scope to process.
+ *  @param status the enable status. */
+static void set_enable_scope(Scope scope, int status) {
+    int i;
+    int num_beh = scope->num_behaviors;
+    Behavior*  behs = scope->behaviors;
+    int num_scp = scope->num_scopes;
+    Scope* scps = scope->scopes;
+
+    /* Enable the behaviors. */
+    for(i=0; i<num_beh; ++i) {
+        behs[i]->enabled = status;
+    }
+
+    /* Recurse on the sub scopes. */
+    for(i=0; i<num_scp; ++i) {
+        set_enable_scope(scps[i],status);
+    }
+}
+
 /** Sets the enable status of the behaviors of a system type. 
  *  @param systemT the system type to process.
  *  @param status the enable status. */
 void set_enable_system(SystemT systemT, int status) {
-    int i;
-    int num = systemT->scope->num_behaviors;
-    Behavior*  behs = systemT->scope->behaviors;
-
-    for(i=0; i<num; ++i) {
-        behs[i]->enabled = status;
-    }
+    set_enable_scope(systemT->scope,status);
 }
 
 
