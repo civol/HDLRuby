@@ -344,6 +344,7 @@ module HDLRuby::High
         def initialize(name, *mixins, &ruby_block)
             # Initialize the system type structure.
             super(name,Scope.new(name,self))
+            # puts "new systemT=#{self}"
 
             # Initialize the set of extensions to transmit to the instances'
             # eigen class
@@ -372,6 +373,28 @@ module HDLRuby::High
             # Prepare the instantiation methods
             make_instantiater(name,SystemI,&ruby_block)
         end
+
+
+        # Tell if the current system is a descedent of +system+
+        def of?(system)
+            # Maybe self is system.
+            if (self == system) then
+                # Yes, consider it is adescendent of system.
+                return true
+            else
+                # Look into the generators.
+                @generators.each do |generator|
+                    return true if generator.of?(system)
+                end
+                # Look into the included systems.
+                @to_includes.each do |included|
+                    return true if included.of?(system)
+                end
+            end
+            # Not found.
+            return false
+        end
+
 
         # Converts to a namespace user.
         def to_user
@@ -571,6 +594,7 @@ module HDLRuby::High
 
             # Sets the generators of the expanded result.
             expanded.add_generator(self)
+            # puts "expanded=#{expanded}"
             @to_includes.each { |system| expanded.add_generator(system) }
             # Also for the previously includeds. */
             self.scope.each_included.each { |system| expanded.add_generator(system) }
@@ -634,9 +658,8 @@ module HDLRuby::High
 
             # Create the instance and sets its eigen system to +eigen+.
             instance = @instance_class.new(i_name,eigen)
+            # puts "instance=#{instance}"
             eigen.eigenize(instance)
-            # puts "instance interface=#{instance.each_signal.to_a.size}"
-            # puts "eigen interface=#{eigen.each_signal.to_a.size}"
 
             # Extend the instance.
             instance.eigen_extend(@singleton_instanceO)
