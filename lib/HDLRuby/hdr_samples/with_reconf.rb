@@ -1,8 +1,3 @@
-require 'std/reconf.rb'
-
-include HDLRuby::High::Std
-
-
 
 # Some system that can be used for reconfiguration.
 system :sys0 do
