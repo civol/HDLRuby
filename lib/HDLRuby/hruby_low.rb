@@ -164,7 +164,6 @@ module HDLRuby::Low
         end
 
 
-
         # Handling the (re)configuration.
 
         # Gets the configuration wrapper if any.
