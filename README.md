@@ -439,7 +439,7 @@ The description above is straight forward, but it would be necessary to rewrite 
 
 ```ruby
 system :sumprod do |typ,coefs|
-   typ[coefs.size].input ins
+   typ[coefs.size].input :ins
    typ.output :o
    
    o <= coefs.each_with_index.reduce(_0) do |sum,(coef,i)|
