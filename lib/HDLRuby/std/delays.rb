@@ -23,8 +23,8 @@ module HDLRuby::High::Std
             ack <= req
         else
             # The is a delay.
-            inner run: 0             # Tell if the deayl is running.
-            [num.width].inner :count # The counter for computing the delay.
+            inner run: 0               # Tell if the deayl is running.
+            [num.width+1].inner :count # The counter for computing the delay.
             par(clk.posedge) do
                 # Is there a request to treat?
                 hif(req & ~run) do
@@ -69,7 +69,7 @@ module HDLRuby::High::Std
             # There is a delay.
 
             [num].inner state: 0 # The shift register containing the progression
-            # of each requested delay.
+                                 # of each requested delay.
 
             # The acknoledgment is directly the last bit of the state register.
             ack <= state[-1]
