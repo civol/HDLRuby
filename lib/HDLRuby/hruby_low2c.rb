@@ -2082,11 +2082,11 @@ module HDLRuby::Low
             if str =~ /^[01]+$/ && str.length <= 64 then
                 # Yes, generate a numeral value.
                 res << " " * (level+1)*3
-                # res << "static unsigned long long data[] = { "
                 res << "static unsigned int data[] = { "
                 res << str.scan(/.{1,#{Low2C.int_width}}/m).reverse.map do |sub|
                     sub.to_i(2).to_s # + "ULL"
                 end.join(",")
+                res << ", 0" if (str.length <= 32)
                 res << " };\n"
                 # Create the value.
                 res << " " * (level+1)*3

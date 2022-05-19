@@ -1871,10 +1871,11 @@ static Value equal_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    // /* Perform the !XOR. */
-    // dst->data_int = ~(src0->data_int ^ src1->data_int);
     /* Perform the comparison. */
     dst->data_int = (src0->data_int == src1->data_int) ? 1 : 0;
+    printf("scr0->data_int=%lld\n",src0->data_int);
+    printf("scr1->data_int=%lld\n",src1->data_int);
+    printf("dst->data_int=%lld\n",dst->data_int);
     return dst;
 }
 
