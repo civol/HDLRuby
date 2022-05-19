@@ -496,8 +496,9 @@ module HDLRuby::High
         def each_signal_with_included(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_signal_with_included) unless ruby_block
-            # Iterate on the signals of the current system.
-            self.each_signal(&ruby_block)
+            # Iterate on all the signals of the current system.
+            # self.each_signal(&ruby_block)
+            self.each_signal_all(&ruby_block)
             # Recurse on the included systems.
             self.scope.each_included do |included|
                 included.each_signal_with_included(&ruby_block)
