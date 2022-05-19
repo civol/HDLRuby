@@ -289,6 +289,8 @@ module HDLRuby::Low
             @inputs.each(&ruby_block)
             @outputs.each(&ruby_block)
             @inouts.each(&ruby_block)
+            # And each signal of the direct scope.
+            @scope.each_signal(&ruby_block)
         end
 
         # Iterates over all the signals of the system type and its scope.
@@ -297,7 +299,8 @@ module HDLRuby::Low
             return to_enum(:each_signal_deep) unless ruby_block
             # A ruby block?
             # First iterate over the current system type's signals.
-            self.each_signal_all(&ruby_block)
+            # self.each_signal_all(&ruby_block)
+            self.each_signal(&ruby_block)
             # Then apply on the behaviors (since in HDLRuby:High, blocks can
             # include signals).
             @scope.each_signal_deep(&ruby_block)
