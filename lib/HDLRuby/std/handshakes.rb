@@ -1,92 +1,60 @@
 module HDLRuby::High::Std
 
 ##
-# Standard HDLRuby::High library: delays
+# Standard HDLRuby::High library: handshake protocols.
 #
 ########################################################################
 
 
-    ## Module describing a simple delay using handshake for working.
-    #  @param num the number of clock cycles to delay.
-    system :delay do |num|
-        # Checks and process the number of clock to wait.
-        num = num.to_i
-        raise "The delay generic argument must be positive: #{num}" if (num < 0)
+    ## Module describing a simple client handshake for working.
+    #  @param event the event to synchronize the handshake.
+    #  @param req   the signal telling a request is there.
+    #  @param cond  the condition allowing the protocol.
+    system :hs_client do |event, req, cond=_1|
+        input :reqI
+        output ackI: 0
 
-        input  :clk     # The clock to make the delay on.
-        input  :req     # The handshake request.
-        output :ack     # The handshake acknoledgment.
-
-        # The process of the delay.
-        if (num == 0) then
-            # No delay case.
-            ack <= req
-        else
-            # The is a delay.
-            inner run: 0               # Tell if the deayl is running.
-            [num.width+1].inner :count # The counter for computing the delay.
-            par(clk.posedge) do
-                # Is there a request to treat?
-                hif(req & ~run) do
-                    # Yes, intialize the delay.
-                    run <= 1
-                    count <= 0
-                    ack <= 0
-                end
-                # No, maybe there is a request in processing.
-                helsif(run) do
-                    # Yes, increase the counter.
-                    count <= count + 1
-                    # Check if the delay is reached.
-                    hif(count == num-1) do
-                        # Yes, tells it and stop the count.
-                        ack <= 1
-                        run <= 0
-                    end
-                end
+        # A each synchronization event.
+        par(event) do
+            # Is the protocol is allowed and a request is present.
+            hif(cond & reqI) do
+                # Yes perform the action and tell the request has been treated.
+                req  <= 1 if req
+                ackI <= 1
+            end
+            helse do
+                # No, do not perform the action, and do not acknowledge.
+                req  <= 0 if req
+                ackI <= 0
             end
         end
     end
 
 
+    ## Module describing a simple server handshake for working.
+    #  @param event the event to synchronize the handshake.
+    #  @param req   the signal for asking a new request.
+    system :hs_server do |event, req|
+        output reqO: 0
+        input  :ackO
 
-    ## Module describing a pipeline delay (supporting multiple successive delays)
-    #  using handshake for working.
-    #  @param num the number of clock cycles to delay.
-    system :delayp do |num|
-        # Checks and process the number of clock to wait.
-        num = num.to_i
-        raise "The delay generic argument must be positive: #{num}" if (num < 0)
-
-        input  :clk          # The clock to make the delay on.
-        input  :req          # The handshake request.
-        output :ack          # The handshake acknoledgment.
-
-        if (num==0) then
-            # No delay.
-            ack <= req
-        else
-            # There is a delay.
-
-            [num].inner state: 0 # The shift register containing the progression
-                                 # of each requested delay.
-
-            # The acknoledgment is directly the last bit of the state register.
-            ack <= state[-1]
-
-
-            # The process controlling the delay.
-            seq(clk.posedge) do
-                # Update the state.
-                if (num > 1) then
-                    state <= state << 1
-                else
-                    state <= 0
-                end
-                # Handle the input.
-                ( state[0] <= 1 ).hif(req)
-            end
+        # A each synchronization event.
+        par(event) do
+            # Shall we start the output?
+            hif(ackO)  { reqO <= 0 }
+            hif(req)   { reqO <= 1 }
         end
     end
 
+
+    ## Module describing a pipeline with handshakes.
+    #  @param event the event to synchronize the handshakes.
+    #  @param read  the signal telling there is a request from the client side
+    #  @param write the signal used for asking the server to issue a request
+    system :hs_pipe do |event,read,write|
+        inner :cond
+        include(hs_client(event,read,cond))
+        include(hs_server(event,write))
+        cond <= ~reqO
+    end
 end
