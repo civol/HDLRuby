@@ -441,9 +441,9 @@ module HDLRuby::High
                     res = self.add_output(SignalI.new(name,type,:output))
                 elsif name.is_a?(Hash) then
                     # Names associated with values.
-                    names.each do |name,value|
-                        res = self.add_inner(
-                            SignalI.new(name,type,:inner,value))
+                    name.each do |key,value|
+                        res = self.add_output(
+                            SignalI.new(key,type,:output,value))
                     end
                 else
                     raise AnyError, "Invalid class for a name: #{name.class}"
@@ -474,6 +474,21 @@ module HDLRuby::High
         end
 
 
+        # Gets an input signal by +name+ considering also the included
+        # systems
+        def get_input_with_included(name)
+            # Look in self.
+            found = self.get_input(name)
+            return found if found
+            # Not in self, look in the included systems.
+            self.scope.each_included do |included|
+                found = included.get_input_with_included(name)
+                return found if found
+            end
+            # Not found
+            return nil
+        end
+
         # Gets an output signal by +name+ considering also the included
         # systems
         def get_output_with_included(name)
@@ -483,6 +498,21 @@ module HDLRuby::High
             # Not in self, look in the included systems.
             self.scope.each_included do |included|
                 found = included.get_output_with_included(name)
+                return found if found
+            end
+            # Not found
+            return nil
+        end
+
+        # Gets an inout signal by +name+ considering also the included
+        # systems
+        def get_inout_with_included(name)
+            # Look in self.
+            found = self.get_inout(name)
+            return found if found
+            # Not in self, look in the included systems.
+            self.scope.each_included do |included|
+                found = included.get_inout_with_included(name)
                 return found if found
             end
             # Not found
@@ -509,6 +539,14 @@ module HDLRuby::High
         # of the included systems.
         def get_interface_with_included(i)
             return each_signal_with_included.to_a[i]
+        end
+
+        # Gets a signal by +name+ considering also the included
+        # systems
+        def get_signal_with_included(name)
+            return get_input_with_included(name) ||
+                   get_output_with_included(name) ||
+                   get_inout_with_included(name)
         end
 
         # Iterates over the exported constructs
@@ -870,7 +908,8 @@ module HDLRuby::High
             # Initialize the set of exported inner signals and instances
             @exports = {}
             # Initialize the set of included systems.
-            @includes = {}
+            # @includes = {}
+            @includes = []
 
             # Builds the scope if a ruby block is provided.
             self.build(&ruby_block) if block_given?
@@ -957,7 +996,8 @@ module HDLRuby::High
             # No ruby block? Return an enumerator.
             return to_enum(:each_included) unless ruby_block
             # A block? Apply it on each included system.
-            @includes.each_value(&ruby_block)
+            # @includes.each_value(&ruby_block)
+            @includes.each(&ruby_block)
             # And apply on the sub scopes if any.
             @scopes.each {|scope| scope.each_included(&ruby_block) }
         end
@@ -1250,13 +1290,16 @@ module HDLRuby::High
         # Include a +system+ type with possible +args+ instanciation
         # arguments.
         def include(system,*args)
-            if @includes.key?(system.name) then
-                raise AnyError, "Cannot include twice the same system."
+            # if @includes.key?(system.name) then
+            #     raise AnyError, "Cannot include twice the same system: #{system}"
+            # end
+            if @includes.include?(system) then
+                raise AnyError, "Cannot include twice the same system: #{system}"
             end
-            # puts "Include system=#{system.name}"
-            # Save the name of the included system, it will serve as key
-            # for looking for the included expanded version.
-            include_name = system.name
+            # # puts "Include system=#{system.name}"
+            # # Save the name of the included system, it will serve as key
+            # # for looking for the included expanded version.
+            # include_name = system.name
             # Expand the system to include
             system = system.expand(:"",*args)
             # Add the included system interface to the current one.
@@ -1283,18 +1326,20 @@ module HDLRuby::High
                 end
             end
             # Adds it the list of includeds
-            @includes[include_name] = system
+            # @includes[include_name] = system
+            @includes << system
+
             # puts "@includes=#{@includes}"
             
         end
 
-        # Casts as an included +system+.
-        def as(system)
-            # puts "as with name: #{system.name}"
-            system = system.name if system.respond_to?(:name)
-            # puts "includes are: #{@includes.keys}"
-            return @includes[system].namespace
-        end
+        # Obsolete
+        # # Casts as an included +system+.
+        # def as(system)
+        #     # puts "as with name: #{system.name}"
+        #     system = system.name if system.respond_to?(:name)
+        #     return @includes[system].namespace
+        # end
 
 
         # Gets the current system.
@@ -1309,7 +1354,8 @@ module HDLRuby::High
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(scopeL)
             # Adds the content of its included systems.
-            @includes.each_value {|system| system.scope.fill_low(scopeL) }
+            # @includes.each_value {|system| system.scope.fill_low(scopeL) }
+            @includes.each {|system| system.scope.fill_low(scopeL) }
             # Adds the declared local system types.
             # NOTE: in the current version of HDLRuby::High, there should not
             # be any of them (only eigen systems are real system types).
@@ -2075,26 +2121,28 @@ module HDLRuby::High
                 # Performs the connections.
                 connects.each do |key,value|
                     # Gets the signal corresponding to connect.
-                    signal = self.get_signal(key)
-                    unless signal then
-                        # Look into the included systems.
-                        self.systemT.scope.each_included do |included|
-                            signal = included.get_signal(key)
-                            break if signal
-                        end
-                    end
+                    # signal = self.get_signal(key)
+                    # unless signal then
+                    #     # Look into the included systems.
+                    #     self.systemT.scope.each_included do |included|
+                    #         signal = included.get_signal(key)
+                    #         break if signal
+                    #     end
+                    # end
+                    signal = self.systemT.get_signal_with_included(key)
                     # Check if it is an output.
-                    isout = self.get_output(key)
-                    unless isout then
-                        # Look into the inlucded systems.
-                        self.systemT.scope.each_included do |included|
-                            isout = included.get_output(key)
-                            break if isout
-                        end
-                    end
+                    # isout = self.get_output(key)
+                    # unless isout then
+                    #     # Look into the inlucded systems.
+                    #     self.systemT.scope.each_included do |included|
+                    #         isout = included.get_output(key)
+                    #         break if isout
+                    #     end
+                    # end
+                    isout = self.systemT.get_output_with_included(key)
                     # Convert it to a reference.
+                    # puts "key=#{key} value=#{value} signal=#{signal}"
                     ref = RefObject.new(self.to_ref,signal)
-                    # puts "key=#{key} value=#{value} signal=#{signal} ref=#{ref}"
                     # Make the connection.
                     if isout then
                         value <= ref
@@ -3159,7 +3207,8 @@ module HDLRuby::High
 
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # puts "to_low with base=#{@base} @object=#{@object.name}"
+            # puts "to_low with base=#{@base} @object=#{@object}"
+            # puts "@object.name=#{@object.name}"
             refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                              @base.to_ref.to_low,@object.name)
             # # For debugging: set the source high object 

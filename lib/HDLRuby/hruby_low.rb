@@ -184,7 +184,7 @@ module HDLRuby::Low
 
         # Adds input +signal+.
         def add_input(signal)
-            # print "add_input with signal: #{signal.name}\n"
+            # print "In #{self} add_input with signal: #{signal.name}\n"
             # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,

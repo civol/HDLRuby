@@ -92,6 +92,7 @@ module HDLRuby::Low
                             inputs_blk.add_statement(
                                 Transmit.new(right.clone,left.clone))
                         elsif (left_is_o) then
+                            # puts "left=#{left} right=#{right}"
                             outputs_blk.add_statement(
                                 Transmit.new(right.clone,left.clone))
                         elsif (right_is_o) then
