@@ -519,6 +519,21 @@ module HDLRuby::High
             return nil
         end
 
+        # Iterates over the all signals (input, output, inout, inner, constant),
+        # i.e, also the ones of the included systems.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal_all_with_included(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal_all_with_included) unless ruby_block
+            # Iterate on all the signals of the current system.
+            self.each_signal_all(&ruby_block)
+            # Recurse on the included systems.
+            self.scope.each_included do |included|
+                included.each_signal_all_with_included(&ruby_block)
+            end
+        end
+
         # Iterates over the all interface signals, i.e, also the ones of
         # the included systems.
         #
@@ -528,7 +543,6 @@ module HDLRuby::High
             return to_enum(:each_signal_with_included) unless ruby_block
             # Iterate on all the signals of the current system.
             self.each_signal(&ruby_block)
-            # self.each_signal_all(&ruby_block)
             # Recurse on the included systems.
             self.scope.each_included do |included|
                 included.each_signal_with_included(&ruby_block)
@@ -1307,7 +1321,8 @@ module HDLRuby::High
                 space = self.namespace
                 # Interface signals
                 # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
-                system.each_signal_with_included do |signal|
+                # system.each_signal_with_included do |signal|
+                system.each_signal_all_with_included do |signal|
                     # puts "signal=#{signal.name}"
                     space.send(:define_singleton_method,signal.name) do
                         signal
