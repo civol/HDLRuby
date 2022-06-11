@@ -44,6 +44,7 @@ Where:
 
 |  Options         |          |
 |:------------------|:-----------------------------------------------------|
+| `-I, --interactive` | Run in interactive mode                            |
 | `-y, --yaml`      | Output in YAML format                                |
 | `-v, --verilog`   | Output in Verilog HDL format                         |
 | `-V, --vhdl`      | Output in VHDL format                                |
@@ -95,6 +96,18 @@ hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer
 
 ```
 hdrcc -S counter_bench.rb counter
+```
+
+* Run in interactive mode.
+
+```
+hdrcc -I
+```
+
+* Run in interactive mode using pry as UI.
+
+```
+hdrcc -I pry
 ```
 
 
