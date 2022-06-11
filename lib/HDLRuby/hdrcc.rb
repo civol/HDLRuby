@@ -1,5 +1,39 @@
 #!/usr/bin/ruby
 
+
+# Check if run in interactive mode.
+if ARGV.include?("-I") || ARGV.include?("--interactive") then
+    # Yes, first check which repl to use.
+    idx = ARGV.index("-I")
+    idx = ARGV.index("--interactive") unless idx
+    if ARGV[idx+1] == "irb" || ARGV[idx+1] == nil then
+        repl = :irb
+    elsif ARGV[idx+1] == "pry" then
+        repl = :pry
+    else 
+        raise "Unknown repl: #{ARGV[idx+1]}"
+    end
+    # Look for the interactive Ruby library.
+    libpath = ""
+    $:.each do |dir|
+        if File.exist?(dir + "/hdrlib.rb") then
+            libpath = dir + "/hdrlib.rb"
+            break
+        end
+    end
+    ARGV.clear
+    ARGV.concat(['-r', libpath])
+    case repl
+    when :irb
+        require 'irb'
+        IRB.start
+    when :pry
+        require 'pry'
+        Pry.start
+    end
+    abort
+end
+
 require 'fileutils'
 require 'tempfile'
 require 'HDLRuby'
@@ -267,6 +301,9 @@ def which(cmd)
 end
 
 
+# Used standalone, check the files given in the standard input.
+include HDLRuby
+
 
 if __FILE__ == $0 then
     # From hdrcc.rb
@@ -278,9 +315,6 @@ else
 end
 
 require 'optparse'
-# Used standalone, check the files given in the standard input.
-include HDLRuby
-
 # Process the command line options
 $options = {}
 $optparse = OptionParser.new do |opts|
@@ -293,7 +327,10 @@ $optparse = OptionParser.new do |opts|
     opts.separator "* `<output file>` is the output file"
     opts.separator ""
     opts.separator "Options:"
-    
+
+    opts.on("-I", "--interactive") do |repl|
+        raise "Internal error: the --interactive option should have been processed earlier."
+    end
     opts.on("-y", "--yaml", "Output in YAML format") do |y|
         $options[:yaml] = y
     end
