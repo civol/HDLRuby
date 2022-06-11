@@ -29,7 +29,9 @@ if ARGV.include?("-I") || ARGV.include?("--interactive") then
         IRB.start
     when :pry
         require 'pry'
-        Pry.start
+        require libpath
+        # Pry.start(binding)
+        Pry.start()
     end
     abort
 end
