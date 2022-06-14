@@ -47,7 +47,7 @@ module HDLRuby::High::Std
     end
 
 
-    ## Module describing a pipeline with handshakes.
+    ## Module describing a pipe with handshakes.
     #  @param event the event to synchronize the handshakes.
     #  @param read  the signal telling there is a request from the client side
     #  @param write the signal used for asking the server to issue a request
