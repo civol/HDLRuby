@@ -190,14 +190,22 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
+            # if @inputs.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             if @inputs.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
+                signal.parent = self
+                # Replace the signal.
+                old_signal = @inputs[signal.name]
+                @inputs.add(signal)
+                @interface[@interface.index(old_signal)] = signal
+            else
+                # Set the parent of the signal.
+                signal.parent = self
+                # And add the signal.
+                @inputs.add(signal)
+                @interface << signal
             end
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @inputs.add(signal)
-            @interface << signal
             return signal
         end
 
@@ -208,14 +216,22 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
+            # if @outputs.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             if @outputs.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
+                signal.parent = self
+                # Replace the signal.
+                old_signal = @outputs[signal.name]
+                @outputs.add(signal)
+                @interface[@interface.index(old_signal)] = signal
+            else
+                # Set the parent of the signal.
+                signal.parent = self
+                # And add the signal.
+                @outputs.add(signal)
+                @interface << signal
             end
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @outputs.add(signal)
-            @interface << signal
             return signal
         end
 
@@ -226,14 +242,22 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
+            # if @inouts.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             if @inouts.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
+                signal.parent = self
+                # Replace the signal.
+                old_signal = @inouts[signal.name]
+                @inouts.add(signal)
+                @interface[@interface.index(old_signal)] = signal
+            else
+                # Set the parent of the signal.
+                signal.parent = self
+                # And add the signal.
+                @inouts.add(signal)
+                @interface << signal
             end
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @inouts.add(signal)
-            @interface << signal
             return signal
         end
 
@@ -571,9 +595,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system type: #{systemT.class}"
             end
-            if @systemTs.include?(systemT) then
-                raise AnyError, "SystemT #{systemT.name} already present."
-            end
+            # if @systemTs.include?(systemT) then
+            #     raise AnyError, "SystemT #{systemT.name} already present."
+            # end
             # Set the parent of the instance
             systemT.parent = self
             # puts "systemT = #{systemT}, parent=#{self}"
@@ -623,9 +647,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a type: #{type.class}"
             end
-            if @types.include?(type) then
-                raise AnyError, "Type #{type.name} already present."
-            end
+            # if @types.include?(type) then
+            #     raise AnyError, "Type #{type.name} already present."
+            # end
             # Set the parent of the instance
             type.parent = self
             # puts "type = #{type}, parent=#{self}"
@@ -676,9 +700,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system instance: #{scope.class}"
             end
-            if @scopes.include?(scope) then
-                raise AnyError, "Scope #{scope} already present."
-            end
+            # if @scopes.include?(scope) then
+            #     raise AnyError, "Scope #{scope} already present."
+            # end
             # Set the parent of the scope
             scope.parent = self
             # Add the instance
@@ -732,9 +756,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system instance: #{systemI.class}"
             end
-            if @systemIs.include?(systemI) then
-                raise AnyError, "SystemI #{systemI.name} already present."
-            end
+            # if @systemIs.include?(systemI) then
+            #     raise AnyError, "SystemI #{systemI.name} already present."
+            # end
             # Set the parent of the instance
             systemI.parent = self
             # puts "systemI = #{systemI}, parent=#{self}"
@@ -783,9 +807,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a non-hDLRuby code chunk: #{code.class}"
             end
-            if @codes.include?(code) then
-                raise AnyError, "Code #{code.name} already present."
-            end
+            # if @codes.include?(code) then
+            #     raise AnyError, "Code #{code.name} already present."
+            # end
             # Set the parent of the code chunk.
             code.parent = self
             # puts "code = #{code}, parent=#{self}"
@@ -824,11 +848,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @inners.has_key?(signal.name) then
-            if @inners.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
-            end
-            # @inners[signal.name] = signal
+            # if @inners.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             # Set the parent of the signal.
             signal.parent = self
             # And add the signal.
@@ -2761,10 +2783,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a code chunk: #{chunk.class}"
             end
-            # if @chunks.has_key?(chunk.name) then
-            if @chunks.include?(chunk) then
-                raise AnyError, "Code chunk #{chunk.name} already present."
-            end
+            # if @chunks.include?(chunk) then
+            #     raise AnyError, "Code chunk #{chunk.name} already present."
+            # end
             # Set its parent.
             chunk.parent = self
             # And add it
@@ -4269,11 +4290,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @inners.has_key?(signal.name) then
-            if @inners.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
-            end
-            # @inners[signal.name] = signal
+            # if @inners.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             # Set its parent.
             signal.parent = self
             # And add it
