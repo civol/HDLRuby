@@ -705,7 +705,9 @@ module HDLRuby::Low
             # end
             # Set the parent of the scope
             scope.parent = self
-            # Add the instance
+            # Remove a former scope with same name if present (override)
+            @scopes.delete_if { |sc| sc.name && sc.name == scope.name }
+            # Add the scope
             @scopes << scope
         end
 
