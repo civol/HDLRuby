@@ -148,7 +148,7 @@ module HDLRuby::Low
             # Remove them from the scope.
             # cnxs.each { |cnx| self.delete_connection!(cnx) }
             # cnxs.delete_all_connections!
-            cnxs.each(&:delete_all_connections!)
+            self.delete_all_connections!
             # Return the connections.
             return cnxs
         end
