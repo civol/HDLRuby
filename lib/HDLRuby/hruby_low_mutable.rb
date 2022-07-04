@@ -222,7 +222,7 @@ module HDLRuby::Low
         end
 
         # Deletes all the connections.
-        def delete_all_conncetions!
+        def delete_all_connections!
             @connections.each { |cnx| cnx.parent = nil }
             @connections = []
         end
