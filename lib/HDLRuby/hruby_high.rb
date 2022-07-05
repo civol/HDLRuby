@@ -38,7 +38,7 @@ module HDLRuby::High
             # puts "eigen_extend for #{self} class=#{self.class}"
             obj.singleton_methods.each do |name|
                 next if name == :yaml_tag # Do not know why we need to skip
-                # puts "name=#{name}"
+                puts "name=#{name}"
                 self.define_singleton_method(name, &obj.singleton_method(name))
             end
         end
@@ -670,7 +670,6 @@ module HDLRuby::High
             # Fill the public namespace
             space = self.public_namespace
             # Interface signals
-            # puts "i_name=#{i_name} @to_includes=#{@to_includes.size}"
             self.each_signal do |signal|
                 # puts "signal=#{signal.name}"
                 space.send(:define_singleton_method,signal.name) do
@@ -2289,7 +2288,15 @@ module HDLRuby::High
         # system type.
         def method_missing(m, *args, &ruby_block)
             # print "method_missing in class=#{self.class} with m=#{m}\n"
-            self.public_namespace.send(m,*args,&ruby_block)
+            # Maybe its a signal reference.
+            signal = self.systemT.get_signal_with_included(m)
+            if signal then
+                # Yes, create the reference.
+                return RefObject.new(self.to_ref,signal)
+            else
+                # No try elsewhere
+                self.public_namespace.send(m,*args,&ruby_block)
+            end
         end
 
 

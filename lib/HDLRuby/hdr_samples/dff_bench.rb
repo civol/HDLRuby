@@ -11,7 +11,10 @@ system :dff_bench do
     inner :d, :clk, :rst
     inner :q
 
-    dff(:my_dff).(d,clk,rst,q)
+    # dff(:my_dff).(d,clk,rst,q)
+    dff(:my_dff).(d,clk)
+    q <= my_dff.q
+    my_dff.clk <= clk
 
     timed do
         clk <= 0
