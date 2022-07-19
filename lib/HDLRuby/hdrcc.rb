@@ -36,6 +36,22 @@ if ARGV.include?("-I") || ARGV.include?("--interactive") then
     abort
 end
 
+
+begin
+    # We can check the memory.
+    require 'get_process_mem'
+    $memory_check = GetProcessMem.new
+    def show_mem
+        " | "+$memory_check.bytes.to_s+"B"
+    end
+rescue LoadError
+    # We cannot check the memory.
+    def show_mem
+        ""
+    end
+end
+
+
 require 'fileutils'
 require 'tempfile'
 require 'HDLRuby'
@@ -66,20 +82,6 @@ require 'HDLRuby/backend/hruby_allocator'
 require 'HDLRuby/backend/hruby_c_allocator'
 
 require 'HDLRuby/version.rb'
-
-begin
-    # We can check the memory.
-    require 'get_process_mem'
-    $memory_check = GetProcessMem.new
-    def show_mem
-        " | "+$memory_check.bytes.to_s+"B"
-    end
-rescue LoadError
-    # We cannot check the memory.
-    def show_mem
-        ""
-    end
-end
 
 
 ##
