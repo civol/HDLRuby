@@ -10,5 +10,7 @@ system :bstr_bench do
         !10.ns
         val <= -25
         !10.ns
+        val <= -32
+        !10.ns
     end
 end

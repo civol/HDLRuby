@@ -1,7 +1,7 @@
 # Test the comparison operators.
 
-# A benchmark for the if statement.
-system :if_bench do
+# A benchmark for the case statement.
+system :case_bench do
     [8].inner :x, :z
 
     par do
