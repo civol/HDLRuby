@@ -9,8 +9,25 @@ module HDLRuby
     # Converts a value to a valid bit if possible.
     def make_bit(value)
         value = value.to_s.downcase
-        unless ["0","1","x","z"].include?(value)
-            raise "Invalid value for a bit: #{value}"
+        # Removed because assume value is always right.
+        # unless ["0","1","x","z"].include?(value)
+        #     raise "Invalid value for a bit: #{value}"
+        # end
+        return value
+    end
+
+    # Converts a value to a valid bit string of +width+ bits.
+    def make_bits(value,width)
+        if value.is_a?(Numeric) then
+            value = value.to_s(2)
+        else
+            value = value.to_s.downcase
+        end
+        # puts "first value=#{value} width=#{width}"
+        if value.size > width then
+            value = value[-width..-1]
+        elsif value.size < width then
+            value = value[0] * (width-value.size) + value
         end
         return value
     end
@@ -42,7 +59,7 @@ module HDLRuby
                 if str[0] == "-" then
                     # str = str[1..-1]
                     str = (2**str.size+num).to_s(2)
-                    puts "str=#{str}"
+                    # puts "str=#{str}"
                     sign = "-"
                 else
                     sign = "+"
@@ -79,6 +96,11 @@ module HDLRuby
             unless @str.match(/^[0-1zx]+$/) then
                 raise "Invalid value for creating a bit string: #{str}"
             end
+        end
+
+        # Clone the bit string.
+        def clone
+            return BitString.new(@str)
         end
 
         # Gets the bitwidth.
@@ -125,19 +147,39 @@ module HDLRuby
         end
         alias_method :str, :to_s
 
-        # Gets a bit by +index+.
+        # Gets a bit by +index+. If +index+ is a range it is a range access.
         #
         # NOTE: If the index is larger than the bit string width, returns the
         #       bit sign.
         def [](index)
-            # Handle the negative index case.
-            if index < 0 then
-                return self[self.width+index]
+            if index.is_a?(Numeric) then
+                # Handle the negative index case.
+                if index < 0 then
+                    return self[self.width+index]
+                end
+                # Process the index.
+                index = index >= @str.size ? @str.size-1 : index
+                # # Get the corresponding bit.
+                # return @str[-index-1]
+                # Get the corresponding bit as a BitString
+                return BitString.new(@str[-index-1])
+            elsif index.is_a?(Range) then
+                # Process the first and last indexes.
+                left = index.first
+                left += self.width if left < 0
+                left = left >= @str.size ? @str.size-1 : left
+                right = index.last
+                right += self.width if right < 0
+                right = right >= @str.size ? @str.size-1 : right
+                if left >= right then
+                    # puts "left=#{left} right=#{right}"
+                    # Get the corresponding bits as a BitString
+                    return BitString.new(@str[(-left-1)..(-right-1)])
+                else
+                    # Get the corresponding bits as a BitString
+                    return BitString.new(@str[(-right-1)..(-left-1)].reverse)
+                end
             end
-            # Process the index.
-            index = index > @str.size ? @str.size : index
-            # Get the corresponding bit.
-            return @str[-index-1]
         end
 
         # Sets the bit at +index+ to +value+.
@@ -145,23 +187,49 @@ module HDLRuby
         # NOTE: when index is larger than the bit width, the bit string is
         # sign extended accordingly.
         def []=(index,value)
-            # Handle the negative index case.
-            if index < 0 then
-                return self[self.width+index] = value
+            if index.is_a?(Numeric) then
+                # Handle the negative index case.
+                if index < 0 then
+                    return self[self.width+index] = value
+                end
+                # Process the index.
+                if index >= @str.size then
+                    # Overflow, sign extend the bit string.
+                    @str = @str[0] * (index-str.size+1) + @str
+                end
+                # Checks and convert the value
+                value = make_bit(value)
+                # Sets the value to the bit string.
+                @str[-index-1] = value
+            elsif index.is_a?(Range) then
+                # Process the first and last indexes.
+                left = index.first
+                left += self.width if left < 0
+                if left > @str.size then
+                    # Overflow, sign extend the bit string.
+                    @str = @str[0] * (left-str.size+1) + @str
+                end
+                right = index.last
+                right += self.width if right < 0
+                if right > str.size then
+                    # Overflow, sign extend the bit string.
+                    @str = @str[0] * (right-str.size+1) + @str
+                end
+                if left >= right then
+                    # puts "left=#{left} right=#{right}"
+                    # Checks and convert the value
+                    value = make_bits(value, left-right+1)
+                    # puts "@str=#{@str} value=#{value}"
+                    # Sets the value to a copy of the bit string.
+                    @str[(-left-1)..(-right-1)] = value
+                    # puts "Now @str=#{@str}"
+                else
+                    # Checks and convert the value
+                    value = make_bits(value, right-left+1)
+                    # Sets the value to a copy of the bit string.
+                    @str[(-right-1)..(-left-1)] = value.reverse
+                end
             end
-            # Duplicate the bit string content to ensure immutability.
-            str = @str.clone
-            # Process the index.
-            if index >= str.size then
-                # Overflow, sign extend the bit string.
-                str += str[-1] * (index-str.size+1)
-            end
-            # Checks and convert the value
-            value = make_bit(value)
-            # Sets the value to a copy of the bit string.
-            str[-index-1] = value
-            # Return the result as a new bit string.
-            return BitString.new(str)
         end
 
         # Truncs to +width+.
@@ -363,6 +431,7 @@ module HDLRuby
                     :<< => :bitwise_shl,
                     :>> => :bitwise_shr,
                     :== => :bitwise_eq0,
+                    :!= => :bitwise_neq0,
                     :<  => :bitwise_lt0,
                     :>  => :bitwise_gt0,
                     :<= => :bitwise_le0,
@@ -376,11 +445,12 @@ module HDLRuby
 
         [:+, :-, :*, :/, :%, :**, :&, :|, :^,
          :<<, :>>,
-         :==, :<, :>, :<=, :>=, :<=>].each do |op|
+         :==, :!=, :<, :>, :<=, :>=, :<=>].each do |op|
             # Select the bitwise operation.
             bitwise = BITWISE[op]
             # Define the operation method.
             define_method(op) do |value|
+                # puts "op=#{op}, value=#{value}"
                 # Check the value.
                 unless value.is_a?(Numeric) then
                     value = value.to_numeric if value.specified?
@@ -534,14 +604,15 @@ module HDLRuby
 
         # Bitwise and
         def self.bitwise_and(s0,s1)
+            # puts "bitwise_and with s0=#{s0} and s1=#{s1}"
             res = s0.each.zip(s1.each).map { |b0,b1| AND_T[b0][b1] }.join
-            # puts "s0=#{s0}, s1=#{s1}, res=#{res}"
+            # puts "s0=#{s0}, s1=#{s1}, res=#{res.reverse}"
             return BitString.new(res.reverse)
         end
 
         # Bitwise or
         def self.bitwise_or(s0,s1)
-            res = s0.each.zip(s1.each). map { |b0,b1| OR_T[b0][b1] }.join
+            res = s0.each.zip(s1.each).map { |b0,b1| OR_T[b0][b1] }.join
             return BitString.new(res.reverse)
         end
 
@@ -553,6 +624,7 @@ module HDLRuby
 
         # Bitwise not
         def self.bitwise_not(s)
+            # puts "bitwise_not with s=#{s}"
             return BitString.new(s.each.map { |b| NOT_T[b] }.join.reverse)
         end
 
@@ -590,10 +662,21 @@ module HDLRuby
             return UNKNOWN
         end
 
+        # Bitwise eq without processing of the x and z states.
+        def self.bitwise_neq0(s0,s1)
+            return UNKNOWN
+        end
+
         # Bitwise eq.
         def self.bitwise_eq(s0,s1)
             return UNKNOWN unless (s0.specified? and s1.specified?)
             return s0.str == s1.str ? TRUE : FALSE
+        end
+
+        # Bitwise neq.
+        def self.bitwise_neq(s0,s1)
+            return UNKNOWN unless (s0.specified? and s1.specified?)
+            return s0.str == s1.str ? FALSE : TRUE
         end
 
 
@@ -760,6 +843,7 @@ module HDLRuby
                 return UNKNOWN
             end
         end
+
 
         # Bitwise mul without processing of the x and z states.
         def self.bitwise_mul0(s0,s1)

@@ -2523,18 +2523,18 @@ module HDLRuby::Low
             self.value.each_deep(&ruby_block) if self.value
         end
 
-        # Comparison for hash: structural comparison.
-        def eql?(obj)
-            return false unless obj.is_a?(SignalI)
-            return false unless @name.eql?(obj.name)
-            return false unless @type.eql?(obj.type)
-            return true
-        end
+        # # Comparison for hash: structural comparison.
+        # def eql?(obj)
+        #     return false unless obj.is_a?(SignalI)
+        #     return false unless @name.eql?(obj.name)
+        #     return false unless @type.eql?(obj.type)
+        #     return true
+        # end
 
-        # Hash function.
-        def hash
-            return [@name,@type].hash
-        end
+        # # Hash function.
+        # def hash
+        #     return [@name,@type].hash
+        # end
 
         # Gets the bit width.
         def width
@@ -4594,7 +4594,8 @@ module HDLRuby::Low
                 # Yes so it is also a left value if it is a sub ref.
                 if parent.respond_to?(:ref) then
                     # It might nor be a sub ref.
-                    return parent.ref == self
+                    # return parent.ref == self
+                    return parent.ref.eql?(self)
                 else
                     # It is necessarily a sub ref (case of RefConcat for now).
                     return true
@@ -4602,7 +4603,8 @@ module HDLRuby::Low
             end
             # No, therefore maybe it is directly a left value.
             return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
-                    parent.left == self
+                    # parent.left == self
+                parent.left.eql?(self)
         end
 
         # Tells if the expression is a right value.
@@ -4676,12 +4678,16 @@ module HDLRuby::Low
         # Creates a new value typed +type+ and containing +content+.
         def initialize(type,content)
             super(type)
-            unless content then
+            if content.nil? then
                 # Handle the nil content case.
                 unless type.eql?(Void) then
                     raise AnyError, "A value with nil content must have the Void type."
                 end
                 @content = content
+            elsif content.is_a?(FalseClass) then
+                @content = 0
+            elsif content.is_a?(TrueClass) then
+                @content = 1
             else
                 # Checks and set the content: Ruby Numeric and HDLRuby
                 # BitString are supported. Strings or equivalent are
@@ -4718,8 +4724,8 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General comparison.
-            return false unless super(obj)
+            # # General comparison.
+            # return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(Value)
             return false unless @content.eql?(obj.content)
@@ -5118,7 +5124,7 @@ module HDLRuby::Low
 
 
     ##
-    # Describes a section operation (generalization of the ternary operator).
+    # Describes a selection operation (generalization of the ternary operator).
     #
     # NOTE: choice is using the value of +select+ as an index.
     class Select < Operation

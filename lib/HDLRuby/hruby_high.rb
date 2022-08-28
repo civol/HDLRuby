@@ -2875,54 +2875,58 @@ module HDLRuby::High
              define_method(orig_operator(operator),&meth)
          end
 
-        # Creates an access to elements of range +rng+ of the signal.
-        #
-        # NOTE: +rng+ can be a single expression in which case it is an index.
-        def [](rng)
-            if rng.is_a?(::Range) then
-                first = rng.first
-                if (first.is_a?(::Integer)) then
-                    first = self.type.size+first if first < 0
-                end
-                last = rng.last
-                if (last.is_a?(::Integer)) then
-                    last = self.type.size+last if last < 0
-                end
-                rng = first..last
-            end
-            if rng.is_a?(::Integer) && rng < 0 then
-                rng = self.type.size+rng
-            end
-            if rng.respond_to?(:to_expr) then
-                # Number range: convert it to an expression.
-                rng = rng.to_expr
-            end 
-            if rng.is_a?(HDLRuby::Low::Expression) then
-                # Index case
-                return RefIndex.new(self.type.base,self.to_expr,rng)
-            else
-                # Range case, ensure it is made among expression.
-                first = rng.first.to_expr
-                last = rng.last.to_expr
-                # Abd create the reference.
-                return RefRange.new(self.type.slice(first..last),
-                                    self.to_expr,first..last)
-            end
-        end
 
-        # Converts to a select operator using current expression as
-        # condition for one of the +choices+.
-        #
-        # NOTE: +choices+ can either be a list of arguments or an array.
-        # If +choices+ has only two entries
-        # (and it is not a hash), +value+ will be converted to a boolean.
-        def mux(*choices)
-            # Process the choices.
-            choices = choices.flatten(1) if choices.size == 1
-            choices.map! { |choice| choice.to_expr }
-            # Generate the select expression.
-            return Select.new(choices[0].type,"?",self.to_expr,*choices)
-        end
+         # Creates an access to elements of range +rng+ of the signal.
+         #
+         # NOTE: +rng+ can be a single expression in which case it is an index.
+         def [](rng)
+             if rng.is_a?(::Range) then
+                 first = rng.first
+                 if (first.is_a?(::Integer)) then
+                     first = self.type.size+first if first < 0
+                 end
+                 last = rng.last
+                 if (last.is_a?(::Integer)) then
+                     last = self.type.size+last if last < 0
+                 end
+                 rng = first..last
+             end
+             if rng.is_a?(::Integer) && rng < 0 then
+                 rng = self.type.size+rng
+             end
+             if rng.respond_to?(:to_expr) then
+                 # Number range: convert it to an expression.
+                 rng = rng.to_expr
+             end 
+             if rng.is_a?(HDLRuby::Low::Expression) then
+                 # Index case
+                 return RefIndex.new(self.type.base,self.to_expr,rng)
+             else
+                 # Range case, ensure it is made among expression.
+                 first = rng.first.to_expr
+                 last = rng.last.to_expr
+                 # Abd create the reference.
+                 return RefRange.new(self.type.slice(first..last),
+                                     self.to_expr,first..last)
+             end
+         end
+
+         # And save it so that it can still be accessed if overidden.
+         alias_method orig_operator(:[]), :[]
+
+         # Converts to a select operator using current expression as
+         # condition for one of the +choices+.
+         #
+         # NOTE: +choices+ can either be a list of arguments or an array.
+         # If +choices+ has only two entries
+         # (and it is not a hash), +value+ will be converted to a boolean.
+         def mux(*choices)
+             # Process the choices.
+             choices = choices.flatten(1) if choices.size == 1
+             choices.map! { |choice| choice.to_expr }
+             # Generate the select expression.
+             return Select.new(choices[0].type,"?",self.to_expr,*choices)
+         end
 
 
 
@@ -3246,6 +3250,11 @@ module HDLRuby::High
             @object = object
         end
 
+        # Clones.
+        def clone
+            return RefObject.new(self.base.clone,self.object)
+        end
+
         # Tell if the expression is constant.
         def constant?
             return self.base.constant?
@@ -3394,6 +3403,11 @@ module HDLRuby::High
     class RefThis < Low::RefThis
         High = HDLRuby::High
         include HRef
+
+        # Clones.
+        def clone
+            return RefThis.new
+        end
 
         # Converts to a new reference.
         def to_ref

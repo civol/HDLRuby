@@ -368,6 +368,10 @@ $optparse = OptionParser.new do |opts|
         $options[:multiple] = v
         $options[:sim] = v
     end
+    opts.on("--rsim","Ruby-based simulator") do |v|
+        $options[:rsim] = v
+        $options[:multiple] = v
+    end
     opts.on("--vcd", "The simulator will generate a vcd file") do |v|
         $options[:vcd] = v
     end
@@ -556,7 +560,8 @@ end
 # Generate the result.
 # Get the top systemT.
 HDLRuby.show "#{Time.now}#{show_mem}"
-$top_system = $top_instance.to_low.systemT
+# Ruby simulation uses the HDLRuby::High tree, other the HDLRuby::Lowais used 
+$top_system = $options[:rsim] ? $top_instance.systemT : $top_instance.to_low.systemT
 $top_intance = nil # Free as much memory as possible.
 HDLRuby.show "##### Top system built #####"
 HDLRuby.show "#{Time.now}#{show_mem}"
@@ -837,6 +842,20 @@ elsif $options[:verilog] then
         top_system.each_systemT_deep.reverse_each do |systemT|
             $output << systemT.to_verilog
         end
+    end
+elsif $options[:rsim] then
+    # Ruby-level simulation.
+    require 'HDLRuby/hruby_rsim.rb'
+    # Is VCD output is required.
+    if $options[:vcd] then
+        # Yes
+        require "HDLRuby/hruby_rsim_vcd.rb"
+        vcdout = File.open($output+"/hruby_simulator.vcd","w")
+        $top_system.sim(vcdout)
+        vcdout.close
+    else
+        # No
+        $top_system.sim($stdout)
     end
 elsif $options[:vhdl] then
     # top_system = $top_instance.to_low.systemT
