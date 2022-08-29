@@ -25,8 +25,7 @@ module HDLRuby
                   # Generate the resulting type.
                   res_type = self.type.send(op,value.type)
                   # Generate the resulting content.
-                  res_content = self.content.send(op,value.content)
-                  # puts "op=#{op} self.content=#{self.content} value.content=#{value.content} res_content=#{res_content}, res_value=#{self.class.new(res_type,res_content).content}"
+                  res_content = self.to_bstr.send(op,value.content,self.type.signed?,value.type.signed?)
                   # Return the resulting value.
                   return self.class.new(res_type,res_content)
               end
@@ -53,8 +52,9 @@ module HDLRuby
                   idxl = left.to_i
                   idxr = right.to_i
                   # puts "width=#{width}, idxl=#{idxl} idxr=#{idxr}"
-                  bstr = self.content.is_a?(BitString) ? self.content :
-                      BitString.new(self.content)
+                  # bstr = self.content.is_a?(BitString) ? self.content :
+                  #     BitString.new(self.content)
+                  bstr = self.to_bstr
                   res_content = bstr[((idxl+1)*width-1)..idxr*width]
                   if res_content.is_a?(String) then
                       res_content = BitString.new(res_content)
@@ -77,8 +77,9 @@ module HDLRuby
                   width = res_type.width
                   index = value.to_i
                   # puts "width=#{width}, index=#{index}"
-                  bstr = self.content.is_a?(BitString) ? self.content :
-                      BitString.new(self.content)
+                  # bstr = self.content.is_a?(BitString) ? self.content :
+                  #     BitString.new(self.content)
+                  bstr = self.to_bstr
                   res_content = bstr[((index+1)*width-1)..index*width]
                   if res_content.is_a?(String) then
                       res_content = BitString.new(res_content)
@@ -108,13 +109,12 @@ module HDLRuby
                   width = res_type.width
                   # Generate the resulting value.
                   # puts "width=#{width}, idxl=#{idxl}, idxr=#{idxr}"
-                  res_content = self.content.is_a?(BitString) ? self.content :
-                      BitString.new(self.content)
+                  res_content = self.to_bstr
                   res_content[((idxl+1)*width-1)..idxr*width] = value
                   # puts "first res_content=#{res_content}"
-                  if res_content.is_a?(String) then
-                      res_content = BitString.new(res_content)
-                  end
+                  # if res_content.is_a?(String) then
+                  #     res_content = BitString.new(res_content)
+                  # end
                   # puts "op=[]= self.content=#{self.content} value=#{value} res_content=#{res_content}"
                   # Update the resulting value.
                   @content = res_content
@@ -134,13 +134,13 @@ module HDLRuby
                   width = res_type.width
                   # Generate the resulting value.
                   # puts "width=#{width}, index=#{index}"
-                  res_content = self.content.is_a?(BitString) ? self.content :
-                      BitString.new(self.content)
+                  res_content = self.to_bstr
+                  # puts "before res_content=#{res_content}"
                   res_content[((index+1)*width-1)..index*width] = value
                   # puts "first res_content=#{res_content}"
-                  if res_content.is_a?(String) then
-                      res_content = BitString.new(res_content)
-                  end
+                  # if res_content.is_a?(String) then
+                  #     res_content = BitString.new(res_content)
+                  # end
                   # puts "op=[]= self.content=#{self.content} value=#{value} res_content=#{res_content}"
                   # Update the resulting value.
                   @content = res_content
@@ -154,13 +154,51 @@ module HDLRuby
                   # Generate the resulting type.
                   res_type = self.type.send(op)
                   # Generate the resulting content.
-                  # puts "op=#{op} content.class=#{content.class}"
+                  # puts "op=#{op} content=#{content.to_s}"
                   res_content = self.content.send(op)
                   # puts "res_content=#{res_content}"
                   # Return the resulting value.
                   return self.class.new(res_type,res_content)
               end
           end
+
+          # Cast to +type+
+          def cast(type)
+              cur_type = self.type
+              res_content = self.content
+              if (res_content.is_a?(Numeric)) then
+                  return self.class.new(type,res_content.clone)
+              else
+                  if res_content.width < type.width then
+                      if self.type.signed? then
+                          res_content = res_content.sext(type.width)
+                      else
+                          res_content = res_content.zext(type.width)
+                      end
+                  else
+                      res_content = res_content.trunc(type.width)
+                  end
+                  return self.class.new(type,res_content)
+              end
+          end
+
+          # Concat the content of +values+
+          def self.concat(*values)
+              # Compute the resulting type.
+              types = values.map {|v| v.type }
+              if types.uniq.count <= 1 then
+                  res_type = types[0][types.size]
+              else
+                  res_type = values.map {|v| v.type }.to_type
+              end
+              # Convert contents to bit strings of the right sign.
+              bstrs = values.map {|v| v.to_bstr }
+              # Concat the contents.
+              res_content = bstrs.reduce(&:concat)
+              # Return the resulting value.
+              return values[0].class.new(res_type,res_content)
+          end
+
 
           # Conversion to an integer if possible.
           def to_i
@@ -170,6 +208,33 @@ module HDLRuby
           # Conversion to a float if possible.
           def to_f
               return self.content.to_f
+          end
+
+          # Conversion to a BitString of the right size.
+          def to_bstr
+              # Ensure the content is a bit string.
+              bstr = self.content
+              if bstr.is_a?(Numeric) then
+                  # Handle negative values.
+                  bstr = 2**self.type.width + bstr if bstr < 0
+              end
+              bstr = BitString.new(bstr) unless bstr.is_a?(BitString)
+              # Resize it if necessary.
+              cwidth = self.content.width
+              twidth = self.type.width
+              if cwidth < twidth then
+                  # Its lenght must be extended.
+                  if self.type.signed? then
+                      return bstr.sext(twidth)
+                  else
+                      return bstr.zext(twidth)
+                  end
+              elsif cwidth > twidth then
+                  # Its lenght must be reduced.
+                  return bstr.trunc(twidth)
+              else
+                  return bstr.clone
+              end
           end
 
           # Coercion when operation from Ruby values.

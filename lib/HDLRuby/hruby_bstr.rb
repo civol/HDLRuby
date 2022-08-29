@@ -59,7 +59,7 @@ module HDLRuby
                 if str[0] == "-" then
                     # str = str[1..-1]
                     str = (2**str.size+num).to_s(2)
-                    # puts "str=#{str}"
+                    puts "str=#{str}"
                     sign = "-"
                 else
                     sign = "+"
@@ -185,7 +185,7 @@ module HDLRuby
         # Sets the bit at +index+ to +value+.
         #
         # NOTE: when index is larger than the bit width, the bit string is
-        # sign extended accordingly.
+        # X extended accordingly.
         def []=(index,value)
             if index.is_a?(Numeric) then
                 # Handle the negative index case.
@@ -206,14 +206,18 @@ module HDLRuby
                 left = index.first
                 left += self.width if left < 0
                 if left > @str.size then
-                    # Overflow, sign extend the bit string.
-                    @str = @str[0] * (left-str.size+1) + @str
+                    # # Overflow, sign extend the bit string.
+                    # @str = @str[0] * (left-str.size+1) + @str
+                    # Overflow, X extend the bit string.
+                    @str = @str.xext(left)
                 end
                 right = index.last
                 right += self.width if right < 0
                 if right > str.size then
-                    # Overflow, sign extend the bit string.
-                    @str = @str[0] * (right-str.size+1) + @str
+                    # # Overflow, sign extend the bit string.
+                    # @str = @str[0] * (right-str.size+1) + @str
+                    # Overflow, X extend the bit string.
+                    @str = @str.xext(right)
                 end
                 if left >= right then
                     # puts "left=#{left} right=#{right}"
@@ -254,14 +258,40 @@ module HDLRuby
             return BitString.new(@str[0..width])
         end
 
-        # Extend to +width+.
+        # Sign extend to +width+.
         #
         # NOTE:
         # * if the width is already larger than +width+, do nothing.
         # * preserves the sign.
-        def extend(width)
+        # def extend(width)
+        def sext(width)
            return self if width <= @str.size - 1
-           return BitString.new(@str[0] * (width-@str.size+1) + @str)
+           return BitString.new(@str[0] * (width-@str.size) + @str)
+        end
+
+        # Zero extend to +width+.
+        #
+        # NOTE:
+        # * if the width is already larger than +width+, do nothing.
+        # * preserves the sign.
+        def zext(width)
+           return self if width <= @str.size - 1
+           return BitString.new("0" * (width-@str.size) + @str)
+        end
+
+        # X extend to +width+.
+        #
+        # NOTE:
+        # * if the width is already larger than +width+, do nothing.
+        # * preserves the sign.
+        def xext(width)
+           return self if width <= @str.size - 1
+           return BitString.new("x" * (width-@str.size) + @str)
+        end
+
+        # Concat with another bitstring.
+        def concat(bstr)
+            return BitString.new(self.to_s + bstr.to_s)
         end
 
         # Iterates over the bits.
@@ -288,20 +318,45 @@ module HDLRuby
             @str.each_char(&ruby_block)
         end
 
-        # Gets the sign of the bit string.
-        def sign
-            return @str[0]
-        end
+        # # Gets the sign of the bit string.
+        # def sign
+        #     return @str[0]
+        # end
 
-        # Tell if the sign is specified.
-        def sign?
-            return (@str[0] == "0" or @str[0] == "1")
-        end
+        # # Tell if the sign is specified.
+        # def sign?
+        #     return (@str[0] == "0" or @str[0] == "1")
+        # end
+
+        # # Convert the bit string to a Ruby Numeric.
+        # #
+        # # NOTE: the result will be wrong is the bit string is unspecified.
+        # def to_numeric
+        #     res = 0
+        #     # Process the bits.
+        #     @str[1..-1].each_char { |b| res = res << 1 | b.to_i }
+        #     # Process the sign.
+        #     res = res - (2**(@str.size-1)) if @str[0] == "1"
+        #     # Return the result.
+        #     return res
+        # end
 
         # Convert the bit string to a Ruby Numeric.
         #
         # NOTE: the result will be wrong is the bit string is unspecified.
+        #       the conversion is unisgned
         def to_numeric
+            res = 0
+            # Process the bits.
+            @str[0..-1].each_char { |b| res = res << 1 | b.to_i }
+            # Return the result.
+            return res
+        end
+
+        # Convert the bit string to a Ruby signed Numeric.
+        #
+        # NOTE: the result will be wrong is the bit string is unspecified.
+        def to_numeric_signed
             res = 0
             # Process the bits.
             @str[1..-1].each_char { |b| res = res << 1 | b.to_i }
@@ -449,63 +504,34 @@ module HDLRuby
             # Select the bitwise operation.
             bitwise = BITWISE[op]
             # Define the operation method.
-            define_method(op) do |value|
+            define_method(op) do |value, sign0 = false, sign1 = false|
                 # puts "op=#{op}, value=#{value}"
                 # Check the value.
-                unless value.is_a?(Numeric) then
-                    value = value.to_numeric if value.specified?
+                unless value.is_a?(Numeric) || !value.specified? then
+                    value = sign1 ? value.to_numeric_signed : value.to_numeric
                 end
                 # Can the computation be performed with Ruby numeric values?
                 if self.specified? and value.is_a?(Numeric) then
                     # Yes, do it.
                     if (op == :/ or op == :%) and value == 0 then
                         # Division by 0.
-                        return UNKNOWN.extend(self.size)
+                        return UNKNOWN.sext(self.size)
                     end
-                    res = self.to_numeric.send(op,value)
+                    res = sign0 ? self.to_numeric_signed.send(op,value) :
+                                  self.to_numeric.send(op,value)
                     # Maybe the result was a boolean, change it to an integer
                     res = res ? 1 : 0 unless res.is_a?(Numeric)
                     return res
                 else
-                    # # No, is it a multiplication, division, modulo, or pow?
-                    # # If it is the case, only specific values can be computed
-                    # # otherwise the result is unspecified.
-                    # case op
-                    # when :*  then
-                    #     svalue = self.specified? ? self.to_numeric : self
-                    #     return BitString.multiplication(svalue,value)
-                    # when :/  then 
-                    #     svalue = self.specified? ? self.to_numeric : self
-                    #     return BitString.division(svalue,value)
-                    # when :%  then 
-                    #     svalue = self.specified? ? self.to_numeric : self
-                    #     return BitString.modulo(svalue,value)
-                    # when :** then 
-                    #     svalue = self.specified? ? self.to_numeric : self
-                    #     return BitString.pow(svalue,value)
-                    # end
                     # No, do it bitwise.
                     # Ensure value is a bit string.
                     s1 = value.is_a?(BitString) ? value : BitString.new(value) 
                     s0 = self
-                    # # Convert to list of bits.
-                    # value = value.to_list
-                    # slist = self.to_list
-                    # # Adjust the sizes.
-                    # if value.size < slist.size then
-                    #     value += [value[-1]] * (slist.size - value.size)
-                    # elsif value.size > slist.size then
-                    #     slist += [slist[-1]] * (value.size - slist.size)
-                    # end
-                    # # Perform the bitwise computation on the lists of bits
-                    # res = BitString.send(bitwise,slist,value)
-                    # return BitString.new(res[0..-2],res[-1])
-                    
                     # Adjust the widths
                     if s0.width < s1.width then
-                        s0 = s0.extend(s1.width)
+                        s0 = s0.xext(s1.width)
                     elsif s1.width < s0.width then
-                        s1 = s1.extend(s0.width)
+                        s1 = s1.xext(s0.width)
                     end
                     # Perform the bitwise computation.
                     return BitString.send(bitwise,s0,s1)
@@ -533,6 +559,7 @@ module HDLRuby
                 end
             end
         end
+
 
 
         # Bitwise operations: assume same bit width.
@@ -850,140 +877,140 @@ module HDLRuby
             return BitString.new("x"*(s0.width+s1.width))
         end
 
-        # Bitwise mul.
-        def self.bitwise_mul(s0,s1)
-            # Initialize the result to ZERO of combined s0 and s1 widths
-            res = ZERO.extend(s0.width + s1.width)
-            # The zero cases.
-            if s0.zero? or s1.zero? then
-                return res
-            end
-            # Convert s1 and res to lists of bits which support computation
-            # between unknown bits of same values.
-            s1 = s1.extend(res.width).to_list
-            res = res.to_list
-            # The other cases: perform a multiplication with shifts and adds.
-            s0.each.lazy.take(s0.width).each do |b|
-                case b
-                when "1" then self.list_add!(res,s1)
-                when "x","z" then self.list_add!(res,self.list_and_unknown(s1))
-                end
-                # puts "res=#{res} s1=#{s1}"
-                self.list_shl_1!(s1)
-            end
-            # Add the sign row.
-            case s0.sign
-            when "1" then self.list_sub!(res,s1)
-            when "x","z" then self.list_sub!(res,list_and_unknown(s1))
-            end
-            # Return the result.
-            return self.list_to_bstr(res)
-        end
+        # # Bitwise mul.
+        # def self.bitwise_mul(s0,s1)
+        #     # Initialize the result to ZERO of combined s0 and s1 widths
+        #     res = ZERO.extend(s0.width + s1.width)
+        #     # The zero cases.
+        #     if s0.zero? or s1.zero? then
+        #         return res
+        #     end
+        #     # Convert s1 and res to lists of bits which support computation
+        #     # between unknown bits of same values.
+        #     s1 = s1.extend(res.width).to_list
+        #     res = res.to_list
+        #     # The other cases: perform a multiplication with shifts and adds.
+        #     s0.each.lazy.take(s0.width).each do |b|
+        #         case b
+        #         when "1" then self.list_add!(res,s1)
+        #         when "x","z" then self.list_add!(res,self.list_and_unknown(s1))
+        #         end
+        #         # puts "res=#{res} s1=#{s1}"
+        #         self.list_shl_1!(s1)
+        #     end
+        #     # Add the sign row.
+        #     case s0.sign
+        #     when "1" then self.list_sub!(res,s1)
+        #     when "x","z" then self.list_sub!(res,list_and_unknown(s1))
+        #     end
+        #     # Return the result.
+        #     return self.list_to_bstr(res)
+        # end
 
         # Bitwise div without processing of the x and z states.
         def self.bitwise_div0(s0,s1)
             return BitString.new("x"*(s0.width))
         end
 
-        # Bitwise div.
-        def self.bitwise_div(s0,s1)
-            width = s0.width
-            # The zero cases.
-            if s0.zero? then
-                return res
-            elsif s1.maybe_zero? then
-                return UNKNOWN.extend(width)
-            end
-            # Handle the sign: the division is only performed on positive
-            # numbers.
-            # NOTE: we are sure that s0 and s1 are not zero since these
-            # cases have been handled before.
-            sign = nil
-            if s0.sign == "0" then
-                if s1.sign == "0" then
-                    sign = "0"
-                elsif s1.sign == "1" then
-                    sign = "1"
-                    s1 = -s1
-                else
-                    # Unknown sign, unkown result.
-                    return UNKNOWN.extend(width)
-                end
-            elsif s0.sign == "1" then
-                s0 = -s0
-                if s1.sign == "0" then
-                    sign = "1"
-                elsif s1.sign == "1" then
-                    sign = "0"
-                    s1 = -s1
-                else
-                    # Unknwown sign, unknown result.
-                    return UNKNOWN.extend(width)
-                end
-            else
-                # Unknown sign, unknown result.
-                return UNKNOWN.extend(width)
-            end
-            # Convert s0 and s1 to list of bits of widths of s0 and s1 -1
-            # (the largest possible value).
-            # s0 will serve as current remainder.
-            s0 = BitString.new(s0) if s0.is_a?(Numeric)
-            s1 = BitString.new(s1) if s1.is_a?(Numeric)
-            s0 = s0.extend(s0.width+s1.width-1)
-            s1 = s1.extend(s0.width)
-            s0 = s0.to_list
-            s1 = s1.to_list
-            puts "first s1=#{s1}"
-            # Adujst s1 to the end of s0 and the corresponding 0s in front of q
-            msb = s0.reverse.index {|b| b != 0}
-            steps = s0.size-msb
-            self.list_shl!(s1,steps-1)
-            q = [ 0 ] * (width-steps)
-            # Apply the non-restoring division algorithm.
-            sub = true
-            puts "steps= #{steps} s0=#{s0} s1=#{s1} q=#{q}"
-            (steps).times do |i|
-                if sub then
-                    self.list_sub!(s0,s1)
-                else
-                    self.list_add!(s0,s1)
-                end
-                puts "s0=#{s0}"
-                # Is the result positive?
-                if s0[-1] == 0 then
-                    # Yes, the next step is a subtraction and the current
-                    # result bit is one.
-                    sub = true
-                    q.unshift(1)
-                elsif s0[-1] == 1 then
-                    # No, it is negative the next step is an addition and the
-                    # current result bit is zero.
-                    sub = false
-                    q.unshift(0)
-                else
-                    # Unknown sign, the remaining of q is unknown.
-                    (steps-i).times { q.unshift(self.new_unknown) }
-                    # Still, can add the positive sign bit.
-                    q.push(0)
-                    break
-                end
-                self.list_shr_1!(s1)
-            end
-            # Generate the resulting bit string.
-            puts "q=#{q}"
-            q = self.list_to_bstr(q)
-            puts "q=#{q}"
-            # Set the sign.
-            if sign == "1" then
-                q = (-q).trunc(width)
-            elsif q.zero? then
-                q = 0
-            else
-                q = q.extend(width)
-            end
-            # Return the result.
-            return q
-        end
+        # # Bitwise div.
+        # def self.bitwise_div(s0,s1)
+        #     width = s0.width
+        #     # The zero cases.
+        #     if s0.zero? then
+        #         return res
+        #     elsif s1.maybe_zero? then
+        #         return UNKNOWN.extend(width)
+        #     end
+        #     # Handle the sign: the division is only performed on positive
+        #     # numbers.
+        #     # NOTE: we are sure that s0 and s1 are not zero since these
+        #     # cases have been handled before.
+        #     sign = nil
+        #     if s0.sign == "0" then
+        #         if s1.sign == "0" then
+        #             sign = "0"
+        #         elsif s1.sign == "1" then
+        #             sign = "1"
+        #             s1 = -s1
+        #         else
+        #             # Unknown sign, unkown result.
+        #             return UNKNOWN.extend(width)
+        #         end
+        #     elsif s0.sign == "1" then
+        #         s0 = -s0
+        #         if s1.sign == "0" then
+        #             sign = "1"
+        #         elsif s1.sign == "1" then
+        #             sign = "0"
+        #             s1 = -s1
+        #         else
+        #             # Unknwown sign, unknown result.
+        #             return UNKNOWN.extend(width)
+        #         end
+        #     else
+        #         # Unknown sign, unknown result.
+        #         return UNKNOWN.extend(width)
+        #     end
+        #     # Convert s0 and s1 to list of bits of widths of s0 and s1 -1
+        #     # (the largest possible value).
+        #     # s0 will serve as current remainder.
+        #     s0 = BitString.new(s0) if s0.is_a?(Numeric)
+        #     s1 = BitString.new(s1) if s1.is_a?(Numeric)
+        #     s0 = s0.extend(s0.width+s1.width-1)
+        #     s1 = s1.extend(s0.width)
+        #     s0 = s0.to_list
+        #     s1 = s1.to_list
+        #     puts "first s1=#{s1}"
+        #     # Adujst s1 to the end of s0 and the corresponding 0s in front of q
+        #     msb = s0.reverse.index {|b| b != 0}
+        #     steps = s0.size-msb
+        #     self.list_shl!(s1,steps-1)
+        #     q = [ 0 ] * (width-steps)
+        #     # Apply the non-restoring division algorithm.
+        #     sub = true
+        #     puts "steps= #{steps} s0=#{s0} s1=#{s1} q=#{q}"
+        #     (steps).times do |i|
+        #         if sub then
+        #             self.list_sub!(s0,s1)
+        #         else
+        #             self.list_add!(s0,s1)
+        #         end
+        #         puts "s0=#{s0}"
+        #         # Is the result positive?
+        #         if s0[-1] == 0 then
+        #             # Yes, the next step is a subtraction and the current
+        #             # result bit is one.
+        #             sub = true
+        #             q.unshift(1)
+        #         elsif s0[-1] == 1 then
+        #             # No, it is negative the next step is an addition and the
+        #             # current result bit is zero.
+        #             sub = false
+        #             q.unshift(0)
+        #         else
+        #             # Unknown sign, the remaining of q is unknown.
+        #             (steps-i).times { q.unshift(self.new_unknown) }
+        #             # Still, can add the positive sign bit.
+        #             q.push(0)
+        #             break
+        #         end
+        #         self.list_shr_1!(s1)
+        #     end
+        #     # Generate the resulting bit string.
+        #     puts "q=#{q}"
+        #     q = self.list_to_bstr(q)
+        #     puts "q=#{q}"
+        #     # Set the sign.
+        #     if sign == "1" then
+        #         q = (-q).trunc(width)
+        #     elsif q.zero? then
+        #         q = 0
+        #     else
+        #         q = q.extend(width)
+        #     end
+        #     # Return the result.
+        #     return q
+        # end
 
 
         # Bitwise mod without processing of the x and z states.
@@ -991,10 +1018,10 @@ module HDLRuby
             return BitString.new("x"*(s1.width))
         end
 
-        # Bitwise mod.
-        def self.bitwise_div(s0,s1)
-            raise "bitwise_div is not implemented yet."
-        end
+        # # Bitwise mod.
+        # def self.bitwise_mod(s0,s1)
+        #     raise "bitwise_mod is not implemented yet."
+        # end
     
 
         # Computation with list of bits: 

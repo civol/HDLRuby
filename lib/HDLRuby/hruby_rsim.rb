@@ -272,6 +272,11 @@ module HDLRuby::High
             # Now process the block.
             self.block.init_sim(systemT)
         end
+
+        ## Returns the name of the signal with its hierarchy.
+        def fullname
+            return self.parent.fullname
+        end
     end
 
 
@@ -330,15 +335,21 @@ module HDLRuby::High
 
 
     ##
-    # Describes a signal.
-    class SignalI
+    # Module for extending signal classes with Ruby-level simulation.
+    module SimSignal
         # Access the current and future value.
         attr_accessor :c_value, :f_value
 
         ## Initialize the simulation.
         def init_sim
-            @c_value = Value.new(self.type,"x" * self.type.width)
-            @f_value = Value.new(self.type,"x" * self.type.width)
+            if self.value then
+                @c_value = self.value.execute(:par).to_value
+                @f_value = @c_value.to_value
+                # puts "init signal value at=#{@c_value.to_bstr}"
+            else
+                @c_value = Value.new(self.type,"x" * self.type.width)
+                @f_value = Value.new(self.type,"x" * self.type.width)
+            end
         end
 
         ## Adds behavior +beh+ activated on a positive edge of the signal.
@@ -411,9 +422,15 @@ module HDLRuby::High
     end
 
     ##
+    # Describes a signal.
+    class SignalI
+        include SimSignal
+    end
+
+    ##
     # Describes a constant signal.
     class SignalC
-        # Nothing to do.
+        include SimSignal
     end
 
 
@@ -618,10 +635,16 @@ module HDLRuby::High
     ## 
     # Describes a timed terminate statement: not synthesizable!
     class TimeTerminate
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            @sim = systemT
+        end
+
         ## Executes the statement.
         def execute(mode)
-            @behavior ||= self.get_behavior
-            @behavior.terminate
+            # @behavior ||= self.get_behavior
+            # @behavior.terminate
+            exit
         end
     end
 
@@ -640,6 +663,12 @@ module HDLRuby::High
         ## Executes the statement.
         def execute(mode)
             self.each_statement { |stmnt| stmnt.execute(self.mode) }
+        end
+
+        ## Returns the name of the signal with its hierarchy.
+        def fullname
+            @fullname ||= self.parent.fullname + ":" + self.name.to_s
+            return @fullname
         end
     end
 
@@ -733,8 +762,10 @@ module HDLRuby::High
         def execute(mode)
             # Recurse on the child.
             res = self.child.execute(mode)
-            # Set the type.
-            res.type = self.type
+            # # Set the type.
+            # res.type = self.type
+            # Cast it.
+            res = res.cast(self.type)
             # Returns the result.
             return res
         end
@@ -801,8 +832,11 @@ module HDLRuby::High
         def execute(mode)
             # Recurse on the children.
             tmpe = self.each_expression.map { |expr| expr.execute(mode) }
+            # Ensure the order of the elements matches the type.
+            tmpe.reverse! if self.type.direction == :big
+            # puts "concat result=#{Vprocess.concat(*tmpe).to_bstr}"
             # Concatenate the result.
-            return tmpe.reduce(:concat)
+            return Vprocess.concat(*tmpe)
         end
     end
 
