@@ -202,7 +202,15 @@ module HDLRuby
 
           # Conversion to an integer if possible.
           def to_i
-              return self.content.to_i
+              if self.content.is_a?(BitString) then
+                  if self.type.signed? then
+                      return self.content.to_numeric_signed
+                  else
+                      return self.content.to_numeric
+                  end
+              else
+                  return self.content.to_i
+              end
           end
 
           # Conversion to a float if possible.
