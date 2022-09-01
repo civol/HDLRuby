@@ -194,7 +194,8 @@ module HDLRuby::Low
 
         # Converts the system to Verilog code adding 'spc' spaces at the begining
         # of each line.
-        def to_verilog(spc = 3)
+        # NOTE: if +vcdmodule+ is not nil add code for generating vcd file when simulating
+        def to_verilog(spc = 3, vcdmodule = nil)
             code = "begin"
             if self.name && !self.name.empty? then
                 vname = name_to_verilog(self.name)
@@ -227,6 +228,12 @@ module HDLRuby::Low
                     code << " = #{inner.value.to_verilog}"
                 end
                 code << ";\n"
+            end
+
+            # Make the generation of vcd file if required.
+            if vcdmodule then
+                code << "\n#{" " * (spc+3)}$dumpfile(\"verilog_simulator.vcd\");"
+                code << "\n#{" " * (spc+3)}$dumpvars(0,#{vcdmodule});\n"
             end
 
             # Translate the block that finished scheduling.
@@ -1864,7 +1871,9 @@ module HDLRuby::Low
 
 
         # Converts the system to Verilog code.
-        def to_verilog
+        # NOTE: if +vcd+ is true, generate verilog code whose simulation
+        #       produces a vcd file.
+        def to_verilog(vcd = false)
             # Detect the registers
             HDLRuby::Low::VERILOG_REGS.clear
             # The left values.
@@ -2122,8 +2131,12 @@ module HDLRuby::Low
             end
 
             # Translation of behavior part (always).
+            $timebeh_shown = false
             self.each_behavior do |behavior|
+                timebeh = false
                 if behavior.block.is_a?(TimeBlock) then
+                    # Tell it is a time behavior for further processing.
+                    timebeh = true
                     # Extract and translate the TimeRepeat separately.
                     behavior.each_block_deep do |blk|
                         codeC << blk.repeat_to_verilog!
@@ -2157,7 +2170,12 @@ module HDLRuby::Low
                     codeC << " ) "
                 end
 
-                codeC << behavior.block.to_verilog
+                if vcd && timebeh && !$timebeh_shown then
+                    codeC << behavior.block.to_verilog(3,name_to_verilog(self.name))
+                    $timebeh_shown = true
+                else
+                    codeC << behavior.block.to_verilog
+                end
 
             end
 

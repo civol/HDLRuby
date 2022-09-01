@@ -831,7 +831,8 @@ elsif $options[:verilog] then
             # Open the file for current systemT
             outfile = File.open($name,"w")
             # Generate the Verilog code in to.
-            outfile << systemT.to_verilog
+            # outfile << systemT.to_verilog
+            outfile << systemT.to_verilog($options[:vcd])
             # Close the file.
             outfile.close
             # Clears the name.
