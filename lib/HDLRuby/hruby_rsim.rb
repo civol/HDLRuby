@@ -39,18 +39,17 @@ module HDLRuby::High
         ## Run the simulation from the current systemT and outputs the resuts
         #  on simout.
         def sim(simout)
+            # Merge the included.
+            self.merge_included!
             # Initializes the run mutex and the conditions.
             @mutex = Mutex.new
             @master = ConditionVariable.new
             @master_flag = 0
             @slave = ConditionVariable.new
-            # @slave_flag = 1
             @slave_flags_not = 0
             @num_done = 0
             # @lock = 0
             # @runs = 0
-            # Initialize the displayer.
-            self.show_init(simout)
             # Initializes the time.
             @time = 0
             # Initializes the time and signals execution buffers.
@@ -65,11 +64,20 @@ module HDLRuby::High
             @total_timed_behaviors = 0
             # Initilizes the simulation.
             self.init_sim(self)
+            # Initialize the displayer.
+            self.show_init(simout)
+            # exit
             # First all the timed behaviors are to be executed.
             @timed_behaviors.each {|beh| @tim_exec << beh }
+            # But starts locked.
+            @slave_flags_not = 2**@timed_behaviors.size - 1
+            # Starts the threads.
+            @timed_behaviors.each {|beh| beh.make_thread }
 
             # Run the simulation.
             self.run_init do
+                # # Wake the behaviors.
+                # @timed_behaviors.each {|beh| beh.run }
                 until @tim_exec.empty? do
                     # Display the time
                     self.show_time
@@ -92,6 +100,8 @@ module HDLRuby::High
                                 sig.each_negedge { |beh| @sig_exec << beh }
                             end
                         end
+                        # puts "first @sig_exec.size=#{@sig_exec.size}"
+                        @sig_exec.uniq! {|beh| beh.object_id }
                         # Display the activated signals.
                         @sig_active.each do |sig|
                             if !shown_values[sig].eql?(sig.f_value) then
@@ -105,6 +115,8 @@ module HDLRuby::High
                         # Execute the relevant behaviors and connections.
                         @sig_exec.each { |obj| obj.execute(:par) }
                         @sig_exec.clear
+                        @sig_active.uniq! {|sig| sig.object_id }
+                        # puts "@sig_active.size=#{@sig_active.size}"
                     end
                     break if @timed_behaviors.empty?
                     # Advance time.
@@ -122,7 +134,10 @@ module HDLRuby::High
 
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
+            # puts "init_sim for #{self} (#{self.name})"
+            # Recurse on the signals.
             self.each_signal { |sig| sig.init_sim }
+            # Recure on the scope.
             self.scope.init_sim(systemT)
         end
         
@@ -134,7 +149,6 @@ module HDLRuby::High
         ## Request for running for timed behavior +id+
         def run_req(id)
             # puts "run_req with id=#{id} and @slave_flags_not=#{@slave_flags_not}"
-            # @slave.wait(@mutex) unless @slave_flag == 1
             @slave.wait(@mutex) while @slave_flags_not[id] == 1
         end
 
@@ -145,7 +159,6 @@ module HDLRuby::High
             @slave_flags_not |= 2**id
             if @num_done == @tim_exec.size
                 # puts "All done."
-                # @slave_flag = 0
                 @master_flag = 1
                 @master.signal
             end
@@ -162,7 +175,6 @@ module HDLRuby::High
         ## Acknowledge the run request the executable timed behavior.
         def run_ack
             # puts "run_ack"
-            # @slave_flag = 1
             mask = 0
             @tim_exec.each { |beh| mask |= 2**beh.id }
             mask = 2**@total_timed_behaviors - 1 - mask
@@ -301,9 +313,14 @@ module HDLRuby::High
             @time = 0
             # Initialize the statements.
             self.block.init_sim(systemT)
-            # Create the execution thread
+        end
+
+        # Create the execution thread
+        def make_thread
+            systemT = @sim
             @thread = Thread.new do
                 # puts "In thread."
+                # sleep
                 systemT.run_init do
                     begin
                         # puts "Starting thread"
@@ -724,6 +741,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
+            # puts "connection = #{self}"
             self.left.assign(mode,self.right.execute(mode))
         end
     end

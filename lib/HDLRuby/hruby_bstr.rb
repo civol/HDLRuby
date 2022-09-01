@@ -59,7 +59,7 @@ module HDLRuby
                 if str[0] == "-" then
                     # str = str[1..-1]
                     str = (2**str.size+num).to_s(2)
-                    puts "str=#{str}"
+                    # puts "str=#{str}"
                     sign = "-"
                 else
                     sign = "+"

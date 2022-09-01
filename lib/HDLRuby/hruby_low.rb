@@ -57,6 +57,11 @@ module HDLRuby::Low
             end
         end
 
+        # Clears the parent.
+        def no_parent!
+            @parent = nil
+        end
+
         # Get the parent scope.
         def scope
             cur = self.parent

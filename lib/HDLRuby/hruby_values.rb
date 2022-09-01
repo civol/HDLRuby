@@ -23,7 +23,9 @@ module HDLRuby
                   end
                   value = value.to_value
                   # Generate the resulting type.
-                  res_type = self.type.send(op,value.type)
+                  # res_type = self.type.send(op,value.type)
+                  res_type = self.type.width >= value.type.width ? 
+                      self.type : value.type
                   # Generate the resulting content.
                   res_content = self.to_bstr.send(op,value.content,self.type.signed?,value.type.signed?)
                   # Return the resulting value.

@@ -17,6 +17,7 @@ module HDLRuby::High
 
         ## Initializes the displayer for generating a vcd on +vcdout+
         def show_init(vcdout)
+            # puts "show_init"
             @vcdout = vcdout
             # Show the date.
             @vcdout << "$date\n"
@@ -59,10 +60,12 @@ module HDLRuby::High
 
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
+            # puts "show_hierarchy for module #{self} (#{self.name})"
             # Shows the current level of hierarchy.
             vcdout << "$scope module #{HDLRuby::High.vcd_name(self.name)} $end\n"
             # Shows the interface signals.
             self.each_signal do |sig|
+                # puts "showing signal #{HDLRuby::High.vcd_name(sig.fullname)}"
                 vcdout << "$var wire #{sig.type.width} "
                 vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
                 vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
@@ -91,12 +94,16 @@ module HDLRuby::High
     class Scope
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
+            # puts "show_hierarchy for scope=#{self}"
             # Shows the current level of hierarchy if there is a name.
+            ismodule = false
             if  !self.name.empty? && !self.parent.is_a?(SystemT) then
-                vcdout << "$scope module #{HDLRuby::High.vcd_name(self.name)} $end\n"
+                vcdout << "$scope module #{HDLRuby::High.vcd_name(self.fullname)} $end\n"
+                ismodule = true
             end
             # Shows the inner signals.
             self.each_inner do |sig|
+                # puts "showing inner signal #{HDLRuby::High.vcd_name(sig.fullname)}"
                 vcdout << "$var wire #{sig.type.width} "
                 vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
                 vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
@@ -114,8 +121,8 @@ module HDLRuby::High
                 scope.show_hierarchy(vcdout)
             end
             # Close the current level of hierarchy if there is a name.
-            unless self.name.empty?
-                vcdout << "$upscope $end"
+            if ismodule then
+                vcdout << "$upscope $end\n"
             end
         end
 
@@ -189,12 +196,16 @@ module HDLRuby::High
     module BlockHierarchy
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
+            # puts "show_hierarchy for block=#{self}"
             # Shows the current level of hierarchy if there is a name.
+            ismodule = false
             unless self.name.empty?
                 vcdout << "$scope module #{HDLRuby::High.vcd_name(self.name)} $end\n"
+                ismodule = true
             end
             # Shows the inner signals.
             self.each_inner do |sig|
+                # puts "showing inner signal #{HDLRuby::High.vcd_name(sig.fullname)}"
                 vcdout << "$var wire #{sig.type.width} "
                 vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
                 vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
@@ -204,8 +215,8 @@ module HDLRuby::High
                 stmnt.show_hierarchy(vcdout)
             end
             # Close the current level of hierarchy if there is a name.
-            unless self.name.empty?
-                vcdout << "$upscope $end"
+            if ismodule then
+                vcdout << "$upscope $end\n"
             end
         end
 

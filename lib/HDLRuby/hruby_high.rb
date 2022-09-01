@@ -825,8 +825,20 @@ module HDLRuby::High
 
         include Hmux
 
+
+        # Merge the included systems interface in current system.
+        # NOTE: incompatible with further to_low transformation.
+        def merge_included!
+            # puts "merge_included! for system=#{self.name}"
+            # Recurse on the system instances.
+            self.scope.merge_included!
+            # Merge for current system.
+            self.scope.merge_included(self)
+        end
+
+
         # Fills the interface of a low level system.
-        def fill_interface(systemTlow)
+        def fill_interface_low(systemTlow)
             # Adds its input signals.
             self.each_input { |input|  systemTlow.add_input(input.to_low) }
             # Adds its output signals.
@@ -835,7 +847,7 @@ module HDLRuby::High
             self.each_inout { |inout|  systemTlow.add_inout(inout.to_low) }
             # Adds the interface of its included systems.
             self.scope.each_included do |included|
-                included.fill_interface(systemTlow)
+                included.fill_interface_low(systemTlow)
             end
         end
 
@@ -844,7 +856,7 @@ module HDLRuby::High
         # NOTE: name conflicts are treated in the current NameStack state.
         def fill_low(systemTlow)
             # Fills the interface
-            self.fill_interface(systemTlow)
+            self.fill_interface_low(systemTlow)
         end
 
         # Converts the system to HDLRuby::Low and set its +name+.
@@ -1379,6 +1391,67 @@ module HDLRuby::High
         end
 
         include Hmux
+
+
+
+        # Merge the included systems interface in +systemT+
+        # NOTE: incompatible with further to_low transformation.
+        def merge_included(systemT)
+            # Recurse on the sub.
+            self.each_scope {|scope| scope.merge_included(systemT) }
+            # Include for current scope.
+            self.each_included do |included|
+                included.merge_included!
+                # Adds its interface signals.
+                included.each_input do |input|
+                    input.no_parent!
+                    systemT.add_input(input)
+                end
+                included.each_output do |output|  
+                    output.no_parent!
+                    systemT.add_output(output)
+                end
+                included.each_inout do |inout|  
+                    inout.no_parent!
+                    systemT.add_inout(inout)
+                end
+                # Adds its behaviors.
+                included.scope.each_behavior do |beh|
+                    beh.no_parent!
+                    systemT.scope.add_behavior(beh)
+                end
+                # Adds its connections.
+                included.scope.each_connection do |cx|
+                    cx.no_parent!
+                    systemT.scope.add_connection(cx)
+                end
+                # Adds its sytem instances.
+                included.scope.each_systemI do |sys|
+                    sys.no_parent!
+                    systemT.scope.add_systemI(sys)
+                end
+                # Adds its code.
+                included.scope.each_code do |code|
+                    code.no_parent!
+                    systemT.scope.add_code(code)
+                end
+                # Adds its subscopes.
+                included.scope.each_scope do |scope|
+                    scope.no_parent!
+                    systemT.scope.add_scope(scope)
+                end
+            end
+        end
+
+        # Merge the included systems interface in system instances.
+        # NOTE: incompatible with further to_low transformation.
+        def merge_included!
+            # Recurse on the sub.
+            self.each_scope {|scope| scope.merge_included! }
+            # Merge in the system instances.
+            self.each_systemI {|systemI| systemI.systemT.merge_included! }
+        end
+
 
         # Fills a low level scope with self's contents.
         #
