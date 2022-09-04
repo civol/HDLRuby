@@ -136,7 +136,7 @@ module HDLRuby::High
         def init_sim(systemT)
             # puts "init_sim for #{self} (#{self.name})"
             # Recurse on the signals.
-            self.each_signal { |sig| sig.init_sim }
+            self.each_signal { |sig| sig.init_sim(systemT) }
             # Recure on the scope.
             self.scope.init_sim(systemT)
         end
@@ -215,7 +215,7 @@ module HDLRuby::High
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
             # Recurse on the inner signals.
-            self.each_inner { |sig| sig.init_sim }
+            self.each_inner { |sig| sig.init_sim(systemT) }
             # Recurse on the behaviors.
             self.each_behavior { |beh| beh.init_sim(systemT) }
             # Recurse on the systemI.
@@ -357,15 +357,19 @@ module HDLRuby::High
         # Access the current and future value.
         attr_accessor :c_value, :f_value
 
-        ## Initialize the simulation.
-        def init_sim
+        ## Initialize the simulation for +systemT+
+        def init_sim(systemT)
             if self.value then
                 @c_value = self.value.execute(:par).to_value
                 @f_value = @c_value.to_value
                 # puts "init signal value at=#{@c_value.to_bstr}"
+                # The signal is considered active.
+                systemT.add_sig_active(self)
             else
-                @c_value = Value.new(self.type,"x" * self.type.width)
-                @f_value = Value.new(self.type,"x" * self.type.width)
+                # @c_value = Value.new(self.type,"x" * self.type.width)
+                # @f_value = Value.new(self.type,"x" * self.type.width)
+                @c_value = Value.new(self.type,"x")
+                @f_value = Value.new(self.type,"x")
             end
         end
 
@@ -414,8 +418,9 @@ module HDLRuby::High
 
         ## Assigns +value+ the the reference.
         def assign(mode,value)
-            # self.f_value.assign(mode,value)
-            @f_value = value
+            # @f_value = value
+            # puts "assign #{value.content} (#{value.content.class}) with self.type.width=#{self.type.width} while value.type.width=#{value.type.width}" if self.name.to_s.include?("idx")
+            @f_value = value.cast(self.type)
         end
 
         ## Assigns +value+ at +index+ (integer or range).
@@ -672,7 +677,7 @@ module HDLRuby::High
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
             # Recurse on the inner signals.
-            self.each_inner { |sig| sig.init_sim }
+            self.each_inner { |sig| sig.init_sim(systemT) }
             # Recurde on the statements.
             self.each_statement { |stmnt| stmnt.init_sim(systemT) }
         end

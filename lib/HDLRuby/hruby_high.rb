@@ -1440,6 +1440,11 @@ module HDLRuby::High
                     scope.no_parent!
                     systemT.scope.add_scope(scope)
                 end
+                # Add its inner signals.
+                included.scope.each_inner do |inner|
+                    inner.no_parent!
+                    systemT.scope.add_inner(inner)
+                end
             end
         end
 
@@ -4684,13 +4689,19 @@ module HDLRuby::High
         #     # Use it to create the new value.
         #     return Value.new(Bit[bstr.width],self)
         # end
+        
+        # Tell if the expression can be converted to a value.
+        def to_value?
+            return true
+        end
 
         # Converts to a new high-level value.
         def to_value
             # Convert the string to a bit string.
             bstr = BitString.new(self)
             # Use it to create the new value.
-            return Value.new(Bit[bstr.width],self)
+            # return Value.new(Bit[bstr.width],bstr)
+            return Value.new(Bit[self.length],bstr)
         end
         
         # Convert to a new high-level string expression

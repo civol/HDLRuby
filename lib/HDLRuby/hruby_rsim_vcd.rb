@@ -43,7 +43,12 @@ module HDLRuby::High
             @vars_with_fullname = self.get_vars_with_fullname
             @vcdout << "$dumpvars\n"
             @vars_with_fullname.each_pair do |sig,fullname|
-                @vcdout << "   b#{"x"*sig.type.width} #{fullname}\n"
+                if sig.f_value then
+                    @vcdout << "   b#{sig.f_value.to_vstr} #{fullname}\n"
+                else
+                    # @vcdout << "   b#{"x"*sig.type.width} #{fullname}\n"
+                    @vcdout << "   b#{"x"} #{fullname}\n"
+                end
             end
             @vcdout << "$end\n"
         end
