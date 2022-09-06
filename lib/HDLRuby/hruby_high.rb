@@ -2272,8 +2272,6 @@ module HDLRuby::High
             else
                 # No, perform a connection is order of declaration
                 connects.each.with_index do |csig,i|
-                    csig = csig.to_expr
-                    # puts "csig=#{csig} i=#{i}"
                     # puts "systemT inputs=#{systemT.each_input.to_a.size}"
                     # Gets i-est signal to connect
                     ssig = self.systemT.get_interface_with_included(i)
@@ -2285,8 +2283,10 @@ module HDLRuby::High
                     # Make the connection.
                     if isout then
                         csig <= ssig
+                        # csig.to_ref <= ssig
                     else
                         ssig <= csig
+                        # ssig <= csig.to_expr
                     end
                 end
             end
@@ -2853,30 +2853,39 @@ module HDLRuby::High
             return self.ljust(self[-1])
         end
 
-        # Match the type with +typ+:
-        # - Recurse on the sub expr if hierachical type, raising an arror
-        #   if the expression is not hierarchical.
-        # - Directly cast otherwise.
+        # # Match the type with +typ+:
+        # # - Recurse on the sub expr if hierachical type, raising an error
+        # #   if the expression is not hierarchical.
+        # # - Directly cast otherwise.
+        # def match_type(typ)
+        #     # Has the type sub types?
+        #     if typ.types? then
+        #         unless self.is_a?(Concat) then
+        #             raise AnyError,
+        #                 "Invalid class for assignment to hierarchical: #{self.class}."
+        #         end
+        #         return Concat.new(typ,
+        #           self.each_expression.zip(typ.each_type).map do |e,t|
+        #             e.match_type(t)
+        #         end)
+        #     elsif typ.vector? && typ.base.hierarchical? then
+        #         unless self.is_a?(Concat) then
+        #             raise AnyError,
+        #                 "Invalid class for assignment to hierarchical: #{self.class}."
+        #         end
+        #         return Concat.new(typ,
+        #           self.each_expression.map do |e|
+        #             e.match_type(typ.base)
+        #         end)
+        #     else
+        #         return self.as(typ)
+        #     end
+        # end
+
+        # Match the type with +typ+: cast if different type.
         def match_type(typ)
-            # Has the type sub types?
-            if typ.types? then
-                unless self.is_a?(Concat) then
-                    raise AnyError,
-                        "Invalid class for assignment to hierarchical: #{self.class}."
-                end
-                return Concat.new(typ,
-                  self.each_expression.zip(typ.each_type).map do |e,t|
-                    e.match_type(t)
-                end)
-            elsif typ.vector? && typ.base.hierarchical? then
-                unless self.is_a?(Concat) then
-                    raise AnyError,
-                        "Invalid class for assignment to hierarchical: #{self.class}."
-                end
-                return Concat.new(typ,
-                  self.each_expression.map do |e|
-                    e.match_type(typ.base)
-                end)
+            if self.type.eql?(typ) then
+                return self
             else
                 return self.as(typ)
             end
@@ -3048,19 +3057,25 @@ module HDLRuby::High
         #
         # NOTE: it is converted afterward to an expression if required.
         def <=(expr)
+            # Generate a ref from self for the left of the transmit.
+            left = self.to_ref
             # Cast expr to self if required.
-            expr = expr.to_expr.match_type(self.type)
+            expr = expr.to_expr.match_type(left.type)
+            # Ensure expr is an expression.
+            expr = expr.to_expr
+            # Cast it to left if necessary.
+            expr = expr.as(left.type) unless expr.type.eql?(left.type)
             # Generate the transmit.
             if High.top_user.is_a?(HDLRuby::Low::Block) then
                 # We are in a block, so generate and add a Transmit.
                 High.top_user.
-                    # add_statement(Transmit.new(self.to_ref,expr.to_expr))
-                    add_statement(Transmit.new(self.to_ref,expr))
+                    # add_statement(Transmit.new(self.to_ref,expr))
+                    add_statement(Transmit.new(left,expr))
             else
                 # We are in a system type, so generate and add a Connection.
                 High.top_user.
-                    # add_connection(Connection.new(self.to_ref,expr.to_expr))
-                    add_connection(Connection.new(self.to_ref,expr))
+                    # add_connection(Connection.new(self.to_ref,expr))
+                    add_connection(Connection.new(left,expr))
             end
         end
     end
@@ -3311,7 +3326,7 @@ module HDLRuby::High
 
         # Creates a new reference from a +base+ reference and named +object+.
         def initialize(base,object)
-            # puts "New RefObjet with base=#{base}, object=#{object.name}"
+            # puts "New RefObjet with base=#{base}, object=#{object}"
             if object.respond_to?(:type) then
                 # Typed object, so typed reference.
                 super(object.type)
@@ -4815,9 +4830,6 @@ module HDLRuby::High
 
         # Converts to a new high-level expression.
         def to_expr
-            # expr = Concat.new(TypeTuple.new(:"",:little,*self.map do |elem|
-            #     elem.to_expr.type
-            # end))
             elems = self.map {|elem| elem.to_expr }
             typ= TypeTuple.new(:"",:little)
             elems.each {|elem| typ.add_type(elem.type) }
@@ -4828,7 +4840,6 @@ module HDLRuby::High
 
         # Converts to a new high-level reference.
         def to_ref
-            # expr = RefConcat.new
             expr = RefConcat.new(TypeTuple.new(:"",:little,*self.map do |elem|
                 elem.to_ref.type
             end))
@@ -4895,10 +4906,11 @@ module HDLRuby::High
             end
         end
 
-        # Add support of the left arrow operator.
-        def <=(expr)
-            self.to_expr <= expr
-        end
+        # Moved to HArrow.
+        # # Add support of the left arrow operator.
+        # def <=(expr)
+        #     self.to_expr <= expr
+        # end
 
         # Array construction shortcuts
 
