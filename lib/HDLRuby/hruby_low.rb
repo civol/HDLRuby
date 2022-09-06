@@ -1602,10 +1602,11 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General type comparison.
-            return false unless super(obj)
+            # # General type comparison.
+            # return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(TypeDef)
+            return false unless @name.eql?(obj.name)
             return false unless @def.eql?(obj.def)
             return true
         end
@@ -1680,8 +1681,8 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General type comparison.
-            return false unless super(obj)
+            # # General type comparison.
+            # return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(TypeVector)
             return false unless @base.eql?(obj.base)
@@ -1872,8 +1873,9 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General type comparison.
-            return false unless super(obj)
+            # # General type comparison.
+            # return false unless super(obj)
+            return false unless obj.is_a?(TypeTuple)
             # Specific comparison.
             idx = 0
             obj.each_type do |type|
