@@ -356,8 +356,12 @@ module HDLRuby
 
         # Tell if the value is zero.
         def zero?
-            return false unless content
-            return content.zero?
+            return false unless @content
+            if content.is_a?(Numeric) then
+                return @content & (2**self.type.width-1) == 0
+            else
+                return !@content.raw_content[0..self.type.width-1].any?{|b| b!=0}
+            end
         end
 
         ## Converts the value to a string of the right size.
