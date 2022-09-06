@@ -101,15 +101,15 @@ module HDLRuby
                 # right = right.to_i
                 right = self.trunc(right.to_i,val.last.type.width)
                 # Generate the resulting type.
-                res_type = self.type.base[(left-right).abs]
+                res_type = self.type.base[(left-right+1).abs]
                 # Generate the resulting value.
-                width = res_type.width
+                width = res_type.base.width
                 # puts "width=#{width}, left=#{left} right=#{right}"
                 if self.content.is_a?(BitString) then
                     res_content = self.content[right*width..(left+1)*width-1]
                 else
                     sh = right*width
-                    mask = (-1 << sh) & ~(-1 << left*width)
+                    mask = (-1 << sh) & ~(-1 << (left+1)*width)
                     res_content = (self.content & mask) >> sh
                 end
                 # Return the resulting value.
@@ -184,7 +184,14 @@ module HDLRuby
                 width = self.type.base.width
                 # Write the value at the right position.
                 # puts "width=#{width}, left=#{left}, right=#{right}"
-                @content[right*width..(left+1)*width-1] = val
+                if @content.is_a?(BitString) then
+                    @content[right*width..(left+1)*width-1] = val
+                else
+                    sh = right*width
+                    val = self.trunc(val,((left-right).abs+1)*width) << sh
+                    mask = ~(-1 << sh) | (-1 << (left+1)*width)
+                    @content =((@content & mask) | val)
+                end
             else
                 # Index case.
                 # Ensures index and val are really values.
@@ -207,9 +214,16 @@ module HDLRuby
                 # Compute the width of one element.
                 width = self.type.base.width
                 # Write the value at the right position.
-                # puts "width=#{width}, left=#{left}, right=#{right}"
+                # puts "width=#{width}, index=#{index}, val=#{val}"
                 # puts "first @content=#{@content}, index*width=#{index*width} next=#{(index+1)*width-1}"
-                @content[index*width..(index+1)*width-1] = val
+                if @content.is_a?(BitString) then
+                    @content[index*width..(index+1)*width-1] = val
+                else
+                    sh = index*width
+                    val = self.trunc(val,width) << sh
+                    mask = ~(-1 << sh) | (-1 << (index+1)*width)
+                    @content = ((@content & mask) | val)
+                end
                 # puts "now @content=#{@content}"
             end
         end
