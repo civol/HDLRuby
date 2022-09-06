@@ -87,19 +87,21 @@ module HDLRuby::High
                     shown_values = {}
                     # Get the behaviors waiting on activated signals.
                     until @sig_active.empty? do
-                        # Update the signals.
-                        @sig_active.each { |sig| sig.c_value = sig.f_value }
+                        # # Update the signals.
+                        # @sig_active.each { |sig| sig.c_value = sig.f_value }
                         # puts "sig_active.size=#{@sig_active.size}"
                         # Look for the behavior sensitive to the signals.
                         @sig_active.each do |sig|
                             sig.each_anyedge { |beh| @sig_exec << beh }
-                            if (!sig.c_value.zero?) then
+                            if (sig.c_value.zero? && !sig.f_value.zero?) then
                                 # puts "sig.c_value=#{sig.c_value.content}"
                                 sig.each_posedge { |beh| @sig_exec << beh }
-                            else
+                            elsif (!sig.c_value.zero? && sig.f_value.zero?) then
                                 sig.each_negedge { |beh| @sig_exec << beh }
                             end
                         end
+                        # Update the signals.
+                        @sig_active.each { |sig| sig.c_value = sig.f_value }
                         # puts "first @sig_exec.size=#{@sig_exec.size}"
                         @sig_exec.uniq! {|beh| beh.object_id }
                         # Display the activated signals.
@@ -413,24 +415,31 @@ module HDLRuby::High
         ## Execute the expression.
         def execute(mode)
             # puts "Executing signal=#{self.fullname}"
-            return mode == :par ? self.c_value : self.f_value
+            # return mode == :par ? self.c_value : self.f_value
+            return @mode == :seq ? self.f_value : self.c_value
         end
 
         ## Assigns +value+ the the reference.
         def assign(mode,value)
-            # @f_value = value
+            # Set the next value.
+            @f_value = value
+            # Set the mode.
+            @mode = mode
             # puts "assign #{value.content} (#{value.content.class}) with self.type.width=#{self.type.width} while value.type.width=#{value.type.width}" if self.name.to_s.include?("idx")
-            @f_value = value.cast(self.type)
+            # @f_value = value.cast(self.type) # Cast inserted by HDLRuby normally
         end
 
         ## Assigns +value+ at +index+ (integer or range).
         def assign_at(mode,value,index)
             # @f_value = @f_value.assign_at(mode,value,index)
+            # Sets the next value.
             if (@f_value.equal?(@c_value)) then
                 # Need to duplicate @f_value to avoid side effect.
                 @f_value = Value.new(@f_value.type,@f_value.content.clone)
             end
             @f_value[index] = value
+            # Sets the mode
+            @mode = mode
         end
 
 
@@ -905,17 +914,19 @@ module HDLRuby::High
 
         ## Assigns +value+ the the reference.
         def assign(mode,value)
-            # Recurse on the children.
+            # puts "self.type=#{self.type}"
+            # Flatten the value type.
+            value.type = [value.type.width].to_type
             pos = 0
             width = 0
+            # Recurse on the children.
             @refs.reverse_each do |ref|
-                width = type.width
-                # Get the refered value.
-                refv = ref.execute(mode,value)
-                # Assign to it.
-                refv = refv.assign_at(mode,value[pos+width-1..pos])
-                # Update the reference.
-                ref.assign(mode,refv)
+                # puts "ref.type=#{ref.type}"
+                width = ref.type.width
+                # puts "pos=#{pos} width=#{width}, pos+width-1=#{pos+width-1}"
+                # puts "value.content=#{value.content}"
+                # puts "value[(pos+width-1).to_expr..pos.to_expr].content=#{value[(pos+width-1).to_expr..pos.to_expr].content}"
+                ref.assign(mode,value[(pos+width-1).to_expr..pos.to_expr])
                 # Prepare for the next reference.
                 pos += width
             end
