@@ -1461,6 +1461,10 @@ module HDLRuby::Low
     # The bit type leaf.
     class << ( Bit = Type.new(:bit) )
         include LLeaf
+        # Tells if the type is unsigned.
+        def unsigned?
+            return true
+        end
         # Tells if the type fixed point.
         def fixed?
             return true

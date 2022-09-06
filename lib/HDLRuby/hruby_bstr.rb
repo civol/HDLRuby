@@ -376,7 +376,7 @@ module HDLRuby
         def to_i
             # Compute the 2-complement's value.
             res = 0
-            @content.each { |b| res = res * 2 | b }
+            @content.reverse_each { |b| res = res * 2 | b }
             # Fix the sign.
             res = -((1 << @content.size) - res) if @content[-1] == 1
             return res

@@ -52,6 +52,7 @@ module HDLRuby
                 else
                     # Generate the resulting content.
                     res_content = self.content.send(op,val.content)
+                    # puts "op=#{op} self.content=#{self.content} (#{self.content.class}) val.content=#{val.content} (#{val.content.class}) res_content=#{res_content} (#{res_content.class})"
                 end
                 res_type = self.type.resolve(val.type)
                 # # Adjust the result content size.
@@ -246,7 +247,8 @@ module HDLRuby
         # Cast to +type+
         def cast(type)
             res_content = self.content.clone
-            if type.unsigned? && self.type.signed? then
+            # if type.unsigned? && self.type.signed? then
+            if type.unsigned? && !self.content.positive? then
                 # Ensure the content is a positive value to match unsigned type.
                 if res_content.is_a?(Numeric) then
                     res_content &= ~(-1 << type.width) if res_content < 0
