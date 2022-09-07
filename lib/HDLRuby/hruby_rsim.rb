@@ -865,7 +865,7 @@ module HDLRuby::High
             # Recurse on the children.
             tmpe = self.each_expression.map { |expr| expr.execute(mode) }
             # Ensure the order of the elements matches the type.
-            tmpe.reverse! if self.type.direction == :big
+            tmpe.reverse! if self.type.direction == :little
             # puts "concat result=#{Vprocess.concat(*tmpe).to_bstr}"
             # Concatenate the result.
             return Vprocess.concat(*tmpe)
