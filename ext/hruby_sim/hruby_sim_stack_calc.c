@@ -1,10 +1,12 @@
+/* Not used for the C-Ruby hybrid simulator. */
+#ifndef RCSIM
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include "hruby_sim.h"
-
 
 /**
  *  The HDLRuby simulation stack calculation engine, to be used with C code
@@ -248,3 +250,4 @@ void transmitR_seq(RefRangeS ref) {
     transmit_to_signal_range_seq(pop(),ref);
 }
 
+#endif

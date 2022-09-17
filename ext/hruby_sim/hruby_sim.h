@@ -21,6 +21,26 @@ typedef struct SystemIS_   SystemIS;
 typedef struct CodeS_      CodeS;
 typedef struct BlockS_     BlockS;
 typedef struct EventS_     EventS;
+#ifdef RCSIM
+typedef struct StatementS_ StatementS;
+typedef struct TransmitS_ TransmitS;
+typedef struct PrintS_ PrintS;
+typedef struct HIfS_ HIfS;
+typedef struct HCaseS_ HCaseS;
+typedef struct TimeWaitS_ TimeWaitS;
+typedef struct TimeTerminateS_ TimeTerminateS;
+typedef struct ExpressionS_ ExpressionS;
+typedef struct UnaryS_ UnaryS;
+typedef struct BinaryS_ BinaryS;
+typedef struct SelectS_ SelectS;
+typedef struct ConcatS_ ConcatS;
+typedef struct CastS_ CastS;
+typedef struct ReferenceS_ ReferenceS;
+typedef struct RefObjectS_ RefObjectS;
+typedef struct RefIndexS_ RefIndexS;
+typedef struct RefRangeES_ RefRangeES;
+typedef struct RefConcatS_ RefConcatS;
+#endif
 
 typedef struct RefRangeS_  RefRangeS;
 
@@ -35,18 +55,55 @@ typedef struct SystemIS_*  SystemI;
 typedef struct CodeS_*     Code;
 typedef struct BlockS_*    Block;
 typedef struct EventS_*    Event;
+#ifdef RCSIM
+typedef struct StatementS_* Statement;
+typedef struct TransmitS_* Transmit;
+typedef struct PrintS_* Print;
+typedef struct HIfS_* HIf;
+typedef struct HCaseS_* HCase;
+typedef struct TimeWaitS_* TimeWait;
+typedef struct TimeTerminateS_* TimeTerminate;
+typedef struct ExpressionS_* Expression;
+typedef struct UnaryS_* Unary;
+typedef struct BinaryS_* Binary;
+typedef struct SelectS_* Select;
+typedef struct ConcatS_* Concat;
+typedef struct CastS_* Cast;
+typedef struct ReferenceS_* Reference;
+typedef struct RefObjectS_* RefObject;
+typedef struct RefIndexS_* RefIndex;
+typedef struct RefRangeES_* RefRangeE;
+typedef struct RefConcatS_* RefConcat;
+#endif
 
 typedef struct RefRangeS_*  RefRange;
 
 /* The kinds of HDLRuby objects. */
-typedef enum { 
-    OBJECT, SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT 
+/* NOTE: VALUEE, the kind for Values MUST be 0
+ * (this is assumed for faster Value processing). */
+typedef enum {
+#ifdef RCSIM
+    VALUEE = 0,
+#endif
+    OBJECT, SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT,
+#ifdef RCSIM
+    /* Statements */  TRANSMIT, PRINT, HIF, HCASE, TIME_WAIT, TIME_TERMINATE,
+    /* Expressions */ UNARY, BINARY, SELECT, CONCAT, CAST,
+    /* References */  REF_OBJECT, REF_INDEX, REF_RANGE, REF_CONCAT,
+#endif
 } Kind;
 
 /*  The kinds of HDLRuby event edge. */
 typedef enum {
     ANYEDGE, POSEDGE, NEGEDGE
 } Edge;
+
+#ifdef RCSIM
+/* The execution mode for a block. */
+typedef enum {
+    PAR, SEQ
+} Mode;
+#endif
 
 
 /* The interface to the type engine. */
@@ -91,9 +148,12 @@ extern Type get_type_vector(Type base, unsigned long long number);
 
 /* The structure of a value. */
 typedef struct ValueS_ {
+#ifdef RCSIM
+    Kind kind;                   /* The kind of object. */
+#endif
     Type type;                   /* The type of the value. */
     int numeric;         /* Tell if the value is numeric or a bitstring. */
-    unsigned long long capacity; /* The capacity in char of the bit string. */
+    unsigned long long capacity;/* The capacity in char of the bit string. */
     char* data_str;             /* The bit string data if not numeric. */
     unsigned long long data_int;/* The integer data if numeric. */
     SignalI signal;         /* The signal associated with the value if any. */
@@ -275,9 +335,9 @@ extern Value select_value(Value cond, Value dst, unsigned int num, ...);
  *  @param dir the direction of concatenation
  *  @param dst the destination value
  *  @return dst */
-extern Value concat_value(int num, int dir, Value dst, ...);
-extern Value concat_valueV(int num, int dir, Value dst, va_list args);
-extern Value concat_valueP(int num, int dir, Value dst, Value* args);
+extern Value concat_value(unsigned int num, int dir, Value dst, ...);
+extern Value concat_valueV(unsigned int num, int dir, Value dst, va_list args);
+extern Value concat_valueP(unsigned int num, int dir, Value dst, Value* args);
 
 /** Casts a value to another type.
  *  @param src the source value
@@ -537,8 +597,14 @@ typedef struct BlockS_ {
 
     char* name;         /* The name of the block. */
     int num_inners;     /* The number of inners. */
-    SignalI* inners;    /* The inners of the scope. */
+    SignalI* inners;    /* The inners of the block. */
+#ifdef RCSIM
+    int num_stmnts;     /* The statements of the block. */
+    Statement* stmnts;  /* The statements of the block. */
+    Mode mode;          /* The execution mode. */
+#else
     void (*function)(); /* The function to execute for the block. */
+#endif
 } BlockS;
 
 
@@ -552,11 +618,156 @@ typedef struct EventS_ {
 } EventS;
 
 
+#ifdef RCSIM
+
+/** The C model of a Statement. */
+typedef struct StatementS_ {
+    Kind kind;          /* The kind of object. */
+} StatementS;
+
+/** The C model of a transmit statement. */
+typedef struct TransmitS_ {
+    Kind kind;          /* The kind of object. */
+    Reference left;     /* The left value. */
+    Expression right;   /* The right value. */
+} TransmitS;
+
+/** The C model of a print statement. */
+typedef struct PrintS_ {
+    Kind kind;          /* The kind of object. */
+    int num_args;       /* The number of arguments of the print. */
+    Expression* args;   /* The arguments of the print. */
+} PrintS;
+
+/** The C model of a hardware if statement. */
+typedef struct HIfS_ {
+    Kind kind;          /* The kind of object. */
+    Expression condition; /* The condition. */
+    Statement yes;      /* The statement executed if the condition is met. */
+    int num_noifs;      /* The number of alternate conditions. */
+    Expression* noconds;/* The alternate conditions. */
+    Statement* nostmnts;/* The alternate statements. */
+    Statement no;       /* The statement executed if the conditions are not met.*/
+} HIfS;
+
+/** The C model of a hardware case statement. */
+typedef struct HCaseS_ {
+    Kind kind;          /* The kind of object. */
+    Expression value;   /* The value to match. */
+    int num_whens;      /* The number of possible cases. */
+    Expression* matches;/* The cases matching values. */
+    Statement* stmnts;  /* The corresponding statements. */
+    Statement defolt;   /* The default statement. */
+} HCaseS;
+
+/** The C model of a time wait statement. */
+typedef struct TimeWaitS_ {
+    Kind kind;          /* The kind of object. */
+    // Expression delay;   /* The delay to wait in pico seconds. */
+    unsigned long long delay; /* The delay to wait in pico seconds. */
+} TimeWaitS;
+
+/** The C model of a time terminate statement. */
+typedef struct TimeTerminateS_ {
+    Kind kind;          /* The kind of object. */
+} TimeTerminateS;
+
+
+/** The C model of an expression. */
+typedef struct ExpressionS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the expression. */
+} ExpressionS;
+
+/** The C model of a unary expression. */
+typedef struct UnaryS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the expression. */
+    Value (*oper)(Value,Value); /* The unary operator. */
+    Expression child;   /* The child. */
+} UnaryS;
+
+/** The C model of a binary expression. */
+typedef struct BinaryS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the expression. */
+    Value (*oper)(Value,Value,Value); /* The binary operator. */
+    Expression left;    /* The left value. */
+    Expression right;   /* The right value. */
+} BinaryS;
+
+/** The C model of a select expression. */
+typedef struct SelectS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the expression. */
+    Expression select;  /* The selection value. */
+    int num_choices;    /* The number of choices. */
+    Expression* choices;/* The choices. */
+} SelectS;
+
+/** The C model of a concat expression. */
+typedef struct ConcatS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the expression. */
+    int dir;            /* The direction of the concat. */
+    int num_exprs;      /* The number of sub expressions. */
+    Expression* exprs;  /* The sub expressions. */
+} ConcatS;
+
+/** The C model of a cast expression. */
+typedef struct CastS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the expression. */
+    Expression child;   /* The child expression. */
+} CastS;
+
+
+/** The C model of a reference. */
+typedef struct ReferenceS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the reference. */
+} ReferenceS;
+
+/** The C model of a reference to an object. */
+typedef struct RefObjectS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the reference. */
+    Object object;      /* The refered object. */
+} RefObjectS;
+
+/** The C model of an index reference. */
+typedef struct RefIndexS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the reference. */
+    Expression index;   /* The index. */
+    Reference ref;      /* The reference to access. */
+} RefIndexS;
+
+/** The C model of a range reference (expression version!). */
+typedef struct RefRangeES_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the reference. */
+    Expression first;   /* The first of the range. */
+    Expression last;    /* The last of the range. */
+    Reference ref;      /* The reference to access. */
+} RefRangeES;
+
+/** The C model of a concat reference. */
+typedef struct RefConcatS_ {
+    Kind kind;          /* The kind of object. */
+    Type type;          /* The type of the reference. */
+    int dir;            /* The direction of the concat. */
+    int num_refs;       /* The number of sub references. */
+    Reference* refs;    /* The sub references. */
+} RefConcatS;
+
+#endif
+
 
 /* The interface to the simulator. */
 
 /* The time units. */
-typedef enum { S, MS, US, NS, PS, FS } Unit;
+typedef enum { S, MS, US, NS, PS } Unit;
 
 /** The top system. */
 extern SystemT top_system;
@@ -570,7 +781,7 @@ extern void register_timed_behavior(Behavior behavior);
 extern void register_signal(SignalI signal);
 
 /** Makes the behavior wait for a given time.
- *  @param delay the delay to wait in fs.
+ *  @param delay the delay to wait in ps.
  *  @param behavior the current behavior. */
 extern void hw_wait(unsigned long long delay, Behavior behavior);
 
@@ -636,9 +847,12 @@ extern void each_all_signal(void (*func)(SignalI));
  *  @param idx the index of the target system. */
 extern void configure(SystemI systemI, int idx);
 
-
+#ifdef __GNUC__
 /** Terminates the simulation. */
+extern void terminate() __attribute__((noreturn));
+#else
 extern void terminate();
+#endif
 
 /* Interface to the visualization engine. */
 
@@ -746,8 +960,8 @@ extern unsigned long long value2integer(Value value);
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-extern Value read_range(Value value, long long first, long long last,
-                        Type base, Value dst);
+extern Value read_range(Value value,
+        unsigned long long first, unsigned long long last, Type base, Value dst);
 
 /** Writes to a range within a value. 
  *  @param src the source value
@@ -756,8 +970,8 @@ extern Value read_range(Value value, long long first, long long last,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-extern Value write_range(Value src, long long first, long long last, 
-        Type base, Value dst);
+extern Value write_range(Value src,
+        unsigned long long first, unsigned long long last, Type base, Value dst);
 
 /** Writes to a range within a value but without overwrite with Z. 
  *  @param src the source value
@@ -766,10 +980,20 @@ extern Value write_range(Value src, long long first, long long last,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-extern Value write_range_no_z(Value src, long long first, long long last,
-        Type base, Value dst);
+extern Value write_range_no_z(Value src,
+        unsigned long long first, unsigned long long last, Type base, Value dst);
 
 
+#ifdef RCSIM
+/** Tree-based computations. */
+
+/** Executes a statement.
+ *  @param stmnt the statement to execute.
+ *  @param mode blocking mode: 0: par, 1:seq
+ *  @param behavior the behavior in execution. */
+extern void execute_statement(Statement stmnt, int mode, Behavior behavior);
+
+#else
 /** Stack-based computations. */
 
 /** Push a value.
@@ -851,3 +1075,4 @@ extern void transmitR(RefRangeS ref);
 /* Transmit the top value to a range in a signal in sequence. 
  * @param ref the ref to the range of the signal to transmit to. */
 extern void transmitR_seq(RefRangeS ref);
+#endif

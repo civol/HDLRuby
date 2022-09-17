@@ -225,7 +225,7 @@ Value make_value(Type type, int numeric) {
  *  @note do not change the type of the value, only its capacity.
  *  @praam value the value to change
  *  @param size the size to match */
-void resize_value(Value value, int size) {
+void resize_value(Value value, unsigned long long size) {
     if (value->capacity < size) {
         /* Resizing required, to limit frequent resize, double the
          * required new capacity. */
@@ -696,27 +696,42 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Perform the comparison. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) > 
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) >
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) > 
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) > 
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // }
+    /* Converts the values to integers. */
+    unsigned long long src0i = value2integer(src0);
+    unsigned long long src1i = value2integer(src1);
     /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) > 
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) > 
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i > (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i > src1i : 0;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) > 
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) > 
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
+        else 
+            dst->data_int = src0 > src1;
     }
     return dst;
 }
@@ -731,27 +746,42 @@ static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Perform the comparison. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) < 
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) < 
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) < 
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) < 
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // }
+    /* Converts the values to integers. */
+    unsigned long long src0i = value2integer(src0);
+    unsigned long long src1i = value2integer(src1);
     /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) < 
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) < 
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i < (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i < src1i : 1;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) < 
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) < 
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
+        else 
+            dst->data_int = src0 < src1;
     }
     return dst;
 }
@@ -766,27 +796,42 @@ static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Perform the comparison. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) >=
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) >=
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) >=
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) >=
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // }
+    /* Converts the values to integers. */
+    unsigned long long src0i = value2integer(src0);
+    unsigned long long src1i = value2integer(src1);
     /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) >=
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) >=
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i >= (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i >= src1i : 0;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) >=
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) >=
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
+        else 
+            dst->data_int = src0 >= src1;
     }
     return dst;
 }
@@ -801,27 +846,42 @@ static Value lesser_equal_value_defined_bitstring(Value src0, Value src1, Value 
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Perform the comparison. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) <=
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)value2integer(src0) <=
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) <=
+    //              (signed long long)value2integer(src1));
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)value2integer(src0) <=
+    //              (unsigned long long)value2integer(src1));
+    //     }
+    // }
+    /* Converts the values to integers. */
+    unsigned long long src0i = value2integer(src0);
+    unsigned long long src1i = value2integer(src1);
     /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) <=
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((signed long long)value2integer(src0) <=
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i <= (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i <= src1i : 1;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) <=
-                 (signed long long)value2integer(src1));
-        } else {
-            dst->data_int = 
-                ((unsigned long long)value2integer(src0) <=
-                 (unsigned long long)value2integer(src1));
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
+        else 
+            dst->data_int = src0 <= src1;
     }
     return dst;
 }
@@ -1351,10 +1411,10 @@ static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
  *  @param dst the destination value
  *  @param args the values to concat
  *  @return dst */
-static Value concat_value_bitstring_array(int num, int dir,
+static Value concat_value_bitstring_array(unsigned int num, int dir,
                                           Value dst, Value* args) {
     unsigned long long pos = 0;  /* Current position in the resulting value.*/
-    unsigned long long i;
+    unsigned int i;
     // printf("concat_value_bitstring with dir=%d\n",dir);
 
     /* Compute the size of the destination. */
@@ -1508,7 +1568,8 @@ static int same_content_value_range_bitstring(Value value0,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value read_range_bitstring(Value src, long long first, long long last,
+Value read_range_bitstring(Value src,
+        unsigned long long first, unsigned long long last,
         Type base, Value dst) {
     // printf("read_range_bitstring with first=%lld last=%lld src=%s\n",first,last,src->data_str);
     /* Ensure first is the smaller. */
@@ -1547,7 +1608,8 @@ Value read_range_bitstring(Value src, long long first, long long last,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range_bitstring(Value src, long long first, long long last,
+Value write_range_bitstring(Value src,
+        unsigned long long first, unsigned long long last,
         Type base, Value dst) {
     unsigned long long i;
     /* Ensure first is the smaller. */
@@ -1586,7 +1648,8 @@ Value write_range_bitstring(Value src, long long first, long long last,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range_bitstring_no_z(Value src, long long first, long long last,
+Value write_range_bitstring_no_z(Value src,
+        unsigned long long first, unsigned long long last,
         Type base, Value dst) {
     unsigned long long i;
     /* Ensure first is the smaller. */
@@ -1627,7 +1690,7 @@ Value write_range_bitstring_no_z(Value src, long long first, long long last,
 static unsigned long long
 fix_numeric_type(Type type, unsigned long long val) {
     /* Get the width of the type. */
-    int width = type_width(type);
+    unsigned long long width = type_width(type);
     /* Compute the base mask. */
     // unsigned long long mask = ((unsigned long long)(-1)) << width;
     /* NOTE: (ull)-1 << 64 becomes (ull)-1 on Intel processors, this is
@@ -1873,9 +1936,9 @@ static Value equal_value_numeric(Value src0, Value src1, Value dst) {
 
     /* Perform the comparison. */
     dst->data_int = (src0->data_int == src1->data_int) ? 1 : 0;
-    printf("scr0->data_int=%lld\n",src0->data_int);
-    printf("scr1->data_int=%lld\n",src1->data_int);
-    printf("dst->data_int=%lld\n",dst->data_int);
+    // printf("scr0->data_int=%lld\n",src0->data_int);
+    // printf("scr1->data_int=%lld\n",src1->data_int);
+    // printf("dst->data_int=%lld\n",dst->data_int);
     return dst;
 }
 
@@ -1890,27 +1953,41 @@ static Value greater_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    /* Perform the greater. */
+    // /* Perform the greater. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int > 
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int > 
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int > 
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int > 
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // }
+    unsigned long long src0i = src0->data_int;
+    unsigned long long src1i = src1->data_int;
+    /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)src0->data_int > 
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((signed long long)src0->data_int > 
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i > (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i > src1i : 0;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int > 
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int > 
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
+        else 
+            dst->data_int = src0 > src1;
     }
     return dst;
 }
@@ -1925,27 +2002,41 @@ static Value lesser_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    /* Perform the lesser. */
+    // /* Perform the lesser. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int < 
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int < 
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int < 
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int < 
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // }
+    unsigned long long src0i = src0->data_int;
+    unsigned long long src1i = src1->data_int;
+    /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)src0->data_int < 
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((signed long long)src0->data_int < 
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i < (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i < src1i : 1;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int < 
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int < 
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
+        else 
+            dst->data_int = src0 < src1;
     }
     return dst;
 }
@@ -1960,27 +2051,41 @@ static Value greater_equal_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    /* Perform the greater or equal. */
+    // /* Perform the greater or equal. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int >=
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int >=
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int >=
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int >=
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // }
+    unsigned long long src0i = src0->data_int;
+    unsigned long long src1i = src1->data_int;
+    /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)src0->data_int >=
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((signed long long)src0->data_int >=
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i >= (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i >= src1i : 0;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int >=
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int >=
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
+        else 
+            dst->data_int = src0 >= src1;
     }
     return dst;
 }
@@ -1995,27 +2100,41 @@ static Value lesser_equal_value_numeric(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    /* Perform the lesser or equal. */
+    // /* Perform the lesser or equal. */
+    // if (src0->type->flags.sign) {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int <=
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((signed long long)src0->data_int <=
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // } else {
+    //     if (src1->type->flags.sign) {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int <=
+    //              (signed long long)src1->data_int);
+    //     } else {
+    //         dst->data_int = 
+    //             ((unsigned long long)src0->data_int <=
+    //              (unsigned long long)src1->data_int);
+    //     }
+    // }
+    unsigned long long src0i = src0->data_int;
+    unsigned long long src1i = src1->data_int;
+    /* Perform the comparison. */
     if (src0->type->flags.sign) {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((signed long long)src0->data_int <=
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((signed long long)src0->data_int <=
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src0i <= (signed long long)src1i;
+        else
+            dst->data_int = (signed long long)src0i >= 0 ? src0i <= src1i : 1;
     } else {
-        if (src1->type->flags.sign) {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int <=
-                 (signed long long)src1->data_int);
-        } else {
-            dst->data_int = 
-                ((unsigned long long)src0->data_int <=
-                 (unsigned long long)src1->data_int);
-        }
+        if (src1->type->flags.sign)
+            dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
+        else 
+            dst->data_int = src0 <= src1;
     }
     return dst;
 }
@@ -2048,7 +2167,7 @@ static Value select_value_numeric(Value cond, Value dst, unsigned int num,
  *  @param dir the direction of the concatenation.
  *  @param dst the destination value
  *  @return dst */
-static Value concat_value_numeric_array(int num, int dir,
+static Value concat_value_numeric_array(unsigned int num, int dir,
                                         Value dst, Value* args) {
     unsigned int i,pos;
     /* Compute the bit width of the destination. */
@@ -2146,7 +2265,8 @@ static int same_content_value_range_numeric(Value value0,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value read_range_numeric(Value value, long long first, long long last,
+Value read_range_numeric(Value value,
+        unsigned long long first, unsigned long long last,
         Type base, Value dst) {
     /* printf("read_range_numeric with value=%llx and first=%llu and last=%llu\n",value->data_int,first,last); */
     /* Ensure first is the smaller. */
@@ -2191,7 +2311,8 @@ Value read_range_numeric(Value value, long long first, long long last,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range_numeric(Value src, long long first, long long last,
+Value write_range_numeric(Value src,
+        unsigned long long first, unsigned long long last,
         Type base, Value dst) {
     // printf("write_range_numeric\n");
     /* Ensure first is the smaller. */
@@ -2329,7 +2450,7 @@ Value mul_value(Value src0, Value src1, Value dst) {
     // printf("src0->numeric=%d src1->numeric=%d\n",src0->numeric,src1->numeric);
     // printf("is_defined_value(src0)=%d is_defined_value(src1)=%d\n",is_defined_value(src0),is_defined_value(src1));
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric) {
@@ -2377,7 +2498,7 @@ Value mul_value(Value src0, Value src1, Value dst) {
  *  @return dst */
 Value div_value(Value src0, Value src1, Value dst) {
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric && src1->numeric) {
@@ -2404,7 +2525,7 @@ Value div_value(Value src0, Value src1, Value dst) {
  *  @return dst */
 Value mod_value(Value src0, Value src1, Value dst) {
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric && src1->numeric) {
@@ -2688,7 +2809,7 @@ Value not_equal_value_c(Value src0, Value src1, Value dst) {
  *  @return dst */
 Value greater_value(Value src0, Value src1, Value dst) {
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric && src1->numeric) {
@@ -2715,7 +2836,7 @@ Value greater_value(Value src0, Value src1, Value dst) {
  *  @return dst */
 Value lesser_value(Value src0, Value src1, Value dst) {
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric && src1->numeric) {
@@ -2742,7 +2863,7 @@ Value lesser_value(Value src0, Value src1, Value dst) {
  *  @return dst */
 Value greater_equal_value(Value src0, Value src1, Value dst) {
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric && src1->numeric) {
@@ -2768,7 +2889,7 @@ Value greater_equal_value(Value src0, Value src1, Value dst) {
  *  @return dst */
 Value lesser_equal_value(Value src0, Value src1, Value dst) {
     /* Might allocate a new value so save the current pool state. */
-    unsigned int pos = get_value_pos();
+    // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric && src1->numeric) {
@@ -2813,9 +2934,10 @@ Value select_value(Value cond, Value dst, unsigned int num, ...) {
  *  @param num the number of values to concat
  *  @param dst the destination value
  *  @return dst */
-Value concat_valueP(int num, int dir, Value dst, Value* values) {
+Value concat_valueP(unsigned int num, int dir, Value dst, Value* values) {
     unsigned long long width = 0;
-    int numeric = 1, i;
+    int numeric = 1;
+    unsigned int i;
     /* check if all the sub values are numeric. */
     for(i=0; i<num; ++i) {
         if (!values[i]->numeric) {
@@ -2849,8 +2971,8 @@ Value concat_valueP(int num, int dir, Value dst, Value* values) {
     }
     return dst;
 }
-Value concat_valueV(int num, int dir, Value dst, va_list args) {
-    int i;
+Value concat_valueV(unsigned int num, int dir, Value dst, va_list args) {
+    unsigned int i;
     Value* values = alloca(num*sizeof(Value)); /* The values to concatenate. */
     /* Copy the arguments to values for easier processing. */
     for(i=0; i<num; ++i) {
@@ -2858,7 +2980,7 @@ Value concat_valueV(int num, int dir, Value dst, va_list args) {
     }
     return concat_valueP(num,dir,dst,values);
 }
-Value concat_value(int num, int dir, Value dst, ...) {
+Value concat_value(unsigned int num, int dir, Value dst, ...) {
     va_list args;
     va_start(args,dst);
     dst = concat_valueV(num,dir,dst,args);
@@ -2984,8 +3106,8 @@ int same_content_value_range(Value value0,
  *  @param first the start index of the range
  *  @param last the end index of the range
  *  @return the resulting reference */
-RefRangeS make_ref_rangeS(SignalI signal, Type typ, unsigned long long first,
-        unsigned long long last) {
+RefRangeS make_ref_rangeS(SignalI signal, Type typ, 
+        unsigned long long first, unsigned long long last) {
     RefRangeS result = { signal, typ, first, last };
     return result;
 }
@@ -3075,8 +3197,9 @@ unsigned long long value2integer(Value value) {
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value read_range(Value value, long long first, long long last, Type base,
-                Value dst) {
+Value read_range(Value value,
+        unsigned long long first, unsigned long long last, 
+        Type base, Value dst) {
     /* Is the value numeric? */
     if (value->numeric) {
         /* Yes, do a numeric range read. */
@@ -3152,8 +3275,9 @@ Value read_range(Value value, long long first, long long last, Type base,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range(Value src, long long first, long long last, Type base,
-        Value dst) {
+Value write_range(Value src, 
+        unsigned long long first, unsigned long long last,
+        Type base, Value dst) {
     // printf("write_range\n");
     /* Is the value numeric? */
     if ((src->numeric) && (dst->numeric)) {
@@ -3182,8 +3306,9 @@ Value write_range(Value src, long long first, long long last, Type base,
  *  @param base the type of the elements
  *  @param dst the destination value
  *  @return dst */
-Value write_range_no_z(Value src, long long first, long long last, Type base,
-        Value dst) {
+Value write_range_no_z(Value src,
+        unsigned long long first, unsigned long long last,
+        Type base, Value dst) {
     // printf("write_range_no_z\n");
     /* Is the value numeric? */
     if ((src->numeric) && (dst->numeric)) {

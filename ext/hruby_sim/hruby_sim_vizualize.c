@@ -89,8 +89,8 @@ void default_print_value(Value value) {
         }
     } else {
         /* Display a bitstring value. */
-        int i;
-        int width = type_width(value->type);
+        unsigned long long i;
+        unsigned long long width = type_width(value->type);
         char* data = value->data_str;
         if (value->capacity == 0) {
             /* The value is empty, therefore undefined. */

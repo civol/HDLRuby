@@ -363,13 +363,17 @@ $optparse = OptionParser.new do |opts|
     opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
         $options[:allocate] = v
     end
-    opts.on("-S", "--sim","Output in C format (simulator)") do |v|
+    opts.on("--csim","Output in C format (simulator)") do |v|
         $options[:clang] = v
         $options[:multiple] = v
-        $options[:sim] = v
+        $options[:csim] = v
     end
     opts.on("--rsim","Ruby-based simulator") do |v|
         $options[:rsim] = v
+        $options[:multiple] = v
+    end
+    opts.on("--rcsim","Hybrid C-Ruby-based simulator") do |v|
+        $options[:rcsim] = v
         $options[:multiple] = v
     end
     opts.on("--vcd", "The simulator will generate a vcd file") do |v|
@@ -561,7 +565,7 @@ end
 # Get the top systemT.
 HDLRuby.show "#{Time.now}#{show_mem}"
 # Ruby simulation uses the HDLRuby::High tree, other the HDLRuby::Lowais used 
-$top_system = $options[:rsim] ? $top_instance.systemT : $top_instance.to_low.systemT
+$top_system = ($options[:rsim] || $options[:rcsim]) ? $top_instance.systemT : $top_instance.to_low.systemT
 $top_intance = nil # Free as much memory as possible.
 HDLRuby.show "##### Top system built #####"
 HDLRuby.show "#{Time.now}#{show_mem}"
@@ -751,11 +755,12 @@ elsif $options[:clang] then
         $output << HDLRuby::Low::Low2C.main(top_system,
                                             *top_system.each_systemT_deep.to_a)
     end
-    if $options[:sim] then
+    if $options[:csim] then
         # Simulation mode, compile and exectute.
         # Path of the simulator core files.
-        # simdir = File.dirname(__FILE__) + "/sim/"
-        $simdir = $hdr_dir + "/sim/"
+        # $simdir = $hdr_dir + "sim/"
+        # puts "$hdr_dir=#{$hdr_dir}"
+        $simdir = $hdr_dir + "/../../ext/hruby_sim/"
         # Generate and execute the simulation commands.
         # Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
         Dir.entries($simdir).each do |filename| 
@@ -845,6 +850,8 @@ elsif $options[:verilog] then
         end
     end
 elsif $options[:rsim] then
+    HDLRuby.show "Loading Ruby-level simulator..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
     # Ruby-level simulation.
     require 'HDLRuby/hruby_rsim.rb'
     # Is VCD output is required.
@@ -858,6 +865,19 @@ elsif $options[:rsim] then
         # No
         $top_system.sim($stdout)
     end
+    HDLRuby.show "End of Ruby-level simulation..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+elsif $options[:rcsim] then
+    HDLRuby.show "Building the hybrid C-Ruby-level simulator..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+    # C-Ruby-level simulation.
+    require 'HDLRuby/hruby_rcsim.rb'
+    $top_system.to_rcsim
+    HDLRuby.show "Executing the hybrid C-Ruby-level simulator..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+    HDLRuby::High.rcsim($top_system,"hruby_simulator",$output,$options[:vcd] && true)
+    HDLRuby.show "End of hybrid C-Ruby-level simulation..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
 elsif $options[:vhdl] then
     # top_system = $top_instance.to_low.systemT
     # top_system = $top_system

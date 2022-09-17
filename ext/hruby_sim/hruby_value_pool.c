@@ -44,7 +44,9 @@ Value get_value() {
         }
     }
     /* Readjust the position in the pool and return the value. */
-    return pool_values[pool_pos++];
+    // return pool_values[pool_pos++];
+    Value res = pool_values[pool_pos++];
+    return res;
 }
 
 /** Get the current top value. */

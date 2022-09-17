@@ -67,6 +67,7 @@ static int sim_end_flag = 0;
 /** Adds a timed behavior for processing. 
  *  @param behavior the timed behavior to register */
 void register_timed_behavior(Behavior behavior) {
+    // printf("Registering timed behavior=%p\n",behavior);fflush(stdout);
     if (num_timed_behaviors == cap_timed_behaviors) {
         if (cap_timed_behaviors == 0) {
             /* Need to create the array containing the timed behaviors. */
@@ -100,7 +101,7 @@ void register_signal(SignalI signal) {
             all_signals=new_signals;
         }
     }
-    /* Add the behavior. */
+    /* Add the signal. */
     all_signals[num_all_signals++] = signal;
 }
 
@@ -108,15 +109,16 @@ void register_signal(SignalI signal) {
 /** Recursively update the signals until no (untimed) behavior are
  *  activated. */
 void hruby_sim_update_signals() {
-     // printf("hruby_sim_update_signals...\n");
+    // printf("hruby_sim_update_signals...\n");fflush(stdout);
     /* As long as the list of touched signals is not empty go on computing. */
     while(!empty_list(touched_signals) || !empty_list(touched_signals_seq)) {
-        // printf("## Checking touched signals.\n");
+        // printf("## Checking touched signals.\n");fflush(stdout);
         /* Sets the new signals values and mark the signals as activating. */
         /* For the case of the parallel execution model. */
         while(!empty_list(touched_signals)) {
             Elem e = remove_list(touched_signals);
             SignalI sig = e->data;
+            // printf("sig=%p kind=%d\n",sig,sig->kind);fflush(stdout);
             delete_element(e);
             /* Is there a change? */
             if (same_content_value(sig->c_value,sig->f_value)) continue;
@@ -124,7 +126,7 @@ void hruby_sim_update_signals() {
             printer.print_signal(sig);
             // printf("c_value="); printer.print_value(sig->c_value);
             // printf("\nf_value="); printer.print_value(sig->f_value); printf("\n");
-            // printf("Touched signal: %p (%s)\n",sig,sig->name);
+            // printf("Touched signal: %p (%s)\n",sig,sig->name);fflush(stdout);
             /* Update the current value of the signal. */
             copy_value(sig->f_value,sig->c_value);
             // /* Mark the signal as activated. */
@@ -148,11 +150,13 @@ void hruby_sim_update_signals() {
             }
             /* Positive edge activation. */
             if (!zero_value(sig->c_value)) {
+                // printf("PAR: posedge for sig=%s with num_pos=%i\n",sig->name,sig->num_pos);
                 for(i=0; i<sig->num_pos; ++i) {
                     Object obj = sig->pos[i];
                     if (obj->kind == BEHAVIOR) {
                         /* Behavior case. */
                         Behavior beh = (Behavior)obj;
+                        // printf("Activating beh=%p.\n",beh);
                         beh->activated = 1;
                         add_list(activate_codes,get_element(beh));
                     } else {
@@ -210,6 +214,7 @@ void hruby_sim_update_signals() {
             }
             /* Positive edge activation. */
             if (!zero_value(sig->c_value)) {
+                // printf("SEQ: posedge for sig=%s with num_pos=%i\n",sig->name,sig->num_pos);
                 for(i=0; i<sig->num_pos; ++i) {
                     Object obj = sig->pos[i];
                     if (obj->kind == BEHAVIOR) {
@@ -253,10 +258,17 @@ void hruby_sim_update_signals() {
             if (obj->kind == BEHAVIOR) {
                 /* Behavior case. */
                 Behavior beh = (Behavior)obj;
+                // printf("beh=%p\n",beh);
                 /* Is the code really enabled and activated? */
                 if (beh->enabled && beh->activated) {
                     /* Yes, execute it. */
+#ifdef RCSIM
+                    // printf("going to execute with beh=%p\n",beh);
+                    // printf("going to execute: %p with kind=%d\n",beh->block,beh->block->kind);
+                    execute_statement((Statement)(beh->block),0,beh);
+#else
                     beh->block->function();
+#endif
                     /* And deactivate it. */
                     beh->activated = 0;
                 }
@@ -284,9 +296,11 @@ void hruby_sim_advance_time() {
     int i;
     for(i=0; i<num_timed_behaviors; ++i) {
         unsigned long long beh_time = timed_behaviors[i]->active_time;
+        // printf("beh_time=%llu\n",beh_time);
         if (timed_behaviors[i]->timed == 1)
             if (beh_time < next_time) next_time = beh_time;
     }
+    // printf("hruby_sim_time=%llu next_time=%llu\n",hruby_sim_time,next_time);
     /* Sets the new activation time. */
     hruby_sim_time = next_time;
     // println_time(hruby_sim_time);
@@ -294,7 +308,7 @@ void hruby_sim_advance_time() {
 }
 
 
-/** Sets the enamble status of the behaviors of a scope.
+/** Sets the enable status of the behaviors of a scope.
  *  @param scope the scope to process.
  *  @param status the enable status. */
 static void set_enable_scope(Scope scope, int status) {
@@ -334,7 +348,6 @@ void activate_behavior(Behavior behavior) {
   * time. */
 void hruby_sim_activate_behaviors_on_time() {
     int i;
-    // printf("$1\n");
     pthread_mutex_lock(&hruby_sim_mutex); 
     /* Count the number of behaviors that will be activated. */
     for(i=0; i<num_timed_behaviors; ++i) {
@@ -349,7 +362,6 @@ void hruby_sim_activate_behaviors_on_time() {
     }
     /* Activate the behaviors .*/
     behaviors_can_run = 1;
-    // printf("$2\n");
     // pthread_cond_signal(&compute_cond); /* No behaviors. */
     // pthread_cond_signal(&hruby_beh_cond); 
     pthread_mutex_unlock(&hruby_sim_mutex);
@@ -361,14 +373,12 @@ void hruby_sim_activate_behaviors_on_time() {
 void hruby_sim_wait_behaviors() {
     pthread_mutex_lock(&hruby_sim_mutex);
     while(num_active_behaviors > 0) {
-        // printf("$3\n");
         // printf("num_active_behaviors = %d\n",num_active_behaviors);
         // pthread_cond_wait(&active_behaviors_cond, &hruby_sim_mutex);
         pthread_cond_wait(&hruby_sim_cond, &hruby_sim_mutex);
     }
     behaviors_can_run = 0;
     pthread_mutex_unlock(&hruby_sim_mutex);
-    // printf("$4\n");
 }
 
 
@@ -377,7 +387,6 @@ void hruby_sim_wait_behaviors() {
 void* behavior_run(void* arg) {
     Behavior behavior = (Behavior)arg;
     /* First lock the behavior until the simulation engine starts. */
-    // printf("#1\n");
     pthread_mutex_lock(&hruby_sim_mutex);
     num_active_behaviors -= 1;
     while(!behaviors_can_run) {
@@ -386,11 +395,16 @@ void* behavior_run(void* arg) {
         pthread_cond_wait(&hruby_beh_cond, &hruby_sim_mutex);
     }
     pthread_mutex_unlock(&hruby_sim_mutex);
-    // printf("#2\n");
     /* Now can start the execution of the behavior. */
-    if (behavior->enabled)
+    if (behavior->enabled) {
+#ifdef RCSIM
+        // printf("going to execute with behavior=%p\n",behavior);
+        // printf("going to execute: %p with kind=%d\n",behavior->block,behavior->block->kind);
+        execute_statement((Statement)(behavior->block),0,behavior);
+#else
         behavior->block->function();
-    // printf("#3\n");
+#endif
+    }
     /* Now can start the execution of the behavior. */
     /* Stops the behavior. */
     pthread_mutex_lock(&hruby_sim_mutex);
@@ -410,6 +424,8 @@ void* behavior_run(void* arg) {
  *  @note create a thread per timed behavior. */
 void hruby_sim_start_timed_behaviors() {
     int i;
+    // printf("hruby_sim_start_timed_behaviors\n");fflush(stdout);
+    // printf("timed_behaviors=%p\n",timed_behaviors);fflush(stdout);
     pthread_mutex_lock(&hruby_sim_mutex);
     /* Sets the end flags to 0. */
     sim_end_flag = 0;
@@ -418,12 +434,11 @@ void hruby_sim_start_timed_behaviors() {
     /* Create and start the threads. */
     for(i=0; i<num_timed_behaviors; ++i) {
         num_run_behaviors += 1;
-        // ++num_active_behaviors;
-        // printf("0 num_run_behaviors = %d\n",num_run_behaviors);
         pthread_create(&timed_behaviors[i]->thread,NULL,
                        &behavior_run,timed_behaviors[i]);
     }
     pthread_mutex_unlock(&hruby_sim_mutex);
+    // exit(0);
 }
 
 /** Ends waiting all the threads properly terminates. */
@@ -474,6 +489,7 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
             /* Initially touch all the signals. */
             each_all_signal(&touch_signal);
         }
+        // printf("num_run_behavior=%d\n",num_run_behaviors);
         if (num_run_behaviors <= 0) break;
         /* Advance time to next timestep. */
         hruby_sim_advance_time();
@@ -499,7 +515,7 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
 
 
 /** Makes the behavior wait for a given time.
- *  @param delay the delay to wait in fs.
+ *  @param delay the delay to wait in ps.
  *  @param behavior the current behavior. */
 void hw_wait(unsigned long long delay, Behavior behavior) {
     /* Maybe the thread is to end immediatly. */
@@ -544,7 +560,6 @@ void touch_signal(SignalI signal) {
  *  @param value the value to transmit
  *  @param signal the signal to transmit the value to. */
 void transmit_to_signal(Value value, SignalI signal) {
-    // printf("Tansmit to signal: %s(%p) with fading=%d\n",signal->name,signal,signal->fading);
     /* Copy the content. */
     if (signal->fading)
         signal->f_value = copy_value(value,signal->f_value);
@@ -584,6 +599,7 @@ void transmit_to_signal_range(Value value, RefRangeS ref) {
  *  @param signal the signal to touch  */
 void touch_signal_seq(SignalI signal) {
     // printf("touching signal seq: %p\n",signal);
+    // printf("signal->c_value=%p\n",signal->c_value);
     /* Is there a difference between the present and future value? */ 
     if (same_content_value(signal->c_value,signal->f_value)) return;
     /* Yes, add the signal to the list of touched sequential ones and update
@@ -601,6 +617,7 @@ void touch_signal_seq(SignalI signal) {
  *  @param signal the signal to transmit the value to. */
 void transmit_to_signal_seq(Value value, SignalI signal) {
     // printf("Tansmit to signal seq: %s(%p)\n",signal->name,signal);
+    // printf("signal->f_value=%p\n",signal->f_value);
     /* Copy the content. */
     if (signal->fading)
         copy_value(value,signal->f_value);

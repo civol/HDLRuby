@@ -22,7 +22,7 @@ static unsigned long long vcd_timeunit = 1;
 
 /** Prints to the vcd file.
  *  @param fmt the format for handling the variadic arguments. */
-static int vcd_print(char* fmt, ...) {
+static int vcd_print(const char* fmt, ...) {
     int ret;
 
     /* Declare a va_list type variable */
@@ -94,7 +94,7 @@ static void vcd_print_name(Object object) {
 }
 
 
-/** Prints the name of an object incluing its heirarchy.
+/** Prints the name of an object incluing its hierarchy.
  *  @param object the object to print the name. */
 static void vcd_print_full_name(Object object) {
     /* Recurse on the owner if any. */
@@ -119,8 +119,8 @@ static void vcd_print_value(Value value) {
         }
     } else {
         /* Display a bitstring value. */
-        int i;
-        int width = type_width(value->type);
+        unsigned long long i;
+        unsigned long long width = type_width(value->type);
         char* data = value->data_str;
         if (value->capacity == 0) {
             /* The value is empty, therefore undefined. */
@@ -289,7 +289,6 @@ static void vcd_print_systemT_content(SystemT system) {
 /** Prints the hierarchy of a system type.
  *  @param system the system to print. */
 static void vcd_print_systemT(SystemT system) {
-    int i;
     /* Declares the module. */
     vcd_print("$scope module ");
     vcd_print_name((Object)system);
@@ -346,6 +345,7 @@ static void vcd_print_header() {
 
     /* The declaration of the hierarchy and the variables
      * from the top system. */
+    // printf("top_system=%p\n",top_system);
     vcd_print_systemT(top_system);
     /* Ends the declarations. */
     vcd_print("$enddefinitions $end\n");
