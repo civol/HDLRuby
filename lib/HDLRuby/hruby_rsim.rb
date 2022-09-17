@@ -5,12 +5,12 @@ require "HDLRuby/hruby_values"
 
 
 
+module HDLRuby::High
 
 ##
 # Library for describing the Ruby simulator of HDLRuby
 #
 ########################################################################
-module HDLRuby::High
 
     ##
     # Enhance a system type with Ruby simulation.
@@ -39,6 +39,8 @@ module HDLRuby::High
         ## Run the simulation from the current systemT and outputs the resuts
         #  on simout.
         def sim(simout)
+            HDLRuby.show "Initializing Ruby-level simulator..."
+            HDLRuby.show "#{Time.now}#{show_mem}"
             # Merge the included.
             self.merge_included!
             # Initializes the run mutex and the conditions.
@@ -74,6 +76,8 @@ module HDLRuby::High
             # Starts the threads.
             @timed_behaviors.each {|beh| beh.make_thread }
 
+            HDLRuby.show "Starting Ruby-level simulator..."
+            HDLRuby.show "#{Time.now}#{show_mem}"
             # Run the simulation.
             self.run_init do
                 # # Wake the behaviors.

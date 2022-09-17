@@ -709,6 +709,10 @@ module HDLRuby::Low
             # Tells if the behavior is timed or not.
             res << " " * (level+1)*3
             res << "behavior->timed = #{time ? 1 : 0};\n"
+            
+            # Set the active time to 0.
+            res << " " * (level+1)*3
+            res << "behavior->active_time = 0;\n"
 
             # Is it a clocked behavior?
             events = self.each_event.to_a
