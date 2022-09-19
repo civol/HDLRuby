@@ -862,6 +862,7 @@ module HDLRuby::Low
         #  +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
+
             # puts "Signal.to_c with name: #{Low2C.obj_name(self)}"
             # Declare the global variable holding the signal.
             res << "SignalI "
@@ -2550,6 +2551,7 @@ module HDLRuby::Low
         # Generates the C text for the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         def to_c(res,level = 0)
+            # puts "to_c fo concat=#{self} with type=#{self.type} and direction=#{self.type.direction}"
             # Save the value pool state.
             res << (" " * (level*3)) << "PV;\n"
             # Gather the content to concat.
@@ -2560,6 +2562,7 @@ module HDLRuby::Low
             end
             # Compute the resulting concatenation.
             res << (" " * ((level+1)*3))
+            # puts "self.type.direction=#{self.type.direction}\n"
             res << "sconcat(#{expressions.size},"
             res << (self.type.direction == :little ? "1" : "0")
             res << ");\n"

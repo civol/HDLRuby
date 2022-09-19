@@ -987,6 +987,11 @@ extern Value write_range_no_z(Value src,
 #ifdef RCSIM
 /** Tree-based computations. */
 
+/** Calculates a tree expression.
+ *  @param expr the expression to execute.
+ *  @param res the expression where to write the result. */
+extern Value calc_expression(Expression expr, Value res);
+
 /** Executes a statement.
  *  @param stmnt the statement to execute.
  *  @param mode blocking mode: 0: par, 1:seq

@@ -125,8 +125,9 @@ void make_sym_IDs() {
 
 /** Converts a symbol to a char value. 
  *  NOTE: only works for one or two ASCII characters symbols. */
-static char sym_to_char(VALUE sym) {
+static unsigned char sym_to_char(VALUE sym) {
     const char* sym_ptr = rb_id2name(SYM2ID(sym)); 
+    // printf("sym_ptr=%s char=%i\n",sym_ptr,(unsigned char)(sym_ptr[0]+sym_ptr[1]*2));
     return (unsigned char)(sym_ptr[0]+sym_ptr[1]*2);
 }
 
@@ -172,7 +173,7 @@ VALUE rcsim_make_systemT(VALUE mod, VALUE name) {
     /* Set it up. */
     systemT->kind = SYSTEMT;
     systemT->owner = NULL;
-    systemT->name = StringValueCStr(name);
+    systemT->name = strdup(StringValueCStr(name));
     systemT->num_inputs = 0;
     systemT->inputs = NULL;
     systemT->num_outputs = 0;
@@ -195,7 +196,7 @@ VALUE rcsim_make_scope(VALUE mod, VALUE name) {
     /* Set it up. */
     scope->kind = SCOPE;
     scope->owner = NULL;
-    scope->name = StringValueCStr(name);
+    scope->name = strdup(StringValueCStr(name));
     scope->num_systemIs = 0;
     scope->systemIs = NULL;
     scope->num_inners = 0;
@@ -270,10 +271,14 @@ VALUE rcsim_make_signal(VALUE mod, VALUE name, VALUE type) {
     /* Set it up. */
     signal->kind = SIGNALI;
     signal->owner = NULL;
-    signal->name = StringValueCStr(name);
+    signal->name = strdup(StringValueCStr(name));
+    // printf("Creating signal named=%s\n",signal->name);
     value_to_rcsim(TypeS,type,signal->type);
+    // printf("type width=%llu\n",type_width(signal->type));
     signal->c_value = make_value(signal->type,0);
     signal->c_value->signal = signal;
+    // printf("c_value=%p type=%p\n",signal->c_value,signal->c_value->type);
+    // printf("c_value type width=%llu\n",type_width(signal->c_value->type));
     signal->f_value = make_value(signal->type,0);
     signal->f_value->signal = signal;
     signal->fading = 1; /* Initially the signal can be overwritten by anything.*/
@@ -299,7 +304,9 @@ VALUE rcsim_make_systemI(VALUE mod, VALUE name, VALUE systemT) {
     /* Set it up. */
     systemI->kind = SYSTEMI;
     systemI->owner = NULL;
-    systemI->name = StringValueCStr(name);
+    systemI->name = strdup(StringValueCStr(name));
+    // /* Name is made empty since redundant with Eigen system. */
+    // systemI->name = "";
     value_to_rcsim(SystemTS,systemT,systemI->system);
     systemI->num_systems = 1;
     systemI->systems = (SystemT*)malloc(sizeof(SystemT));
@@ -412,6 +419,9 @@ VALUE rcsim_make_hcase(VALUE mod, VALUE value, VALUE defolt) {
     /* Set it up. */
     hcase->kind = HCASE;
     value_to_rcsim(ExpressionS,value,hcase->value);
+    hcase->num_whens = 0;
+    hcase->matches = NULL;
+    hcase->stmnts = NULL;
     if (TYPE(defolt) == T_NIL)
         hcase->defolt = NULL;
     else
@@ -444,17 +454,21 @@ VALUE rcsim_make_block(VALUE mod, VALUE mode) {
 
 
 /* Creating a numeric value C object. */
-VALUE rcsim_make_value_numeric(VALUE mod, VALUE type, VALUE content) {
-    /* Allocates the value. */
-    Value value = get_value();
-    /* Sets its type. */
-    value_to_rcsim(TypeS,type,value->type);
-    // printf("got value=%p\n",value);
+VALUE rcsim_make_value_numeric(VALUE mod, VALUE typeV, VALUE contentV) {
+    // /* Allocates the value. */
+    // Value value = get_value();
+    // /* Sets its type. */
+    // value_to_rcsim(TypeS,typeV,value->type);
+    /* Get the type. */
+    Type type;
+    value_to_rcsim(TypeS,typeV,type);
+    /* Create the value. */
+    Value value = make_value(type,0);
     /* Set it to numeric. */
     value->numeric = 1;
     value->capacity = 0;
     value->data_str = NULL;
-    value->data_int = NUM2LL(content);
+    value->data_int = NUM2LL(contentV);
     /* Returns the C value embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(ValueS,value,res);
@@ -463,15 +477,22 @@ VALUE rcsim_make_value_numeric(VALUE mod, VALUE type, VALUE content) {
 
 
 /* Creating a bitstring value C object. */
-VALUE rcsim_make_value_bitstring(VALUE mod, VALUE type, VALUE content) {
-    /* Allocates the value. */
-    Value value = get_value();
-    /* Sets its type. */
-    value_to_rcsim(TypeS,type,value->type);
+VALUE rcsim_make_value_bitstring(VALUE mod, VALUE typeV, VALUE contentV) {
+    // /* Allocates the value. */
+    // Value value = get_value();
+    // /* Sets its type. */
+    // value_to_rcsim(TypeS,type,value->type);
+    /* Get the type. */
+    Type type;
+    value_to_rcsim(TypeS,typeV,type);
+    /* Create the value. */
+    Value value = make_value(type,0);
+    // printf("Created from bitstring value=%p with type=%p\n",value,value->type);
+    // printf("and width=%llu\n",type_width(value->type));
     /* Set it to bitstring. */
     value->numeric = 0;
     /* Generate the string of the content. */
-    char* str = StringValueCStr(content);
+    char* str = StringValueCStr(contentV);
     value->capacity = strlen(str)+1;
     value->data_str = calloc(sizeof(char),value->capacity);
     strcpy(value->data_str,str);
@@ -590,7 +611,7 @@ VALUE rcsim_make_refConcat(VALUE mod, VALUE type, VALUE dirV) {
     value_to_rcsim(TypeS,type,refConcat->type);
     refConcat->num_refs = 0;
     refConcat->refs = NULL;
-    refConcat->dir = rb_id2name(SYM2ID(dirV))[0]=='l' ? 1 : 0;
+    refConcat->dir = rb_id2name(SYM2ID(dirV))[0]=='l' ? 0 : 1;
     /* Returns the C ref concat embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(RefConcatS,refConcat,res);
@@ -963,12 +984,14 @@ VALUE rcsim_add_concat_expressions(VALUE mod, VALUE concatV, VALUE exprVs) {
     /* Prepare the size for the expressions. */
     long num = RARRAY_LEN(exprVs);
     long old_num = concat->num_exprs;
+    // printf("add_concat_expressions with num=%li old_num=%li\n",num,old_num);
     concat->num_exprs += num;
     concat->exprs = realloc(concat->exprs,sizeof(Expression)*concat->num_exprs);
     /* Get and add the expressions from the Ruby value. */
     for(int i=0; i< num; ++i) {
         Expression expr;
         value_to_rcsim(ExpressionS,rb_ary_entry(exprVs,i),expr);
+        // printf("Adding expression with type width=%llu\n",type_width(expr->type));
         concat->exprs[old_num + i] = expr;
     }
     return concatV;
@@ -1036,15 +1059,21 @@ VALUE rcsim_set_behavior_block(VALUE mod, VALUE behaviorV, VALUE blockV) {
 }
 
 /** Sets the value for a C signal. */
-VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE valueV) {
+VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE exprV) {
     /* Get the C signal from the Ruby value. */
     SignalI signal;
     value_to_rcsim(SignalIS,signalV,signal);
-    /* Get the C value from the Ruby value. */
-    Value value;
-    value_to_rcsim(ValueS,valueV,value);
+    // printf("rc_sim_set_signal_value for signal=%s\n",signal->name);
+    /* Get the C expression from the Ruby value. */
+    Expression expr;
+    value_to_rcsim(ExpressionS,exprV,expr);
+    /* Compute the value from it. */
+    // Value value = calc_expression(expr);
+    Value value = get_value();
+    value = calc_expression(expr,value);
     /* Copies the value. */
-    copy_value(value,signal->f_value);
+    signal->f_value = copy_value(value,signal->f_value);
+    free_value();
     return signalV;
 }
 
@@ -1107,7 +1136,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_unary",rcsim_make_unary,3);
     rb_define_singleton_method(mod,"rcsim_make_binary",rcsim_make_binary,4);
     rb_define_singleton_method(mod,"rcsim_make_select",rcsim_make_select,2);
-    rb_define_singleton_method(mod,"rcsim_make_concat",rcsim_make_concat,1);
+    rb_define_singleton_method(mod,"rcsim_make_concat",rcsim_make_concat,2);
     rb_define_singleton_method(mod,"rcsim_make_refConcat",rcsim_make_refConcat,1);
     rb_define_singleton_method(mod,"rcsim_make_refIndex",rcsim_make_refIndex,3);
     rb_define_singleton_method(mod,"rcsim_make_refRange",rcsim_make_refRange,4);

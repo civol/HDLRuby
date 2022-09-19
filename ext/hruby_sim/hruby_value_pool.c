@@ -61,6 +61,7 @@ Value get_top_value() {
 
 /** Frees the last value of the pool. */
 void free_value() {
+    if (pool_pos <= 0) { printf("Pool error!\n");exit(1);}
     if (pool_pos > 0) pool_pos--;
 }
 

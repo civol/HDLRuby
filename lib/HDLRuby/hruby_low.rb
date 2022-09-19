@@ -5301,6 +5301,7 @@ module HDLRuby::Low
         # def initialize(expressions = [])
         def initialize(type,expressions = [])
             super(type)
+            # puts "Building concat=#{self} with direction=#{type.direction}\n"
             # Initialize the array of expressions that are concatenated.
             @expressions = []
             # Check and add the expressions.

@@ -1,5 +1,6 @@
 require 'set'
 require 'HDLRuby'
+require 'hruby_high_fullname'
 require 'hruby_sim/hruby_sim'
 
 
@@ -94,7 +95,7 @@ module HDLRuby::High
         # Generate the C description of the systemT.
         # +rcowner+ is the owner if any.
         def to_rcsim(rcowner = nil)
-            # puts "to_rcsim for systemT=#{self}"
+            # puts "to_rcsim for systemT=#{self.name}(#{self})"
             # Create the systemT C object.
             @rcsystemT = RCSim.rcsim_make_systemT(self.name.to_s)
             # Sets the owner if any.
@@ -160,13 +161,18 @@ module HDLRuby::High
             # Set the owner.
             RCSim.rcsim_set_owner(@rcscope,rcowner)
 
+            # Of the scope is a son of a SystemT, the owner of the sub objects
+            # will be this systemT. Otherwise, it is the scope.
+            subowner = self.parent.is_a?(SystemT) ? rcowner : @rcscope
+
             # Create and add the inner signals.
             # self.each_inner do |sig|
             #     rcsig = sig.to_rcsim(@rcscope)
             #     RCSim.rcsim_add_scope_inner(@rcscope,rcsig)
             # end
             RCSim.rcsim_add_scope_inners(@rcscope,self.each_inner.map do |sig|
-                sig.to_rcsim(@rcscope)
+                # sig.to_rcsim(@rcscope)
+                sig.to_rcsim(subowner)
             end)
             
             # Create and add the system instances.
@@ -176,7 +182,8 @@ module HDLRuby::High
             # end
             RCSim.rcsim_add_scope_systemIs(@rcscope,
                                            self.each_systemI.map do |sys|
-                sys.to_rcsim(@rcscope)
+                # sys.to_rcsim(@rcscope)
+                sys.to_rcsim(subowner)
             end)
 
             # Create and add the behaviors.
@@ -186,7 +193,8 @@ module HDLRuby::High
             # end
             RCSim.rcsim_add_scope_behaviors(@rcscope,
                                             self.each_behavior.map do |beh|
-                beh.to_rcsim(@rcscope)
+                # beh.to_rcsim(@rcscope)
+                beh.to_rcsim(subowner)
             end)
 
             # Create and add the connections.
@@ -197,7 +205,8 @@ module HDLRuby::High
             # end
             RCSim.rcsim_add_scope_behaviors(@rcscope, 
                                             self.each_connection.map do |cxt|
-                cxt.to_rcsim(@rcscope)
+                # cxt.to_rcsim(@rcscope)
+                cxt.to_rcsim(subowner)
             end)
 
             # Create and add the codes.
@@ -209,7 +218,8 @@ module HDLRuby::High
             #     RCSim.rcsim_add_scope_scope(@rcscope,rcsub)
             # end
             RCSim.rcsim_add_scope_scopes(@rcscope,self.each_scope.map do |sub|
-                sub.to_rcsim(@rcscope)
+                # sub.to_rcsim(@rcscope)
+                sub.to_rcsim(subowner)
             end)
 
             return @rcscope
@@ -243,9 +253,9 @@ module HDLRuby::High
     class TypeDef
 
         # Generate the C description of the type.
-        def to_rcsim(rcowner)
+        def to_rcsim
             # Create the type C object.
-            @rctype = self.def.to_rcsim(owner)
+            @rctype = self.def.to_rcsim
             return @rctype
         end
     end
@@ -263,10 +273,15 @@ module HDLRuby::High
 
     ## Extends the TypeTuple class for hybrid Ruby-C simulation.
     class TypeTuple
+        # Add the possibility to change the direction.
+        def direction=(dir)
+            @direction = dir == :little ? :little : :big
+        end
 
         # Generate the C description of the type.
         def to_rcsim
-            @rctype = self.to_vector.to_rcsim(rcowner)
+            # @rctype = self.to_vector.to_rcsim
+            @rctype = RCSim.rcsim_get_type_vector(Bit.to_rcsim,self.width)
             return @rctype
         end
     end
@@ -274,10 +289,15 @@ module HDLRuby::High
 
     ## Extends the TypeStruct class for hybrid Ruby-C simulation.
     class TypeStruct
+        # Add the possibility to change the direction.
+        def direction=(dir)
+            @direction = dir == :little ? :little : :big
+        end
 
         # Generate the C description of the type.
         def to_rcsim
-            @rctype = self.to_vector.to_rcsim(rcowner)
+            # @rctype = self.to_vector.to_rcsim
+            @rctype = RCSim.rcsim_get_type_vector(Bit.to_rcsim,self.width)
             return @rctype
         end
     end
@@ -291,6 +311,7 @@ module HDLRuby::High
         # Generate the C description of the behavior comming from object
         # whose C description is +rcowner+
         def to_rcsim(rcowner)
+            # puts "to_rcsim for behavior=#{self}"
             # Process the sensitivity list.
             # Is it a clocked behavior?
             events = self.each_event.to_a
@@ -383,6 +404,7 @@ module HDLRuby::High
             # Create the signal C object.
             @rcsignalI = RCSim.rcsim_make_signal(self.name.to_s,
                                            self.type.to_rcsim)
+            # puts "to_rcsim for signal=(#{self.name})#{self}, @rcsignalI=#{@rcsignalI}"
 
             # Set the owner.
             RCSim.rcsim_set_owner(@rcsignalI,rcowner)
@@ -428,13 +450,15 @@ module HDLRuby::High
         # Generate the C description of the signal comming from object
         # whose C description is +rcowner+
         def to_rcsim(rcowner)
-            # puts "to_rcsim for systemI=#{self}"
-            # puts "to_rcsim for SystemI=#{self}"
+            # puts "to_rcsim for systemI=#{self.name}(#{self})"
             # Create the system instance C object.
             @rcsystemI = RCSim.rcsim_make_systemI(self.name.to_s,
                                                   self.systemT.to_rcsim)
-            # Set the owner of the systemT.
-            RCSim.rcsim_set_owner(self.systemT.rcsystemT,@rcsystemI)
+            # # Set the owner of the systemT.
+            # RCSim.rcsim_set_owner(self.systemT.rcsystemT,@rcsystemI)
+            # Set the owner of the systemT as the same as the systemI since
+            # it is an Eigen system.
+            RCSim.rcsim_set_owner(self.systemT.rcsystemT,rcowner)
 
             # Set the owner.
             RCSim.rcsim_set_owner(@rcsystemI,rcowner)
@@ -670,8 +694,8 @@ module HDLRuby::High
         # Generate the C description of the connection.
         # +rcowner+ is a link to the C description of the owner scope.
         def to_rcsim(rcowner)
-            # Create the connection C object, actually it is a behavior.
             # puts "make behavior with self.class=#{self.class}"
+            # Create the connection C object, actually it is a behavior.
             @rcbehavior = RCSim.rcsim_make_behavior(false)
 
             # Set the owner.
@@ -734,11 +758,11 @@ module HDLRuby::High
                         str = "0" + str
                     end
                     return RCSim.rcsim_make_value_bitstring(self.type.to_rcsim,
-                                                      str)
+                                                            str.reverse)
                 end
             else
                 return RCSim.rcsim_make_value_bitstring(self.type.to_rcsim,
-                                                  self.content.to_s)
+                                                        self.content.to_s.reverse)
             end
         end
     end
@@ -750,6 +774,14 @@ module HDLRuby::High
 
         # Generate the C description of the cast.
         def to_rcsim
+            # puts "Cast to width=#{self.type.width} and child=#{self.child}"
+            # Shall we reverse when casting?
+            if self.type.direction != self.child.type.direction then
+                # Yes, reverse the direction of the child.
+                if self.child.type.respond_to?(:direction=) then
+                    self.child.type.direction = self.type.direction
+                end
+            end
             # Create the cast C object.
             return RCSim.rcsim_make_cast(self.type.to_rcsim,self.child.to_rcsim)
         end
@@ -921,6 +953,7 @@ module HDLRuby::High
 
         # Generate the C description of the reference object.
         def to_rcsim
+            # puts "object=#{self.object.name}(#{self.object})"
             if self.object.is_a?(SignalI)
                 return self.object.rcsignalI
             elsif self.object.is_a?(SignalC)

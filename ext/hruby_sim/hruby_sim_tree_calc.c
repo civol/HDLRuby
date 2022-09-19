@@ -18,25 +18,38 @@
 
 
 /** Calculates a tree expression.
- *  @param expr the expression to execute. */
-Value calc_expression(Expression expr) {
-    /* The resulting value. */
-    Value res = get_value();
-    // printf("clac_expression with kind=%d\n",expr->kind);
+ *  @param expr the expression to execute.
+ *  @param res the expression where to write the result. */
+Value calc_expression(Expression expr, Value res) {
+    // printf("calc_expression with kind=%d\n",expr->kind);
     /* Depending on the kind of expression. */
     switch(expr->kind) {
+        case VALUEE:
+            /* Assume it is a Value. */
+            // printf("value=%p type=%p\n",expr,((Value)expr)->type);
+            res = (Value)expr;
+            // res = copy_value((Value)expr,res);
+            break;
         case UNARY:
             {
                 Unary uexpr = (Unary)expr;
-                res = uexpr->oper(calc_expression(uexpr->child),res);
+                Value child = get_value();
+                child = calc_expression(uexpr->child,child);
+                res = uexpr->oper(child,res);
+                free_value();
                 break;
             }
         case BINARY:
             {
                 Binary bexpr = (Binary)expr;
-                res = bexpr->oper(calc_expression(bexpr->left),
-                                  calc_expression(bexpr->right),res);
-            break;
+                Value left = get_value();
+                Value right = get_value();
+                left = calc_expression(bexpr->left,left);
+                right = calc_expression(bexpr->right,right);
+                res = bexpr->oper(left,right,res);
+                free_value();
+                free_value();
+                break;
             }
         case CONCAT:
             {
@@ -44,47 +57,65 @@ Value calc_expression(Expression expr) {
                 /* Calculate the sub expressions. */
                 Value values[cexpr->num_exprs];
                 for(int i=0; i<cexpr->num_exprs; ++i) {
-                    values[i] = calc_expression(cexpr->exprs[i]);
+                    values[i] = get_value();
+                    values[i] = calc_expression(cexpr->exprs[i],values[i]);
                 }
                 /* Use them for calculating the concat. */
                 res = concat_valueP(cexpr->num_exprs,cexpr->dir,res,values);
+                for(int i=0; i<cexpr->num_exprs; ++i) free_value();
                 break;
             }
         case CAST:
             {
                 Cast cexpr = (Cast)expr;
-                res = cast_value(calc_expression(cexpr->child),cexpr->type,res);
+                Value child = get_value();
+                child = calc_expression(cexpr->child,child);
+                res = cast_value(child,cexpr->type,res);
+                free_value();
                 break;
             }
         case REF_OBJECT:
-            res = calc_expression((Expression)(((RefObject)expr)->object));
+            res = calc_expression((Expression)(((RefObject)expr)->object),res);
             break;
         case REF_INDEX:
             {
                 RefIndex rexpr = (RefIndex)expr;
-                /* Compute the index. */
-                Value indexV = calc_expression(rexpr->index);
                 /* Compute the accessed value. */
-                Value value = calc_expression((Expression)(rexpr->ref));
+                Value value = get_value();
+                value = calc_expression((Expression)(rexpr->ref),value);
+                /* Compute the index. */
+                Value indexV = get_value();
+                indexV = calc_expression(rexpr->index,indexV);
                 /* Get its integer index. */
                 long long index = value2integer(indexV);
+                // printf("index=%llu\n",index);
+                free_value();
                 /* Performs the access. */
-                res = read_range(value,index,index,rexpr->ref->type,res);
+                res = read_range(value,index,index,rexpr->type,res);
+                free_value();
                 break;
             }
         case REF_RANGE: 
             {
                 RefRangeE rexpr = (RefRangeE)expr;
-                /* Compute the range. */
-                Value firstV = calc_expression(rexpr->first);
-                Value lastV = calc_expression(rexpr->last);
                 /* Compute the accessed value. */
-                Value value = calc_expression((Expression)(rexpr->ref));
+                Value value = get_value();
+                value = calc_expression((Expression)(rexpr->ref),value);
+                /* Compute the range. */
+                Value firstV = get_value();
+                firstV = calc_expression(rexpr->first,firstV);
+                Value lastV = get_value();
+                lastV = calc_expression(rexpr->last,lastV);
                 /* Get its integer range. */
                 long long first = value2integer(firstV);
                 long long last = value2integer(lastV);
+                free_value();
+                free_value();
+                // printf("first=%lli last=%lli\n",first,last);
                 /* Performs the access. */
-                res = read_range(value,first,last,rexpr->ref->type,res);
+                TypeS base_type = { rexpr->type->base, 1, rexpr->type->flags };
+                res = read_range(value,first,last,&base_type,res);
+                free_value();
                 break;
             }
         case REF_CONCAT: 
@@ -94,20 +125,22 @@ Value calc_expression(Expression expr) {
                 /* Calculate the sub expressions. */
                 Value values[rexpr->num_refs];
                 for(int i=0; i<rexpr->num_refs; ++i) {
-                    values[i] = calc_expression((Expression)(rexpr->refs[i]));
+                    values[i] = get_value();
+                    values[i] = calc_expression((Expression)(rexpr->refs[i]),values[i]);
                 }
                 /* Use them for calculating the concat. */
                 res = concat_valueP(rexpr->num_refs,rexpr->dir,res,values);
+                for(int i=0; i<rexpr->num_refs; ++i) free_value();
                 break;
             }
         case SIGNALI:
-            res = calc_expression((Expression)(((SignalI)expr)->c_value));
+            res = calc_expression((Expression)(((SignalI)expr)->c_value),res);
             break;
         default:
-            /* Assume it is a Value. */
-            res = (Value)expr;
+            perror("Invalid expression kind.");
+            exit(1);
+            break;
     }
-    free_value();
     return res;
 }
 
@@ -126,11 +159,14 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 Transmit trans = (Transmit)stmnt;
                 // printf("trans=%p trans->left=%p trans->left->kind=%d\n",trans,trans->left,trans->left->kind);
                 /* Compute the right value. */
-                Value right = calc_expression(trans->right);
-                // printf("right=%p mode=%d\n",right,mode);
+                // Value right = calc_expression(trans->right);
+                Value right = get_value();
+                right = calc_expression(trans->right,right);
                 /* Depending on the left value. */
                 switch (trans->left->kind) {
                     case SIGNALI:
+                        // printf("left->name=%s\n",((SignalI)(trans->left))->name);
+                        fflush(stdout);
                         /* Simple transmission. */
                         if (mode)
                             transmit_to_signal_seq(right,(SignalI)(trans->left));
@@ -142,8 +178,11 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                             /* Transmission to sub element. */
                             RefIndex refi = (RefIndex)(trans->left);
                             /* Compute the index. */
-                            Value indexV = calc_expression(refi->index);
+                            // Value indexV = calc_expression(refi->index);
+                            Value indexV = get_value();
+                            indexV = calc_expression(refi->index,indexV);
                             long long index = value2integer(indexV);
+                            free_value();
                             /* Generate the reference inside the left value. */
                             RefRangeS ref = 
                                 make_ref_rangeS((SignalI)(refi->ref),refi->type,
@@ -160,10 +199,16 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                             /* Transmission to range of sub elements. */
                             RefRangeE refr = (RefRangeE)(trans->left);
                             /* Compute the range. */
-                            Value firstV = calc_expression(refr->first);
+                            // Value firstV = calc_expression(refr->first);
+                            Value firstV = get_value();
+                            firstV = calc_expression(refr->first,firstV);
                             long long first = value2integer(firstV);
-                            Value lastV = calc_expression(refr->last);
+                            free_value();
+                            // Value lastV = calc_expression(refr->last);
+                            Value lastV = get_value();
+                            lastV = calc_expression(refr->last,lastV);
                             long long last = value2integer(lastV);
+                            free_value();
                             /* Generate the reference inside the left value. */
                             RefRangeS ref = 
                                 make_ref_rangeS((SignalI)(refr->ref),refr->type,
@@ -209,7 +254,9 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
             {
                 HIf hif = (HIf)stmnt;
                 /* Calculation the condition. */
-                Value condition = calc_expression(hif->condition);
+                // Value condition = calc_expression(hif->condition);
+                Value condition = get_value();
+                condition = calc_expression(hif->condition,condition);
                 /* Is it true? */
                 if (is_defined_value(condition) && value2integer(condition)) {
                     /* Yes, execute the yes branch. */
@@ -218,15 +265,19 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                     /* No, maybe an alternate condition is met. */
                     int met = 0;/* Tell if an alternate condition has been met.*/
                     for(int i=0; i<hif->num_noifs; ++i) {
-                        Value subcond = calc_expression(hif->noconds[i]);
+                        // Value subcond = calc_expression(hif->noconds[i]);
+                        Value subcond = get_value();
+                        subcond = calc_expression(hif->noconds[i],subcond);
                         if (is_defined_value(subcond) && value2integer(subcond)){
                             /* The subcondition is met, execute the corresponding
                              * substatement. */
                             execute_statement(hif->nostmnts[i],mode,behavior);
                             /* And remember it. */
                             met = 1;
+                            free_value();
                             break;
                         }
+                        free_value();
                     }
                     /* Where there a sub condition met? */
                     if (!met) {
@@ -234,29 +285,38 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                         execute_statement(hif->no,mode,behavior);
                     }
                 }
+                free_value();
                 break;
             }
         case HCASE:
             {
                 HCase hcase = (HCase)stmnt;
                 /* Calculation the value to check. */
-                Value value = calc_expression(hcase->value);
+                // Value value = calc_expression(hcase->value);
+                Value value = get_value();
+                value = calc_expression(hcase->value,value);
                 /* Tell if a case if matched. */
                 int met = 0;
                 /* Check each case. */
                 Value cmp = get_value();
                 for(int i=0; i<hcase->num_whens; ++i) {
-                    cmp = equal_value_c(value,calc_expression(hcase->matches[i]),
-                            cmp);
+                    // cmp = equal_value_c(value,calc_expression(hcase->matches[i]),
+                    //         cmp);
+                    Value match = get_value();
+                    match = calc_expression(hcase->matches[i],match);
+                    cmp = equal_value_c(value,match,cmp);
                     if (is_defined_value(cmp) && value2integer(cmp)) {
                         /* Found the right case, execute the corresponding
                          * statement. */
                         execute_statement(hcase->stmnts[i],mode,behavior);
                         /* And remeber it. */
                         met = 1;
+                        free_value();
                         break;
                     }
+                    free_value();
                 }
+                free_value();
                 free_value();
                 /* Was no case found and is there a default statement? */
                 if (!met && hcase->defolt) {

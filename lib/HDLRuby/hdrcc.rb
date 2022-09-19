@@ -570,7 +570,6 @@ $top_intance = nil # Free as much memory as possible.
 HDLRuby.show "##### Top system built #####"
 HDLRuby.show "#{Time.now}#{show_mem}"
 
-
 # # Apply the pre drivers if any.
 # Hdecorator.each_with_property(:pre_driver) do |obj, value|
 #     unless value.is_a?(Array) && value.size == 2 then
@@ -872,6 +871,9 @@ elsif $options[:rcsim] then
     HDLRuby.show "#{Time.now}#{show_mem}"
     # C-Ruby-level simulation.
     require 'HDLRuby/hruby_rcsim.rb'
+    # Merge the included from the top system.
+    $top_system.merge_included!
+    # Generate the C data structures.
     $top_system.to_rcsim
     HDLRuby.show "Executing the hybrid C-Ruby-level simulator..."
     HDLRuby.show "#{Time.now}#{show_mem}"

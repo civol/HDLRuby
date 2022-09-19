@@ -303,6 +303,9 @@ fix_numeric_type(Type type, unsigned long long val);
  *  @param dst the destination value
  *  @return dst */
 Value copy_value(Value src, Value dst) {
+    // printf("copy_value with src=%p and dst=%p\n",src,dst);
+    // printf("src->type=%p dst->type=%p\n",src->type,dst->type);
+    // printf("src->numeric=%i dst->numeric=%i\n",src->numeric,dst->numeric);
     /* set the status of the destination from the source. */
     if (dst->type == NULL)
         dst->type = src->type;
@@ -731,7 +734,7 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
         else 
-            dst->data_int = src0 > src1;
+            dst->data_int = src0i > src1i;
     }
     return dst;
 }
@@ -781,7 +784,7 @@ static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
         else 
-            dst->data_int = src0 < src1;
+            dst->data_int = src0i < src1i;
     }
     return dst;
 }
@@ -831,7 +834,7 @@ static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
         else 
-            dst->data_int = src0 >= src1;
+            dst->data_int = src0i >= src1i;
     }
     return dst;
 }
@@ -881,7 +884,7 @@ static Value lesser_equal_value_defined_bitstring(Value src0, Value src1, Value 
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
         else 
-            dst->data_int = src0 <= src1;
+            dst->data_int = src0i <= src1i;
     }
     return dst;
 }
@@ -1987,7 +1990,7 @@ static Value greater_value_numeric(Value src0, Value src1, Value dst) {
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
         else 
-            dst->data_int = src0 > src1;
+            dst->data_int = src0i > src1i;
     }
     return dst;
 }
@@ -2036,7 +2039,7 @@ static Value lesser_value_numeric(Value src0, Value src1, Value dst) {
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
         else 
-            dst->data_int = src0 < src1;
+            dst->data_int = src0i < src1i;
     }
     return dst;
 }
@@ -2085,7 +2088,7 @@ static Value greater_equal_value_numeric(Value src0, Value src1, Value dst) {
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
         else 
-            dst->data_int = src0 >= src1;
+            dst->data_int = src0i >= src1i;
     }
     return dst;
 }
@@ -2134,7 +2137,7 @@ static Value lesser_equal_value_numeric(Value src0, Value src1, Value dst) {
         if (src1->type->flags.sign)
             dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
         else 
-            dst->data_int = src0 <= src1;
+            dst->data_int = src0i <= src1i;
     }
     return dst;
 }
@@ -2279,6 +2282,7 @@ Value read_range_numeric(Value value,
     long long length = last-first+1;
     /* Compute the elements size. */
     unsigned long long bw = type_width(base);
+    // printf("bw=%llu\n",bw);
     /* Scale the range according to the base type. */
     first *= bw;
     last  *= bw;
