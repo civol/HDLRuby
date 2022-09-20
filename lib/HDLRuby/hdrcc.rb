@@ -363,7 +363,11 @@ $optparse = OptionParser.new do |opts|
     opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
         $options[:allocate] = v
     end
-    opts.on("--csim","Output in C format (simulator)") do |v|
+    opts.on("-S","--sim","Default simulator (hybrid C-Ruby)") do |v|
+        $options[:rcsim] = v
+        $options[:multiple] = v
+    end
+    opts.on("--csim","Standalone C-based simulator") do |v|
         $options[:clang] = v
         $options[:multiple] = v
         $options[:csim] = v
