@@ -244,10 +244,28 @@ module HDLRuby
             end
         end
 
-        # Cast to +type+
-        def cast(type)
-            res_content = self.content.clone
-            # if type.unsigned? && self.type.signed? then
+        # Cast to +type+.
+        # NOTE: nodir tells if the direction is to be ignored.
+        def cast(type,nodir = false)
+            # Handle the direction.
+            if !nodir && type.direction != self.type.direction then
+                if self.content.is_a?(Numeric) then
+                    tmp = 0
+                    res_content = self.content
+                    self.type.width.times do |i|
+                        tmp = tmp*2 | (res_content & 1)
+                        res_content /= 2
+                    end
+                    res_content = tmp
+                elsif self.content.is_a?(BitString) then
+                    res_content = self.content.clone.reverse!(self.type.width)
+                else
+                    res_content = self.content.reverse
+                end
+            else
+                res_content = self.content.clone
+            end
+            # Handle the sign.
             if type.unsigned? && !self.content.positive? then
                 # Ensure the content is a positive value to match unsigned type.
                 if res_content.is_a?(Numeric) then
@@ -267,7 +285,7 @@ module HDLRuby
             return self.class.new(type,res_content)
         end
 
-        # Concat the content of +vals+
+        # Concat the content of +vals+.
         def self.concat(*vals)
             # Compute the resulting type.
             types = vals.map {|v| v.type }

@@ -240,6 +240,23 @@ module HDLRuby::High
     end
 
 
+    ## Extends the TypeTuple class for Ruby simulation.
+    class TypeTuple
+        # Add the possibility to change the direction.
+        def direction=(dir)
+            @direction = dir == :little ? :little : :big
+        end
+    end
+
+    ## Extends the TypeStruct class for Ruby simulation.
+    class TypeStruct
+        # Add the possibility to change the direction.
+        def direction=(dir)
+            @direction = dir == :little ? :little : :big
+        end
+    end
+
+
     ##
     # Describes a behavior.
     class Behavior
@@ -797,11 +814,17 @@ module HDLRuby::High
         ## Executes the expression.
         def execute(mode)
             # Recurse on the child.
-            res = self.child.execute(mode)
-            # # Set the type.
-            # res.type = self.type
+            # res = tocast.execute(mode)
+            # Shall we reverse the content of a concat.
+            if self.child.is_a?(Concat) && 
+                    self.type.direction != self.child.type.direction then
+                # Yes, do it.
+                res = self.child.execute(mode,:reverse)
+            else
+                res = self.child.execute(mode)
+            end
             # Cast it.
-            res = res.cast(self.type)
+            res = res.cast(self.type,true)
             # Returns the result.
             return res
         end
@@ -865,11 +888,14 @@ module HDLRuby::High
     # Describes a concatenation expression.
     class Concat
         ## Execute the expression.
-        def execute(mode)
+        def execute(mode, reverse=false)
             # Recurse on the children.
             tmpe = self.each_expression.map { |expr| expr.execute(mode) }
             # Ensure the order of the elements matches the type.
-            tmpe.reverse! if self.type.direction == :little
+            if (self.type.direction == :little && !reverse) || 
+               (self.type.direction == :big && reverse) then
+                tmpe.reverse!
+            end
             # puts "concat result=#{Vprocess.concat(*tmpe).to_bstr}"
             # Concatenate the result.
             return Vprocess.concat(*tmpe)
