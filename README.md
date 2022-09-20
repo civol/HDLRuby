@@ -49,8 +49,11 @@ Where:
 | `-v, --verilog`   | Output in Verilog HDL format                         |
 | `-V, --vhdl`      | Output in VHDL format                                |
 | `-s, --syntax`    | Output the Ruby syntax tree                          |
-| `-C, --clang`     | Output the C code of the simulator                   |
-| `-S, --sim`       | Output the executable simulator and execute it       |
+| `-C, --clang`     | Output the C code of the standalone simulator.       |
+| `-S, --sim`       | Perform the simulation with the default engine.      |
+| `--csim`          | Perform the simulation with the standalone engine.   |
+| `--rsim`          | Perform the simulation with the Ruby engine.         |
+| `--rcsim`         | Perform the simulation with the Hybris engine.       |
 | `--vcd`           | Make the simulator generate a VCD file               |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
 | `-D, --debug`     | Set the HDLRuby debug mode |
@@ -91,12 +94,13 @@ hdrcc -V -t adder --param 16 adder_gen.rb adder
 hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer
 ```
 
-* Simulate the circuit described in file `counter_bench.rb` using directory `counter` for
-  storing the simulator's files:
+* Simulate the circuit described in file `counter_bench.rb` using the default simluation engine and putting the simulator's files in directory `counter`:
 
 ```
 hdrcc -S counter_bench.rb counter
 ```
+
+As a policy, the default simulation enigne is set to the fastest one (cuttently it is the hybrid engine).
 
 * Run in interactive mode.
 
