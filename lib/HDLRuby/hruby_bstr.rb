@@ -91,6 +91,19 @@ module HDLRuby
             return BitString.new(@content,:raw)
         end
 
+        # Reverse the content of the bit string assuming a bit width
+        # of +width+.
+        def reverse!(width)
+            # Ensure content is large enough.
+            if @content.size < width then
+                @content.concat(content[-1]*(width-@content.size))
+            else
+                @content.trunc!(width)
+            end
+            @content.reverse!
+        end
+
+
         # Give access to the raw content.
         # NOTE: the content is not copied, so there is a risk of side effect.
         def raw_content
@@ -105,7 +118,7 @@ module HDLRuby
             return (@content[-1] == 0)
         end
 
-        # For the BitSting to be positive by appending a 0 is required.
+        # Force the BitSting to be positive by appending a 0 is required.
         def positive!
             @content << 0 if @content[-1] != 0
             return self
@@ -266,7 +279,7 @@ module HDLRuby
         #
         # NOTE:
         # * trunc remove the end of the bit string.
-        # * if the width is already smaller than +width+, do nothing.
+        # * if the width is already smaller or equal than +width+, do nothing.
         def trunc!(width)
             return self if width >= @content.size
             @content.pop(width-@content.size)
