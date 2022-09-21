@@ -40,6 +40,7 @@ typedef struct RefObjectS_ RefObjectS;
 typedef struct RefIndexS_ RefIndexS;
 typedef struct RefRangeES_ RefRangeES;
 typedef struct RefConcatS_ RefConcatS;
+typedef struct StringES_ StringES;
 #endif
 
 typedef struct RefRangeS_  RefRangeS;
@@ -74,6 +75,7 @@ typedef struct RefObjectS_* RefObject;
 typedef struct RefIndexS_* RefIndex;
 typedef struct RefRangeES_* RefRangeE;
 typedef struct RefConcatS_* RefConcat;
+typedef struct StringES_* StringE;
 #endif
 
 typedef struct RefRangeS_*  RefRange;
@@ -90,6 +92,7 @@ typedef enum {
     /* Statements */  TRANSMIT, PRINT, HIF, HCASE, TIME_WAIT, TIME_TERMINATE,
     /* Expressions */ UNARY, BINARY, SELECT, CONCAT, CAST,
     /* References */  REF_OBJECT, REF_INDEX, REF_RANGE, REF_CONCAT,
+    /* Non-hardware*/ STRINGE,
 #endif
 } Kind;
 
@@ -760,6 +763,12 @@ typedef struct RefConcatS_ {
     int num_refs;       /* The number of sub references. */
     Reference* refs;    /* The sub references. */
 } RefConcatS;
+
+/** The C model of a charcter string. */
+typedef struct StringES_ {
+    Kind kind;          /* The kind of object. */
+    char* str;          /* A pointer the to C character string. */
+} StringES;
 
 #endif
 

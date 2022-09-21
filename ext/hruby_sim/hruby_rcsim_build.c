@@ -342,6 +342,7 @@ VALUE rcsim_make_print(VALUE mod) {
     /* Set it up. */
     print->kind = PRINT;
     print->num_args = 0;
+    print->args = NULL;
     /* Returns the C print embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(PrintS,print,res);
@@ -646,6 +647,20 @@ VALUE rcsim_make_refRange(VALUE mod, VALUE type, VALUE first, VALUE last, VALUE 
     /* Returns the C ref range embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(RefRangeES,refRange,res);
+    return res;
+}
+
+
+/* Creating a character string C object. */
+VALUE rcsim_make_stringE(VALUE mod, VALUE strV) {
+    /* Allocates the string. */
+    StringE stringE = (StringE)malloc(sizeof(StringES));
+    /* Set it up. */
+    stringE->kind = STRINGE;
+    stringE->str   = strdup(StringValueCStr(strV));
+    /* Returns the C character string embedded into a ruby VALUE. */
+    VALUE res;
+    rcsim_to_value(StringES,stringE,res);
     return res;
 }
 
@@ -1140,6 +1155,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_refConcat",rcsim_make_refConcat,1);
     rb_define_singleton_method(mod,"rcsim_make_refIndex",rcsim_make_refIndex,3);
     rb_define_singleton_method(mod,"rcsim_make_refRange",rcsim_make_refRange,4);
+    rb_define_singleton_method(mod,"rcsim_make_stringE",rcsim_make_stringE,1);
     /* Adding elements to C simulation objects. */
     rb_define_singleton_method(mod,"rcsim_add_systemT_inputs",rcsim_add_systemT_inputs,2);
     rb_define_singleton_method(mod,"rcsim_add_systemT_outputs",rcsim_add_systemT_outputs,2);

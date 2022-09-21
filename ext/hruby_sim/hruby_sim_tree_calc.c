@@ -250,6 +250,31 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 }
                 break;
             }
+        case PRINT:
+            {
+                Print prt = (Print)stmnt;
+                /* Prints each argument. */
+                for(int i=0; i<prt->num_args; ++i) {
+                    Expression arg=prt->args[i];
+                    switch(arg->kind) {
+                        case SYSTEMT:
+                        case SYSTEMI:
+                            printer.print_string_name((Object)arg);
+                            break;
+                        case STRINGE:
+                            printer.print_string(((StringE)arg)->str);
+                            break;
+                        default:
+                            {
+                                Value res = get_value();
+                                res = calc_expression(arg,res);
+                                printer.print_string_value(res);
+                                free_value();
+                            }
+                    }
+                }
+                break;
+            }
         case HIF:
             {
                 HIf hif = (HIf)stmnt;

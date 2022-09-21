@@ -86,10 +86,21 @@ module HDLRuby::High
             @vcdout << "##{@time}\n"
         end
 
-        ## Display the value of signal +sig+.
+        ## Displays the value of signal +sig+.
         def show_signal(sig)
             @vcdout << "b#{sig.f_value.to_vstr} "
             @vcdout << "#{@vars_with_fullname[sig]}\n"
+        end
+
+        ## Displays value +val+.
+        #  NOTE: for now displays on the standard output and NOT the vcd.
+        def show_value(val)
+            $stdout << val.to_vstr
+        end
+
+        ## Displays string +str+.
+        def show_string(str)
+            $stdout << str.to_s
         end
     end
 

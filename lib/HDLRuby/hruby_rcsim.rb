@@ -767,6 +767,16 @@ module HDLRuby::High
         end
     end
 
+    ## Extends the StringE class for hybrid Ruby-C simulation.
+    class StringE
+
+        # Generate the C description of the value.
+        def to_rcsim
+            # Create the value C object.
+            return RCSim.rcsim_make_stringE(self.content);
+        end
+    end
+
 
     ## Extends the Cast class for hybrid Ruby-C simulation.
     class Cast
