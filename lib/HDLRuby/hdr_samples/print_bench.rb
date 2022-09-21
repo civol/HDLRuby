@@ -58,5 +58,5 @@ system :with_print_bench do
     end
 
 
-    cur_system.properties[:pre_driver] = "drivers/hw_print.rb", :hw_print_generator
+    # cur_system.properties[:pre_driver] = "drivers/hw_print.rb", :hw_print_generator
 end

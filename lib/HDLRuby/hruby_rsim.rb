@@ -199,9 +199,19 @@ module HDLRuby::High
             @simout.puts("# #{@time}ps")
         end
 
-        ## Display the value of signal +sig+.
+        ## Displays the value of signal +sig+.
         def show_signal(sig)
             @simout.puts("#{sig.fullname}: #{sig.f_value.to_vstr}")
+        end
+
+        ## Displays value +val+.
+        def show_value(val)
+            @simout.print(val.to_vstr)
+        end
+
+        ## Displays string +str+.
+        def show_string(str)
+            @simout.print(str)
         end
 
 
@@ -640,12 +650,23 @@ module HDLRuby::High
     class Print
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
-            # Nothing to do.
+            @sim = systemT
         end
 
         ## Executes the statement.
         def execute(mode)
-            puts self.each_args.join
+            self.each_arg.map do |arg|
+                case arg
+                when StringE
+                    @sim.show_string(arg.content)
+                when SignalI
+                    @sim.show_signal(arg)
+                when SignalC
+                    @sim.show_signal(arg)
+                else
+                    @sim.show_value(arg.execute(mode))
+                end
+            end
         end
     end
 
