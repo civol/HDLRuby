@@ -33,6 +33,10 @@ Value get_value() {
         /* Need to increase the pool capacity. */
         pool_cap = pool_cap * 2;
         pool_values = (Value*)realloc(pool_values,pool_cap*sizeof(Value));
+        if (pool_values == NULL) {
+            perror("Internal error with the pool of values.");
+            exit(1);
+        }
         /* Allocate the new values. */
         /* Note: now pool_pos is the old pool_cap and is also the number
          * of new values to allocate. */

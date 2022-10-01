@@ -224,6 +224,7 @@ VALUE rcsim_make_behavior(VALUE mod, VALUE timed) {
     behavior->owner = NULL;
     behavior->num_events = 0;
     behavior->events = NULL;
+    behavior->block = NULL;
     behavior->enabled = 0;
     behavior->activated = 0;
     if (TYPE(timed) == T_TRUE) {
@@ -235,6 +236,7 @@ VALUE rcsim_make_behavior(VALUE mod, VALUE timed) {
         behavior->timed = 0;
     }
     behavior->active_time = 0;
+    beahvior->thread = NULL;
     /* Returns the C behavior embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(BehaviorS,behavior,res);

@@ -946,7 +946,7 @@ Value reduce_or_value_bitstring(Value src, Value dst) {
 
     /* Performs the reduce or. */
     unsigned long long count;
-    char res;
+    char res = 0;
     for(count = 0; count < width; ++count) {
         /* Performs the reduce or. */
         char d = src_data[count] - '0'; /* Get and convert to bit. */

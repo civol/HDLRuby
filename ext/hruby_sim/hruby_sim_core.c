@@ -76,7 +76,8 @@ void register_timed_behavior(Behavior behavior) {
         } else {
             /* Need to increase the capacity. */
             Behavior* behaviors = calloc(sizeof(Behavior),cap_timed_behaviors*2);
-            memcpy(timed_behaviors,behaviors,sizeof(Behavior)*cap_timed_behaviors);
+            memcpy(behaviors,timed_behaviors,sizeof(Behavior)*cap_timed_behaviors);
+            timed_behaviors = behaviors;
             cap_timed_behaviors *= 2;
         }
     }
