@@ -363,11 +363,11 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 TimeRepeat rep = (TimeRepeat)stmnt;
                 if (rep->number>=0) {
                     for(long long i=0; i<rep->number; ++i) {
-                        execute_statement(rep->statement);
+                        execute_statement(rep->statement,mode,behavior);
                     }
                 } else {
                     for(;;) {
-                        execute_statement(rep->statement);
+                        execute_statement(rep->statement,mode,behavior);
                     }
                 }
                 break;
