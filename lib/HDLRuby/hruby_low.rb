@@ -4073,8 +4073,8 @@ module HDLRuby::Low
             # @delay = delay
             # Check and set the number.
             @number = number.to_i
-            # And set its parent.
-            delay.parent = self
+            # # And set its parent.
+            # delay.parent = self
         end
 
         # Iterates over each object deeply.
