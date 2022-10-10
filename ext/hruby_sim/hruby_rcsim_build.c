@@ -1393,6 +1393,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_transmit",rcsim_make_transmit,2);
     rb_define_singleton_method(mod,"rcsim_make_print",rcsim_make_print,0);
     rb_define_singleton_method(mod,"rcsim_make_timeWait",rcsim_make_timeWait,2);
+    rb_define_singleton_method(mod,"rcsim_make_timeRepeat",rcsim_make_timeWait,2);
     rb_define_singleton_method(mod,"rcsim_make_timeTerminate",rcsim_make_timeTerminate,0);
     rb_define_singleton_method(mod,"rcsim_make_hif",rcsim_make_hif,3);
     rb_define_singleton_method(mod,"rcsim_make_hcase",rcsim_make_hcase,2);
