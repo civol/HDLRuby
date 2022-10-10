@@ -476,7 +476,7 @@ VALUE rcsim_make_hif(VALUE mod, VALUE conditionV, VALUE yesV, VALUE noV) {
     hif->kind = HIF;
     value_to_rcsim(ExpressionS,conditionV,hif->condition);
     value_to_rcsim(StatementS,yesV,hif->yes);
-    if (TYPE(no) == T_NIL)
+    if (TYPE(noV) == T_NIL)
         hif->no = NULL;
     else
         value_to_rcsim(StatementS,noV,hif->no);
@@ -502,7 +502,7 @@ VALUE rcsim_make_hcase(VALUE mod, VALUE valueV, VALUE defoltV) {
     hcase->num_whens = 0;
     hcase->matches = NULL;
     hcase->stmnts = NULL;
-    if (TYPE(defolt) == T_NIL)
+    if (TYPE(defoltV) == T_NIL)
         hcase->defolt = NULL;
     else
         value_to_rcsim(StatementS,defoltV,hcase->defolt);
