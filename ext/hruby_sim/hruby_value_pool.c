@@ -20,9 +20,10 @@ Value get_value() {
     if (pool_cap == 0) {
         /* First allocation. */
         pool_cap = 16;
-        pool_values = (Value*)malloc(pool_cap*sizeof(Value));
+        // pool_values = (Value*)malloc(pool_cap*sizeof(Value));
+        pool_values = (Value*)calloc(pool_cap,sizeof(Value));
         /* Allocate the new values. */
-        ValueS* new_values = (ValueS*)calloc(sizeof(ValueS),pool_cap);
+        ValueS* new_values = (ValueS*)calloc(pool_cap,sizeof(ValueS));
         /* Assign them to the pool. */
         unsigned int i;
         for(i=0; i<pool_cap; ++i) {
@@ -32,7 +33,8 @@ Value get_value() {
     else if (pool_pos == pool_cap) {
         /* Need to increase the pool capacity. */
         pool_cap = pool_cap * 2;
-        pool_values = (Value*)realloc(pool_values,pool_cap*sizeof(Value));
+        // pool_values = (Value*)realloc(pool_values,pool_cap*sizeof(Value));
+        pool_values = (Value*)realloc(pool_values,sizeof(Value[pool_cap]));
         if (pool_values == NULL) {
             perror("Internal error with the pool of values.");
             exit(1);
@@ -40,7 +42,7 @@ Value get_value() {
         /* Allocate the new values. */
         /* Note: now pool_pos is the old pool_cap and is also the number
          * of new values to allocate. */
-        ValueS* new_values = (ValueS*)calloc(sizeof(ValueS),pool_pos);
+        ValueS* new_values = (ValueS*)calloc(pool_pos,sizeof(ValueS));
         /* Assign them to the pool. */
         unsigned int i;
         for(i=0; i<pool_pos; ++i) {

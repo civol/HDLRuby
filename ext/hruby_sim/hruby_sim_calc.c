@@ -5,9 +5,9 @@
 #include <limits.h>
 #include "hruby_sim.h"
 
-#ifndef alloca
-#define alloca(x)  __builtin_alloca(x)
-#endif
+// #ifndef alloca
+// #define alloca(x)  __builtin_alloca(x)
+// #endif
 
 
 /**
@@ -147,7 +147,7 @@ Type get_type_signed() {
  *  @number the number of elements */
 Type make_type_vector(Type base, unsigned long long number) {
     /* Create the type. */
-    Type type = calloc(sizeof(TypeS),1);
+    Type type = calloc(1,sizeof(TypeS));
     type->base = type_width(base);
     type->number = number;
     type->flags = base->flags;
@@ -201,7 +201,7 @@ Value make_value(Type type, int numeric) {
     /* Compute the size in words of the data contained in the value. */
     unsigned long long width = type_width(type);
     /* Allocate the value. */
-    Value res = calloc(sizeof(ValueS),1);
+    Value res = calloc(1,sizeof(ValueS));
     /* Allocates the data of the value. */
     if (!numeric) {
         /* Allocate the bit string and fill it with u (undefined) by default. */
@@ -232,7 +232,7 @@ void resize_value(Value value, unsigned long long size) {
         /* Free the former data. */
         free(value->data_str);
         /* Reallocate it. */
-        value->data_str = calloc(sizeof(char),size*2);
+        value->data_str = calloc(size*2,sizeof(char));
         /* Update the size. */
         value->capacity = size*2;
     }
@@ -2977,12 +2977,15 @@ Value concat_valueP(unsigned int num, int dir, Value dst, Value* values) {
 }
 Value concat_valueV(unsigned int num, int dir, Value dst, va_list args) {
     unsigned int i;
-    Value* values = alloca(num*sizeof(Value)); /* The values to concatenate. */
+    // Value* values = alloca(num*sizeof(Value)); /* The values to concatenate. */
+    Value* values = calloc(num,sizeof(Value)); /* The values to concatenate. */
     /* Copy the arguments to values for easier processing. */
     for(i=0; i<num; ++i) {
         values[i] = va_arg(args,Value);
     }
-    return concat_valueP(num,dir,dst,values);
+    Value res = concat_valueP(num,dir,dst,values);
+    free(values);
+    return res;
 }
 Value concat_value(unsigned int num, int dir, Value dst, ...) {
     va_list args;

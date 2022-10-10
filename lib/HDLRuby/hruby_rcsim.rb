@@ -107,26 +107,32 @@ module HDLRuby::High
             #     rcsig = sig.to_rcsim(@rcsystemT)
             #     RCSim.rcsim_add_systemT_input(@rcsystemT,rcsig)
             # end
-            RCSim.rcsim_add_systemT_inputs(@rcsystemT,
-                                           self.each_input.map do |sig|
-                sig.to_rcsim(@rcsystemT)
-            end)
+            if self.each_input.any? then
+                RCSim.rcsim_add_systemT_inputs(@rcsystemT,
+                                               self.each_input.map do |sig|
+                    sig.to_rcsim(@rcsystemT)
+                end)
+            end
             # self.each_output do |sig|
             #     rcsig = sig.to_rcsim(@rcsystemT)
             #     RCSim.rcsim_add_systemT_output(@rcsystemT,rcsig)
             # end
-            RCSim.rcsim_add_systemT_outputs(@rcsystemT,
-                                            self.each_output.map do |sig|
-                sig.to_rcsim(@rcsystemT)
-            end)
+            if self.each_output.any? then
+                RCSim.rcsim_add_systemT_outputs(@rcsystemT,
+                                                self.each_output.map do |sig|
+                    sig.to_rcsim(@rcsystemT)
+                end)
+            end
             # self.each_inout do |sig|
             #     rcsig = sig.to_rcsim(@rcsystemT)
             #     RCSim.rcsim_add_systemT_inout(@rcsystemT,rcsig)
             # end
-            RCSim.rcsim_add_systemT_inouts(@rcsystemT,
-                                           self.each_inout.map do |sig|
-                sig.to_rcsim(@rcsystemT)
-            end)
+            if self.each_inout.any? then
+                RCSim.rcsim_add_systemT_inouts(@rcsystemT,
+                                               self.each_inout.map do |sig|
+                    sig.to_rcsim(@rcsystemT)
+                end)
+            end
             # Create and add the scope.
             RCSim.rcsim_set_systemT_scope(@rcsystemT,
                                           self.scope.to_rcsim(@rcsystemT))
@@ -170,44 +176,43 @@ module HDLRuby::High
             #     rcsig = sig.to_rcsim(@rcscope)
             #     RCSim.rcsim_add_scope_inner(@rcscope,rcsig)
             # end
-            RCSim.rcsim_add_scope_inners(@rcscope,self.each_inner.map do |sig|
-                # sig.to_rcsim(@rcscope)
-                sig.to_rcsim(subowner)
-            end)
+            if self.each_inner.any? then
+                RCSim.rcsim_add_scope_inners(@rcscope,self.each_inner.map do|sig|
+                    # sig.to_rcsim(@rcscope)
+                    sig.to_rcsim(subowner)
+                end)
+            end
             
             # Create and add the system instances.
             # self.each_systemI do |sys|
             #     rcsys = sys.to_rcsim(@rcscope)
             #     RCSim.rcsim_add_scope_systemI(@rcscope,rcsys)
             # end
-            RCSim.rcsim_add_scope_systemIs(@rcscope,
-                                           self.each_systemI.map do |sys|
-                # sys.to_rcsim(@rcscope)
-                sys.to_rcsim(subowner)
-            end)
+            if self.each_systemI.any? then
+                RCSim.rcsim_add_scope_systemIs(@rcscope,
+                                               self.each_systemI.map do |sys|
+                    # sys.to_rcsim(@rcscope)
+                    sys.to_rcsim(subowner)
+                end)
+            end
 
             # Create and add the behaviors.
-            # self.each_behavior do |beh|
-            #     rcbeh = beh.to_rcsim(@rcscope)
-            #     RCSim.rcsim_add_scope_behavior(@rcscope,rcbeh)
-            # end
-            RCSim.rcsim_add_scope_behaviors(@rcscope,
-                                            self.each_behavior.map do |beh|
-                # beh.to_rcsim(@rcscope)
-                beh.to_rcsim(subowner)
-            end)
+            if self.each_behavior.any? then
+                RCSim.rcsim_add_scope_behaviors(@rcscope,
+                                                self.each_behavior.map do |beh|
+                    # beh.to_rcsim(@rcscope)
+                    beh.to_rcsim(subowner)
+                end)
+            end
 
             # Create and add the connections.
-            # self.each_connection do |cnx|
-            #     rccnx = cnx.to_rcsim(@rcscope)
-            #     # Connections are actually converted to behaviors.
-            #     RCSim.rcsim_add_scope_behavior(@rcscope,rccnx)
-            # end
-            RCSim.rcsim_add_scope_behaviors(@rcscope, 
-                                            self.each_connection.map do |cxt|
-                # cxt.to_rcsim(@rcscope)
-                cxt.to_rcsim(subowner)
-            end)
+            if self.each_connection.any? then
+                RCSim.rcsim_add_scope_behaviors(@rcscope, 
+                                                self.each_connection.map do |cxt|
+                    # cxt.to_rcsim(@rcscope)
+                    cxt.to_rcsim(subowner)
+                end)
+            end
 
             # Create and add the codes.
             # TODO!!
@@ -217,10 +222,12 @@ module HDLRuby::High
             #     rcsub = sub.to_rcsim(@rcscope)
             #     RCSim.rcsim_add_scope_scope(@rcscope,rcsub)
             # end
-            RCSim.rcsim_add_scope_scopes(@rcscope,self.each_scope.map do |sub|
-                # sub.to_rcsim(@rcscope)
-                sub.to_rcsim(subowner)
-            end)
+            if self.each_scope.any? then
+                RCSim.rcsim_add_scope_scopes(@rcscope,self.each_scope.map do|sub|
+                    # sub.to_rcsim(@rcscope)
+                    sub.to_rcsim(subowner)
+                end)
+            end
 
             return @rcscope
         end
@@ -349,11 +356,13 @@ module HDLRuby::High
             # self.each_event do |ev|
             #     RCSim.rcsim_add_behavior_event(@rcbehavior,ev.to_rcsim)
             # end
-            RCSim.rcsim_add_behavior_events(@rcbehavior,
-                                            self.each_event.map do |ev|
-                # puts "adding event: #{ev.ref.object.name}(#{ev.type})"
-                ev.to_rcsim(@rcbehavior)
-            end)
+            if self.each_event.any? then
+                RCSim.rcsim_add_behavior_events(@rcbehavior,
+                                                self.each_event.map do |ev|
+                    # puts "adding event: #{ev.ref.object.name}(#{ev.type})"
+                    ev.to_rcsim(@rcbehavior)
+                end)
+            end
 
             # Create and add the block.
             RCSim.rcsim_set_behavior_block(@rcbehavior,self.block.to_rcsim)
@@ -468,12 +477,15 @@ module HDLRuby::High
             #     rcsys = systemT.to_rcsim(@rcsystemI)
             #     RCSim.rcsim_add_systemI_systemT(@rcsystemI,rcsys)
             # end
-            RCSim.rcsim_add_systemI_systemTs(@rcsystemI,
-                                             self.each_systemT.select do |sys|
-                sys != self.systemT
-            end.map do |sys|
-                sys.to_rcsim(@rcsystemI)
-            end)
+            if self.each_systemI.any? then
+                RCSim.rcsim_add_systemI_systemTs(@rcsystemI,
+                                                 self.each_systemT.select do|sys|
+                    sys != self.systemT
+                end.map do |sys|
+                    # sys.to_rcsim(@rcsystemI)
+                    sys.to_rcsim(rcowner)
+                end)
+            end
 
             return @rcsystemI
         end
@@ -531,8 +543,10 @@ module HDLRuby::High
             # self.each_arg do |arg|
             #     RCSim.rcsim_add_print_arg(@rcstatement,arg.to_rcsim)
             # end
-            RCSim.rcsim_add_print_args(@rcstatement,
-                                       self.each_arg.map(&:to_rcsim))
+            if self.each_arg.any? then
+                RCSim.rcsim_add_print_args(@rcstatement,
+                                           self.each_arg.map(&:to_rcsim))
+            end
 
             return @rcstatement
         end
@@ -576,7 +590,9 @@ module HDLRuby::High
             # end
             rcsim_conds = self.each_noif.map {|cond,stmnt| cond.to_rcsim }
             rcsim_stmnts = self.each_noif.map {|cond,stmnt| stmnt.to_rcsim }
-            RCSim.rcsim_add_hif_noifs(@rcstatement,rcsim_conds,rcsim_stmnts)
+            if rcsim_conds.any? then
+                RCSim.rcsim_add_hif_noifs(@rcstatement,rcsim_conds,rcsim_stmnts)
+            end
 
             return @rcstatement
         end
@@ -605,7 +621,10 @@ module HDLRuby::High
             # end
             rcsim_matches = self.each_when.map {|wh| wh.match.to_rcsim }
             rcsim_stmnts = self.each_when.map {|wh| wh.statement.to_rcsim }
-            RCSim.rcsim_add_hcase_whens(@rcstatement,rcsim_matches,rcsim_stmnts)
+            if rcsim_matches.any? then
+                RCSim.rcsim_add_hcase_whens(@rcstatement,rcsim_matches,
+                                            rcsim_stmnts)
+            end
 
             return @rcstatement
         end
@@ -658,19 +677,23 @@ module HDLRuby::High
             # self.each_inner do |inner|
             #     RCSim.rcsim_add_block_inner(@rcstatement,inner.to_rcsim(@rcstatement))
             # end
-            RCSim.rcsim_add_block_inners(@rcstatement,
-                                         self.each_inner.map do |sig|
-                sig.to_rcsim(@rcstatement)
-            end)
+            if self.each_inner.any? then
+                RCSim.rcsim_add_block_inners(@rcstatement,
+                                             self.each_inner.map do |sig|
+                    sig.to_rcsim(@rcstatement)
+                end)
+            end
 
             # Add the statements.
             # self.each_statement do |stmnt|
             #     RCSim.rcsim_add_block_statement(@rcstatement,stmnt.to_rcsim)
             # end
-            RCSim.rcsim_add_block_statements(@rcstatement,
-                                       self.each_statement.map do |stmnt|
-                stmnt.to_rcsim
-            end)
+            if self.each_statement.any? then
+                RCSim.rcsim_add_block_statements(@rcstatement,
+                                            self.each_statement.map do |stmnt|
+                    stmnt.to_rcsim
+                end)
+            end
 
             return @rcstatement
         end
@@ -710,7 +733,9 @@ module HDLRuby::High
                     rcevs << ev
                 end
             end
-            RCSim.rcsim_add_behavior_events(@rcbehavior,rcevs)
+            if rcevs.any? then
+                RCSim.rcsim_add_behavior_events(@rcbehavior,rcevs)
+            end
 
             # Create and set the block.
             rcblock = RCSim.rcsim_make_block(:par)
@@ -843,8 +868,10 @@ module HDLRuby::High
             # self.each_choice do |choice|
             #     rcsim_add_select_choice(rcexpression,choice.to_rcsim)
             # end
-            RCSim.rcsim_add_select_choices(rcexpression,
-                                     self.each_choice.map(&:to_rcsim))
+            if self.each_choice.any? then
+                RCSim.rcsim_add_select_choices(rcexpression,
+                                               self.each_choice.map(&:to_rcsim))
+            end
             
             return rcexpression
         end
@@ -865,8 +892,10 @@ module HDLRuby::High
             # self.each_expression do |expr|
             #     RCSim.rcsim_add_concat_expression(rcexpression,expr.to_rcsim)
             # end
-            RCSim.rcsim_add_concat_expressions(rcexpression,
+            if self.each_expression.any? then
+                RCSim.rcsim_add_concat_expressions(rcexpression,
                                          self.each_expression.map(&:to_rcsim))
+            end
             
             return rcexpression
         end
@@ -901,7 +930,9 @@ module HDLRuby::High
             # self.each_ref do |ref|
             #     RCSim.rcsim_add_refConcat_ref(rcref,ref.to_rcsim)
             # end
-            RCSim.rcsim_add_refConcat_refs(rcref,self.each_ref(&:to_rcsim))
+            if self.each_ref.any? then
+                RCSim.rcsim_add_refConcat_refs(rcref,self.each_ref(&:to_rcsim))
+            end
             
             return rcref
         end

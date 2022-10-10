@@ -72,11 +72,12 @@ void register_timed_behavior(Behavior behavior) {
         if (cap_timed_behaviors == 0) {
             /* Need to create the array containing the timed behaviors. */
             cap_timed_behaviors = 5;
-            timed_behaviors = calloc(sizeof(Behavior),cap_timed_behaviors);
+            timed_behaviors = calloc(cap_timed_behaviors,sizeof(Behavior));
         } else {
             /* Need to increase the capacity. */
-            Behavior* behaviors = calloc(sizeof(Behavior),cap_timed_behaviors*2);
-            memcpy(behaviors,timed_behaviors,sizeof(Behavior)*cap_timed_behaviors);
+            Behavior* behaviors = calloc(cap_timed_behaviors*2,sizeof(Behavior));
+            // memcpy(behaviors,timed_behaviors,sizeof(Behavior)*cap_timed_behaviors);
+            memcpy(behaviors,timed_behaviors,sizeof(Behavior[cap_timed_behaviors]));
             timed_behaviors = behaviors;
             cap_timed_behaviors *= 2;
         }
@@ -93,11 +94,12 @@ void register_signal(SignalI signal) {
         if (cap_all_signals == 0) {
             /* Need to create the array containing the timed behaviors. */
             cap_all_signals = 100;
-            all_signals = calloc(sizeof(SignalI),cap_all_signals);
+            all_signals = calloc(cap_all_signals,sizeof(SignalI));
         } else {
             /* Need to increase the capacity. */
-            SignalI* new_signals = calloc(sizeof(SignalI),cap_all_signals*2);
-            memcpy(new_signals,all_signals,sizeof(SignalI)*cap_all_signals);
+            SignalI* new_signals = calloc(cap_all_signals*2,sizeof(SignalI));
+            // memcpy(new_signals,all_signals,sizeof(SignalI)*cap_all_signals);
+            memcpy(new_signals,all_signals,sizeof(SignalI[cap_all_signals]));
             cap_all_signals *= 2;
             all_signals=new_signals;
         }
