@@ -432,15 +432,16 @@ VALUE rcsim_make_timeWait(VALUE mod, VALUE unitV, VALUE delayV) {
 
 /* Creating a time repeat C object. */
 VALUE rcsim_make_timeRepeat(VALUE mod, VALUE numberV, VALUE statementV) {
-    // printf("rcsim_make_timeRepeat\n");
+    // printf("rcsim_make_timeRepeat\n"); fflush(stdout);
     /* Allocates the time repeat. */
     TimeRepeat timeRepeat = (TimeRepeat)malloc(sizeof(TimeRepeatS));
-    // printf("timeRepeat=%p\n",timeRepeat);
+    // printf("timeRepeat=%p\n",timeRepeat); fflush(stdout);
     /* Set it up. */
     timeRepeat->kind = TIME_REPEAT;
     /* Get and set the number of repeatition. */
     long long number;
     number = NUM2LL(numberV);
+    // printf("number=%lld\n",number); fflush(stdout);
     timeRepeat->number = number;
     /* Get and set the statement. */
     value_to_rcsim(StatementS,statementV,timeRepeat->statement);
@@ -1393,7 +1394,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_transmit",rcsim_make_transmit,2);
     rb_define_singleton_method(mod,"rcsim_make_print",rcsim_make_print,0);
     rb_define_singleton_method(mod,"rcsim_make_timeWait",rcsim_make_timeWait,2);
-    rb_define_singleton_method(mod,"rcsim_make_timeRepeat",rcsim_make_timeWait,2);
+    rb_define_singleton_method(mod,"rcsim_make_timeRepeat",rcsim_make_timeRepeat,2);
     rb_define_singleton_method(mod,"rcsim_make_timeTerminate",rcsim_make_timeTerminate,0);
     rb_define_singleton_method(mod,"rcsim_make_hif",rcsim_make_hif,3);
     rb_define_singleton_method(mod,"rcsim_make_hcase",rcsim_make_hcase,2);
