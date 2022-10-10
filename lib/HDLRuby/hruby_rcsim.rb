@@ -654,7 +654,21 @@ module HDLRuby::High
     ## Extends the TimeRepeat class for hybrid Ruby-C simulation.
     class TimeRepeat
         attr_reader :rcstatement
-        # TODO!!!
+
+        # Generate the C description of the hardware case.
+        # +owner+ is a link to the C description of the owner behavior if any.
+        def to_rcsim(owner = nil)
+            # Create the timeRepeat C object.
+            @rcstatement = RCSim.rcsim_make_timeRepeat(self.number,
+                                                       self.statement.to_rcsim)
+
+            # Sets the owner if any.
+            if owner then
+                RCSim.rcsim_set_owner(@rcstatement,owner)
+            end
+
+            return @rcstatement
+        end
     end
 
 
@@ -670,7 +684,7 @@ module HDLRuby::High
 
             # Sets the owner if any.
             if owner then
-                RCSim.rcsim_set_block_owner(@rcstatement,owner)
+                RCSim.rcsim_set_owner(@rcstatement,owner)
             end
 
             # Add the inner signals.

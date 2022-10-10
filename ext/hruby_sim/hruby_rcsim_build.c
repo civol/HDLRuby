@@ -430,6 +430,26 @@ VALUE rcsim_make_timeWait(VALUE mod, VALUE unitV, VALUE delayV) {
     return res;
 }
 
+/* Creating a time repeat C object. */
+VALUE rcsim_make_timeRepeat(VALUE mod, VALUE numberV, VALUE statementV) {
+    // printf("rcsim_make_timeRepeat\n");
+    /* Allocates the time repeat. */
+    TimeRepeat timeRepeat = (TimeRepeat)malloc(sizeof(TimeRepeatS));
+    // printf("timeRepeat=%p\n",timeRepeat);
+    /* Set it up. */
+    timeRepeat->kind = TIME_REPEAT;
+    /* Get and set the number of repeatition. */
+    unsigned long long number;
+    number = NUM2LL(numberV);
+    timeRepeat->number = number;
+    /* Get and set the statement. */
+    value_to_rcsim(StatementS,statementV,timeRepeat->statement);
+    /* Returns the C time wait embedded into a ruby VALUE. */
+    VALUE res;
+    rcsim_to_value(TimeRepeatS,timeRepeat,res);
+    return res;
+}
+
 
 /* Creating a time terminate C object. */
 VALUE rcsim_make_timeTerminate(VALUE mod) {
@@ -447,19 +467,19 @@ VALUE rcsim_make_timeTerminate(VALUE mod) {
 
 
 /* Creating a hardware if C object. */
-VALUE rcsim_make_hif(VALUE mod, VALUE condition, VALUE yes, VALUE no) {
+VALUE rcsim_make_hif(VALUE mod, VALUE conditionV, VALUE yesV, VALUE noV) {
     // printf("rcsim_make_hif\n");
     /* Allocates the hardware if. */
     HIf hif = (HIf)malloc(sizeof(HIfS));
     // printf("hif=%p\n",hif);
     /* Set it up. */
     hif->kind = HIF;
-    value_to_rcsim(ExpressionS,condition,hif->condition);
-    value_to_rcsim(StatementS,yes,hif->yes);
+    value_to_rcsim(ExpressionS,conditionV,hif->condition);
+    value_to_rcsim(StatementS,yesV,hif->yes);
     if (TYPE(no) == T_NIL)
         hif->no = NULL;
     else
-        value_to_rcsim(StatementS,no,hif->no);
+        value_to_rcsim(StatementS,noV,hif->no);
     hif->num_noifs = 0;
     hif->noconds = NULL;
     hif->nostmnts = NULL;
@@ -471,21 +491,21 @@ VALUE rcsim_make_hif(VALUE mod, VALUE condition, VALUE yes, VALUE no) {
 
 
 /* Creating a hardware case C object. */
-VALUE rcsim_make_hcase(VALUE mod, VALUE value, VALUE defolt) {
+VALUE rcsim_make_hcase(VALUE mod, VALUE valueV, VALUE defoltV) {
     // printf("rcsim_make_hcase\n");
     /* Allocates the hardware case. */
     HCase hcase = (HCase)malloc(sizeof(HCaseS));
     // printf("hcase=%p\n",hcase);
     /* Set it up. */
     hcase->kind = HCASE;
-    value_to_rcsim(ExpressionS,value,hcase->value);
+    value_to_rcsim(ExpressionS,valueV,hcase->value);
     hcase->num_whens = 0;
     hcase->matches = NULL;
     hcase->stmnts = NULL;
     if (TYPE(defolt) == T_NIL)
         hcase->defolt = NULL;
     else
-        value_to_rcsim(StatementS,defolt,hcase->defolt);
+        value_to_rcsim(StatementS,defoltV,hcase->defolt);
     /* Returns the C hardware case embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(HCaseS,hcase,res);
@@ -494,7 +514,7 @@ VALUE rcsim_make_hcase(VALUE mod, VALUE value, VALUE defolt) {
 
 
 /* Creating a block C object. */
-VALUE rcsim_make_block(VALUE mod, VALUE mode) {
+VALUE rcsim_make_block(VALUE mod, VALUE modeV) {
     // printf("rcsim_make_block\n");
     /* Allocates the block. */
     Block block = (Block)malloc(sizeof(BlockS));
@@ -507,7 +527,7 @@ VALUE rcsim_make_block(VALUE mod, VALUE mode) {
     block->inners = NULL;
     block->num_stmnts = 0;
     block->stmnts = NULL;
-    block->mode = SYM2ID(mode) == id_PAR ? PAR : SEQ;
+    block->mode = SYM2ID(modeV) == id_PAR ? PAR : SEQ;
     /* Returns the C block embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(BlockS,block,res);

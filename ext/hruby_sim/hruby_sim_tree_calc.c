@@ -358,6 +358,20 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 hw_wait(delay,behavior);
                 break;
             }
+        case TIME_REPEAT:
+            {
+                TimeRepeat rep = (TimeRepeat)stmnt;
+                if (rep->number>=0) {
+                    for(long long i=0; i<rep->number; ++i) {
+                        execute_statement(rep->statement);
+                    }
+                } else {
+                    for(;;) {
+                        execute_statement(rep->statement);
+                    }
+                }
+                break;
+            }
         case BLOCK:
             {
                 Block block = (Block)stmnt;

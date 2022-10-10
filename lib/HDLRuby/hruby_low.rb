@@ -4042,15 +4042,20 @@ module HDLRuby::Low
     ## 
     # Describes a timed loop statement: not synthesizable!
     class TimeRepeat < Statement
-        # The delay until the loop is repeated
-        attr_reader :delay
+        # # The delay until the loop is repeated
+        # attr_reader :delay
+        # The number of interrations.
+        attr_reader :number
 
         # The statement to execute.
         attr_reader :statement
 
-        # Creates a new timed loop statement execute in a loop +statement+ until
-        # +delay+ has passed.
-        def initialize(statement,delay)
+        # # Creates a new timed loop statement execute in a loop +statement+ until
+        # # +delay+ has passed.
+        # def initialize(statement,delay)
+        # Creates a new timed loop statement execute in a loop +statement+ 
+        # +number+ times (negative means inifinity).
+        def initialize(statement,number)
             # Check and set the statement.
             unless statement.is_a?(Statement)
                 raise AnyError,
@@ -4061,11 +4066,13 @@ module HDLRuby::Low
             # And set its parent.
             statement.parent = self
 
-            # Check and set the delay.
-            unless delay.is_a?(Delay)
-                raise AnyError, "Invalid class for a delay: #{delay.class}."
-            end
-            @delay = delay
+            # # Check and set the delay.
+            # unless delay.is_a?(Delay)
+            #     raise AnyError, "Invalid class for a delay: #{delay.class}."
+            # end
+            # @delay = delay
+            # Check and set the number.
+            @number = number.to_i
             # And set its parent.
             delay.parent = self
         end
@@ -4080,26 +4087,29 @@ module HDLRuby::Low
             ruby_block.call(self)
             # Then apply on the statement.
             self.statement.each_deep(&ruby_block)
-            # Then apply on the delay.
-            self.delay.each_deep(&ruby_block)
+            # # Then apply on the delay.
+            # self.delay.each_deep(&ruby_block)
         end
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(TimeRepeat)
-            return false unless @delay.eql?(obj.delay)
+            # return false unless @delay.eql?(obj.delay)
+            return false unless @number.eql?(obj.number)
             return false unless @statement.eql?(obj.statement)
             return true
         end
 
         # Hash function.
         def hash
-            return [@delay,@statement].hash
+            # return [@delay,@statement].hash
+            return [@number,@statement].hash
         end
 
         # Clones the TimeRepeat (deeply)
         def clone
-            return TimeRepeat.new(@statement.clone,@delay.clone)
+            # return TimeRepeat.new(@statement.clone,@delay.clone)
+            return TimeRepeat.new(@statement.clone,@number)
         end
 
         # Iterates over the expression children if any.

@@ -28,6 +28,7 @@ typedef struct PrintS_ PrintS;
 typedef struct HIfS_ HIfS;
 typedef struct HCaseS_ HCaseS;
 typedef struct TimeWaitS_ TimeWaitS;
+typedef struct TimeRepeatS_ TimeRepeatS;
 typedef struct TimeTerminateS_ TimeTerminateS;
 typedef struct ExpressionS_ ExpressionS;
 typedef struct UnaryS_ UnaryS;
@@ -63,6 +64,7 @@ typedef struct PrintS_* Print;
 typedef struct HIfS_* HIf;
 typedef struct HCaseS_* HCase;
 typedef struct TimeWaitS_* TimeWait;
+typedef struct TimeRepeatS_* TimeRepeat;
 typedef struct TimeTerminateS_* TimeTerminate;
 typedef struct ExpressionS_* Expression;
 typedef struct UnaryS_* Unary;
@@ -89,7 +91,8 @@ typedef enum {
 #endif
     OBJECT, SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT,
 #ifdef RCSIM
-    /* Statements */  TRANSMIT, PRINT, HIF, HCASE, TIME_WAIT, TIME_TERMINATE,
+    /* Statements */  TRANSMIT, PRINT, HIF, HCASE, 
+                      TIME_WAIT, TIME_REPEAT, TIME_TERMINATE,
     /* Expressions */ UNARY, BINARY, SELECT, CONCAT, CAST,
     /* References */  REF_OBJECT, REF_INDEX, REF_RANGE, REF_CONCAT,
     /* Non-hardware*/ STRINGE,
@@ -669,6 +672,13 @@ typedef struct TimeWaitS_ {
     // Expression delay;   /* The delay to wait in pico seconds. */
     unsigned long long delay; /* The delay to wait in pico seconds. */
 } TimeWaitS;
+
+/** The C model of a time repeat statement. */
+typedef struct TimeWaitS_ {
+    Kind kind;          /* The kind of object. */
+    long long number;   /* The number of interations, negative means infinity. */
+    Statement statement;/* The statement to execute in loop. */
+} TimeRepeatS;
 
 /** The C model of a time terminate statement. */
 typedef struct TimeTerminateS_ {

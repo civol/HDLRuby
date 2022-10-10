@@ -701,7 +701,16 @@ module HDLRuby::High
     ## 
     # Describes a timed loop statement: not synthesizable!
     class TimeRepeat
-        ## Deprecated
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Recurde on the statement.
+            self.statement.init_sim(systemT)
+        end
+
+        ## Executes the statement.
+        def execute(mode)
+            self.number.times { self.statement.execute(mode) }
+        end
     end
 
 

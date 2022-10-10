@@ -1803,20 +1803,39 @@ module HDLRuby::Low
     ## Extends the TimeRepeat class with generation of C text.
     class TimeRepeat
 
+        # # Generates the C text of the equivalent HDLRuby code.
+        # # +level+ is the hierachical level of the object.
+        # # def to_c(level = 0)
+        # def to_c(res,level = 0)
+        #     # The resulting string.
+        #     # res = " " * level*3
+        #     res << " " * level*3
+        #     # Generate an infinite loop executing the block and waiting.
+        #     res << "for(;;) {\n"
+        #     # res << "#{self.statement.to_c(level+1)}\n"
+        #     self.statement.to_c(res,level+1)
+        #     res << "\n"
+        #     res << " " * (level+1)*3
+        #     res << Low2C.wait_code(self,level)
+        #     # Return the resulting string.
+        #     return res
+        # end
+
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
             # The resulting string.
-            # res = " " * level*3
             res << " " * level*3
-            # Generate an infinite loop executing the block and waiting.
-            res << "for(;;) {\n"
-            # res << "#{self.statement.to_c(level+1)}\n"
+            if (number < 0) then
+                # Generate an infinite loop executing the block and waiting.
+                res << "for(;;) {\n"
+            else
+                # Generate a finite loop.
+                res << "for(long long i = 0; i<#{self.number}; ++i) {\n"
+            end
             self.statement.to_c(res,level+1)
-            res << "\n"
-            res << " " * (level+1)*3
-            res << Low2C.wait_code(self,level)
+            res << " " * level*3 << "}\n"
             # Return the resulting string.
             return res
         end
