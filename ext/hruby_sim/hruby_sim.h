@@ -674,7 +674,7 @@ typedef struct TimeWaitS_ {
 } TimeWaitS;
 
 /** The C model of a time repeat statement. */
-typedef struct TimeWaitS_ {
+typedef struct TimeRepeatS_ {
     Kind kind;          /* The kind of object. */
     long long number;   /* The number of interations, negative means infinity. */
     Statement statement;/* The statement to execute in loop. */
