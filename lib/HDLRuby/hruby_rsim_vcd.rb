@@ -180,6 +180,21 @@ module HDLRuby::High
     end
 
     ##
+    # Enhance the TimeRepeat class with VCD support.
+    class TimeRepeat
+        ## Shows the hierarchy of the variables.
+        def show_hierarchy(vcdout)
+            # Recurse on the statement.
+            self.statement.show_hierarchy(vcdout)
+        end
+
+        ## Gets the VCD variables with their long name.
+        def get_vars_with_fullname(vars_with_fullname = {})
+            # By default: nothing to do
+        end
+    end
+
+    ##
     # Enhance the TimeWait class with VCD support.
     class TimeWait
         ## Shows the hierarchy of the variables.
