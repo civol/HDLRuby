@@ -439,7 +439,7 @@ VALUE rcsim_make_timeRepeat(VALUE mod, VALUE numberV, VALUE statementV) {
     /* Set it up. */
     timeRepeat->kind = TIME_REPEAT;
     /* Get and set the number of repeatition. */
-    unsigned long long number;
+    long long number;
     number = NUM2LL(numberV);
     timeRepeat->number = number;
     /* Get and set the statement. */

@@ -4055,7 +4055,7 @@ module HDLRuby::Low
         # def initialize(statement,delay)
         # Creates a new timed loop statement execute in a loop +statement+ 
         # +number+ times (negative means inifinity).
-        def initialize(statement,number)
+        def initialize(number,statement)
             # Check and set the statement.
             unless statement.is_a?(Statement)
                 raise AnyError,

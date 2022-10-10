@@ -2682,9 +2682,10 @@ module HDLRuby::High
 
         # Converts the repeat statement to HDLRuby::Low.
         def to_low
-            timeRepeatL = HDLRuby::Low::TimeRepeat.new(self.statement.to_low,
-                                                # self.delay.to_low)
-                                                self.number)
+            # timeRepeatL = HDLRuby::Low::TimeRepeat.new(self.statement.to_low,
+            #                                     self.delay.to_low)
+            timeRepeatL = HDLRuby::Low::TimeRepeat.new(self.number,
+                                                       self.statement.to_low)
             # # For debugging: set the source high object 
             # timeRepeatL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = timeRepeatL
@@ -4245,7 +4246,7 @@ module HDLRuby::High
             content = High.make_block(mode,&ruby_block)
             # Create and add the statement.
             # self.add_statement(TimeRepeat.new(content,delay))
-            self.add_statement(TimeRepeat.new(content,number))
+            self.add_statement(TimeRepeat.new(number,content))
         end
 
         # Converts the time block to HDLRuby::Low.
