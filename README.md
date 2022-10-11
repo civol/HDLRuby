@@ -1949,14 +1949,18 @@ There are two kinds of such statements:
       !10.ns
    ```
 
- - The `repeat` statements: such a statement takes as argument a time value and a block. The execution of the block is repeated until the delay that is given by the time value argument expires.  For example, the following code executes repeatedly the inversion of the `clk` signal every 10 nanoseconds for 10 seconds (i.e., it simulates a clock signal for 10 seconds):
+ - The `repeat` statements: such a statement takes as argument a number of iteration and a block. The execution of the block is repeated the given number times.  For example, the following code executes 10 times the inversion of the `clk` signal every 10 nanoseconds:
 
    ```ruby
-      repeat(10.s) do 
+      repeat(10) do 
          !10.ns
          clk <= ~clk
       end
    ```
+
+__Note:__
+
+   This statement is not synthesizable and therefore can only be used in timed behaviors.
 
 ### Parallel and sequential execution
 
