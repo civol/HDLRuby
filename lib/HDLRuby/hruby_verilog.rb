@@ -254,60 +254,62 @@ module HDLRuby::Low
 
 
 
-        # Extract and convert to verilog the TimeRepeat statements.
-        # NOTE: work only on the current level of the block (should be called
-        # through each_block_deep).
-        def repeat_to_verilog!
-            code = ""
-            # Gather the TimeRepeat statements.
-            repeats = self.each_statement.find_all { |st| st.is_a?(TimeRepeat) }
-            # Remove them from the block.
-            repeats.each { |st| self.delete_statement!(st) }
-            # Generate them separately in timed always processes.
-            repeats.each do |st|
-                code << "   always #{st.delay.to_verilog} begin\n"
+        # Deprecated with new TimeRepeat!
+        #
+        # # Extract and convert to verilog the TimeRepeat statements.
+        # # NOTE: work only on the current level of the block (should be called
+        # # through each_block_deep).
+        # def repeat_to_verilog!
+        #     code = ""
+        #     # Gather the TimeRepeat statements.
+        #     repeats = self.each_statement.find_all { |st| st.is_a?(TimeRepeat) }
+        #     # Remove them from the block.
+        #     repeats.each { |st| self.delete_statement!(st) }
+        #     # Generate them separately in timed always processes.
+        #     repeats.each do |st|
+        #         code << "   always #{st.delay.to_verilog} begin\n"
 
-                # Perform "scheduling" using the method "flatten".
-                block = st.statement.flatten(st.statement.mode.to_s)
+        #         # Perform "scheduling" using the method "flatten".
+        #         block = st.statement.flatten(st.statement.mode.to_s)
 
-                # Declaration of "inner" part within "always".
-                block.each_inner do |inner|
-                    # if regs.include?(inner.name) then
-                    if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
-                        code << "      reg"
-                    else
-                        code << "      wire"
-                    end
+        #         # Declaration of "inner" part within "always".
+        #         block.each_inner do |inner|
+        #             # if regs.include?(inner.name) then
+        #             if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
+        #                 code << "      reg"
+        #             else
+        #                 code << "      wire"
+        #             end
 
-                    # Variable has "base", but if there is width etc, it is not in "base".
-                    # It is determined by an if.
-                    if inner.type.base? 
-                        if inner.type.base.base? 
-                            code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
-                        else
-                            code << "#{inner.type.to_verilog} #{inner.to_verilog}"
-                        end
-                    else
-                        code << " #{inner.type.to_verilog}#{inner.to_verilog}"
-                    end
-                    if inner.value then
-                        # There is an initial value.
-                        code << " = #{inner.value.to_verilog}"
-                    end
-                    code << ";\n"
-                end
+        #             # Variable has "base", but if there is width etc, it is not in "base".
+        #             # It is determined by an if.
+        #             if inner.type.base? 
+        #                 if inner.type.base.base? 
+        #                     code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+        #                 else
+        #                     code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+        #                 end
+        #             else
+        #                 code << " #{inner.type.to_verilog}#{inner.to_verilog}"
+        #             end
+        #             if inner.value then
+        #                 # There is an initial value.
+        #                 code << " = #{inner.value.to_verilog}"
+        #             end
+        #             code << ";\n"
+        #         end
 
-                # Translate the block that finished scheduling.
-                block.each_statement do |statement|
-                    code  << "\n      #{statement.to_verilog(block.mode.to_s)}"
-                end
+        #         # Translate the block that finished scheduling.
+        #         block.each_statement do |statement|
+        #             code  << "\n      #{statement.to_verilog(block.mode.to_s)}"
+        #         end
 
-                FmI.fm_par.clear()
+        #         FmI.fm_par.clear()
 
-                code << "\n   end\n\n"
-            end
-            return code
-        end
+        #         code << "\n   end\n\n"
+        #     end
+        #     return code
+        # end
 
 
         # Process top layer of Block.
@@ -1814,6 +1816,15 @@ module HDLRuby::Low
         end
     end
 
+
+    # Generate verilog code for the TimeRepeat.
+    class TimeRepeat
+        def to_verilog(spc = 3)
+            result = (" " * spc) + "repeat(#{self.number})" + "\n"
+            result << self.statement.to_verilog(spc+3)
+        end
+    end
+
     # Those who disappeared.
     #class SystemI
     #class TypeTuple
@@ -2137,10 +2148,12 @@ module HDLRuby::Low
                 if behavior.block.is_a?(TimeBlock) then
                     # Tell it is a time behavior for further processing.
                     timebeh = true
-                    # Extract and translate the TimeRepeat separately.
-                    behavior.each_block_deep do |blk|
-                        codeC << blk.repeat_to_verilog!
-                    end
+                    # Deprecated with new TimeRepeat.
+                    #
+                    # # Extract and translate the TimeRepeat separately.
+                    # behavior.each_block_deep do |blk|
+                    #     codeC << blk.repeat_to_verilog!
+                    # end
                     # And generate an initial block.
                     codeC << "   initial "
                 else
