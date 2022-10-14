@@ -524,6 +524,8 @@ typedef struct SignalIS_ {
     Object* pos;        /* The objects actvated on pos edge. */
     int num_neg;        /* The number of behavior activated on neg edge. */
     Object* neg;        /* The objects actvated on neg edge. */
+
+    size_t id;          /* The identity of the signal. */
 } SignalIS;
 
 

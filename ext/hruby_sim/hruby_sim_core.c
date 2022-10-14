@@ -62,7 +62,8 @@ static pthread_cond_t hruby_beh_cond = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t hruby_sim_cond = PTHREAD_COND_INITIALIZER;
 
 /** Flags for the simulation. */
-static int sim_end_flag = 0;
+static int sim_single_flag = 0; /* Run in single timed behavior mode. */
+static int sim_end_flag = 0;    /* Ending the simulation. */
 
 /** Adds a timed behavior for processing. 
  *  @param behavior the timed behavior to register */
@@ -422,6 +423,21 @@ void* behavior_run(void* arg) {
     pthread_exit(NULL);
 }
 
+/** Starts a signle timed behavior to run without the multi-threaded engine. */
+void hruby_sim_start_single_timed_behavior() {
+    int i;
+    // printf("hruby_sim_start_single_timed_behaviors\n");fflush(stdout);
+    /* Set in mono-thread mode. */
+    sim_single_flag = 1;
+    Behavior behavior = timed_behaviors[0];
+    /* Simply run the timed behavior. */
+#ifdef RCSIM
+        execute_statement((Statement)(behavior->block),0,behavior);
+#else
+        behavior->block->function();
+#endif
+}
+
 
 /** Starts the timed behaviors.
  *  @note create a thread per timed behavior. */
@@ -473,37 +489,46 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
     /* Initialize the time to 0. */
     hruby_sim_time = 0;
 
-    /* Start all the timed behaviors. */
-    hruby_sim_start_timed_behaviors();
-    // /* Activate the timed behavior that are on time. */
-    // hruby_sim_activate_behaviors_on_time();
-
-    /* Run while there are active behaviors and the time limit is not 
-     * reached */
-    while(hruby_sim_time<limit) {
-        int i;
-        // printf("num_active_behaviors = %d\n",num_active_behaviors);
-        /* Wait for the active timed behaviors to perform their computations. */
-        hruby_sim_wait_behaviors();
-        /* Update the signal values (recursively executing blocks locked
-         * on the signals). */
+    if (num_timed_behaviors == 1) {
+        /* Initialize and touch all the signals. */
         hruby_sim_update_signals(); 
-        if (hruby_sim_time == 0) {
-            /* Initially touch all the signals. */
-            each_all_signal(&touch_signal);
-        }
-        // printf("num_run_behavior=%d\n",num_run_behaviors);
-        if (num_run_behaviors <= 0) break;
-        /* Advance time to next timestep. */
-        hruby_sim_advance_time();
+        each_all_signal(&touch_signal);
+        /* Only one timed behavior, no need of the multi-threaded engine. */
+        hruby_sim_start_single_timed_behavior();
+    } else {
+        /* Use the multi-threaded engine. */
+        /* Start all the timed behaviors. */
+        hruby_sim_start_timed_behaviors();
+        // /* Activate the timed behavior that are on time. */
+        // hruby_sim_activate_behaviors_on_time();
 
-        /* Mark the signals as fading. */
-        for(i=0; i<num_all_signals; ++i) {
-            all_signals[i]->fading = 1;
-        }
+        /* Run while there are active behaviors and the time limit is not 
+         * reached */
+        while(hruby_sim_time<limit) {
+            int i;
+            // printf("num_active_behaviors = %d\n",num_active_behaviors);
+            /* Wait for the active timed behaviors to perform their computations. */
+            hruby_sim_wait_behaviors();
+            /* Update the signal values (recursively executing blocks locked
+             * on the signals). */
+            hruby_sim_update_signals(); 
+            if (hruby_sim_time == 0) {
+                /* Initially touch all the signals. */
+                each_all_signal(&touch_signal);
+            }
+            // printf("num_run_behavior=%d\n",num_run_behaviors);
+            if (num_run_behaviors <= 0) break;
+            /* Advance time to next timestep. */
+            hruby_sim_advance_time();
 
-        /* Activate the timed behavior that are on time. */
-        hruby_sim_activate_behaviors_on_time();
+            /* Mark the signals as fading. */
+            for(i=0; i<num_all_signals; ++i) {
+                all_signals[i]->fading = 1;
+            }
+
+            /* Activate the timed behavior that are on time. */
+            hruby_sim_activate_behaviors_on_time();
+        }
     }
 }
 
@@ -521,29 +546,38 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
  *  @param delay the delay to wait in ps.
  *  @param behavior the current behavior. */
 void hw_wait(unsigned long long delay, Behavior behavior) {
-    /* Maybe the thread is to end immediatly. */
-    if (sim_end_flag)
-        pthread_exit(NULL);
-    /* No go on with the wait procedure. */
-    pthread_mutex_lock(&hruby_sim_mutex);
-    /* Indicate the behavior finished current execution. */
-    num_active_behaviors -= 1;
-    // printf("!!num_active_behaviors=%d\n",num_active_behaviors);
-    // pthread_cond_signal(&hruby_sim_cond);
-    /* Update the behavior's time. */
-    behavior->active_time += delay;
-    pthread_mutex_unlock(&hruby_sim_mutex);
-    pthread_cond_signal(&hruby_sim_cond);
-    /* Wait for being reactivated. */
-    while(behavior->active_time > hruby_sim_time) {
+    /* Is it in single timed behavior mode? */
+    if (sim_single_flag) {
+        /* Yes, simply update signals and advance time. */
+        behavior->active_time += delay;
+        hruby_sim_update_signals(); 
+        hruby_sim_advance_time();
+    } else {
+        /* No, handle the multi-threading. */
+        /* Maybe the thread is to end immediatly. */
+        if (sim_end_flag)
+            pthread_exit(NULL);
+        /* No go on with the wait procedure. */
         pthread_mutex_lock(&hruby_sim_mutex);
-        while(!behaviors_can_run) {
-            // printf("!1\n");
-            // pthread_cond_wait(&compute_cond, &hruby_sim_mutex);
-            pthread_cond_wait(&hruby_beh_cond, &hruby_sim_mutex);
-            // printf("!2\n");
-        }
+        /* Indicate the behavior finished current execution. */
+        num_active_behaviors -= 1;
+        // printf("!!num_active_behaviors=%d\n",num_active_behaviors);
+        // pthread_cond_signal(&hruby_sim_cond);
+        /* Update the behavior's time. */
+        behavior->active_time += delay;
         pthread_mutex_unlock(&hruby_sim_mutex);
+        pthread_cond_signal(&hruby_sim_cond);
+        /* Wait for being reactivated. */
+        while(behavior->active_time > hruby_sim_time) {
+            pthread_mutex_lock(&hruby_sim_mutex);
+            while(!behaviors_can_run) {
+                // printf("!1\n");
+                // pthread_cond_wait(&compute_cond, &hruby_sim_mutex);
+                pthread_cond_wait(&hruby_beh_cond, &hruby_sim_mutex);
+                // printf("!2\n");
+            }
+            pthread_mutex_unlock(&hruby_sim_mutex);
+        }
     }
 }
 

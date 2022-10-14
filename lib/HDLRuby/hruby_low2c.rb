@@ -843,6 +843,9 @@ module HDLRuby::Low
     ## Extends the SignalI class with generation of C text.
     class SignalI
 
+        # The id of a signal in the simulator.
+        @@signal_id = 0
+
         ## Generates the C text for an access to the signal.
         #  +level+ is the hierachical level of the object.
         # def to_c_signal(level = 0)
@@ -881,6 +884,8 @@ module HDLRuby::Low
             res << "SignalI signalI = malloc(sizeof(SignalIS));\n"
             res << " " * (level+1)*3
             res << "signalI->kind = SIGNALI;\n";
+            res << "signalI->id = #{@@signal_id};\n"
+            @@signal_id = @@signal_id+1;
 
             # Sets the global variable of the signal.
             res << "\n"

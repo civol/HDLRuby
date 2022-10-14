@@ -16,6 +16,9 @@ module HDLRuby::High
     # Enhance a system type with Ruby simulation.
     class SystemT
 
+        # Tell if the simulation is in multithread mode or not.
+        attr_reader :multithread
+
         ## Add timed behavior +beh+.
         #  Returns the id of the timed behavior.
         def add_timed_behavior(beh)
@@ -36,6 +39,50 @@ module HDLRuby::High
             @sig_active << sig
         end
 
+        ## Advance the global simulator.
+        def advance
+            # Display the time
+            self.show_time
+            shown_values = {}
+            # Get the behaviors waiting on activated signals.
+            until @sig_active.empty? do
+                # # Update the signals.
+                # @sig_active.each { |sig| sig.c_value = sig.f_value }
+                # puts "sig_active.size=#{@sig_active.size}"
+                # Look for the behavior sensitive to the signals.
+                @sig_active.each do |sig|
+                    sig.each_anyedge { |beh| @sig_exec << beh }
+                    if (sig.c_value.zero? && !sig.f_value.zero?) then
+                        # puts "sig.c_value=#{sig.c_value.content}"
+                        sig.each_posedge { |beh| @sig_exec << beh }
+                    elsif (!sig.c_value.zero? && sig.f_value.zero?) then
+                        sig.each_negedge { |beh| @sig_exec << beh }
+                    end
+                end
+                # Update the signals.
+                @sig_active.each { |sig| sig.c_value = sig.f_value }
+                # puts "first @sig_exec.size=#{@sig_exec.size}"
+                @sig_exec.uniq! {|beh| beh.object_id }
+                # Display the activated signals.
+                @sig_active.each do |sig|
+                    if !shown_values[sig].eql?(sig.f_value) then
+                        self.show_signal(sig) 
+                        shown_values[sig] = sig.f_value
+                    end
+                end
+                # Clear the list of active signals.
+                @sig_active.clear
+                # puts "sig_exec.size=#{@sig_exec.size}"
+                # Execute the relevant behaviors and connections.
+                @sig_exec.each { |obj| obj.execute(:par) }
+                @sig_exec.clear
+                @sig_active.uniq! {|sig| sig.object_id }
+                # puts "@sig_active.size=#{@sig_active.size}"
+                # Advance time.
+                @time = (@timed_behaviors.min {|b0,b1|  b0.time <=> b1.time }).time
+            end
+        end
+
         ## Run the simulation from the current systemT and outputs the resuts
         #  on simout.
         def sim(simout)
@@ -43,15 +90,6 @@ module HDLRuby::High
             HDLRuby.show "#{Time.now}#{show_mem}"
             # Merge the included.
             self.merge_included!
-            # Initializes the run mutex and the conditions.
-            @mutex = Mutex.new
-            @master = ConditionVariable.new
-            @master_flag = 0
-            @slave = ConditionVariable.new
-            @slave_flags_not = 0
-            @num_done = 0
-            # @lock = 0
-            # @runs = 0
             # Initializes the time.
             @time = 0
             # Initializes the time and signals execution buffers.
@@ -68,72 +106,93 @@ module HDLRuby::High
             self.init_sim(self)
             # Initialize the displayer.
             self.show_init(simout)
-            # exit
-            # First all the timed behaviors are to be executed.
-            @timed_behaviors.each {|beh| @tim_exec << beh }
-            # But starts locked.
-            @slave_flags_not = 2**@timed_behaviors.size - 1
-            # Starts the threads.
-            @timed_behaviors.each {|beh| beh.make_thread }
 
-            HDLRuby.show "Starting Ruby-level simulator..."
-            HDLRuby.show "#{Time.now}#{show_mem}"
-            # Run the simulation.
-            self.run_init do
-                # # Wake the behaviors.
-                # @timed_behaviors.each {|beh| beh.run }
-                until @tim_exec.empty? do
-                    # Display the time
-                    self.show_time
-                    # Execute the time behaviors that are ready.
-                    self.run_ack
-                    self.run_wait
-                    shown_values = {}
-                    # Get the behaviors waiting on activated signals.
-                    until @sig_active.empty? do
-                        # # Update the signals.
-                        # @sig_active.each { |sig| sig.c_value = sig.f_value }
-                        # puts "sig_active.size=#{@sig_active.size}"
-                        # Look for the behavior sensitive to the signals.
-                        @sig_active.each do |sig|
-                            sig.each_anyedge { |beh| @sig_exec << beh }
-                            if (sig.c_value.zero? && !sig.f_value.zero?) then
-                                # puts "sig.c_value=#{sig.c_value.content}"
-                                sig.each_posedge { |beh| @sig_exec << beh }
-                            elsif (!sig.c_value.zero? && sig.f_value.zero?) then
-                                sig.each_negedge { |beh| @sig_exec << beh }
-                            end
+            # Is there more than one timed behavior.
+            if @total_timed_behaviors <= 1 then
+                # No, no need of multithreading.
+                @multithread = false
+                # Simple execute the block of the behavior.
+                @timed_behaviors[0].block.execute(:seq)
+            else
+                # Yes, need of multithreading.
+                @multithread = true
+                # Initializes the run mutex and the conditions.
+                @mutex = Mutex.new
+                @master = ConditionVariable.new
+                @master_flag = 0
+                @slave = ConditionVariable.new
+                @slave_flags_not = 0
+                @num_done = 0
+
+                # First all the timed behaviors are to be executed.
+                @timed_behaviors.each {|beh| @tim_exec << beh }
+                # But starts locked.
+                @slave_flags_not = 2**@timed_behaviors.size - 1
+                # Starts the threads.
+                @timed_behaviors.each {|beh| beh.make_thread }
+
+                HDLRuby.show "Starting Ruby-level simulator..."
+                HDLRuby.show "#{Time.now}#{show_mem}"
+                # Run the simulation.
+                self.run_init do
+                    # # Wake the behaviors.
+                    # @timed_behaviors.each {|beh| beh.run }
+                    until @tim_exec.empty? do
+                        # Execute the time behaviors that are ready.
+                        self.run_ack
+                        self.run_wait
+                        # Advance the global simulator.
+                        self.advance
+                        # # Display the time
+                        # self.show_time
+                        # shown_values = {}
+                        # # Get the behaviors waiting on activated signals.
+                        # until @sig_active.empty? do
+                        #     # # Update the signals.
+                        #     # @sig_active.each { |sig| sig.c_value = sig.f_value }
+                        #     # puts "sig_active.size=#{@sig_active.size}"
+                        #     # Look for the behavior sensitive to the signals.
+                        #     @sig_active.each do |sig|
+                        #         sig.each_anyedge { |beh| @sig_exec << beh }
+                        #         if (sig.c_value.zero? && !sig.f_value.zero?) then
+                        #             # puts "sig.c_value=#{sig.c_value.content}"
+                        #             sig.each_posedge { |beh| @sig_exec << beh }
+                        #         elsif (!sig.c_value.zero? && sig.f_value.zero?) then
+                        #             sig.each_negedge { |beh| @sig_exec << beh }
+                        #         end
+                        #     end
+                        #     # Update the signals.
+                        #     @sig_active.each { |sig| sig.c_value = sig.f_value }
+                        #     # puts "first @sig_exec.size=#{@sig_exec.size}"
+                        #     @sig_exec.uniq! {|beh| beh.object_id }
+                        #     # Display the activated signals.
+                        #     @sig_active.each do |sig|
+                        #         if !shown_values[sig].eql?(sig.f_value) then
+                        #             self.show_signal(sig) 
+                        #             shown_values[sig] = sig.f_value
+                        #         end
+                        #     end
+                        #     # Clear the list of active signals.
+                        #     @sig_active.clear
+                        #     # puts "sig_exec.size=#{@sig_exec.size}"
+                        #     # Execute the relevant behaviors and connections.
+                        #     @sig_exec.each { |obj| obj.execute(:par) }
+                        #     @sig_exec.clear
+                        #     @sig_active.uniq! {|sig| sig.object_id }
+                        #     # puts "@sig_active.size=#{@sig_active.size}"
+                        # end
+
+                        # # Advance time.
+                        # @time = (@timed_behaviors.min {|b0,b1|  b0.time <=> b1.time }).time
+                        break if @timed_behaviors.empty?
+                        # Schedule the next timed behavior to execute.
+                        @tim_exec = []
+                        @timed_behaviors.each do |beh|
+                            @tim_exec << beh if beh.time == @time
                         end
-                        # Update the signals.
-                        @sig_active.each { |sig| sig.c_value = sig.f_value }
-                        # puts "first @sig_exec.size=#{@sig_exec.size}"
-                        @sig_exec.uniq! {|beh| beh.object_id }
-                        # Display the activated signals.
-                        @sig_active.each do |sig|
-                            if !shown_values[sig].eql?(sig.f_value) then
-                                self.show_signal(sig) 
-                                shown_values[sig] = sig.f_value
-                            end
-                        end
-                        # Clear the list of active signals.
-                        @sig_active.clear
-                        # puts "sig_exec.size=#{@sig_exec.size}"
-                        # Execute the relevant behaviors and connections.
-                        @sig_exec.each { |obj| obj.execute(:par) }
-                        @sig_exec.clear
-                        @sig_active.uniq! {|sig| sig.object_id }
-                        # puts "@sig_active.size=#{@sig_active.size}"
+                        # puts "@tim_exec.size=#{@tim_exec.size}"
+                        # puts "@timed_bevaviors.size=#{@timed_behaviors.size}"
                     end
-                    break if @timed_behaviors.empty?
-                    # Advance time.
-                    @time = (@timed_behaviors.min {|b0,b1|  b0.time <=> b1.time }).time
-                    # Schedule the next timed behavior to execute.
-                    @tim_exec = []
-                    @timed_behaviors.each do |beh|
-                        @tim_exec << beh if beh.time == @time
-                    end
-                    # puts "@tim_exec.size=#{@tim_exec.size}"
-                    # puts "@timed_bevaviors.size=#{@timed_behaviors.size}"
                 end
             end
         end
@@ -358,7 +417,8 @@ module HDLRuby::High
                     begin
                         # puts "Starting thread"
                         systemT.run_req(@id)
-                        self.block.execute(:par)
+                        # self.block.execute(:par)
+                        self.block.execute(:seq)
                         # puts "Ending thread"
                     rescue => e
                         puts "Got exception: #{e.full_message}"
@@ -690,10 +750,16 @@ module HDLRuby::High
         def execute(mode)
             @behavior ||= self.behavior
             @behavior.time += self.delay.time_ps
-            # puts "Stopping #{@behavior.object_id} (@behavior.time=#{@behavior.time})..."
-            @sim.run_done(@behavior.id)
-            # puts "Rerunning #{@behavior.object_id} (@behavior.time=#{@behavior.time})..."
-            @sim.run_req(@behavior.id)
+            if @sim.multithread then
+                # Multi thread mode: synchronize.
+                # puts "Stopping #{@behavior.object_id} (@behavior.time=#{@behavior.time})..."
+                @sim.run_done(@behavior.id)
+                # puts "Rerunning #{@behavior.object_id} (@behavior.time=#{@behavior.time})..."
+                @sim.run_req(@behavior.id)
+            else
+                # No thread mode, need to advance the global simulator.
+                @sim.advance
+            end
         end
     end
 

@@ -98,7 +98,6 @@ static void vcd_print_name(Object object) {
  *  @param object the object to print the name. */
 static void vcd_print_full_name(Object object) {
     /* Recurse on the owner if any. */
-    // printf("owner=%p\n",object->owner);
     if (object->owner != NULL) {
         vcd_print_full_name(object->owner);
         vcd_print("$");
@@ -107,12 +106,23 @@ static void vcd_print_full_name(Object object) {
     vcd_print_name(object);
 }
 
+/** Prints the id of a signal in vcd indentifier format.
+ *  @param signal the signal to print the id. */
+static void vcd_print_signal_id(SignalI signal) {
+    size_t id = signal->id;
+    do {
+        vcd_print("%c",(id % (127-33)) + 33);
+        id = id / (127-33);
+    } while (id > 0);
+}
+
 /** Prints a value.
  *  @param value the value to print */
 static void vcd_print_value(Value value) {
-    vcd_print("b");
+    unsigned long long width = type_width(value->type);
+    if (width > 1) vcd_print("b");
     if (value->numeric) {
-        unsigned long long width = type_width(value->type);
+        // unsigned long long width = type_width(value->type);
         unsigned long long mask = 1ULL << (width-1);
         for(; mask > 0; mask >>= 1) {
             vcd_print("%d",(value->data_int & mask) != 0);
@@ -120,7 +130,7 @@ static void vcd_print_value(Value value) {
     } else {
         /* Display a bitstring value. */
         unsigned long long i;
-        unsigned long long width = type_width(value->type);
+        // unsigned long long width = type_width(value->type);
         char* data = value->data_str;
         if (value->capacity == 0) {
             /* The value is empty, therefore undefined. */
@@ -135,13 +145,15 @@ static void vcd_print_value(Value value) {
             } 
         }
     }
+    if (width > 1) vcd_print(" ");
 }
 
 /** Prints a signal declaration.
  *  @param signal the signal to declare */
 static void vcd_print_var(SignalI signal) {
     vcd_print("$var wire %d ",type_width(signal->type));
-    vcd_print_full_name((Object)signal);
+    // vcd_print_full_name((Object)signal);
+    vcd_print_signal_id(signal);
     vcd_print(" ");
     vcd_print_name((Object)signal);
     vcd_print(" $end\n");
@@ -153,8 +165,9 @@ static void vcd_print_var(SignalI signal) {
 static void vcd_print_signal_fvalue(SignalI signal) {
     if (signal->f_value) {
         vcd_print_value(signal->f_value);
-        vcd_print(" ");
-        vcd_print_full_name((Object)signal);
+        // vcd_print(" ");
+        // vcd_print_full_name((Object)signal);
+        vcd_print_signal_id(signal);
         vcd_print("\n");
     }
 }
@@ -165,8 +178,9 @@ static void vcd_print_signal_fvalue(SignalI signal) {
 static void vcd_print_signal_cvalue(SignalI signal) {
     if (signal->c_value) {
         vcd_print_value(signal->c_value);
-        vcd_print(" ");
-        vcd_print_full_name((Object)signal);
+        // vcd_print(" ");
+        // vcd_print_full_name((Object)signal);
+        vcd_print_signal_id(signal);
         vcd_print("\n");
     }
 }
