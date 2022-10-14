@@ -299,11 +299,14 @@ VALUE rcsim_make_event(VALUE mod, VALUE typeV, VALUE sigV) {
 }
 
 
+static size_t last_signal_id = 0;
+
 /* Creating a signal C object. */
 VALUE rcsim_make_signal(VALUE mod, VALUE name, VALUE type) {
     // printf("rcsim_make_signal\n");
     /* Allocates the signal. */
     SignalI signal = (SignalI)malloc(sizeof(SignalIS));
+    signal->id = last_signal_id++;
     // printf("signal=%p\n",signal);
     /* Set it up. */
     signal->kind = SIGNALI;
