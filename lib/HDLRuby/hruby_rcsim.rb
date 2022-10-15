@@ -78,11 +78,13 @@ module HDLRuby::High
 
     
     ## Starts the simulation for top system +top+.
-    #  NOTE: +name+ is the name of the simulation and +vcd+ tells if
-    #        the vcd generation is used and +outpath+ is the path where
-    #        the faile is to save.
-    def self.rcsim(top,name,outpath,vcd)
-        RCSim.rcsim_main(top.rcsystemT,outpath +"/" + name,vcd)
+    #  NOTE: +name+ is the name of the simulation, +outpath+ is the path where
+    #        the output is to save, and +outmode+ is the output mode as follows:
+    #        0: standard
+    #        1: mute
+    #        2: vcd
+    def self.rcsim(top,name,outpath,outmode)
+        RCSim.rcsim_main(top.rcsystemT,outpath +"/" + name,outmode)
     end
 
 

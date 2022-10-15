@@ -1352,8 +1352,11 @@ VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE exprV) {
 /** Starts the C-Ruby hybrid simulation.
  *  @param systemTV the top system type. 
  *  @param name the name of the simulation.
- *  @param vcd tells if the vcd generation is used or not. */
-VALUE rcsim_main(VALUE mod, VALUE systemTV, VALUE name, VALUE vcd) {
+ *  @param outmode tells which output mode is used:
+ *         0: standard
+ *         1: mute
+ *         2: vcd */
+VALUE rcsim_main(VALUE mod, VALUE systemTV, VALUE name, VALUE outmodeV) {
     /* Get the C system type from the Ruby value. */
     SystemT systemT;
     value_to_rcsim(SystemTS,systemTV,systemT);
@@ -1361,11 +1364,18 @@ VALUE rcsim_main(VALUE mod, VALUE systemTV, VALUE name, VALUE vcd) {
     top_system = systemT;
     /* Enable it. */
     set_enable_system(systemT,1);
+    /* Get the output mode. */
+    int outmode = NUM2INT(outmodeV);
     /* Starts the simulation. */
-    if (TYPE(vcd) == T_TRUE) 
-        hruby_sim_core(StringValueCStr(name),init_vcd_visualizer,-1);
-    else
-        hruby_sim_core(StringValueCStr(name),init_default_visualizer,-1);
+    switch(outmode) { 
+        case 0: hruby_sim_core(StringValueCStr(name),init_default_visualizer,-1);
+                break;
+        case 1: hruby_sim_core(StringValueCStr(name),init_mute_visualizer,-1);
+                break;
+        case 2: hruby_sim_core(StringValueCStr(name),init_vcd_visualizer,-1);
+                break;
+        default:hruby_sim_core(StringValueCStr(name),init_default_visualizer,-1);
+    }
     return systemTV;
 }
 

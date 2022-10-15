@@ -380,6 +380,9 @@ $optparse = OptionParser.new do |opts|
         $options[:rcsim] = v
         $options[:multiple] = v
     end
+    opts.on("--mute", "The simulator will not generate any output") do |v|
+        $options[:mute] = v
+    end
     opts.on("--vcd", "The simulator will generate a vcd file") do |v|
         $options[:vcd] = v
     end
@@ -712,8 +715,9 @@ elsif $options[:clang] then
         $main = File.open($name,"w")
 
         # Select the vizualizer depending on the options.
-        init_visualizer = $options[:vcd] ? "init_vcd_visualizer" :
-                                           "init_default_visualizer"
+        init_visualizer = $options[:mute] ? "init_mute_visualizer" :
+                          $options[:vcd]  ? "init_vcd_visualizer" :
+                                            "init_default_visualizer"
 
         # Gather the system to generate and sort them in the right order
         # to ensure references are generated before being used.
@@ -857,9 +861,13 @@ elsif $options[:rsim] then
     HDLRuby.show "#{Time.now}#{show_mem}"
     # Ruby-level simulation.
     require 'HDLRuby/hruby_rsim.rb'
-    # Is VCD output is required.
-    if $options[:vcd] then
-        # Yes
+    # Is mute or VCD output is required.
+    if $options[:mute] then
+        # Yes for mute.
+        require "HDLRuby/hruby_rsim_mute.rb"
+        $top_system.sim($stdout)
+    elsif $options[:vcd] then
+        # Yes for VCD
         require "HDLRuby/hruby_rsim_vcd.rb"
         vcdout = File.open($output+"/hruby_simulator.vcd","w")
         $top_system.sim(vcdout)
@@ -881,7 +889,8 @@ elsif $options[:rcsim] then
     $top_system.to_rcsim
     HDLRuby.show "Executing the hybrid C-Ruby-level simulator..."
     HDLRuby.show "#{Time.now}#{show_mem}"
-    HDLRuby::High.rcsim($top_system,"hruby_simulator",$output,$options[:vcd] && true)
+    HDLRuby::High.rcsim($top_system,"hruby_simulator",$output,
+                        ($options[:mute] && 1) || ($options[:vcd] && 2) || 0)
     HDLRuby.show "End of hybrid C-Ruby-level simulation..."
     HDLRuby.show "#{Time.now}#{show_mem}"
 elsif $options[:vhdl] then

@@ -947,6 +947,10 @@ extern void default_print_string(const char* str);
  *  @param name the name of the vizualization. */
 extern void init_default_visualizer(char* name);
 
+/** Sets up the mute vizualization engine.
+ *  @param name the name of the vizualization. */
+extern void init_mute_visualizer(char* name);
+
 /** Sets up the vcd vizualization engine.
  *  @param name the name of the vizualization. */
 extern void init_vcd_visualizer(char* name);
