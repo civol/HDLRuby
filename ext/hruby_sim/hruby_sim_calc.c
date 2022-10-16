@@ -3003,7 +3003,19 @@ Value concat_value(unsigned int num, int dir, Value dst, ...) {
 Value cast_value(Value src, Type type, Value dst) {
     if (src->numeric) {
         /* The source is numeric. */
-        return cast_value_numeric(src,type,dst);
+        /* Is the destination type small enough? */
+        if (type_width(type) <= 64)
+            /* Yes, keep numeric. */
+            return cast_value_numeric(src,type,dst);
+        else {
+            /* No, do it in bit string. */
+            Value res = set_bitstring_value(src,get_value());
+            // printf("res=%.*s\n",res->capacity,res->data_str);
+            dst = cast_value_bitstring(res,type,dst);
+            // printf("dst=%.*s\n",dst->capacity,dst->data_str);
+            free_value();
+            return dst;
+        }
     } else {
         /* The source cannot be numeric, compute bitsitrings. */
         return cast_value_bitstring(src,type,dst);

@@ -788,9 +788,15 @@ module HDLRuby::High
         def to_rcsim
             # Create the value C object.
             if self.content.is_a?(::Integer) then
-                if self.content.bit_length <= 63 then
-                    return RCSim.rcsim_make_value_numeric(self.type.to_rcsim,
-                                                    self.content)
+                # if self.content.bit_length <= 63 then
+                if self.type.width <= 64 then
+                    if self.content.bit_length <= 63 then
+                        return RCSim.rcsim_make_value_numeric(self.type.to_rcsim,
+                                                              self.content)
+                    else
+                        return RCSim.rcsim_make_value_numeric(self.type.to_rcsim,
+                                                              self.content & 0xFFFFFFFFFFFF)
+                    end
                 else
                     str = self.content.to_s(2)
                     if str[-1] == "-" then

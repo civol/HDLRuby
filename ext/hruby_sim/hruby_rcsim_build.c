@@ -553,6 +553,7 @@ VALUE rcsim_make_value_numeric(VALUE mod, VALUE typeV, VALUE contentV) {
     value->capacity = 0;
     value->data_str = NULL;
     value->data_int = NUM2LL(contentV);
+    // printf("value->data_int=%lld\n",value->data_int);
     /* Returns the C value embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(ValueS,value,res);
@@ -1339,7 +1340,6 @@ VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE exprV) {
     Expression expr;
     value_to_rcsim(ExpressionS,exprV,expr);
     /* Compute the value from it. */
-    // Value value = calc_expression(expr);
     Value value = get_value();
     value = calc_expression(expr,value);
     /* Copies the value. */

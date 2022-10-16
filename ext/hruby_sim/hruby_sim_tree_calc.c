@@ -70,7 +70,9 @@ Value calc_expression(Expression expr, Value res) {
                 Cast cexpr = (Cast)expr;
                 Value child = get_value();
                 child = calc_expression(cexpr->child,child);
+                // printf("going to cast value of numeric=%d and width=%llu to width=%llu\n",child->numeric,type_width(child->type),type_width(cexpr->type));
                 res = cast_value(child,cexpr->type,res);
+                // printf("result is numeric=%d\n",res->numeric);
                 free_value();
                 break;
             }
