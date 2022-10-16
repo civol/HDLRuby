@@ -4213,7 +4213,7 @@ module HDLRuby::High
         # Creates a new +type+ sort of block with possible +name+
         # and build it by executing +ruby_block+.
         def initialize(type, name = :"", &ruby_block)
-            # Initialize the block.
+            # Initialize the behavior.
             super(type,name)
 
             unless name.empty? then

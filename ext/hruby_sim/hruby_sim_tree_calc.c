@@ -46,6 +46,8 @@ Value calc_expression(Expression expr, Value res) {
                 Value right = get_value();
                 left = calc_expression(bexpr->left,left);
                 right = calc_expression(bexpr->right,right);
+                // printf("left=%.*s\n",left->capacity,left->data_str);
+                // printf("right=%.*s\n",right->capacity,right->data_str);
                 res = bexpr->oper(left,right,res);
                 free_value();
                 free_value();
@@ -159,16 +161,14 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
         case TRANSMIT: 
             {
                 Transmit trans = (Transmit)stmnt;
-                // printf("trans=%p trans->left=%p trans->left->kind=%d\n",trans,trans->left,trans->left->kind);
                 /* Compute the right value. */
-                // Value right = calc_expression(trans->right);
                 Value right = get_value();
                 right = calc_expression(trans->right,right);
                 /* Depending on the left value. */
                 switch (trans->left->kind) {
                     case SIGNALI:
                         // printf("left->name=%s\n",((SignalI)(trans->left))->name);
-                        fflush(stdout);
+                        // fflush(stdout);
                         /* Simple transmission. */
                         if (mode)
                             transmit_to_signal_seq(right,(SignalI)(trans->left));
@@ -180,7 +180,6 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                             /* Transmission to sub element. */
                             RefIndex refi = (RefIndex)(trans->left);
                             /* Compute the index. */
-                            // Value indexV = calc_expression(refi->index);
                             Value indexV = get_value();
                             indexV = calc_expression(refi->index,indexV);
                             long long index = value2integer(indexV);

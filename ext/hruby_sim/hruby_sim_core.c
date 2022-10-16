@@ -304,6 +304,8 @@ void hruby_sim_advance_time() {
         if (timed_behaviors[i]->timed == 1)
             if (beh_time < next_time) next_time = beh_time;
     }
+    /* Mark again all the signals as fading. */
+    for(i=0; i<num_all_signals; ++i) all_signals[i]->fading = 1;
     // printf("hruby_sim_time=%llu next_time=%llu\n",hruby_sim_time,next_time);
     /* Sets the new activation time. */
     hruby_sim_time = next_time;
@@ -597,6 +599,7 @@ void touch_signal(SignalI signal) {
  *  @param value the value to transmit
  *  @param signal the signal to transmit the value to. */
 void transmit_to_signal(Value value, SignalI signal) {
+    // printf("Tansmit to signal: %s(%p)\n",signal->name,signal);
     /* Copy the content. */
     if (signal->fading)
         signal->f_value = copy_value(value,signal->f_value);

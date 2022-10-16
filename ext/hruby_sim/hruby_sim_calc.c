@@ -315,7 +315,7 @@ Value copy_value(Value src, Value dst) {
         /* Numeric copy. */
         dst->data_int = fix_numeric_type(dst->type,src->data_int);
     } else {
-        // printf("copy_value with bit string: %s\n",src->data_str);
+        // printf("copy_value with bit string: %.*s\n",src->capacity,src->data_str);
         /* Resize the destination if required. */
         resize_value(dst,type_width(dst->type));
         /* Bitstring copy up to the end of dst or src. */
