@@ -374,6 +374,21 @@ module HDLRuby
             return other,self.content
         end
 
+        # Hash-map comparison of values.
+        # Also use in simulation engines to know if a signal changed.
+        def eql?(val)
+            if self.content.is_a?(Numeric) then
+                return self.content == val.content if val.content.is_a?(Numeric)
+                return false unless val.content.specified?
+                return self.content == val.content.to_i
+            else
+                return self.content.eql?(val.content) unless val.content.is_a?(Numeric)
+                return false if self.content.specified?
+                return self.content.to_i == val.content
+            end
+        end
+
+
         # Tell if the value is zero.
         def zero?
             return false unless @content

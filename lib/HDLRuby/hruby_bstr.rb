@@ -110,6 +110,11 @@ module HDLRuby
             return @content
         end
 
+        # Hash comparison.
+        def eql?(bstr)
+            return @content.eql?(bstr.raw_content)
+        end
+
         # Tells if the bit string is strictly.
         #
         # NOTE: return false if the sign is undefined of if it is unknown

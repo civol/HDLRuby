@@ -46,16 +46,27 @@ module HDLRuby::High
             shown_values = {}
             # Get the behaviors waiting on activated signals.
             until @sig_active.empty? do
-                # # Update the signals.
-                # @sig_active.each { |sig| sig.c_value = sig.f_value }
                 # puts "sig_active.size=#{@sig_active.size}"
+                # puts "sig_active=#{@sig_active.map {|sig| sig.fullname}}"
                 # Look for the behavior sensitive to the signals.
+                # @sig_active.each do |sig|
+                #     sig.each_anyedge { |beh| @sig_exec << beh }
+                #     if (sig.c_value.zero? && !sig.f_value.zero?) then
+                #         # puts "sig.c_value=#{sig.c_value.content}"
+                #         sig.each_posedge { |beh| @sig_exec << beh }
+                #     elsif (!sig.c_value.zero? && sig.f_value.zero?) then
+                #         sig.each_negedge { |beh| @sig_exec << beh }
+                #     end
+                # end
                 @sig_active.each do |sig|
+                    next if (sig.c_value.eql?(sig.f_value))
+                    # next if (sig.c_value.to_vstr == sig.f_value.to_vstr)
+                    # puts "sig.c_value: #{sig.c_value.to_vstr}, sig.f_value=#{sig.f_value.to_vstr}"
                     sig.each_anyedge { |beh| @sig_exec << beh }
-                    if (sig.c_value.zero? && !sig.f_value.zero?) then
+                    if (sig.c_value.zero?) then
                         # puts "sig.c_value=#{sig.c_value.content}"
                         sig.each_posedge { |beh| @sig_exec << beh }
-                    elsif (!sig.c_value.zero? && sig.f_value.zero?) then
+                    elsif (!sig.c_value.zero?) then
                         sig.each_negedge { |beh| @sig_exec << beh }
                     end
                 end
@@ -351,6 +362,7 @@ module HDLRuby::High
                 end.to_a
                 # Keep only one ref per signal.
                 refs.uniq! { |node| node.fullname }
+                # puts "refs=#{refs.map {|node| node.fullname}}"
                 # Remove the inner signals from the list.
                 self.block.each_inner do |inner|
                     refs.delete_if {|r| r.name == inner.name }
@@ -861,6 +873,8 @@ module HDLRuby::High
             end.to_a
             # Keep only one ref per signal.
             refs.uniq! { |node| node.fullname }
+            # puts "connection input: #{self.left.fullname}"
+            # puts "connection refs=#{refs.map {|node| node.fullname}}"
             # # Generate the event.
             # events = refs.map {|ref| Event.new(:anyedge,ref) }
             # # Add them to the behavior for further processing.
