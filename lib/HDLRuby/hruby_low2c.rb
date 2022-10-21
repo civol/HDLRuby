@@ -2084,68 +2084,123 @@ module HDLRuby::Low
             # res << "Value " << Low2C.make_name(self) << "() {\n"
             res << "Value " << maker << "() {\n"
 
+            # # Declares the data.
+            # # Create the bit string.
+            # # str = self.content.is_a?(BitString) ?
+            # #     self.content.to_s : self.content.to_s(2).rjust(32,"0")
+            # if self.content.is_a?(BitString) then
+            #     str = self.content.is_a?(BitString) ?
+            #         self.content.to_s : self.content.to_s(2).rjust(32,"0")
+            # else
+            #     # sign = self.content>=0 ? "0" : "1"
+            #     # str = self.content.abs.to_s(2).rjust(width,sign).upcase
+            #     if self.content >= 0 then
+            #         str = self.content.to_s(2).rjust(width,"0").upcase
+            #     else
+            #         # Compute the extension to the next multiple
+            #         # of int_width
+            #         ext_width = (((width-1) / Low2C.int_width)+1)*Low2C.int_width
+            #         # Convert the string.
+            #         str = (2**ext_width+self.content).to_s(2).upcase
+            #     end
+            #     # puts "content=#{self.content} str=#{str}"
+            # end
+            # # Is it a fully defined number?
+            # # NOTE: bignum values are not supported by the simulation engine
+            # #       yet, therefore numeric values are limited to 64 max.
+            # if str =~ /^[01]+$/ && str.length <= 64 then
+            #     # Yes, generate a numeral value.
+            #     res << " " * (level+1)*3
+            #     res << "static unsigned int data[] = { "
+            #     res << str.scan(/.{1,#{Low2C.int_width}}/m).reverse.map do |sub|
+            #         sub.to_i(2).to_s # + "ULL"
+            #     end.join(",")
+            #     res << ", 0" if (str.length <= 32)
+            #     res << " };\n"
+            #     # Create the value.
+            #     res << " " * (level+1)*3
+            #     # puts "str=#{str} type width=#{self.type.width} signed? #{type.signed?}"
+            #     # res << "return make_set_value(#{self.type.to_c(level+1)},1," +
+            #     #        "data);\n" 
+            #     res << "return make_set_value("
+            #     self.type.to_c(res,level+1)
+            #     res << ",1,data);\n" 
+            # else
+            #     # No, generate a bit string value.
+            #     res << " " * (level+1)*3
+            #     # res << "static unsigned char data[] = \"#{str}\";\n"
+            #     res << "static unsigned char data[] = \"#{str.reverse}\";\n"
+            #     # Create the value.
+            #     res << " " * (level+1)*3
+            #     # res << "return make_set_value(#{self.type.to_c(level+1)},0," +
+            #     #        "data);\n" 
+            #     res << "return make_set_value("
+            #     self.type.to_c(res,level+1)
+            #     res << ",0,data);\n" 
+            # end
+
             # Declares the data.
-            # Create the bit string.
-            # str = self.content.is_a?(BitString) ?
-            #     self.content.to_s : self.content.to_s(2).rjust(32,"0")
-            if self.content.is_a?(BitString) then
-                str = self.content.is_a?(BitString) ?
-                    self.content.to_s : self.content.to_s(2).rjust(32,"0")
-            else
-                # sign = self.content>=0 ? "0" : "1"
-                # str = self.content.abs.to_s(2).rjust(width,sign).upcase
-                if self.content >= 0 then
-                    str = self.content.to_s(2).rjust(width,"0").upcase
+            if self.content.is_a?(::Integer) then
+                if self.type.width <= 64 then
+                    res << " " * (level+1)*3
+                    res << "Value value = make_value("
+                    self.type.to_c(res,level+1)
+                    res << ",0);\n"
+                    res << " " * (level+1)*3
+                    res << "value->numeric = 1;\n"
+                    res << " " * (level+1)*3
+                    res << "value->capacity = 0;\n"
+                    res << " " * (level+1)*3
+                    res << "value->data_str = NULL;\n"
+                    res << " " * (level+1)*3
+                    if self.content.bit_length <= 63 then
+                        res << "value->data_int = #{self.content}LLU;\n"
+                    else
+                        res << "value->data_int = "
+                        res << "#{self.content & 0xFFFFFFFFFFFF}LLU;\n"
+                    end
+                    # Close the value.
+                    res << " " * (level+1)*3
+                    res << "return value;\n"
+                    res << " " * level*3
+                    res << "}\n\n"
+                    # Return the result.
+                    return res
                 else
-                    # Compute the extension to the next multiple
-                    # of int_width
-                    ext_width = (((width-1) / Low2C.int_width)+1)*Low2C.int_width
-                    # Convert the string.
-                    str = (2**ext_width+self.content).to_s(2).upcase
+                    str = self.content.to_s(2)
+                    if str[-1] == "-" then
+                        str[-1] = "1"
+                    elsif str[-1] == "1" then
+                        str = "0" + str
+                    end
+                    str.reverse!
                 end
-                # puts "content=#{self.content} str=#{str}"
-            end
-            # Is it a fully defined number?
-            # NOTE: bignum values are not supported by the simulation engine
-            #       yet, therefore numeric values are limited to 64 max.
-            if str =~ /^[01]+$/ && str.length <= 64 then
-                # Yes, generate a numeral value.
-                res << " " * (level+1)*3
-                res << "static unsigned int data[] = { "
-                res << str.scan(/.{1,#{Low2C.int_width}}/m).reverse.map do |sub|
-                    sub.to_i(2).to_s # + "ULL"
-                end.join(",")
-                res << ", 0" if (str.length <= 32)
-                res << " };\n"
-                # Create the value.
-                res << " " * (level+1)*3
-                # puts "str=#{str} type width=#{self.type.width} signed? #{type.signed?}"
-                # res << "return make_set_value(#{self.type.to_c(level+1)},1," +
-                #        "data);\n" 
-                res << "return make_set_value("
-                self.type.to_c(res,level+1)
-                res << ",1,data);\n" 
             else
-                # No, generate a bit string value.
-                res << " " * (level+1)*3
-                # res << "static unsigned char data[] = \"#{str}\";\n"
-                res << "static unsigned char data[] = \"#{str.reverse}\";\n"
-                # Create the value.
-                res << " " * (level+1)*3
-                # res << "return make_set_value(#{self.type.to_c(level+1)},0," +
-                #        "data);\n" 
-                res << "return make_set_value("
-                self.type.to_c(res,level+1)
-                res << ",0,data);\n" 
+                str = content.to_s.reverse
             end
+            res << " " * (level+1)*3
+            res << "Value value = make_value("
+            self.type.to_c(res,level+1)
+            res << ",0);\n"
+            res << " " * (level+1)*3
+            res << "value->numeric = 0;\n"
+            res << " " * (level+1)*3
+            res << "value->capacity = #{str.length+1};"
+            res << " " * (level+1)*3
+            res << "value->data_str = calloc(value->capacity,sizeof(char));\n"
+            res << " " * (level+1)*3
+            res << "strcpy(value->data_str,#{str});\n"
 
             # Close the value.
+            res << " " * (level+1)*3
+            res << "return value;\n"
             res << " " * level*3
             res << "}\n\n"
             # Return the result.
             return res
         end
     end
+
 
     ## Extends the Cast class with generation of C text.
     class Cast

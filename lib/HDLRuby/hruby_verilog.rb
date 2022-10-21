@@ -2032,6 +2032,9 @@ module HDLRuby::Low
             # Generate content code.
             codeC = ""
 
+            # Arrays to initialize.
+            arrays_to_init = []
+
             # Declare "inner".
             self.each_inner do |inner|
                 if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
@@ -2050,8 +2053,14 @@ module HDLRuby::Low
                     codeC << " #{inner.type.to_verilog}#{inner.to_verilog}"
                 end
                 if inner.value then
-                    # There is an initial value.
-                    codeC << " = #{inner.value.to_verilog}"
+                    val = inner.value
+                    val = val.child while val.is_a?(Cast)
+                    if val.is_a?(Concat) then
+                        arrays_to_init << [inner,val]
+                    else
+                        # There is an initial value.
+                        codeC << " = #{inner.value.to_verilog}"
+                    end
                 end
                 codeC << ";\n"
             end
@@ -2190,6 +2199,22 @@ module HDLRuby::Low
                     codeC << behavior.block.to_verilog
                 end
 
+            end
+
+            # Generate the code for the initialization of the arrays.
+            if arrays_to_init.any? then
+                codeC << "   initial begin\n"
+                arrays_to_init.each do |(sig,val)|
+                    val.each_expression.with_index do |expr,i|
+                        # Initialization, therefore maybe no cast required...
+                        # if sig.value.is_a?(Cast) then
+                        #     expr = Cast.new(sig.value.type,expr.clone)
+                        # end
+                        codeC << "      ";
+                        codeC << "#{sig.to_verilog}[#{i}]=#{expr.to_verilog};\n"
+                    end
+                end
+                codeC << "   end\n"
             end
 
             # Conclusion.

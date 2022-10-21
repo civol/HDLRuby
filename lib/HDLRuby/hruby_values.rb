@@ -378,10 +378,12 @@ module HDLRuby
         # Also use in simulation engines to know if a signal changed.
         def eql?(val)
             if self.content.is_a?(Numeric) then
+                return self.content == val if val.is_a?(Numeric)
                 return self.content == val.content if val.content.is_a?(Numeric)
                 return false unless val.content.specified?
                 return self.content == val.content.to_i
             else
+                return self.content.to_i == val if val.is_a?(Numeric)
                 return self.content.eql?(val.content) unless val.content.is_a?(Numeric)
                 return false if self.content.specified?
                 return self.content.to_i == val.content
