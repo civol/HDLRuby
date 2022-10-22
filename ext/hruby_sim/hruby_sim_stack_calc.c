@@ -106,6 +106,16 @@ Value binary(Value (*oper)(Value,Value,Value)) {
     return oper(l,r,peek());
 }
 
+/** Selection calculation.
+ * @param num the number of choices to select within. */
+Value select(unsigned int num) {
+    Value* vals = alloca(num*sizeof(Value));
+    int i;
+    /* Get the values to concat from the stack. */
+    for(i=1;i<=num;++i) vals[num-i] = pop();
+    return select_valueP(pop(),peek(),num,vals);
+}
+
 /** Cast calculation.
  *  @param typ the type to cast to.
  *  @return the destination.

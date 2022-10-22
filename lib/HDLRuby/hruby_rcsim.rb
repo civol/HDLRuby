@@ -953,7 +953,7 @@ module HDLRuby::High
             #     RCSim.rcsim_add_refConcat_ref(rcref,ref.to_rcsim)
             # end
             if self.each_ref.any? then
-                RCSim.rcsim_add_refConcat_refs(rcref,self.each_ref(&:to_rcsim))
+                RCSim.rcsim_add_refConcat_refs(rcref,self.each_ref.map(&:to_rcsim))
             end
             
             return rcref

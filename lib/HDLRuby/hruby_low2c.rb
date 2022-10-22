@@ -20,6 +20,7 @@ module HDLRuby::Low
         #  h files.
         def self.includes(*names)
             res =  '#include <stdlib.h>' + "\n" + 
+                   '#include <string.h>' + "\n" +
                    '#include "hruby_sim.h"' + "\n"
             names.each { |name| res << "#include \"#{name}\"\n" }
             res << "\n"
@@ -1725,26 +1726,49 @@ module HDLRuby::Low
             res << "if (is_defined()) {\n"
             # The condition is testable.
             # Generate the case as a succession of if statements.
-            self.each_when do |w|
+            # self.each_when do |w|
+            #     res << " " * ((level+2)*3)
+            #     res << "dup();\n"
+            #     res << " " * ((level+2)*3)
+            #     w.match.to_c(res,level+2)
+            #     res << "if (to_integer() == to_integer()) { \n"
+            #     w.statement.to_c(res,level+3)
+            #     res << " " * (level+2)*3
+            #     res << "}\n"
+            # end
+            # if self.default then
+            #     res << " " * (level+2)*3
+            #     res << "else {\n"
+            #     self.default.to_c(res,level+3)
+            #     res << " " * (level+2)*3
+            #     res << "}\n"
+            # end
+            res << " " * ((level+2)*3)
+            res << "int val=to_integer(), done=0;\n"
+            self.each_when.with_index do |w,i|
                 res << " " * ((level+2)*3)
-                res << "dup();\n"
+                res << "if (!done) {\n" unless i == 0
                 res << " " * ((level+2)*3)
                 w.match.to_c(res,level+2)
-                res << "if (to_integer() == to_integer()) {\n"
+                res << "if (val == to_integer()) {\n"
                 w.statement.to_c(res,level+3)
+                res << " " * (level+3)*3
+                res << "done = 1;\n"
                 res << " " * (level+2)*3
+                res << "}" unless i == 0
                 res << "}\n"
             end
             if self.default then
                 res << " " * (level+2)*3
-                res << "else {\n"
+                res << "if(!done) {\n"
                 self.default.to_c(res,level+3)
                 res << " " * (level+2)*3
                 res << "}\n"
             end
+
             # Close the case.
             res << " " * (level+1)*3
-            res << "pop();\n" # Remove the testing value.
+            # res << "pop();\n" # Remove the testing value.
             res << " " * (level+1)*3
             res << "}\n"
             res << " " * (level)*3
@@ -2189,7 +2213,7 @@ module HDLRuby::Low
             res << " " * (level+1)*3
             res << "value->data_str = calloc(value->capacity,sizeof(char));\n"
             res << " " * (level+1)*3
-            res << "strcpy(value->data_str,#{str});\n"
+            res << "strcpy(value->data_str,\"#{str}\");\n"
 
             # Close the value.
             res << " " * (level+1)*3

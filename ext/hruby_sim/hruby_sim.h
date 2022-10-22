@@ -335,6 +335,7 @@ extern Value lesser_equal_value(Value src0, Value src1, Value dst);
  *  @param num    the number of values for the selection
  *  @return the selected value */
 extern Value select_value(Value cond, Value dst, unsigned int num, ...);
+extern Value select_valueP(Value cond, Value dst, unsigned int num, Value* values);
 
 /** Concat multiple values to a single one.
  *  @param num the number of values to concat
@@ -1052,6 +1053,12 @@ extern Value unary(Value (*oper)(Value,Value));
  *  @return the destination
  **/
 extern Value binary(Value (*oper)(Value,Value,Value));
+
+/** Select calculation.
+ *  @param num the number of values to select from.
+ *  @return the destination.
+ **/
+extern Value select(unsigned int num);
 
 /** Cast calculation.
  *  @param typ the type to cast to.

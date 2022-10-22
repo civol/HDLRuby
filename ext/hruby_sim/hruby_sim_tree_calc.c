@@ -53,6 +53,24 @@ Value calc_expression(Expression expr, Value res) {
                 free_value();
                 break;
             }
+        case SELECT:
+            {
+                Select sexpr = (Select)expr;
+                /* Calculate the selection expression. */
+                Value selV = get_value();
+                selV = calc_expression(sexpr->select,selV);
+                /* Is the selection defined? */
+                if (is_defined_value(selV)) {
+                    /* Yes, can perform the selection. */
+                    long long sel = value2integer(selV);
+                    if (sel >= 0 && sel < sexpr->num_choices) {
+                        /* Possible choice, proceed the computation. */
+                        res = calc_expression(sexpr->choices[sel],res);
+                    }
+                }
+                free_value();
+                break;
+            }
         case CONCAT:
             {
                 Concat cexpr = (Concat)expr;
@@ -164,6 +182,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 /* Compute the right value. */
                 Value right = get_value();
                 right = calc_expression(trans->right,right);
+                // printf("transmit to left=%p with kind=%d\n",trans->left,trans->left->kind);fflush(stdout);
                 /* Depending on the left value. */
                 switch (trans->left->kind) {
                     case SIGNALI:
@@ -245,6 +264,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                                 free_value();
                                 pos += size;
                             }
+                            break;
                         }
                     default:
                         perror("Invalid kind for a reference.");
@@ -280,7 +300,6 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
             {
                 HIf hif = (HIf)stmnt;
                 /* Calculation the condition. */
-                // Value condition = calc_expression(hif->condition);
                 Value condition = get_value();
                 condition = calc_expression(hif->condition,condition);
                 /* Is it true? */
@@ -291,7 +310,6 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                     /* No, maybe an alternate condition is met. */
                     int met = 0;/* Tell if an alternate condition has been met.*/
                     for(int i=0; i<hif->num_noifs; ++i) {
-                        // Value subcond = calc_expression(hif->noconds[i]);
                         Value subcond = get_value();
                         subcond = calc_expression(hif->noconds[i],subcond);
                         if (is_defined_value(subcond) && value2integer(subcond)){
@@ -306,7 +324,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                         free_value();
                     }
                     /* Where there a sub condition met? */
-                    if (!met) {
+                    if (!met && hif->no) {
                         /* No, execute the no statement. */
                         execute_statement(hif->no,mode,behavior);
                     }

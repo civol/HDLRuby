@@ -440,7 +440,7 @@ module HDLRuby::High
                 w.statement.show_hierarchy(vcdout)
             end
             # Recurse on the default if any.
-            self.default.show_hierarchy(vcdout)
+            self.default.show_hierarchy(vcdout) if self.default
         end
 
         ## Gets the VCD variables with their long name.
@@ -450,7 +450,7 @@ module HDLRuby::High
                 w.statement.get_vars_with_fullname(vars_with_fullname)
             end
             # Recurse on the default if any.
-            self.default.get_vars_with_fullname(vars_with_fullname)
+            self.default.get_vars_with_fullname(vars_with_fullname) if self.default
             return vars_with_fullname
         end
 
@@ -461,7 +461,7 @@ module HDLRuby::High
                 w.statement.get_vars_with_idstr(vars_with_idstr)
             end
             # Recurse on the default if any.
-            self.default.get_vars_with_idstr(vars_with_idstr)
+            self.default.get_vars_with_idstr(vars_with_idstr) if self.default
             return vars_with_idstr
         end
     end

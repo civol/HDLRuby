@@ -679,7 +679,7 @@ module HDLRuby::High
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
             self.each_when { |wh| wh.init_sim(systemT) }
-            self.default.init_sim(systemT)
+            self.default.init_sim(systemT) if self.default
         end
 
         ## Executes the statement.
@@ -690,7 +690,7 @@ module HDLRuby::High
                     return
                 end
             end
-                self.default.execute(mode)
+            self.default.execute(mode) if self.default
             end
         end
     end

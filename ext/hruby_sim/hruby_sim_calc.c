@@ -1407,6 +1407,38 @@ static Value select_value_bitstring(Value cond, Value dst, unsigned int num,
     return dst;
 }
 
+/** Selects a value depending on a bitstring condition (pointer version).
+ *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value (used only if new value is created).
+ *  @param num    the number of values for the selection
+ *  @param values the values to select from
+ *  @return the selected value */
+static Value select_value_bitstring_array(Value cond, Value dst,
+        unsigned int num, Value* values) 
+{
+    // printf("select_value_bitstring_array with cond=%s\n",cond->data_str);
+    /* Get the first alternative for sizing the result. */
+    Value src = values[0];
+    /* Compute the width of the result in bits. */
+    unsigned long long width = type_width(src->type);
+    // printf("select width=%llu\n",width);
+
+    /* Update the destination capacity if required. */
+    resize_value(dst,width);
+    /* Set the type and size of the destination from the type of the source.*/
+    dst->type = src->type;
+    dst->numeric = 0;
+    char *dst_data = dst->data_str;
+
+    /* Sets the destination as undefined. */
+    unsigned long long count;
+    for(count = 0; count < width; ++count) {
+        dst_data[count] = 'x';
+    }
+    /* Return the destination. */
+    return dst;
+}
+
 
 /** Concat multiple bitstring values to a single one.
  *  @param num the number of values to concat
@@ -2164,6 +2196,30 @@ static Value select_value_numeric(Value cond, Value dst, unsigned int num,
     /* Should never be here. */
     return NULL;
 }
+
+/** Selects a value depending on a numeric condition (pointer version).
+ *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value (used only if new value is created).
+ *  @param num    the number of values for the selection
+ *  @param values the values to select from.
+ *  @return the selected value */
+static Value select_value_numeric_array(Value cond, Value dst, unsigned int num,
+        Value* values) {
+    unsigned int i;
+    /* Select the value corresponding to the condition and copy it to
+     * the destination. */
+    for(i = 0; i<num;  ++i) {
+        Value value = values[i];
+        if (i == value2integer(cond)) {
+            /* The right value is reached, copy it. */
+            copy_value(value,dst);
+            return dst;
+        }
+    }
+    /* Should never be here. */
+    return NULL;
+}
+
 
 /** Concat multiple numeric values to a single one.
  *  @param num the number of values to concat
@@ -2933,7 +2989,24 @@ Value select_value(Value cond, Value dst, unsigned int num, ...) {
     return dst;
 }
 
-/** Concat multiple general values to a single one.
+/** Selects a value depending on a general condition (pointer version).
+ *  @param cond   the condition to use for selecting a value
+ *  @param dst    the destination value (used only if new value is created).
+ *  @param num    the number of values for the selection
+ *  @param values the values to select from.
+ *  @return the selected value */
+Value select_valueP(Value cond, Value dst, unsigned int num, Value* values) {
+    if (is_defined_value(cond)) {
+        /* The condition can be made numeric. */
+        dst = select_value_numeric_array(cond,dst,num,values);
+    } else {
+        /* The sources cannot be numeric, compute bitsitrings. */
+        dst = select_value_bitstring_array(cond,dst,num,values);
+    }
+    return dst;
+}
+
+/** Concat multiple general values to a single one (pointer version).
  *  @param dir the direction of the concatenation.
  *  @param num the number of values to concat
  *  @param dst the destination value

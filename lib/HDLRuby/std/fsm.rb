@@ -120,10 +120,10 @@ module HDLRuby::High::Std
 
             # Enters the current system
             HDLRuby::High.cur_system.open do
-                sub do
+                # sub do
                     HDLRuby::High.space_push(namespace)
                     # Execute the instantiation block
-                    return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
+                    return_value = HDLRuby::High.top_user.instance_exec(&ruby_block)
 
                     # Expands the extra state processing so that al all the
                     # parts of the state machine are in par (clear synthesis).
@@ -311,7 +311,7 @@ module HDLRuby::High::Std
                     end
 
                     HDLRuby::High.space_pop
-                end
+                # end
             end
 
             return return_value
