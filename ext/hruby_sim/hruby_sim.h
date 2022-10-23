@@ -156,6 +156,7 @@ extern Type get_type_vector(Type base, unsigned long long number);
 typedef struct ValueS_ {
 #ifdef RCSIM
     Kind kind;                   /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
 #endif
     Type type;                   /* The type of the value. */
     int numeric;         /* Tell if the value is numeric or a bitstring. */
@@ -511,9 +512,9 @@ typedef struct SystemTS_ {
 typedef struct SignalIS_ {
     Kind kind;          /* The kind of object. */
     Object owner;       /* The owner if any. */
+    Type  type;         /* The type of the signal. */
 
     char* name;         /* The name of the signal. */
-    Type  type;         /* The type of the signal. */
     Value c_value;      /* The current value of the signal. */
     Value f_value;      /* The future (next) value of the signal. */
 
@@ -632,11 +633,14 @@ typedef struct EventS_ {
 /** The C model of a Statement. */
 typedef struct StatementS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
 } StatementS;
 
 /** The C model of a transmit statement. */
 typedef struct TransmitS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     Reference left;     /* The left value. */
     Expression right;   /* The right value. */
 } TransmitS;
@@ -644,6 +648,8 @@ typedef struct TransmitS_ {
 /** The C model of a print statement. */
 typedef struct PrintS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     int num_args;       /* The number of arguments of the print. */
     Expression* args;   /* The arguments of the print. */
 } PrintS;
@@ -651,6 +657,8 @@ typedef struct PrintS_ {
 /** The C model of a hardware if statement. */
 typedef struct HIfS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     Expression condition; /* The condition. */
     Statement yes;      /* The statement executed if the condition is met. */
     int num_noifs;      /* The number of alternate conditions. */
@@ -662,6 +670,8 @@ typedef struct HIfS_ {
 /** The C model of a hardware case statement. */
 typedef struct HCaseS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     Expression value;   /* The value to match. */
     int num_whens;      /* The number of possible cases. */
     Expression* matches;/* The cases matching values. */
@@ -672,6 +682,8 @@ typedef struct HCaseS_ {
 /** The C model of a time wait statement. */
 typedef struct TimeWaitS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     // Expression delay;   /* The delay to wait in pico seconds. */
     unsigned long long delay; /* The delay to wait in pico seconds. */
 } TimeWaitS;
@@ -679,6 +691,8 @@ typedef struct TimeWaitS_ {
 /** The C model of a time repeat statement. */
 typedef struct TimeRepeatS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     long long number;   /* The number of interations, negative means infinity. */
     Statement statement;/* The statement to execute in loop. */
 } TimeRepeatS;
@@ -686,19 +700,23 @@ typedef struct TimeRepeatS_ {
 /** The C model of a time terminate statement. */
 typedef struct TimeTerminateS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
 } TimeTerminateS;
 
 
 /** The C model of an expression. */
 typedef struct ExpressionS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the expression. */
 } ExpressionS;
 
 /** The C model of a unary expression. */
 typedef struct UnaryS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the expression. */
+
     Value (*oper)(Value,Value); /* The unary operator. */
     Expression child;   /* The child. */
 } UnaryS;
@@ -706,7 +724,9 @@ typedef struct UnaryS_ {
 /** The C model of a binary expression. */
 typedef struct BinaryS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the expression. */
+
     Value (*oper)(Value,Value,Value); /* The binary operator. */
     Expression left;    /* The left value. */
     Expression right;   /* The right value. */
@@ -715,7 +735,9 @@ typedef struct BinaryS_ {
 /** The C model of a select expression. */
 typedef struct SelectS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the expression. */
+
     Expression select;  /* The selection value. */
     int num_choices;    /* The number of choices. */
     Expression* choices;/* The choices. */
@@ -724,7 +746,9 @@ typedef struct SelectS_ {
 /** The C model of a concat expression. */
 typedef struct ConcatS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the expression. */
+
     int dir;            /* The direction of the concat. */
     int num_exprs;      /* The number of sub expressions. */
     Expression* exprs;  /* The sub expressions. */
@@ -733,7 +757,9 @@ typedef struct ConcatS_ {
 /** The C model of a cast expression. */
 typedef struct CastS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the expression. */
+
     Expression child;   /* The child expression. */
 } CastS;
 
@@ -741,20 +767,25 @@ typedef struct CastS_ {
 /** The C model of a reference. */
 typedef struct ReferenceS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the reference. */
 } ReferenceS;
 
 /** The C model of a reference to an object. */
 typedef struct RefObjectS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the reference. */
+
     Object object;      /* The refered object. */
 } RefObjectS;
 
 /** The C model of an index reference. */
 typedef struct RefIndexS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the reference. */
+
     Expression index;   /* The index. */
     Reference ref;      /* The reference to access. */
 } RefIndexS;
@@ -762,7 +793,9 @@ typedef struct RefIndexS_ {
 /** The C model of a range reference (expression version!). */
 typedef struct RefRangeES_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the reference. */
+
     Expression first;   /* The first of the range. */
     Expression last;    /* The last of the range. */
     Reference ref;      /* The reference to access. */
@@ -771,7 +804,9 @@ typedef struct RefRangeES_ {
 /** The C model of a concat reference. */
 typedef struct RefConcatS_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
     Type type;          /* The type of the reference. */
+
     int dir;            /* The direction of the concat. */
     int num_refs;       /* The number of sub references. */
     Reference* refs;    /* The sub references. */
@@ -780,6 +815,8 @@ typedef struct RefConcatS_ {
 /** The C model of a charcter string. */
 typedef struct StringES_ {
     Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
     char* str;          /* A pointer the to C character string. */
 } StringES;
 

@@ -251,8 +251,9 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                             /* For each sub reference. */
                             for(int i=0; i < refc->num_refs; ++i) {
                                 /* Set up the transmit. */
-                                subtrans.left = refc->refs[i];
-                                long long size = type_width(subtrans.left->type);
+                                subtrans.left = refc->refs[refc->num_refs-i-1];
+                                unsigned long long size = type_width(subtrans.left->type);
+                                // printf("i=%i left=%p left->type=%p &left->type=%p right->kind=%i pos=%llu size=%llu\n",i,subtrans.left,subtrans.left->type,&(subtrans.left->type),right->kind,pos,size,size);fflush(stdout);
                                 subtrans.right = (Expression)get_value();
                                 subtrans.right = (Expression)read_range(
                                         right,pos,pos+size-1,

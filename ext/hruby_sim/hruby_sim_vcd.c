@@ -74,20 +74,24 @@ static void vcd_print_name(Object object) {
         case SCOPE:
         case SYSTEMI:
         case BLOCK:
-            /* Print the name if name. */
-            /* Trick: SystemT, SignalI, Scope and SystemI have the
-             * field name at the same place. */
-            if ((((Block)object)->name != NULL) &&
-                    strlen(((Block)object)->name)>0) {
-                char name[256];
-                strncpy(name,((Block)object)->name,256);
-                replace_char(name,':','$');
-                vcd_print("%s",name);
-            } else {
-                /* No name, use the address of the object as name generator.*/
-                vcd_print("x$%p",(void*)object);
+            {
+                /* Print the name if name. */
+                /* Trick: SystemT, Block, Scope and SystemI have the
+                 * field name at the same place. */
+                char* namep = object->kind == SIGNALI ? 
+                    ((SignalI)object)->name : ((Block)object)->name;
+                if (namep!=NULL &&
+                        strlen(namep)>0) {
+                    char name[256];
+                    strncpy(name,namep,256);
+                    replace_char(name,':','$');
+                    vcd_print("%s",name);
+                } else {
+                    /* No name, use the address of the object as name generator.*/
+                    vcd_print("x$%p",(void*)object);
+                }
+                break;
             }
-            break;
         default: /* Nothing to do */
             break;
     }

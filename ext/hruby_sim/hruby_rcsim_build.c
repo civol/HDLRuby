@@ -86,6 +86,7 @@ static VALUE RCSimPointer;
 
 /* My own realloc. */
 static void* my_realloc(void* pointer, size_t old_size, size_t new_size) {
+    // printf("my_realloc with old_size=%lu new_size=%lu\n",old_size,new_size);
     if(old_size >= new_size) { return pointer; }
     void* new_pointer = malloc(new_size);
     memcpy(new_pointer,pointer,old_size);
@@ -315,7 +316,7 @@ VALUE rcsim_make_signal(VALUE mod, VALUE name, VALUE type) {
     // printf("signal->name=%p\n",signal->name);
     // printf("Creating signal named=%s\n",signal->name);
     value_to_rcsim(TypeS,type,signal->type);
-    // printf("type width=%llu\n",type_width(signal->type));
+    // printf("&type=%p type=%p width=%llu\n",&(signal->type),signal->type,type_width(signal->type));
     signal->c_value = make_value(signal->type,0);
     // printf("signal->c_value=%p\n",signal->c_value);
     signal->c_value->signal = signal;
@@ -378,6 +379,7 @@ VALUE rcsim_make_transmit(VALUE mod, VALUE left, VALUE right) {
     // printf("transmit=%p\n",transmit);
     /* Set it up. */
     transmit->kind = TRANSMIT;
+    transmit->owner = NULL;
     value_to_rcsim(ReferenceS,left,transmit->left);
     value_to_rcsim(ExpressionS,right,transmit->right);
     /* Returns the C transmit embedded into a ruby VALUE. */
@@ -395,6 +397,7 @@ VALUE rcsim_make_print(VALUE mod) {
     // printf("print=%p\n",print);
     /* Set it up. */
     print->kind = PRINT;
+    print->owner = NULL;
     print->num_args = 0;
     print->args = NULL;
     /* Returns the C print embedded into a ruby VALUE. */
@@ -412,6 +415,7 @@ VALUE rcsim_make_timeWait(VALUE mod, VALUE unitV, VALUE delayV) {
     // printf("timeWait=%p\n",timeWait);
     /* Set it up. */
     timeWait->kind = TIME_WAIT;
+    timeWait->owner = NULL;
     /* Compute the delay. */
     unsigned long long delay;
     delay = NUM2LL(delayV);
@@ -441,6 +445,7 @@ VALUE rcsim_make_timeRepeat(VALUE mod, VALUE numberV, VALUE statementV) {
     // printf("timeRepeat=%p\n",timeRepeat); fflush(stdout);
     /* Set it up. */
     timeRepeat->kind = TIME_REPEAT;
+    timeRepeat->owner = NULL;
     /* Get and set the number of repeatition. */
     long long number;
     number = NUM2LL(numberV);
@@ -463,6 +468,7 @@ VALUE rcsim_make_timeTerminate(VALUE mod) {
     // printf("timeTerminate=%p\n",timeTerminate);
     /* Set it up. */
     timeTerminate->kind = TIME_TERMINATE;
+    timeTerminate->owner = NULL;
     /* Returns the C time terminate embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(TimeTerminateS,timeTerminate,res);
@@ -478,6 +484,7 @@ VALUE rcsim_make_hif(VALUE mod, VALUE conditionV, VALUE yesV, VALUE noV) {
     // printf("hif=%p\n",hif);
     /* Set it up. */
     hif->kind = HIF;
+    hif->owner = NULL;
     value_to_rcsim(ExpressionS,conditionV,hif->condition);
     value_to_rcsim(StatementS,yesV,hif->yes);
     if (TYPE(noV) == T_NIL)
@@ -502,6 +509,7 @@ VALUE rcsim_make_hcase(VALUE mod, VALUE valueV, VALUE defoltV) {
     // printf("hcase=%p\n",hcase);
     /* Set it up. */
     hcase->kind = HCASE;
+    hcase->owner = NULL;
     value_to_rcsim(ExpressionS,valueV,hcase->value);
     hcase->num_whens = 0;
     hcase->matches = NULL;
@@ -595,6 +603,7 @@ VALUE rcsim_make_cast(VALUE mod, VALUE type, VALUE child) {
     // printf("cast=%p\n",cast);
     /* Set it up. */
     cast->kind = CAST;
+    cast->owner = NULL;
     value_to_rcsim(TypeS,type,cast->type);
     value_to_rcsim(ExpressionS,child,cast->child);
     /* Returns the C cast embedded into a ruby VALUE. */
@@ -611,6 +620,7 @@ VALUE rcsim_make_unary(VALUE mod, VALUE type, VALUE operator, VALUE child) {
     // printf("unary=%p\n",unary);
     /* Set it up. */
     unary->kind = UNARY;
+    unary->owner = NULL;
     value_to_rcsim(TypeS,type,unary->type);
     switch(sym_to_char(operator)) {
         case (unsigned char)'~':         unary->oper = not_value; break;
@@ -632,6 +642,7 @@ VALUE rcsim_make_binary(VALUE mod, VALUE type, VALUE operator, VALUE left, VALUE
     // printf("binary=%p\n",binary);
     /* Set it up. */
     binary->kind = BINARY;
+    binary->owner = NULL;
     value_to_rcsim(TypeS,type,binary->type);
     switch(sym_to_char(operator)) {
         case (unsigned char)'+':         binary->oper = add_value; break;
@@ -668,6 +679,7 @@ VALUE rcsim_make_select(VALUE mod, VALUE type, VALUE sel) {
     // printf("select=%p\n",select);
     /* Set it up. */
     select->kind = SELECT;
+    select->owner = NULL;
     value_to_rcsim(TypeS,type,select->type);
     value_to_rcsim(ExpressionS,sel,select->select);
     select->num_choices = 0;
@@ -686,6 +698,7 @@ VALUE rcsim_make_concat(VALUE mod, VALUE type, VALUE dirV) {
     // printf("concat=%p\n",concat);
     /* Set it up. */
     concat->kind = CONCAT;
+    concat->owner = NULL;
     value_to_rcsim(TypeS,type,concat->type);
     concat->num_exprs = 0;
     concat->exprs = NULL;
@@ -704,6 +717,7 @@ VALUE rcsim_make_refConcat(VALUE mod, VALUE type, VALUE dirV) {
     // printf("refConcat=%p\n",refConcat);
     /* Set it up. */
     refConcat->kind = REF_CONCAT;
+    refConcat->owner = NULL;
     value_to_rcsim(TypeS,type,refConcat->type);
     refConcat->num_refs = 0;
     refConcat->refs = NULL;
@@ -722,6 +736,7 @@ VALUE rcsim_make_refIndex(VALUE mod, VALUE type, VALUE index, VALUE ref) {
     // printf("refIndex=%p\n",refIndex);
     /* Set it up. */
     refIndex->kind = REF_INDEX;
+    refIndex->owner = NULL;
     value_to_rcsim(TypeS,type,refIndex->type);
     value_to_rcsim(ExpressionS,index,refIndex->index);
     value_to_rcsim(ReferenceS,ref,refIndex->ref);
@@ -739,6 +754,7 @@ VALUE rcsim_make_refRange(VALUE mod, VALUE type, VALUE first, VALUE last, VALUE 
     // printf("refRange=%p\n",refRange);
     /* Set it up. */
     refRange->kind = REF_RANGE;
+    refRange->owner = NULL;
     value_to_rcsim(TypeS,type,refRange->type);
     value_to_rcsim(ExpressionS,first,refRange->first);
     value_to_rcsim(ExpressionS,last,refRange->last);
@@ -758,6 +774,7 @@ VALUE rcsim_make_stringE(VALUE mod, VALUE strV) {
     // printf("stringE=%p\n",stringE);
     /* Set it up. */
     stringE->kind = STRINGE;
+    stringE->owner = NULL;
     stringE->str   = strdup(StringValueCStr(strV));
     /* Returns the C character string embedded into a ruby VALUE. */
     VALUE res;
@@ -781,8 +798,8 @@ VALUE rcsim_add_systemT_inputs(VALUE mod, VALUE systemTV, VALUE sigVs) {
     // printf("first systemT->inputs=%p\n",systemT->inputs); fflush(stdout);
     // systemT->inputs=realloc(systemT->inputs,
     //         sizeof(SignalI[systemT->num_inputs]));
-    systemT->inputs=my_realloc(systemT->inputs,sizeof(SignalI[old_num]),
-            sizeof(SignalI[systemT->num_inputs]));
+    systemT->inputs=(SignalI*)my_realloc(systemT->inputs,
+            sizeof(SignalI[old_num]), sizeof(SignalI[systemT->num_inputs]));
     // printf("now systemT->inputs=%p\n",systemT->inputs); fflush(stdout);
     // printf("access test: %p\n",systemT->inputs[0]); fflush(stdout);
     /* Get and add the signals from the Ruby value. */
@@ -808,8 +825,8 @@ VALUE rcsim_add_systemT_outputs(VALUE mod, VALUE systemTV, VALUE sigVs) {
     // printf("first systemT->outputs=%p\n",systemT->outputs); fflush(stdout);
     // systemT->outputs =realloc(systemT->outputs,
     //         sizeof(SignalI[systemT->num_outputs]));
-    systemT->outputs =my_realloc(systemT->outputs,sizeof(SignalI[old_num]),
-            sizeof(SignalI[systemT->num_outputs]));
+    systemT->outputs =(SignalI*)my_realloc(systemT->outputs,
+            sizeof(SignalI[old_num]), sizeof(SignalI[systemT->num_outputs]));
     // printf("now systemT->outputs=%p\n",systemT->outputs); fflush(stdout);
     // printf("access test: %p\n",systemT->outputs[0]); fflush(stdout);
     /* Get and add the signals from the Ruby value. */
@@ -835,8 +852,8 @@ VALUE rcsim_add_systemT_inouts(VALUE mod, VALUE systemTV, VALUE sigVs) {
     // printf("first systemT->inouts=%p\n",systemT->inouts); fflush(stdout);
     // systemT->inouts =realloc(systemT->inouts,
     //         sizeof(SignalI[systemT->num_inouts]));
-    systemT->inouts =my_realloc(systemT->inouts,sizeof(SignalI[old_num]),
-            sizeof(SignalI[systemT->num_inouts]));
+    systemT->inouts =(SignalI*)my_realloc(systemT->inouts,
+            sizeof(SignalI[old_num]), sizeof(SignalI[systemT->num_inouts]));
     // printf("now systemT->inouts=%p\n",systemT->inouts); fflush(stdout);
     // printf("access test: %p\n",systemT->inouts[0]); fflush(stdout);
     /* Get and add the signals from the Ruby value. */
@@ -862,8 +879,8 @@ VALUE rcsim_add_scope_inners(VALUE mod, VALUE scopeV, VALUE sigVs) {
     // printf("first scope->inners=%p\n",scope->inners); fflush(stdout);
     // scope->inners = realloc(scope->inners,
     //         sizeof(SignalI[scope->num_inners]));
-    scope->inners = my_realloc(scope->inners,sizeof(SignalI[old_num]),
-            sizeof(SignalI[scope->num_inners]));
+    scope->inners = (SignalI*)my_realloc(scope->inners,
+            sizeof(SignalI[old_num]), sizeof(SignalI[scope->num_inners]));
     // printf("now scope->inners=%p\n",scope->inners); fflush(stdout);
     // printf("access test: %p\n",scope->inners[0]); fflush(stdout);
     /* Get and add the signals from the Ruby value. */
@@ -892,8 +909,8 @@ VALUE rcsim_add_scope_behaviors(VALUE mod, VALUE scopeV, VALUE behVs) {
     // printf("first scope->behaviors=%p\n",scope->behaviors); fflush(stdout);
     // scope->behaviors = realloc(scope->behaviors,
     //                            sizeof(Behavior[scope->num_behaviors]));
-    scope->behaviors = my_realloc(scope->behaviors,sizeof(Behavior[old_num]),
-                               sizeof(Behavior[scope->num_behaviors]));
+    scope->behaviors = (Behavior*)my_realloc(scope->behaviors,
+            sizeof(Behavior[old_num]), sizeof(Behavior[scope->num_behaviors]));
     // printf("now scope->behaviors=%p\n",scope->behaviors); fflush(stdout);
     // printf("access test: %p\n",scope->behaviors[0]); fflush(stdout);
     /* Get and add the behaviors from the Ruby value. */
@@ -919,8 +936,8 @@ VALUE rcsim_add_scope_systemIs(VALUE mod, VALUE scopeV, VALUE sysVs) {
     // printf("first scope->systemIs=%p\n",scope->systemIs); fflush(stdout);
     // scope->systemIs = realloc(scope->systemIs,
     //                            sizeof(SystemI[scope->num_systemIs]));
-    scope->systemIs = my_realloc(scope->systemIs,sizeof(SystemI[old_num]),
-                               sizeof(SystemI[scope->num_systemIs]));
+    scope->systemIs = (SystemI*)my_realloc(scope->systemIs,
+            sizeof(SystemI[old_num]), sizeof(SystemI[scope->num_systemIs]));
     // printf("now scope->systemIs=%p\n",scope->systemIs); fflush(stdout);
     // printf("access test: %p\n",scope->systemIs[0]); fflush(stdout);
     /* Get and add the system instances from the Ruby value. */
@@ -946,8 +963,8 @@ VALUE rcsim_add_scope_scopes(VALUE mod, VALUE scopeV, VALUE scpVs) {
     // printf("first scope->scopes=%p\n",scope->scopes); fflush(stdout);
     // scope->scopes = realloc(scope->scopes,
     //                         sizeof(Scope[scope->num_scopes]));
-    scope->scopes = my_realloc(scope->scopes,sizeof(Scope[old_num]),
-                            sizeof(Scope[scope->num_scopes]));
+    scope->scopes = (Scope*)my_realloc(scope->scopes,
+            sizeof(Scope[old_num]), sizeof(Scope[scope->num_scopes]));
     // printf("now scope->scopes=%p\n",scope->scopes); fflush(stdout);
     // printf("access test: %p\n",scope->scopes[0]); fflush(stdout);
     /* Get and add the sub scopes from the Ruby value. */
@@ -973,8 +990,8 @@ VALUE rcsim_add_behavior_events(VALUE mod, VALUE behaviorV, VALUE eventVs) {
     // printf("first behavior->events=%p\n",behavior->events); fflush(stdout);
     // behavior->events = realloc(behavior->events,
     //                            sizeof(Event[behavior->num_events]));
-    behavior->events = my_realloc(behavior->events,sizeof(Event[old_num]),
-                               sizeof(Event[behavior->num_events]));
+    behavior->events = (Event*)my_realloc(behavior->events,
+            sizeof(Event[old_num]), sizeof(Event[behavior->num_events]));
     // printf("now behavior->events=%p\n",behavior->events); fflush(stdout);
     // printf("access test: %p\n",behavior->events[0]); fflush(stdout);
     /* Get and add the events from the Ruby value. */
@@ -990,7 +1007,8 @@ VALUE rcsim_add_behavior_events(VALUE mod, VALUE behaviorV, VALUE eventVs) {
                 sig->num_any++;
     // printf("first sig->any=%p\n",sig->any); fflush(stdout);
                 // sig->any = realloc(sig->any,sizeof(Object[sig->num_any]));
-                sig->any = my_realloc(sig->any,sizeof(Object[sig->num_any-1]),sizeof(Object[sig->num_any]));
+                sig->any = (Object*)my_realloc(sig->any,
+                    sizeof(Object[sig->num_any-1]),sizeof(Object[sig->num_any]));
     // printf("now sig->any=%p\n",sig->any); fflush(stdout);
     // printf("access test: %p\n",sig->any[0]); fflush(stdout);
         // show_access(sig->any,sig->num_any-1);
@@ -1001,7 +1019,8 @@ VALUE rcsim_add_behavior_events(VALUE mod, VALUE behaviorV, VALUE eventVs) {
                 sig->num_pos++;
     // printf("first sig->pos=%p\n",sig->pos); fflush(stdout);
                 // sig->pos = realloc(sig->pos,sizeof(Object[sig->num_pos]));
-                sig->pos = my_realloc(sig->pos,sizeof(Object[sig->num_pos-1]),sizeof(Object[sig->num_pos]));
+                sig->pos = (Object*)my_realloc(sig->pos,
+                    sizeof(Object[sig->num_pos-1]),sizeof(Object[sig->num_pos]));
     // printf("now sig->pos=%p\n",sig->pos); fflush(stdout);
     // printf("access test: %p\n",sig->pos[0]); fflush(stdout);
         // show_access(sig->pos,sig->num_pos-1);
@@ -1012,7 +1031,8 @@ VALUE rcsim_add_behavior_events(VALUE mod, VALUE behaviorV, VALUE eventVs) {
                 sig->num_neg++;
     // printf("first sig->neg=%p\n",sig->neg); fflush(stdout);
                 // sig->neg = realloc(sig->neg,sizeof(Object[sig->num_neg]));
-                sig->neg = my_realloc(sig->neg,sizeof(Object[sig->num_neg-1]),sizeof(Object[sig->num_neg]));
+                sig->neg = (Object*)my_realloc(sig->neg,
+                    sizeof(Object[sig->num_neg-1]),sizeof(Object[sig->num_neg]));
     // printf("now sig->neg=%p\n",sig->neg); fflush(stdout);
     // printf("access test: %p\n",sig->neg[0]); fflush(stdout);
         // show_access(sig->neg,sig->num_neg-1);
@@ -1039,8 +1059,8 @@ VALUE rcsim_add_systemI_systemTs(VALUE mod, VALUE systemIV, VALUE sysVs) {
     // printf("first systemI->systems=%p\n",systemI->systems); fflush(stdout);
     // systemI->systems=realloc(systemI->systems,
     //         sizeof(SystemT[systemI->num_systems]));
-    systemI->systems=my_realloc(systemI->systems,sizeof(SystemT[old_num]),
-            sizeof(SystemT[systemI->num_systems]));
+    systemI->systems = (SystemT*)my_realloc(systemI->systems,
+            sizeof(SystemT[old_num]), sizeof(SystemT[systemI->num_systems]));
     // printf("now systemI->systems=%p\n",systemI->systems); fflush(stdout);
     // printf("access test: %p\n",systemI->systems[0]); fflush(stdout);
     /* Get and add the alternate system types from the Ruby value. */
@@ -1066,8 +1086,8 @@ VALUE rcsim_add_print_args(VALUE mod, VALUE printV, VALUE argVs) {
     // printf("first print->args=%p\n",print->args); fflush(stdout);
     // print->args = realloc(print->args,
     //                       sizeof(Expression[print->num_args]));
-    print->args = my_realloc(print->args,sizeof(Expression[old_num]),
-                          sizeof(Expression[print->num_args]));
+    print->args = (Expression*)my_realloc(print->args,
+            sizeof(Expression[old_num]), sizeof(Expression[print->num_args]));
     // printf("now print->args=%p\n",print->args); fflush(stdout);
     // printf("access test: %p\n",print->args[0]); fflush(stdout);
     /* Get and add the arguments from the Ruby value. */
@@ -1093,11 +1113,13 @@ VALUE rcsim_add_hif_noifs(VALUE mod, VALUE hifV, VALUE condVs, VALUE stmntVs) {
     // printf("first hif->noconds=%p\n",hif->noconds); fflush(stdout);
     // printf("first hif->nostmnts=%p\n",hif->nostmnts); fflush(stdout);
     // hif->noconds = realloc(hif->noconds,sizeof(Expression[hif->num_noifs]));
-    hif->noconds = my_realloc(hif->noconds,sizeof(Expression[old_num]),sizeof(Expression[hif->num_noifs]));
+    hif->noconds = (Expression*)my_realloc(hif->noconds,
+            sizeof(Expression[old_num]),sizeof(Expression[hif->num_noifs]));
     // printf("now hif->noconds=%p\n",hif->noconds); fflush(stdout);
     // printf("access test: %p\n",hif->noconds[0]); fflush(stdout);
     // hif->nostmnts = realloc(hif->nostmnts,sizeof(Statement[hif->num_noifs]));
-    hif->nostmnts = my_realloc(hif->nostmnts,sizeof(Statement[old_num]),sizeof(Statement[hif->num_noifs]));
+    hif->nostmnts = (Statement*)my_realloc(hif->nostmnts,
+            sizeof(Statement[old_num]),sizeof(Statement[hif->num_noifs]));
     // printf("now hif->nostmnts=%p\n",hif->nostmnts); fflush(stdout);
     // printf("access test: %p\n",hif->nostmnts[0]); fflush(stdout);
     /* Get and add the noifs from the Ruby value. */
@@ -1128,14 +1150,14 @@ VALUE rcsim_add_hcase_whens(VALUE mod, VALUE hcaseV, VALUE matchVs, VALUE stmntV
     // printf("first hcase->stmnts=%p\n",hcase->stmnts); fflush(stdout);
     // hcase->matches = realloc(hcase->matches,
     //                          sizeof(Expression[hcase->num_whens]));
-    hcase->matches = my_realloc(hcase->matches,sizeof(Expression[old_num]),
-                             sizeof(Expression[hcase->num_whens]));
+    hcase->matches = (Expression*)my_realloc(hcase->matches,
+            sizeof(Expression[old_num]), sizeof(Expression[hcase->num_whens]));
     // printf("now hcase->matches=%p\n",hcase->matches); fflush(stdout);
     // printf("access test: %p\n",hcase->matches[0]); fflush(stdout);
     // hcase->stmnts = realloc(hcase->stmnts,
     //                         sizeof(Statement[hcase->num_whens]));
-    hcase->stmnts = my_realloc(hcase->stmnts,sizeof(Statement[old_num]),
-                            sizeof(Statement[hcase->num_whens]));
+    hcase->stmnts = (Statement*)my_realloc(hcase->stmnts,
+            sizeof(Statement[old_num]), sizeof(Statement[hcase->num_whens]));
     // printf("now hcase->stmnts=%p\n",hcase->stmnts); fflush(stdout);
     // printf("access test: %p\n",hcase->stmnts[0]); fflush(stdout);
     /* Get and add the whens from the Ruby value. */
@@ -1165,8 +1187,8 @@ VALUE rcsim_add_block_inners(VALUE mod, VALUE blockV, VALUE sigVs) {
     // printf("first block->inners=%p\n",block->inners); fflush(stdout);
     // block->inners = realloc(block->inners,
     //         sizeof(SignalI[block->num_inners]));
-    block->inners = my_realloc(block->inners,sizeof(SignalI[old_num]),
-            sizeof(SignalI[block->num_inners]));
+    block->inners = (SignalI*)my_realloc(block->inners,
+            sizeof(SignalI[old_num]), sizeof(SignalI[block->num_inners]));
     // printf("now block->inners=%p\n",block->inners); fflush(stdout);
     // printf("access test: %p\n",block->inners[0]); fflush(stdout);
     /* Get and add the signals from the Ruby value. */
@@ -1192,8 +1214,8 @@ VALUE rcsim_add_block_statements(VALUE mod, VALUE blockV, VALUE stmntVs) {
     // printf("first block->stmnts=%p\n",block->stmnts); fflush(stdout);
     // block->stmnts = realloc(block->stmnts,
     //         sizeof(Statement[block->num_stmnts]));
-    block->stmnts = my_realloc(block->stmnts,sizeof(Statement[old_num]),
-            sizeof(Statement[block->num_stmnts]));
+    block->stmnts = (Statement*)my_realloc(block->stmnts,
+            sizeof(Statement[old_num]), sizeof(Statement[block->num_stmnts]));
     // printf("now block->stmnts=%p\n",block->stmnts); fflush(stdout);
     // printf("access test: %p\n",block->stmnts[0]); fflush(stdout);
     /* Get and add the statements from the Ruby value. */
@@ -1219,8 +1241,8 @@ VALUE rcsim_add_select_choices(VALUE mod, VALUE selectV, VALUE choiceVs) {
     // printf("first select->choices=%p\n",select->choices); fflush(stdout);
     // select->choices = realloc(select->choices,
     //         sizeof(Expression[select->num_choices]));
-    select->choices = my_realloc(select->choices,sizeof(Expression[old_num]),
-            sizeof(Expression[select->num_choices]));
+    select->choices = (Expression*)my_realloc(select->choices,
+            sizeof(Expression[old_num]),sizeof(Expression[select->num_choices]));
     // printf("now select->choices=%p\n",select->choices); fflush(stdout);
     // printf("access test: %p\n",select->choices[0]); fflush(stdout);
     /* Get and add the choices from the Ruby value. */
@@ -1247,8 +1269,8 @@ VALUE rcsim_add_concat_expressions(VALUE mod, VALUE concatV, VALUE exprVs) {
     // printf("first concat->exprs=%p\n",concat->exprs); fflush(stdout);
     // concat->exprs = realloc(concat->exprs,
     //         sizeof(Expression[concat->num_exprs]));
-    concat->exprs = my_realloc(concat->exprs,sizeof(Expression[old_num]),
-            sizeof(Expression[concat->num_exprs]));
+    concat->exprs = (Expression*)my_realloc(concat->exprs,
+            sizeof(Expression[old_num]), sizeof(Expression[concat->num_exprs]));
     // printf("now concat->exprs=%p\n",concat->exprs); fflush(stdout);
     // printf("access test: %p\n",concat->exprs[0]); fflush(stdout);
     /* Get and add the expressions from the Ruby value. */
@@ -1274,8 +1296,8 @@ VALUE rcsim_add_refConcat_refs(VALUE mod, VALUE refConcatV, VALUE refVs) {
     // printf("first refConcat->refs=%p\n",refConcat->refs); fflush(stdout);
     // refConcat->refs = realloc(refConcat->refs,
     //         sizeof(Reference[refConcat->num_refs]));
-    refConcat->refs = my_realloc(refConcat->refs,sizeof(Reference[old_num]),
-            sizeof(Reference[refConcat->num_refs]));
+    refConcat->refs = (Reference*)my_realloc(refConcat->refs,
+            sizeof(Reference[old_num]), sizeof(Reference[refConcat->num_refs]));
     // printf("now refConcat->refs=%p\n",refConcat->refs); fflush(stdout);
     // printf("access test: %p\n",refConcat->refs[0]); fflush(stdout);
     /* Get and add the references from the Ruby value. */
@@ -1284,6 +1306,7 @@ VALUE rcsim_add_refConcat_refs(VALUE mod, VALUE refConcatV, VALUE refVs) {
         // show_access(refConcat->refs,old_num+i);
         value_to_rcsim(ReferenceS,rb_ary_entry(refVs,i),ref);
         refConcat->refs[old_num + i] = ref;
+        // printf("ref=%p ref &type=%p type=%p width=%llu\n",ref,&(ref->type),ref->type,type_width(ref->type));
     }
     return refConcatV;
 }

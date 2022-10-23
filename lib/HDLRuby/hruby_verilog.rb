@@ -1602,7 +1602,6 @@ module HDLRuby::Low
 
             result = " " * spc # Indented based on space_count.
 
-            result = ""
             result << "case(#{self.value.to_verilog})\n"
 
             # n the case statement, each branch is partitioned by when. Process each time when.
@@ -1611,18 +1610,19 @@ module HDLRuby::Low
                 result << " " * (spc+3) + "#{whens.match.to_verilog}: "
 
                 if whens.statement.each_statement.count >= 1 then
-                    result << whens.statement.to_verilog(spc+3)
+                    result << whens.statement.to_verilog(spc+3) << "\n"
                 else
-                    result << "\n"
+                    result << ";\n"
                 end
             end
             if self.default then
+                result << " " * (spc+3) + "default: "
                 if self.default.each_statement.count >= 1 then
                     result << self.default.each_statement.map do |stmnt|
                         stmnt.to_verilog(spc+3)
-                    end.join("\n")
+                    end.join("\n") << "\n"
                 else
-                    result << "\n"
+                    result << ";\n"
                 end
             end
             result << " " * spc + "endcase\n" # Conclusion.
