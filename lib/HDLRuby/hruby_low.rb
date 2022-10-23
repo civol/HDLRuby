@@ -4718,6 +4718,10 @@ module HDLRuby::Low
                     content = HDLRuby::BitString.new(content.to_s)
                 end
                 @content = content 
+                if (@content.is_a?(Numeric) && self.type.unsigned?) then
+                    # Adjust the bits for unsigned.
+                    @content = @content & (2**self.type.width-1)
+                end
             end
         end
 

@@ -34,7 +34,6 @@ module HDLRuby
           :==, :!=, :<, :>, :<=, :>=, :<=>  ].
           each do |op|
             define_method(op) do |val|
-                # puts "op=#{op} value=#{value}"
                 # Ensures val is computable.
                 unless val.to_value? then
                     # Not computable, use the former method that generates
@@ -45,6 +44,7 @@ module HDLRuby
                 if self.content.is_a?(Numeric) && val.content.is_a?(BitString)
                     if val.content.specified? then
                         res_content = self.content.send(op,val.content.to_i)
+                        # puts "op=#{op} self.content=#{self.content} val.content=#{val.content.to_i} res_content=#{res_content}"
                     else
                         res_content = 
                             BitString.new(self.content).send(op,val.content)
@@ -52,7 +52,7 @@ module HDLRuby
                 else
                     # Generate the resulting content.
                     res_content = self.content.send(op,val.content)
-                    # puts "op=#{op} self.content=#{self.content} (#{self.content.class}) val.content=#{val.content} (#{val.content.class}) res_content=#{res_content} (#{res_content.class})"
+                    puts "op=#{op} self.content=#{self.content} (#{self.content.class}) val.content=#{val.content} (#{val.content.class}) res_content=#{res_content} (#{res_content.class})"
                 end
                 res_type = self.type.resolve(val.type)
                 # # Adjust the result content size.

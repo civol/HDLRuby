@@ -529,7 +529,7 @@ module HDLRuby::High
             # Set the mode.
             @mode = mode
             # puts "assign #{value.content} (#{value.content.class}) with self.type.width=#{self.type.width} while value.type.width=#{value.type.width}" if self.name.to_s.include?("idx")
-            # @f_value = value.cast(self.type) # Cast inserted by HDLRuby normally
+            @f_value = value.cast(self.type) # Cast not always inserted by HDLRuby normally
         end
 
         ## Assigns +value+ at +index+ (integer or range).
@@ -973,6 +973,9 @@ module HDLRuby::High
             # Recurse on the children.
             tmpl = self.left.execute(mode)
             tmpr = self.right.execute(mode)
+            if self.operator == :+ then
+                puts "oper=#{self.operator} tmpl=#{tmpl.content} tmpr=#{tmpr.content}"
+            end
             # Apply the operator.
             return tmpl.send(self.operator,tmpr)
         end
@@ -986,10 +989,18 @@ module HDLRuby::High
     class Select
         ## Execute the expression.
         def execute(mode)
+            unless @mask then
+                # Need to initialize the execution of the select.
+                width = (@choices.size-1).width
+                width = 1 if width == 0
+                @mask = 2**width - 1
+                @choices.concat([@choices[-1]] * (2**width-@choices.size))
+            end
             # Recurse on the select.
-            tmps = self.select.execute(mode)
+            tmps = self.select.execute(mode).to_i & @mask
+            puts "select tmps=#{tmps}, @choices.size=#{@choices.size}"
             # Recurse on the selection result.
-            return @choices[tmps.to_i].execute(mode)
+            return @choices[tmps].execute(mode)
         end
     end
 
