@@ -1524,7 +1524,14 @@ module HDLRuby::Low
         # Converts the system to Verilog code.
         def to_verilog
             # Outputs the first and second choices (choice (0) and choice (1)).
-            return "#{self.select.to_verilog} == 1 #{self.operator} #{self.get_choice(0).to_verilog} : #{self.get_choice(1).to_verilog}"
+            # return "#{self.select.to_verilog} == 1 #{self.operator} #{self.get_choice(0).to_verilog} : #{self.get_choice(1).to_verilog}"
+            res = ""
+            sels = self.select.to_verilog
+            @choices[0..-2].each_with_index do |choice,i|
+                res << "#{sels} == #{i} ? #{choice.to_verilog} : "
+            end
+            res << @choices[-1].to_verilog
+            return res
         end
     end
 
