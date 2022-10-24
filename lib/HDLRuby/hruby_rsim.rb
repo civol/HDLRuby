@@ -973,9 +973,6 @@ module HDLRuby::High
             # Recurse on the children.
             tmpl = self.left.execute(mode)
             tmpr = self.right.execute(mode)
-            if self.operator == :+ then
-                puts "oper=#{self.operator} tmpl=#{tmpl.content} tmpr=#{tmpr.content}"
-            end
             # Apply the operator.
             return tmpl.send(self.operator,tmpr)
         end
@@ -998,7 +995,7 @@ module HDLRuby::High
             end
             # Recurse on the select.
             tmps = self.select.execute(mode).to_i & @mask
-            puts "select tmps=#{tmps}, @choices.size=#{@choices.size}"
+            # puts "select tmps=#{tmps}, @choices.size=#{@choices.size}"
             # Recurse on the selection result.
             return @choices[tmps].execute(mode)
         end
