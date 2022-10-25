@@ -336,7 +336,7 @@ static Value set_numeric_value(Value src, Value dst);
  *  @param src the source value
  *  @param dst the destination value
  *  @return dst */
-extern Value copy_value_no_z(Value src, Value dst) {
+Value copy_value_no_z(Value src, Value dst) {
     /* set the status of the destination from the source. */
     // dst->type = src->type;
     /* Copy the data. */
@@ -432,7 +432,7 @@ static Value set_numeric_value(Value src, Value dst) {
 /** Sets a value to undefined.
  *  @param dst the destination value
  *  @return the destination value */
-static Value set_undefined_bitstring(Value dst) {
+Value set_undefined_bitstring(Value dst) {
     /* Compute the width of the result in bits. */
     unsigned long long width = type_width(dst->type);
 

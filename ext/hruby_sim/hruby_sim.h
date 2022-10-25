@@ -192,6 +192,12 @@ extern void set_value(Value value, int numeric, void* data);
  *  @param data the source data */
 extern Value make_set_value(Type type, int numeric, void* data);
 
+/** Make the size of a value able to store size ints.
+ *  @note The content of the value is lost!
+ *  @note do not change the type of the value, only its capacity.
+ *  @praam value the value to change
+ *  @param size the size to match */
+extern void resize_value(Value value, unsigned long long size);
 
 /** Computes the neg of a value.
  *  @param src the source value of the neg
@@ -367,6 +373,7 @@ extern Value copy_value(Value src, Value dst);
  *  @return dst */
 extern Value copy_value_no_z(Value src, Value dst);
 
+
 /** Testing if a value is 0.
  *  @param value the value to check 
  *  @return 1 if 0 and 0 otherwize */
@@ -376,6 +383,11 @@ extern int zero_value(Value value);
  *  @param value the value to check
  *  @return 1 if defined and 0 otherwize */
 extern int is_defined_value(Value value);
+
+/** Sets a value to undefined.
+ *  @param dst the destination value
+ *  @return the destination value */
+extern Value set_undefined_bitstring(Value dst);
 
 /** Testing if two values have the same content (the type is not checked).
  *  @param value0 the first value to compare

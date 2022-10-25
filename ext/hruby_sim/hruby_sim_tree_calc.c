@@ -67,6 +67,13 @@ Value calc_expression(Expression expr, Value res) {
                         /* Possible choice, proceed the computation. */
                         res = calc_expression(sexpr->choices[sel],res);
                     }
+                } else {
+                    /* Cannot compute, simply undefines the destination. */
+                    /* First ensure res has the right shape. */
+                    res->type = sexpr->choices[0]->type;
+                    resize_value(res,type_width(res->type));
+                    /* Then make it undefined. */
+                    set_undefined_bitstring(res);
                 }
                 free_value();
                 break;
@@ -182,7 +189,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 /* Compute the right value. */
                 Value right = get_value();
                 right = calc_expression(trans->right,right);
-                // printf("transmit to left=%p with kind=%d\n",trans->left,trans->left->kind);fflush(stdout);
+                // printf("transmit to left=%p with kind=%d and right=%p with kind=%d\n",trans->left,trans->left->kind,trans->right,trans->right->kind);fflush(stdout);
                 /* Depending on the left value. */
                 switch (trans->left->kind) {
                     case SIGNALI:
