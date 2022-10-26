@@ -2169,9 +2169,9 @@ module HDLRuby::Low
                     res << " " * (level+1)*3
                     res << "Value value = make_value("
                     self.type.to_c(res,level+1)
-                    res << ",0);\n"
-                    res << " " * (level+1)*3
-                    res << "value->numeric = 1;\n"
+                    res << ",1);\n"
+                    # res << " " * (level+1)*3
+                    # res << "value->numeric = 1;\n"
                     res << " " * (level+1)*3
                     res << "value->capacity = 0;\n"
                     res << " " * (level+1)*3
@@ -2202,10 +2202,11 @@ module HDLRuby::Low
             else
                 str = content.to_s.reverse
             end
+            str = str.ljust(self.type.width,str[-1])
             res << " " * (level+1)*3
             res << "Value value = make_value("
             self.type.to_c(res,level+1)
-            res << ",0);\n"
+            res << ",1);\n"
             res << " " * (level+1)*3
             res << "value->numeric = 0;\n"
             res << " " * (level+1)*3
