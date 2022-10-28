@@ -51,7 +51,9 @@ module HDLRuby
             elsif val.is_a?(Numeric) then
                 # Content is a numeric.
                 @content = []
-                if val > 0 then
+                if val == 0 then
+                    @content << 0
+                elsif val > 0 then
                     while val > 0 do
                         @content << (val & 1)
                         val /= 2
@@ -537,6 +539,7 @@ module HDLRuby
                     val = BitString.new(val)
                 end
                 vcontent = val.raw_content
+                # puts "vcontent=#{vcontent}"
                 width = vcontent.size > @content.size ? vcontent.size : @content.size
                 res_content = width.times.map do |i|
                     # Get the bits to compute with
