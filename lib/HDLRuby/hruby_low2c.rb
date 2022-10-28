@@ -924,9 +924,9 @@ module HDLRuby::Low
             if self.value then
                 # There is an initial value.
                 res << " " * (level+1)*3
-                # res << "copy_value("
-                # self.value.to_c_expr(res,level+2)
-                # res << ",signalI->c_value);\n"
+                res << "copy_value("
+                self.value.to_c_expr(res,level+2)
+                res << ",signalI->c_value);\n"
                 res << "copy_value("
                 self.value.to_c_expr(res,level+2)
                 res << ",signalI->f_value);\n"

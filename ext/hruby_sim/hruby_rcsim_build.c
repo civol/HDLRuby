@@ -1367,6 +1367,7 @@ VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE exprV) {
     value = calc_expression(expr,value);
     /* Copies the value. */
     signal->f_value = copy_value(value,signal->f_value);
+    signal->c_value = copy_value(value,signal->c_value);
     free_value();
     return signalV;
 }
