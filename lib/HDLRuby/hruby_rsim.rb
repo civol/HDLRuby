@@ -41,8 +41,8 @@ module HDLRuby::High
 
         ## Advance the global simulator.
         def advance
-            # Display the time
-            self.show_time
+            # # Display the time
+            # self.show_time
             shown_values = {}
             # Get the behaviors waiting on activated signals.
             until @sig_active.empty? do
@@ -92,6 +92,8 @@ module HDLRuby::High
                 # Advance time.
                 @time = (@timed_behaviors.min {|b0,b1|  b0.time <=> b1.time }).time
             end
+            # Display the time
+            self.show_time
         end
 
         ## Run the simulation from the current systemT and outputs the resuts
