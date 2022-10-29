@@ -481,13 +481,14 @@ static Value neg_value_bitstring(Value src, Value dst) {
         char d = src_data[count] - '0'; /* Get and convert to bit. */
         char res;
         if (d == (d&1)) { /* d is defined. */
+            d = 1-d;
             res = d ^ carry;
             carry = d & carry;
         } else {
             /* Undefined, end here. */
             break;
         }
-        dst_data[count] = res;
+        dst_data[count] = res + '0';
     }
     /* The remaining bits are undefined. */
     for(;count < width; ++count) {
@@ -507,6 +508,8 @@ static Value add_value_bitstring(Value src0, Value src1, Value dst) {
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
+
+    // printf("add_value_bitstring with width0=%llu width1=%llu\n",width0,width1);
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
@@ -645,13 +648,74 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
  *  @return dst */
 static Value mul_value_defined_bitstring(Value src0, Value src1, Value dst) {
     // printf("mul_value_defined_bitstring with src0=%llx src1=%llx\n",value2integer(src0),value2integer(src1));
-    /* Sets state of the destination using the first source. */
-    dst->type = src0->type;
-    dst->numeric = 1;
+    /* Get the width of the sources. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+    if (width0 <= 64 && width1 <= 64) {
+        /* Numeric computation is possible. */
+        /* Sets state of the destination using the first source. */
+        dst->type = src0->type;
+        dst->numeric = 1;
 
-    /* Perform the multiplication. */
-    dst->data_int = value2integer(src0) * value2integer(src1);
-    // printf("dst->data_int=%llx\n",dst->data_int);
+        /* Perform the multiplication. */
+        dst->data_int = value2integer(src0) * value2integer(src1);
+        // printf("dst->data_int=%llx\n",dst->data_int);
+    } else {
+        // printf("src0->data_str=%s\n",src0->data_str);
+        // printf("src1->data_str=%s\n",src1->data_str);
+        /* Bit string computation. */
+        unsigned int pos = get_value_pos();
+        /* Process the sign. */
+        int sgn1 = (src1->type->flags.sign) && (src1->data_str[width1-1] == '1');
+        Value psrc1;
+        // printf("first scr1->data_str=%s\n",src1->data_str);fflush(stdout);
+        if (sgn1) {
+            psrc1 = neg_value_bitstring(src1,get_value());
+        } else {
+            psrc1 = src1;
+        }
+        // printf("now pscr1->data_str=%s\n",psrc1->data_str);fflush(stdout);
+        /* Perform the multiplying with sucessive shifts and additions. */
+        /* First the result is zero. */
+        const char* str = psrc1->data_str;
+        Value acc = get_value();
+        ValueS sh;
+        memcpy(&sh,src0,sizeof(ValueS));
+        // printf("sh width=%llu\n",type_width(sh.type));
+        // printf("sh.data_str=%s\n",sh.data_str); 
+        resize_value(acc,width0);
+        acc->numeric = 0;
+        acc->type = src0->type;
+        memset(acc->data_str,'0',width0);
+        // printf("first acc->data_str=%s\n",acc->data_str);fflush(stdout);
+        /* The multiply loop. */
+        unsigned long long i;
+        for(i=0; i<width1-1; ++i) {
+            unsigned long long j;
+            /* Add is bit is 1. */
+            if (str[i] == '1')
+                acc = add_value_bitstring(acc,&sh,get_value());
+            /* Shift. */
+            for(j=0; j<(width0-i-1); ++j) {
+                sh.data_str[width0-j-1] = sh.data_str[width0-j-2];
+            }
+            sh.data_str[width0-j-1] = '0';
+        }
+        /* Last addition. */
+        if (str[i] == '1')
+            acc = add_value_bitstring(acc,&sh,get_value());
+        /* Mange the sign of the result. */
+        // printf("before acc->data_str=%s\n",acc->data_str);fflush(stdout);
+        if (sgn1) acc = neg_value_bitstring(acc,get_value());
+        // printf("finally acc->data_str=%s\n",acc->data_str);fflush(stdout);
+        /* Save the result. */
+        dst = copy_value(acc,dst);
+        // printf("acc width=%llu acc->data_str=%p\n",type_width(acc->type),acc->data_str);
+        // printf("dst width=%llu dst->data_str=%p\n",type_width(dst->type),dst->data_str);
+        // printf("finally dst->data_str=%s\n",dst->data_str);fflush(stdout);
+        /* Restores the pool of values. */
+        set_value_pos(pos);
+    }
     return dst;
 }
 
@@ -1165,8 +1229,8 @@ static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
 
 
 /** Computes the left shift of a bitstring value by a numeric value.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the shift
+ *  @param src1 the second source value of the shift
  *  @param dst the destination
  *  @return dst */
 static Value shift_left_value_bitstring_numeric(Value src0, Value src1, Value dst) {
@@ -1776,6 +1840,7 @@ static Value add_value_numeric(Value src0, Value src1, Value dst) {
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
+    // printf("add_value_numeric with width0=%llu width1=%llu\n",type_width(src0->type),type_width(src1->type));
 
     /* Perform the addition. */
     dst->data_int = fix_numeric_type(dst->type,src0->data_int + src1->data_int);
@@ -1971,8 +2036,8 @@ static Value equal_value_numeric(Value src0, Value src1, Value dst) {
 
     /* Perform the comparison. */
     dst->data_int = (src0->data_int == src1->data_int) ? 1 : 0;
-    // printf("scr0->data_int=%lld\n",src0->data_int);
-    // printf("scr1->data_int=%lld\n",src1->data_int);
+    // printf("src0->data_int=%lld\n",src0->data_int);
+    // printf("src1->data_int=%lld\n",src1->data_int);
     // printf("dst->data_int=%lld\n",dst->data_int);
     return dst;
 }
@@ -2282,6 +2347,28 @@ static Value cast_value_numeric(Value src, Type type, Value dst) {
  *  @return 1 if 0 and 0 otherwize */
 static int zero_value_numeric(Value value) {
     return value->data_int == 0;
+}
+
+/** Testing if a bitstring value is 0.
+ *  @param value the value to check.
+ *  @return 1 if 0 and 0 othewize. */
+static int zero_value_bitstring(Value value) {
+    unsigned long long width = type_width(value->type);
+    for(unsigned long long i=0;i<width; ++i) {
+        if (value->data_str[i] != '0') return 0;
+    }
+    return 1;
+}
+
+/** Testing if a numeric value is positive (or 0). */
+static int positive_value_numeric(Value value) {
+    return (value->type->flags.sign == 0) || ((long long)(value->data_int) >= 0);
+}
+
+/** Testing if a bitstring value is positive (or 0). */
+static int positive_value_bitstring(Value value) {
+    return (value->type->flags.sign == 0) || 
+        (value->data_str[type_width(value->type)-1] == '1');
 }
 
 
@@ -3104,8 +3191,7 @@ int zero_value(Value value) {
         /* The value is numeric. */
         return zero_value_numeric(value);
     } else {
-        /* The value cannot be reduced to numeric: cannot be 0. */
-        return 0;
+        return zero_value_bitstring(value);
     }
 }
 
@@ -3246,7 +3332,11 @@ unsigned long long value2integer(Value value) {
     unsigned long long width = type_width(value->type);
     /* If the value is numeric, just return its data as is. */
     if (value->numeric) {
-        return value->data_int & ~((unsigned long long)(-1LL) << width);
+        // printf("width=%llu\n",width);
+        if (width == 64)
+            return value->data_int;
+        else
+            return value->data_int & ~(0xFFFFFFFFFFFFFFFFULL << width);
     }
     /* Otherwise convert the bitstring to an integer if possible,
      * but return 0 in case of failure. */

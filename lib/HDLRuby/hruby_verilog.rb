@@ -1541,18 +1541,32 @@ module HDLRuby::Low
         # Converts the system to Verilog code.
         # If it is bit, it is b, and if it is int, it is represented by d. (Example: 4'b0000, 32'd1)
         def to_verilog(unknown = nil)
-            if self.type.base.name.to_s == "bit"
-                return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
-            elsif self.type.name.to_s == "integer"
-                str = self.content.to_verilog
-                if str[0] == "-" then
-                    # Negative value.
-                    return "-#{self.type.range.first + 1}'d#{str[1..-1]}"
+            # if self.type.base.name.to_s == "bit"
+            # if self.type.unsigned? then
+            #     # return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
+            #     return "#{self.type.width}'b#{self.content.to_verilog}"
+            # elsif self.type.name.to_s == "integer"
+            #     str = self.content.to_verilog
+            #     if str[0] == "-" then
+            #         # Negative value.
+            #         return "-#{self.type.range.first + 1}'d#{str[1..-1]}"
+            #     else
+            #         return "#{self.type.range.first + 1}'d#{str}"
+            #     end
+            # end
+            # return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
+            if self.content.is_a?(Numeric) then
+                if self.content < 0 then
+                    str = (2**self.type.width + self.content).to_s(2)
+                    str = "1" * (self.type.width-str.length) + str
                 else
-                    return "#{self.type.range.first + 1}'d#{str}"
+                    str = self.content.to_s(2)
+                    str = "0" * (self.type.width-str.length) + str
                 end
+                return "#{self.type.width}'b#{str}"
+            else
+                return "#{self.type.width}'b#{self.content.to_verilog}"
             end
-            return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
         end
         # How to use when simply obtaining the width
         def to_getrange

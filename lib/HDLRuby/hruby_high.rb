@@ -4674,7 +4674,11 @@ module HDLRuby::High
     class ::Integer
         # Converts to a new high-level expression.
         def to_expr
-            return Value.new(Integer,self)
+            if (self.bit_length <= 63) then
+                return Value.new(Integer,self)
+            else
+                return Value.new(TypeSigned.new(:"",self.bit_length..0),self)
+            end
         end
     end
     
@@ -5168,9 +5172,9 @@ module HDLRuby::High
 
 
     # Standard vector types.
-    Integer = TypeSigned.new(:integer)
+    Integer = TypeSigned.new(:integer,63..0)
     Char    = TypeSigned.new(:char,7..0)
-    Natural = TypeUnsigned.new(:natural)
+    Natural = TypeUnsigned.new(:natural,63..0)
     Bignum  = TypeSigned.new(:bignum,HDLRuby::Infinity..0)
     Real    = TypeFloat.new(:float)
 

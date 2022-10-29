@@ -2082,8 +2082,6 @@ module HDLRuby::Low
         ## Generates the content of the h file.
         # def to_ch
         def to_ch(res)
-            # res = ""
-            # return "extern Value #{Low2C.make_name(self)}();"
             res << "extern Value " << Low2C.make_name(self) << "();"
             return res
         end
@@ -2096,16 +2094,11 @@ module HDLRuby::Low
         def to_c_make(res,level = 0)
             # Check is the value maker is already present.
             maker = Low2C.make_name(self);
-            # return "" if @@made_values.include?(maker)
             return res if @@made_values.include?(maker)
             @@made_values.add(maker)
 
-            # The resulting string.
-            # res = ""
-
             # The header of the value generation.
             res << " " * level*3
-            # res << "Value " << Low2C.make_name(self) << "() {\n"
             res << "Value " << maker << "() {\n"
 
             # # Declares the data.
@@ -2192,10 +2185,17 @@ module HDLRuby::Low
                     return res
                 else
                     str = self.content.to_s(2)
-                    if str[-1] == "-" then
-                        str[-1] = "1"
-                    elsif str[-1] == "1" then
-                        str = "0" + str
+                    # if str[-1] == "-" then
+                    #     str[-1] = "1"
+                    # elsif str[-1] == "1" then
+                    #     str = "0" + str
+                    # end
+                    if self.content < 0 then
+                        str = (2**self.type.width + self.content).to_s(2)
+                        str = "1" * (self.type.width-str.length) + str
+                    else
+                        str = self.content.to_s(2)
+                        str = "0" * (self.type.width-str.length) + str
                     end
                     str.reverse!
                 end
