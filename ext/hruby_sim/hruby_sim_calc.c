@@ -661,12 +661,14 @@ static Value mul_value_defined_bitstring(Value src0, Value src1, Value dst) {
         dst->data_int = value2integer(src0) * value2integer(src1);
         // printf("dst->data_int=%llx\n",dst->data_int);
     } else {
+        // printf("mul with width0=%llu width1=%llu\n",width0,width1);
         // printf("src0->data_str=%s\n",src0->data_str);
         // printf("src1->data_str=%s\n",src1->data_str);
         /* Bit string computation. */
         unsigned int pos = get_value_pos();
         /* Process the sign. */
         int sgn1 = (src1->type->flags.sign) && (src1->data_str[width1-1] == '1');
+        // printf("sgn0=%d sgn1=%d\n",(src0->type->flags.sign) && (src0->data_str[width0-1] == '1'),sgn1);
         Value psrc1;
         // printf("first scr1->data_str=%s\n",src1->data_str);fflush(stdout);
         if (sgn1) {
@@ -706,8 +708,10 @@ static Value mul_value_defined_bitstring(Value src0, Value src1, Value dst) {
             acc = add_value_bitstring(acc,&sh,get_value());
         /* Mange the sign of the result. */
         // printf("before acc->data_str=%s\n",acc->data_str);fflush(stdout);
+        // printf("acc last bit=%d\n",acc->data_str[width0-1]);
         if (sgn1) acc = neg_value_bitstring(acc,get_value());
         // printf("finally acc->data_str=%s\n",acc->data_str);fflush(stdout);
+        // printf("acc last bit=%d\n",acc->data_str[width0-1]);
         /* Save the result. */
         dst = copy_value(acc,dst);
         // printf("acc width=%llu acc->data_str=%p\n",type_width(acc->type),acc->data_str);
@@ -1870,7 +1874,7 @@ static Value sub_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value mul_value_numeric(Value src0, Value src1, Value dst) {
-    // printf("mul_value_numeric with src0->data_int=%llx src1->data_int=%llx\n",src0->data_int, src1->data_int);
+    printf("mul_value_numeric with src0->data_int=%llx src1->data_int=%llx\n",src0->data_int, src1->data_int);
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
@@ -2593,8 +2597,7 @@ Value sub_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value mul_value(Value src0, Value src1, Value dst) {
-    // printf("mul_value with src0=%llx src1=%llx\n",value2integer(src0),value2integer(src1));
-    // printf("src0->numeric=%d src1->numeric=%d\n",src0->numeric,src1->numeric);
+    // printf("mul_value with src0->numeric=%d src1->numeric=%d\n",src0->numeric,src1->numeric);
     // printf("is_defined_value(src0)=%d is_defined_value(src1)=%d\n",is_defined_value(src0),is_defined_value(src1));
     /* Might allocate a new value so save the current pool state. */
     // unsigned int pos = get_value_pos();
@@ -2615,15 +2618,19 @@ Value mul_value(Value src0, Value src1, Value dst) {
             return mul_value_numeric(src0,src1,dst);
         }
     } else if (src1->numeric && is_defined_value(src0)) {
-        // /* src1 is numeric but src0 is a defined bitstring, convert src1 to
-        //  * bitstring. */
-        // src1 = set_bit_string_value(src1,get_value());
-        // /* And do a bitstring multiplying. */
-        // return mul_value_defined_bitstring(src0,src1,dst);
-            /* src0 is a defined bitstring, convert it to a numeric. */
+        if (type_width(src0->type) <= 64) {
+            /* src0 is aanot too big defined bitstring,
+             * convert it to a numeric. */
             src0 = set_numeric_value(src0,get_value());
             /* And do a numeri multiplying. */
             return mul_value_numeric(src0,src1,dst);
+        } else {
+            /* src1 is numeric but src0 is a defined bitstring, convert src1 to
+             * bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+            /* And do a bitstring multiplying. */
+            return mul_value_defined_bitstring(src0,src1,dst);
+        }
     } else if (is_defined_value(src0) && is_defined_value(src1)) {
         /* Both sources are defined bitstrings. */
         return mul_value_defined_bitstring(src0,src1,dst);
@@ -3161,13 +3168,14 @@ Value concat_value(unsigned int num, int dir, Value dst, ...) {
  *  @param dst the destination value
  *  @return dst */
 Value cast_value(Value src, Type type, Value dst) {
+    // printf("cast value from width=%llu to width=%llu\n",type_width(src->type),type_width(type));
     if (src->numeric) {
         /* The source is numeric. */
         /* Is the destination type small enough? */
-        if (type_width(type) <= 64)
+        if (type_width(type) <= 64) {
             /* Yes, keep numeric. */
             return cast_value_numeric(src,type,dst);
-        else {
+        } else {
             /* No, do it in bit string. */
             Value res = set_bitstring_value(src,get_value());
             // printf("res=%.*s\n",res->capacity,res->data_str);

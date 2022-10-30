@@ -1557,13 +1557,16 @@ module HDLRuby::Low
             # return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
             if self.content.is_a?(Numeric) then
                 if self.content < 0 then
-                    str = (2**self.type.width + self.content).to_s(2)
-                    str = "1" * (self.type.width-str.length) + str
+                    # str = (2**self.type.width + self.content).to_s(2)
+                    str = self.content.to_s(2)
+                    str = "0" * (self.type.width-str.length) + str[1..-1]
+                    return "-#{self.type.width}'b#{str}"
                 else
                     str = self.content.to_s(2)
                     str = "0" * (self.type.width-str.length) + str
+                    return "#{self.type.width}'b#{str}"
                 end
-                return "#{self.type.width}'b#{str}"
+                # return "#{self.type.width}'b#{str}"
             else
                 return "#{self.type.width}'b#{self.content.to_verilog}"
             end
