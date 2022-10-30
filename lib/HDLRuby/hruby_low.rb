@@ -4715,7 +4715,12 @@ module HDLRuby::Low
                 # converted to BitString.
                 unless content.is_a?(Numeric) or
                         content.is_a?(HDLRuby::BitString)
-                    content = HDLRuby::BitString.new(content.to_s)
+                    # content = HDLRuby::BitString.new(content.to_s)
+                    content = content.to_s
+                    if self.type.unsigned? && content[0] != 0 then
+                        content = "0#{content}"
+                    end
+                    content = HDLRuby::BitString.new(content)
                 end
                 @content = content 
                 if (@content.is_a?(Numeric) && self.type.unsigned?) then

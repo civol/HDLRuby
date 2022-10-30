@@ -187,10 +187,14 @@ module HDLRuby
                 if right >= left then
                     # puts "left=#{left} right=#{right}"
                     # Get the corresponding bits as a BitString
-                    return BitString.new(@content[left..right],:raw)
+                    # return BitString.new(@content[left..right],:raw)
+                    # set to positive.
+                    return BitString.new(@content[left..right]+[0],:raw)
                 else
                     # Get the corresponding bits as a BitString
-                    return BitString.new(@content[right..left].reverse,:raw)
+                    # return BitString.new(@content[right..left].reverse,:raw)
+                    # set to positive.
+                    return BitString.new(@content[right..left].reverse+[0],:raw)
                 end
             else
                 # Process the index.
