@@ -1559,7 +1559,7 @@ module HDLRuby::Low
                 if self.content < 0 then
                     # str = (2**self.type.width + self.content).to_s(2)
                     str = self.content.to_s(2)
-                    str = "0" * (self.type.width-str.length) + str[1..-1]
+                    str = "0" * (self.type.width-str.length+1) + str[1..-1]
                     return "-#{self.type.width}'b#{str}"
                 else
                     str = self.content.to_s(2)
@@ -1568,7 +1568,8 @@ module HDLRuby::Low
                 end
                 # return "#{self.type.width}'b#{str}"
             else
-                return "#{self.type.width}'b#{self.content.to_verilog}"
+                str = self.content.to_verilog
+                return "#{str.length}'b#{str}"
             end
         end
         # How to use when simply obtaining the width
