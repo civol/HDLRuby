@@ -4615,8 +4615,8 @@ module HDLRuby::Low
                 # Yes so it is also a left value if it is a sub ref.
                 if parent.respond_to?(:ref) then
                     # It might nor be a sub ref.
-                    # return parent.ref == self
-                    return parent.ref.eql?(self)
+                    # return parent.ref.eql?(self)
+                    return parent.ref.equal?(self)
                 else
                     # It is necessarily a sub ref (case of RefConcat for now).
                     return true
@@ -4624,8 +4624,8 @@ module HDLRuby::Low
             end
             # No, therefore maybe it is directly a left value.
             return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
-                    # parent.left == self
-                parent.left.eql?(self)
+                # parent.left.eql?(self)
+                parent.left.equal?(self)
         end
 
         # Tells if the expression is a right value.

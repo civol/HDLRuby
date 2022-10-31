@@ -725,12 +725,39 @@ module HDLRuby::Low
                 refs = self.block.each_node_deep.select do |node|
                     node.is_a?(RefName) && !node.leftvalue? && 
                         !node.parent.is_a?(RefName) 
+                    # node.is_a?(RefName) && !node.parent.is_a?(RefName) 
                 end.to_a
                 # Keep only one ref per signal.
-                refs.uniq! { |node| node.full_name }
+                refs.uniq! { |ref| ref.full_name }
+                # # Remove the intermediate left values if sequential.
+                # self.each_block_deep do |blk|
+                #     if blk.mode == :seq && !blk.parent.is_a?(Behavior) then
+                #         blk.each_node_deep do |node|
+                #             if node.is_a?(RefName) && node.leftvalue? &&
+                #                 !node.parent.is_a?(RefName) then
+                #                 puts "removing ref=#{node.full_name}"
+                #                 refs.delete_if {|ref| ref.full_name == node.full_name }
+                #             end
+                #         end
+                #     end
+                # end
+                # # Remove left values.
+                # lefts = refs.select {|ref| ref.leftvalue? }.map do |ref|
+                #     ref.full_name
+                # end
+                # puts "lefts=#{lefts}"
+                # puts "first refs.size=#{refs.size}"
+                # refs.delete_if { |ref| lefts.include?(ref.full_name) }
+                # puts "now refs.size=#{refs.size}"
+                # puts "refs=#{refs.map {|r| r.full_name}}"
                 # Remove the inner signals from the list.
-                self.block.each_inner do |inner|
-                    refs.delete_if {|r| r.name == inner.name }
+                # self.block.each_inner do |inner|
+                #     refs.delete_if {|r| r.name == inner.name }
+                # end
+                self.each_block_deep do |blk|
+                    blk.each_inner do |inner|
+                        refs.delete_if {|r| r.name == inner.name }
+                    end
                 end
                 # Generate the event.
                 events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
@@ -1856,7 +1883,7 @@ module HDLRuby::Low
         def to_c(res,level = 0)
             # The resulting string.
             res << " " * level*3
-            if (number < 0) then
+            if (self.number < 0) then
                 # Generate an infinite loop executing the block and waiting.
                 res << "for(;;) {\n"
             else
