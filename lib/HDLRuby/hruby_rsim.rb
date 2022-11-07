@@ -19,6 +19,11 @@ module HDLRuby::High
         # Tell if the simulation is in multithread mode or not.
         attr_reader :multithread
 
+        ## Add untimed objet +obj+
+        def add_untimed(obj)
+            @untimeds << obj
+        end
+
         ## Add timed behavior +beh+.
         #  Returns the id of the timed behavior.
         def add_timed_behavior(beh)
@@ -108,6 +113,8 @@ module HDLRuby::High
             # Initializes the time and signals execution buffers.
             @tim_exec = []
             @sig_exec = []
+            # Initilize the list of untimed objects.
+            @untimeds = []
             # Initialize the list of currently exisiting timed behavior.
             @timed_behaviors = []
             # Initialize the list of activated signals.
@@ -119,6 +126,9 @@ module HDLRuby::High
             self.init_sim(self)
             # Initialize the displayer.
             self.show_init(simout)
+
+            # Initialize the untimed objects.
+            self.init_untimeds
 
             # Is there more than one timed behavior.
             if @total_timed_behaviors <= 1 then
@@ -217,6 +227,17 @@ module HDLRuby::High
             self.each_signal { |sig| sig.init_sim(systemT) }
             # Recure on the scope.
             self.scope.init_sim(systemT)
+        end
+
+        ## Initialize the untimed objects.
+        def init_untimeds
+            @untimeds.each do |obj|
+                if obj.is_a?(Behavior) then
+                    obj.block.execute(:seq)
+                else
+                    obj.execute(:par)
+                end
+            end
         end
         
         ## Initialize run for executing +ruby_block+
@@ -350,6 +371,8 @@ module HDLRuby::High
 
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
+            # Add the behavior to the list of untimed objects.
+            systemT.add_untimed(self)
             # Process the sensitivity list.
             # Is it a clocked behavior?
             events = self.each_event.to_a
@@ -863,6 +886,8 @@ module HDLRuby::High
 
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
+            # Add the connection to the list of untimed objets.
+            systemT.add_untimed(self)
             # Recurse on the left.
             self.left.init_sim(systemT)
             # Process the sensitivity list.

@@ -266,6 +266,8 @@ VALUE rcsim_make_behavior(VALUE mod, VALUE timed) {
     } else {
         /* The behavior is not timed. */
         behavior->timed = 0;
+        /* It must be initialized though. */
+        register_init_behavior(behavior);
     }
     behavior->active_time = 0;
     behavior->thread = NULL;

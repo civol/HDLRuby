@@ -35,6 +35,15 @@ static List touched_signals_seq = &touched_signals_seq_content;
 static ListS activate_codes_content = { NULL, NULL }; 
 static List activate_codes = &activate_codes_content;
 
+
+/** The number of behavior to run for initialization (not the timed ones!). */
+static int num_init_behaviors = 0;
+/** The capacity of teh behavior to run for initialization. */
+static int cap_init_behaviors = 0;
+/** The behaviors to run for initialization (not the timed ones!). */
+static Behavior* init_behaviors = 0;
+
+
 /** The number of timed behaviors. */
 static int num_timed_behaviors = 0;
 /** The capacity of the timed behaviors. */
@@ -88,12 +97,33 @@ void register_timed_behavior(Behavior behavior) {
 }
 
 
+/** Adds a behavior for initialization (not timed!).
+ *  @param beh the behavior to register. */
+void register_init_behavior(Behavior beh) {
+    if (num_init_behaviors == cap_init_behaviors) {
+        if (cap_init_behaviors == 0) {
+            /* Need to create the array containing the behaviors. */
+            cap_init_behaviors = 100;
+            init_behaviors = calloc(cap_init_behaviors,sizeof(Behavior));
+        } else {
+            /* Need to increase the capacity. */
+            Behavior* new_behs = calloc(cap_init_behaviors*2,sizeof(Behavior));
+            memcpy(init_behaviors,init_behaviors,sizeof(Behavior[cap_init_behaviors]));
+            cap_init_behaviors *= 2;
+            init_behaviors=new_behs;
+        }
+    }
+    /* Add the behavior. */
+    init_behaviors[num_init_behaviors++] = beh;
+}
+
+
 /** Adds a signal for global processing. 
  *  @param signal the signal to register  */
 void register_signal(SignalI signal) {
     if (num_all_signals == cap_all_signals) {
         if (cap_all_signals == 0) {
-            /* Need to create the array containing the timed behaviors. */
+            /* Need to create the array containing the signals. */
             cap_all_signals = 100;
             all_signals = calloc(cap_all_signals,sizeof(SignalI));
         } else {
@@ -108,6 +138,23 @@ void register_signal(SignalI signal) {
     /* Add the signal. */
     all_signals[num_all_signals++] = signal;
 }
+
+
+
+/** Initial run of the behaviors to init. */
+void run_init_behaviors() {
+    int i;
+    for(i = 0; i<num_init_behaviors; ++i) {
+        Behavior beh = init_behaviors[i];
+#ifdef RCSIM
+        execute_statement((Statement)(beh->block),0,beh);
+#else
+        beh->block->function();
+#endif
+    }
+}
+
+
 
 
 /** Recursively update the signals until no (untimed) behavior are
@@ -427,7 +474,6 @@ void* behavior_run(void* arg) {
 
 /** Starts a signle timed behavior to run without the multi-threaded engine. */
 void hruby_sim_start_single_timed_behavior() {
-    int i;
     // printf("hruby_sim_start_single_timed_behaviors\n");fflush(stdout);
     /* Set in mono-thread mode. */
     sim_single_flag = 1;
@@ -494,11 +540,16 @@ void hruby_sim_core(char* name, void (*init_vizualizer)(char*),
     if (num_timed_behaviors == 1) {
         /* Initialize and touch all the signals. */
         hruby_sim_update_signals(); 
-        each_all_signal(&touch_signal);
+        // each_all_signal(&touch_signal);
+        run_init_behaviors();
         /* Only one timed behavior, no need of the multi-threaded engine. */
         hruby_sim_start_single_timed_behavior();
     } else {
         /* Use the multi-threaded engine. */
+        /* Initialize and touch all the signals. */
+        hruby_sim_update_signals(); 
+        // each_all_signal(&touch_signal);
+        run_init_behaviors();
         /* Start all the timed behaviors. */
         hruby_sim_start_timed_behaviors();
         // /* Activate the timed behavior that are on time. */
@@ -718,7 +769,6 @@ unsigned long long make_delay(int value, Unit unit) {
     }
     return -1;
 }
-
 
 
 

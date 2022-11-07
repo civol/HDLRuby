@@ -743,7 +743,7 @@ module HDLRuby::High
             # Create and add the events.
             rcevs = []
             self.right.each_node_deep do |node|
-                if node.is_a?(RefObject) then
+                if node.is_a?(RefObject) && !node.parent.is_a?(RefObject) then
                     ev = RCSim.rcsim_make_event(:anyedge,node.to_rcsim)
                     RCSim.rcsim_set_owner(ev,@rcbehavior)
                     rcevs << ev

@@ -688,6 +688,10 @@ module HDLRuby::Low
             if time then
                 res << " " * (level+1)*3
                 res << "register_timed_behavior(behavior);\n"
+            else
+                # Otherwise register it as a behavior to initialize. */
+                res << " " * (level+1)*3
+                res << "register_init_behavior(behavior);\n"
             end
 
             # Set the owner if any.

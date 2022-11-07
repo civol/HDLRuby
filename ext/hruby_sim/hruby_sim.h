@@ -847,6 +847,10 @@ extern SystemT top_system;
  *  @param behavior the timed behavior to register */
 extern void register_timed_behavior(Behavior behavior);
 
+/** Adds a behavior for initialization (not timed!).
+ *  @param beh the behavior to register. */
+extern void register_init_behavior(Behavior beh);
+
 /** Adds a signal for global processing. 
  *  @param signal the signal to register  */
 extern void register_signal(SignalI signal);
