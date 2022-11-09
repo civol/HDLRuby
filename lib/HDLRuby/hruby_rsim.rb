@@ -129,6 +129,7 @@ module HDLRuby::High
 
             # Initialize the untimed objects.
             self.init_untimeds
+            # puts "End of init_untimed."
 
             # Is there more than one timed behavior.
             if @total_timed_behaviors <= 1 then
@@ -235,7 +236,7 @@ module HDLRuby::High
                 if obj.is_a?(Behavior) then
                     obj.block.execute(:seq)
                 else
-                    obj.execute(:par)
+                    obj.execute(:seq)
                 end
             end
         end
@@ -553,7 +554,7 @@ module HDLRuby::High
             @f_value = value
             # Set the mode.
             @mode = mode
-            # puts "assign #{value.content} (#{value.content.class}) with self.type.width=#{self.type.width} while value.type.width=#{value.type.width}" if self.name.to_s.include?("idx")
+            # puts "assign #{value.content} (#{value.content.class}) with self.type.width=#{self.type.width} while value.type.width=#{value.type.width}" if self.name.to_s.include?("xnor")
             @f_value = value.cast(self.type) # Cast not always inserted by HDLRuby normally
         end
 
@@ -913,7 +914,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
-            # puts "connection = #{self}"
+            # puts "connection = #{self}" if self.left.is_a?(RefObject) && self.left.object.name.to_s.include?("xnor")
             self.left.assign(mode,self.right.execute(mode))
         end
     end

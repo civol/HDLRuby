@@ -4718,7 +4718,7 @@ module HDLRuby::Low
                     # content = HDLRuby::BitString.new(content.to_s)
                     content = content.to_s
                     if self.type.unsigned? && content[0] != 0 then
-                        content = "0#{content}"
+                        content = "0" + content.rjust(self.type.width,content[0])
                     end
                     content = HDLRuby::BitString.new(content)
                 end

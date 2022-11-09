@@ -52,7 +52,7 @@ module HDLRuby
                 else
                     # Generate the resulting content.
                     res_content = self.content.send(op,val.content)
-                    # puts "op=#{op} self.content=#{self.content} (#{self.content.to_i}) val.content=#{val.content} (#{val.content.to_i}) res_content=#{res_content} (#{res_content.class})"
+                    # puts "op=#{op} self.content=#{self.content} (#{self.content.to_i}) val.content=#{val.content} (#{val.content.to_i}) res_content=#{res_content} (#{res_content.class})" if op == :^
                 end
                 res_type = self.type.resolve(val.type)
                 # # Adjust the result content size.

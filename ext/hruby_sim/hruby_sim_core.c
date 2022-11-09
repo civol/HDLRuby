@@ -108,7 +108,7 @@ void register_init_behavior(Behavior beh) {
         } else {
             /* Need to increase the capacity. */
             Behavior* new_behs = calloc(cap_init_behaviors*2,sizeof(Behavior));
-            memcpy(init_behaviors,init_behaviors,sizeof(Behavior[cap_init_behaviors]));
+            memcpy(new_behs,init_behaviors,sizeof(Behavior[cap_init_behaviors]));
             cap_init_behaviors *= 2;
             init_behaviors=new_behs;
         }
@@ -147,6 +147,7 @@ void run_init_behaviors() {
     for(i = 0; i<num_init_behaviors; ++i) {
         Behavior beh = init_behaviors[i];
 #ifdef RCSIM
+        // printf("Going to initialize behavior=%p with block=%p\n",beh,beh->block);fflush(stdout);
         execute_statement((Statement)(beh->block),0,beh);
 #else
         beh->block->function();
