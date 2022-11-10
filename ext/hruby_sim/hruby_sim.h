@@ -1111,7 +1111,7 @@ extern Value binary(Value (*oper)(Value,Value,Value));
  *  @param num the number of values to select from.
  *  @return the destination.
  **/
-extern Value select(unsigned int num);
+extern Value hselect(unsigned int num);
 
 /** Cast calculation.
  *  @param typ the type to cast to.

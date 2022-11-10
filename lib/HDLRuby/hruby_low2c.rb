@@ -2630,7 +2630,7 @@ module HDLRuby::Low
             end
             # Compute the resulting selection.
             res << (" " * (level*3))
-            res << "select(#{expressions.size});\n"
+            res << "hselect(#{expressions.size});\n"
             # Restore the value pool state.
             res << (" " * (level*3)) << "RV;\n"
             return res
