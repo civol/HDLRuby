@@ -1874,7 +1874,7 @@ static Value sub_value_numeric(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value mul_value_numeric(Value src0, Value src1, Value dst) {
-    printf("mul_value_numeric with src0->data_int=%llx src1->data_int=%llx\n",src0->data_int, src1->data_int);
+    // printf("mul_value_numeric with src0->data_int=%llx src1->data_int=%llx\n",src0->data_int, src1->data_int);
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;

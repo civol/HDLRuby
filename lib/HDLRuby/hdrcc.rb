@@ -641,23 +641,23 @@ elsif $options[:clang] then
     # top_system = $top_system
     # Preprocess the HW description for valid C generation.
     $top_system.each_systemT_deep do |systemT|
-        HDLRuby.show "seq2seq step..."
+        HDLRuby.show? "seq2seq step..."
         # Coverts the par blocks in seq blocks to seq blocks to match
         # the simulation engine.
         systemT.par_in_seq2seq!
-        HDLRuby.show "#{Time.now}#{show_mem}"
-        HDLRuby.show "connections_to_behaviors step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "connections_to_behaviors step..."
         # Converts the connections to behaviors.
         systemT.connections_to_behaviors!
-        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show? "#{Time.now}#{show_mem}"
         # Break the RefConcat.
-        HDLRuby.show "concat_assigns step..."
+        HDLRuby.show? "concat_assigns step..."
         systemT.break_concat_assigns! 
-        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show? "#{Time.now}#{show_mem}"
         # Explicits the types.
-        HDLRuby.show "explicit_types step..."
+        HDLRuby.show? "explicit_types step..."
         systemT.explicit_types!
-        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show? "#{Time.now}#{show_mem}"
     end
     # Generate the C.
     if $options[:multiple] then
@@ -788,8 +788,12 @@ elsif $options[:clang] then
                 "   Then execute:\n   hruby_simulator"
         end
         # Use it.
+        HDLRuby.show "Compiling C code of the simulator..."
         Kernel.system("#{cc_cmd} -o3 -o hruby_simulator *.c -lpthread")
+        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show "Executing the simulator..."
         Kernel.system("./hruby_simulator")
+        HDLRuby.show "#{Time.now}#{show_mem}"
     end
 elsif $options[:verilog] then
     # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
@@ -800,25 +804,25 @@ elsif $options[:verilog] then
         # HDLRuby.show "casts_without_expression! step..."
         # systemT.casts_without_expression!
         # HDLRuby.show Time.now
-        HDLRuby.show "to_upper_space! step..."
+        HDLRuby.show? "to_upper_space! step..."
         systemT.to_upper_space!
-        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show? "#{Time.now}#{show_mem}"
     end
-    HDLRuby.show "to_global_space! step (global)..."
+    HDLRuby.show? "to_global_space! step (global)..."
     $top_system.to_global_systemTs!
-    HDLRuby.show "#{Time.now}#{show_mem}"
+    HDLRuby.show? "#{Time.now}#{show_mem}"
     $top_system.each_systemT_deep do |systemT|
         ## systemT.break_types!
         ## systemT.expand_types!
-        HDLRuby.show "par_in_seq2seq! step..."
+        HDLRuby.show? "par_in_seq2seq! step..."
         systemT.par_in_seq2seq!
-        HDLRuby.show "#{Time.now}#{show_mem}"
-        HDLRuby.show "initial_concat_to_timed! step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
-        HDLRuby.show "#{Time.now}#{show_mem}"
-        HDLRuby.show "with_port! step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "with_port! step..."
         systemT.with_port!
-        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show? "#{Time.now}#{show_mem}"
     end
     # # Verilog generation
     # $output << top_system.to_verilog
