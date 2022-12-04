@@ -198,22 +198,27 @@ module HDLRuby::High
                 end)
             end
 
-            # Create and add the behaviors.
-            if self.each_behavior.any? then
-                RCSim.rcsim_add_scope_behaviors(@rcscope,
-                                                self.each_behavior.map do |beh|
-                    # beh.to_rcsim(@rcscope)
-                    beh.to_rcsim(subowner)
-                end)
-            end
+            # # Create and add the behaviors.
+            # if self.each_behavior.any? then
+            #     RCSim.rcsim_add_scope_behaviors(@rcscope,
+            #                                     self.each_behavior.map do |beh|
+            #         # beh.to_rcsim(@rcscope)
+            #         beh.to_rcsim(subowner)
+            #     end)
+            # end
 
-            # Create and add the connections.
-            if self.each_connection.any? then
-                RCSim.rcsim_add_scope_behaviors(@rcscope, 
-                                                self.each_connection.map do |cxt|
-                    # cxt.to_rcsim(@rcscope)
-                    cxt.to_rcsim(subowner)
-                end)
+            # # Create and add the connections.
+            # if self.each_connection.any? then
+            #     RCSim.rcsim_add_scope_behaviors(@rcscope, 
+            #                                     self.each_connection.map do |cxt|
+            #         # cxt.to_rcsim(@rcscope)
+            #         cxt.to_rcsim(subowner)
+            #     end)
+            # end
+            rcbehs = self.each_behavior.map {|beh| beh.to_rcsim(subowner)} +
+                self.each_connection.map {|cxt| cxt.to_rcsim(subowner) }
+            if rcbehs.any? then
+                RCSim.rcsim_add_scope_behaviors(@rcscope,rcbehs)
             end
 
             # Create and add the codes.
@@ -755,9 +760,7 @@ module HDLRuby::High
 
             # Create and set the block.
             rcblock = RCSim.rcsim_make_block(:par)
-            # RCSim.rcsim_add_block_statement(
-            #     RCSim.rcsim_make_transmit(self.left.to_rcsim,
-            #                         self.right.to_rcsim))
+            RCSim.rcsim_set_owner(rcblock,@rcbehavior)
             # puts "self.left=#{self.left} self.right=#{self.right}"
             RCSim.rcsim_add_block_statements(rcblock,
                 [RCSim.rcsim_make_transmit(self.left.to_rcsim, self.right.to_rcsim)])

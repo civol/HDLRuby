@@ -201,16 +201,24 @@ Value make_value(Type type, int numeric) {
     /* Compute the size in words of the data contained in the value. */
     unsigned long long width = type_width(type);
     /* Allocate the value. */
-    Value res = calloc(1,sizeof(ValueS));
+    // Value res = calloc(1,sizeof(ValueS));
+    Value res = malloc(sizeof(ValueS));
+#ifdef RCSIM
+    res->kind = VALUEE;
+    res->owner = 0;
+#endif
     /* Allocates the data of the value. */
     if (!numeric) {
         /* Allocate the bit string and fill it with u (undefined) by default. */
-        res->data_str = malloc(sizeof(char)*width);
+        // res->data_str = malloc(sizeof(char)*width);
+        res->data_str = malloc(sizeof(char)*width+1);
         memset(res->data_str,'x',width);
+        res->data_str[width] = 0;
         /* And set its capacity to the type width. */
-        res->capacity = width;
+        res->capacity = width+1;
     } else {
         res->capacity = 0;
+        res->data_str = 0;
     }
 
     /* Initialize it. */
@@ -229,8 +237,8 @@ void resize_value(Value value, unsigned long long size) {
     if (value->capacity < size) {
         /* Resizing required, to limit frequent resize, double the
          * required new capacity. */
-        /* Free the former data. */
-        free(value->data_str);
+        /* Free the former data if required. */
+        if (value->capacity > 0) free(value->data_str);
         /* Reallocate it. */
         value->data_str = calloc(size*2,sizeof(char));
         /* Update the size. */

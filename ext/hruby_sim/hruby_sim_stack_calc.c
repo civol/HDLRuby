@@ -86,7 +86,8 @@ Value unary(Value (*oper)(Value,Value)) {
     // dst = oper(pop(),dst);
     // push(dst);
     // return dst;
-    return oper(pop(),peek());
+    Value v = pop();
+    return oper(v,peek());
 }
 
 /** Binary calculation.

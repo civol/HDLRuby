@@ -86,8 +86,8 @@ void register_timed_behavior(Behavior behavior) {
         } else {
             /* Need to increase the capacity. */
             Behavior* behaviors = calloc(cap_timed_behaviors*2,sizeof(Behavior));
-            // memcpy(behaviors,timed_behaviors,sizeof(Behavior)*cap_timed_behaviors);
             memcpy(behaviors,timed_behaviors,sizeof(Behavior[cap_timed_behaviors]));
+            free(timed_behaviors);
             timed_behaviors = behaviors;
             cap_timed_behaviors *= 2;
         }
@@ -110,6 +110,7 @@ void register_init_behavior(Behavior beh) {
             Behavior* new_behs = calloc(cap_init_behaviors*2,sizeof(Behavior));
             memcpy(new_behs,init_behaviors,sizeof(Behavior[cap_init_behaviors]));
             cap_init_behaviors *= 2;
+            free(init_behaviors);
             init_behaviors=new_behs;
         }
     }
@@ -129,9 +130,9 @@ void register_signal(SignalI signal) {
         } else {
             /* Need to increase the capacity. */
             SignalI* new_signals = calloc(cap_all_signals*2,sizeof(SignalI));
-            // memcpy(new_signals,all_signals,sizeof(SignalI)*cap_all_signals);
             memcpy(new_signals,all_signals,sizeof(SignalI[cap_all_signals]));
             cap_all_signals *= 2;
+            free(all_signals);
             all_signals=new_signals;
         }
     }
