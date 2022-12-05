@@ -19,7 +19,7 @@ Elem get_element(void* data) {
     /* Is the pool empty? */
     if (empty_list(&pool_elements)) {
         /* Yes, allocates a new element. */
-        elem = malloc(sizeof(ElemS));
+        elem = (Elem)malloc(sizeof(ElemS));
         elem->data = data;
         elem->next = NULL;
     } else {

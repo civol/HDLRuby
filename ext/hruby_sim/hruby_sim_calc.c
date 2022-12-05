@@ -83,7 +83,7 @@ static void add_hash_type(Type type) {
     List entry = hash_type[hvalue];
     if (!entry) {
         /* No entry, create a new one. */
-        entry = malloc(sizeof(List));
+        entry = (List)malloc(sizeof(ListS));
         entry = build_list(entry);
     }
     /* Adds the type to the entry. */
