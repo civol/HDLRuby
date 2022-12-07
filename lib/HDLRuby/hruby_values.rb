@@ -80,27 +80,29 @@ module HDLRuby
                     return self.send(orig_operator(op),val)
                 end
                 # Process left.
-                # unless left.is_a?(Numeric) || left.is_a?(BitString) then
-                #     left = left.to_value.content
-                # end
-                left = left.content
-                if left.is_a?(BitString) && !left.specified? then
-                    return self.class.new(self.type.base,
-                                          BitString::UNKNOWN.clone)
+                if left.is_a?(Value) then
+                    left = left.content
+                    if left.is_a?(BitString) && !left.specified? then
+                        return self.class.new(self.type.base,
+                                              BitString::UNKNOWN.clone)
+                    end
+                    # left = left.to_i
+                    left = self.trunc(left.to_i,val.first.type.width)
+                else
+                    left = left.to_i
                 end
-                # left = left.to_i
-                left = self.trunc(left.to_i,val.first.type.width)
                 # Process right.
-                # unless right.is_a?(Numeric) || right.is_a?(BitString) then
-                #     right = right.to_value.content
-                # end
-                right = right.content
-                if right.is_a?(BitString) && !right.specified? then
-                    return self.class.new(self.type.base,
-                                          BitString::UNKNOWN.clone)
+                if right.is_a?(Value) then
+                    right = right.content
+                    if right.is_a?(BitString) && !right.specified? then
+                        return self.class.new(self.type.base,
+                                              BitString::UNKNOWN.clone)
+                    end
+                    # right = right.to_i
+                    right = self.trunc(right.to_i,val.last.type.width)
+                else
+                    right = right.to_i
                 end
-                # right = right.to_i
-                right = self.trunc(right.to_i,val.last.type.width)
                 # Generate the resulting type.
                 res_type = self.type.base[(left-right+1).abs]
                 # Generate the resulting value.
@@ -124,18 +126,16 @@ module HDLRuby
                     return self.send(orig_operator(op),val)
                 end
                 # Process val.
-                index = val.content
-                if index.is_a?(BitString) && !index.specified? then
-                    return self.class.new(self.type.base,
-                                          BitString::UNKNOWN.clone)
+                if val.is_a?(Value) then
+                    index = val.content
+                    if index.is_a?(BitString) && !index.specified? then
+                        return self.class.new(self.type.base,
+                                              BitString::UNKNOWN.clone)
+                    end
+                    index = self.trunc(index.to_i,val.type.width)
+                else
+                    index = val.to_i
                 end
-                index = self.trunc(index.to_i,val.type.width)
-                # index = index.to_i
-                # if index >= self.type.size then
-                #     # puts "index=#{index}"
-                #     index %= self.type.size
-                #     # puts "now index=#{index}"
-                # end
                 # Generate the resulting type.
                 res_type = self.type.base
                 # Generate the resulting value.
