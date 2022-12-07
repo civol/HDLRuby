@@ -412,10 +412,14 @@ module HDLRuby
             return @specified
         end
 
-        # # Coerces.
-        # def coerce(other)
-        #     return [BitString.new(other),self]
-        # end
+        # Coerces.
+        def coerce(other)
+            if other.is_a?(Numeric) && self.specified? then
+                return [other,self.to_i]
+            else
+                return [BitString.new(other),self]
+            end
+        end
 
         # String conversion table.
         B2S_T = [ "0", "1", "z", "x" ]
