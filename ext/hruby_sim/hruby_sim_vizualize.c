@@ -63,8 +63,15 @@ void default_print_name(Object object) {
     }
     /* Depending on the kind of object. */
     switch(object->kind) {
-        case SYSTEMT:
         case SIGNALI:
+            /* Print the name if name. */
+            /* Trick: SystemT, SignalI, Scope and SystemI have the
+             * field name at the same place. */
+            if (((SignalI)object)->name != NULL) {
+                printf("%s",((SignalI)object)->name);
+            }
+            break;
+        case SYSTEMT:
         case SCOPE:
         case SYSTEMI:
             /* Print the name if name. */
@@ -73,6 +80,7 @@ void default_print_name(Object object) {
             if (((SystemI)object)->name != NULL) {
                 printf("%s",((SystemI)object)->name);
             }
+            break;
         default: /* Nothing to do */
             break;
     }
