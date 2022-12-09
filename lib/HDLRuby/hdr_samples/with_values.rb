@@ -11,7 +11,7 @@ system :with_values do
 
 
     timed do
-        v1  <= 0
+        v1  <= _b0
         v8  <= 0
         v16 <= 0
         v32 <= 0
@@ -19,7 +19,7 @@ system :with_values do
         v64 <= 0
         v96 <= 0
         !10.ns
-        v1  <= 1
+        v1  <= _b1
         v8  <= 1
         v16 <= 1
         v32 <= 1
@@ -27,7 +27,7 @@ system :with_values do
         v64 <= 1
         v96 <= 1
         !10.ns
-        v1  <= _1010[2]
+        v1  <= _b1010[2]
         v8  <= _uhFF00[12..4]
         !10.ns
         v8  <= 128

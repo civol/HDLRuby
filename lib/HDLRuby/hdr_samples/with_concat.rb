@@ -10,16 +10,16 @@ system :with_concat do
     val3 <= [val2,val0]
 
     timed do
-        val0 <= _1111
-        val1 <= _0000
+        val0 <= _b1111
+        val1 <= _b0000
         count <= 0
         !10.ns
-        val0 <= _1001
-        val1 <= _0110
+        val0 <= _b1001
+        val1 <= _b0110
         count <= 1
         !10.ns
-        val0 <= _1010
-        val1 <= _0101
+        val0 <= _b1010
+        val1 <= _b0101
         count <= 2
         !10.ns
     end

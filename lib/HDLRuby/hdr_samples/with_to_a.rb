@@ -52,26 +52,26 @@ system :with_to_a_bench do
     four2sixfour(:my_four2sixfour).(four,*(sixfour.to_a.reverse))
 
     timed do
-        val <= _01101010
+        val <= _b01101010
         res <= vals.reverse
         !10.ns
-        val64 <= _0110101001101010011010100110101001101010011010100110101001101010
+        val64 <= _b0110101001101010011010100110101001101010011010100110101001101010
         res64 <= val64s.reverse
         !10.ns
-        val <= _00000000
-        val64 <= _0000000000000000000000000000000000000000000000000000000000000000
+        val <= _b00000000
+        val64 <= _b0000000000000000000000000000000000000000000000000000000000000000
         !10.ns
         vals.each.with_index do |v,i|
-            v <= (i/2) & _1
+            v <= (i/2) & _b1
         end
         res <= val
         !10.ns
         val64s.each.with_index do |v,i|
-            v <= (i/2) & _1
+            v <= (i/2) & _b1
         end
         res64 <= val64
         !10.ns
-        val <= _01010011
+        val <= _b01010011
         !10.ns
         8.times do |i|
             val64s[i] <= val[i]
@@ -80,11 +80,11 @@ system :with_to_a_bench do
         end
         res64 <= val64
         !10.ns
-        four <= _0000
+        four <= _b0000
         !10.ns
-        four <= _0001
+        four <= _b0001
         !10.ns
-        four <= _1100
+        four <= _b1100
         !10.ns
     end
 end

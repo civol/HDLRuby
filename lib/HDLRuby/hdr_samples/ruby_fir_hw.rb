@@ -50,13 +50,13 @@ system :work do
 
     # The input memory.
     mem_rom([8],8,clk,rst,
-            [_00000001,_00000010,_00000011,_00000100,
-             _00000101,_00000110,_00000111,_00001000]).(:iMem)
+            [_b00000001,_b00000010,_b00000011,_b00000100,
+             _b00000101,_b00000110,_b00000111,_b00001000]).(:iMem)
     # The output memory.
     mem_dual([8],8,clk,rst).(:oMem)
     # The coefficients.
-    coefs = [_11001100,_00110011,_10101010,_01010101,
-             _11110000,_00001111,_11100011,_00011100]
+    coefs = [_b11001100,_b00110011,_b10101010,_b01010101,
+             _b11110000,_b00001111,_b11100011,_b00011100]
 
     # The filter
     fir([8],iMem.branch(:rinc),oMem.branch(:winc),coefs).(:my_fir).(clk,rst,req,ack)

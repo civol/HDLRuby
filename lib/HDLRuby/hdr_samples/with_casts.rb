@@ -6,9 +6,9 @@ system :with_cast do
     [9].inner :val2,:val3
 
     timed do
-        val0 <= _11111111
-        val1 <= _00000010
-        val3 <= _000000000
+        val0 <= _b11111111
+        val1 <= _b00000010
+        val3 <= _b000000000
         count <= 0
         !10.ns
         count <= 1

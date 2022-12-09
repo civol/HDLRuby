@@ -2,7 +2,7 @@
 
 
 function :func do |addr|
-    bit[4][-4].constant tbl: [ _1000, _1001, _1010, _1011 ]
+    bit[4][-4].constant tbl: [ _b1000, _b1001, _b1010, _b1011 ]
     
     tbl[addr]
 end
@@ -10,9 +10,11 @@ end
 
 system :with_func do
     [4].inner :addr, :val
+    # bit[4][-4].constant tbl: [ _b1000, _b1001, _b1010, _b1011 ]
 
     val <= func(addr)
     # val <= 1
+    # val <= tbl[addr]
 
     timed do
         addr <= 0

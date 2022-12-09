@@ -2,9 +2,9 @@
 # A benchmark for testing the terminate statement.
 system :with_terminate do
     [8].constant cst0: 127
-    constant cst1: _1
-    [8].inner sig0: _10000000
-    inner sig1: _1
+    constant cst1: _b1
+    [8].inner sig0: _b10000000
+    inner sig1: _b1
     [8].inner :sig2
     [8].inner count: 0
 

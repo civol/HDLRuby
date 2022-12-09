@@ -20,13 +20,13 @@ system :with_concat do
     val6 <= bs.reduce(:+)
 
     timed do
-        val0 <= _1111000011110000
+        val0 <= _b1111000011110000
         count <= 0
         !10.ns
-        val0 <= _0000111100001111
+        val0 <= _b0000111100001111
         count <= 1
         !10.ns
-        val0 <= _1010101010101010
+        val0 <= _b1010101010101010
         count <= 2
         !10.ns
     end
