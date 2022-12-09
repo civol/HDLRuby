@@ -38,7 +38,7 @@ module HDLRuby
                 unless val.to_value? then
                     # Not computable, use the former method that generates
                     # HDLRuby code.
-                    return self.send(orig_operator(op),value)
+                    return self.send(orig_operator(op),val)
                 end
                 # Handle Numeric op BitString case.
                 if self.content.is_a?(Numeric) && val.content.is_a?(BitString)
