@@ -437,7 +437,7 @@ system :sumprod do |typ,coefs|
    typ[coefs.size].input :ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_0) do |sum,(coef,i)|
+   o <= coefs.each_with_index.reduce(_b0) do |sum,(coef,i)|
       sum + ins[i]*coef
    end
 end
@@ -446,7 +446,7 @@ end
 In the code above, there are two generic parameters,
 `typ`, which indicates the data type of the circuit, and `coefs`, which is assumed to be an array of coefficients. Since the number of inputs depends on the number of provided coefficients, it is declared as an array of `width` bit signed whose size is equal to the number of coefficients.
 
-The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` simply performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_0` initializes the sum to `0`.
+The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` simply performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_b0` initializes the sum to `0`.
 
 While slightly longer than the previous description, this description allows declaring a circuit implementing a sum of products with any bit width and any number of coefficients. For instance, the following code describes a signed 32-bit sum of products with  16 coefficients (just random numbers here).
 
@@ -463,7 +463,7 @@ system :sumprod_func do |typ,coefs|
    typ[coefs.size].input ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_0) do 
+   o <= coefs.each_with_index.reduce(_b0) do 
    |sum,(coef,i)|
       add(sum, mult(ins[i]*coef))
    end
@@ -509,7 +509,7 @@ system :sumprod_proc do |add,mult,typ,coefs|
    typ[coefs.size].input ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_0) do 
+   o <= coefs.each_with_index.reduce(_b0) do 
    |sum,(coef,i)|
       add.(sum, mult.(ins[i]*coef))
    end
@@ -1438,7 +1438,7 @@ The vector type specifiers are the followings:
 
 The base specifiers are the followings:
 
- - `b`: binary, can be omitted,
+ - `b`: binary,
 
  - `o`: octal,
  
@@ -1452,7 +1452,6 @@ For example, all the following immediate values represent an 8-bit `100` (either
 _bb01100100
 _b8b1100100
 _b01100100
-_01100100
 _u8d100
 _s8d100
 _uh64
@@ -1460,6 +1459,8 @@ _s8o144
 ```
 
 __Notes__:
+
+ - `_01100100` used to be considered as equivalent to `_b01100100`, however due to compatibility troubles with recent version of Ruby it is considered deprecated.
 
  - Ruby immediate values can also be used, their bit width is automatically adjusted to match the data type of the expression they are used in. Please notice this adjusting may change the value of the immediate, for example, the following code will set `sig` to 4 instead of 100:
 
