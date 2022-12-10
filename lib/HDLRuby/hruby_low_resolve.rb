@@ -219,10 +219,9 @@ module HDLRuby::Low
         #  corresponding object.
         #  NOTE: return nil if could not resolve.
         def resolve
-            # puts "Resolve with #{self} and name=#{self.name}"
+            # puts "Resolve with #{self} and name=#{self.name} and ref=#{self.ref.class}"
             # First resolve the sub reference if possible.
             if self.ref.is_a?(RefName) then
-                # puts "ref name=#{self.ref.name}"
                 obj = self.ref.resolve
                 # puts "obj=#{obj}"
                 # Look into the object for the name.

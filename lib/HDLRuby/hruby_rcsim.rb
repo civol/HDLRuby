@@ -17,7 +17,6 @@ module HDLRuby::High
 
         ## Gives the width of an int in the current computer.
         def self.int_width
-            # puts "int_width=#{[1.to_i].pack("i").size*8}"
             return [1.to_i].pack("i").size*8
         end
 
@@ -198,6 +197,18 @@ module HDLRuby::High
                 end)
             end
 
+            # Create and add the sub scopes.
+            # self.each_scope do |sub|
+            #     rcsub = sub.to_rcsim(@rcscope)
+            #     RCSim.rcsim_add_scope_scope(@rcscope,rcsub)
+            # end
+            if self.each_scope.any? then
+                RCSim.rcsim_add_scope_scopes(@rcscope,self.each_scope.map do|sub|
+                    # sub.to_rcsim(@rcscope)
+                    sub.to_rcsim(subowner)
+                end)
+            end
+
             # # Create and add the behaviors.
             # if self.each_behavior.any? then
             #     RCSim.rcsim_add_scope_behaviors(@rcscope,
@@ -223,18 +234,6 @@ module HDLRuby::High
 
             # Create and add the codes.
             # TODO!!
-
-            # Create and add the sub scopes.
-            # self.each_scope do |sub|
-            #     rcsub = sub.to_rcsim(@rcscope)
-            #     RCSim.rcsim_add_scope_scope(@rcscope,rcsub)
-            # end
-            if self.each_scope.any? then
-                RCSim.rcsim_add_scope_scopes(@rcscope,self.each_scope.map do|sub|
-                    # sub.to_rcsim(@rcscope)
-                    sub.to_rcsim(subowner)
-                end)
-            end
 
             return @rcscope
         end

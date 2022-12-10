@@ -38,7 +38,7 @@ module HDLRuby::High
             # puts "eigen_extend for #{self} class=#{self.class}"
             obj.singleton_methods.each do |name|
                 next if name == :yaml_tag # Do not know why we need to skip
-                puts "name=#{name}"
+                # puts "name=#{name}"
                 self.define_singleton_method(name, &obj.singleton_method(name))
             end
         end
@@ -401,6 +401,11 @@ module HDLRuby::High
         def to_user
             # Returns the scope.
             return @scope
+        end
+
+        # Converts to a new reference.
+        def to_ref
+            return RefObject.new(this,self)
         end
 
         # Creates and adds a set of inputs typed +type+ from a list of +names+.
@@ -3370,8 +3375,19 @@ module HDLRuby::High
         def to_low
             # puts "to_low with base=#{@base} @object=#{@object}"
             # puts "@object.name=#{@object.name}"
-            refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
+            if @base.is_a?(RefThis) && 
+                    (@object.parent != High.top_user) &&
+                    (@object.parent != High.cur_system) &&
+                    (!@object.parent.name.empty?) then
+                # Need to have a hierachical access.
+                # puts "Indirect access for #{self.object.name}: #{self.object.parent.name}(#{self.object.parent.class}) != #{High.cur_system.name}(#{High.top_user.class})"
+                refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
+                                                     @object.parent.to_ref.to_low,@object.name)
+            else
+                # Direct access is enough.
+                refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                              @base.to_ref.to_low,@object.name)
+            end
             # # For debugging: set the source high object 
             # refNameL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = refNameL
