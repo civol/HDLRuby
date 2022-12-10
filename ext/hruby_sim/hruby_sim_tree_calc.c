@@ -399,6 +399,11 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 }
                 break;
             }
+        case TIME_TERMINATE:
+            {
+                terminate();
+                break;
+            }
         case BLOCK:
             {
                 Block block = (Block)stmnt;
