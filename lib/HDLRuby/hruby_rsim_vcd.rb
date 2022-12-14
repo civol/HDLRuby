@@ -94,9 +94,10 @@ module HDLRuby::High
 
         ## Gets the VCD variables with their long name.
         def get_vars_with_fullname(vars_with_fullname = {})
-            # Adds the signals of the interface of the system.
+            # Recurse on the signals.
             self.each_signal do |sig|
-                vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
+                sig.get_vars_with_fullname(vars_with_fullname)
+                # vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
             end
             # Recurse on the scope.
             return self.scope.get_vars_with_fullname(vars_with_fullname)
@@ -104,9 +105,13 @@ module HDLRuby::High
 
         ## Gets the VCD variables with their id string.
         def get_vars_with_idstr(vars_with_idstr = {})
-            # Adds the signals of the interface of the system.
+            # # Adds the signals of the interface of the system.
+            # self.each_signal do |sig|
+            #     vars_with_idstr[sig] = HDLRuby::High.vcd_idstr(sig)
+            # end
+            # Recurse on the signals.
             self.each_signal do |sig|
-                vars_with_idstr[sig] = HDLRuby::High.vcd_idstr(sig)
+                sig.get_vars_with_idstr(vars_with_idstr)
             end
             # Recurse on the scope.
             return self.scope.get_vars_with_idstr(vars_with_idstr)
@@ -119,11 +124,11 @@ module HDLRuby::High
             vcdout << "$scope module #{HDLRuby::High.vcd_name(self.name)} $end\n"
             # Shows the interface signals.
             self.each_signal do |sig|
-                # puts "showing signal #{HDLRuby::High.vcd_name(sig.fullname)}"
-                vcdout << "$var wire #{sig.type.width} "
-                # vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
-                vcdout << "#{HDLRuby::High.vcd_idstr(sig)} "
-                vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
+                sig.show_hierarchy(vcdout)
+                # # puts "showing signal #{HDLRuby::High.vcd_name(sig.fullname)}"
+                # vcdout << "$var wire #{sig.type.width} "
+                # vcdout << "#{HDLRuby::High.vcd_idstr(sig)} "
+                # vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
             end
             # Recurse on the scope.
             self.scope.show_hierarchy(vcdout)
@@ -170,11 +175,12 @@ module HDLRuby::High
             end
             # Shows the inner signals.
             self.each_inner do |sig|
-                # puts "showing inner signal #{HDLRuby::High.vcd_name(sig.fullname)}"
-                vcdout << "$var wire #{sig.type.width} "
-                # vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
-                vcdout << "#{HDLRuby::High.vcd_idstr(sig)} "
-                vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
+                sig.show_hierarchy(vcdout)
+                # # puts "showing inner signal #{HDLRuby::High.vcd_name(sig.fullname)}"
+                # vcdout << "$var wire #{sig.type.width} "
+                # # vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
+                # vcdout << "#{HDLRuby::High.vcd_idstr(sig)} "
+                # vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
             end
             # Recurse on the behaviors' blocks
             self.each_behavior do |beh|
@@ -196,9 +202,14 @@ module HDLRuby::High
 
         ## Gets the VCD variables with their long name.
         def get_vars_with_fullname(vars_with_fullname = {})
-            # Adds the inner signals.
+            # # Adds the inner signals.
+            # self.each_inner do |sig|
+            #     vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
+            # end
+            # Recurse on the inner signals.
             self.each_inner do |sig|
-                vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
+                sig.get_vars_with_fullname(vars_with_fullname)
+                # vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
             end
             # Recurse on the behaviors' blocks
             self.each_behavior do |beh|
@@ -217,9 +228,13 @@ module HDLRuby::High
 
         ## Gets the VCD variables with their id string.
         def get_vars_with_idstr(vars_with_idstr = {})
-            # Adds the inner signals.
+            # # Adds the inner signals.
+            # self.each_inner do |sig|
+            #     vars_with_idstr[sig] = HDLRuby::High.vcd_idstr(sig)
+            # end
+            # Recurse on the inner signals.
             self.each_inner do |sig|
-                vars_with_idstr[sig] = HDLRuby::High.vcd_idstr(sig)
+                sig.get_vars_with_idstr(vars_with_idstr)
             end
             # Recurse on the behaviors' blocks
             self.each_behavior do |beh|
@@ -237,6 +252,53 @@ module HDLRuby::High
         end
     end
 
+    ##
+    # Enhance the signals class with VCD support.
+    module SimSignal
+        ## Shows the hierarchy of the variables.
+        def show_hierarchy(vcdout)
+            # puts "show_hierarcy for signal=#{self.name}"
+            if self.each_signal.any? then
+                # The signal is hierarchical, recurse on the sub signals.
+                vcdout << "$scope module #{HDLRuby::High.vcd_name(self.name)} $end\n"
+                self.each_signal { |sig| sig.show_hierarchy(vcdout) }
+                vcdout << "$upscope $end\n"
+            else
+                # This is a signal to show.
+                vcdout << "$var wire #{self.type.width} "
+                vcdout << "#{HDLRuby::High.vcd_idstr(self)} "
+                vcdout << "#{HDLRuby::High.vcd_name(self.name)} $end\n"
+            end
+        end
+
+        ## Gets the VCD variables with their long name.
+        def get_vars_with_fullname(vars_with_fullname = {})
+            if self.each_signal.any? then
+                # There are sub signals, recurse on them.
+                self.each_signal do |sig|
+                    sig.get_vars_with_fullname(vars_with_fullname)
+                end
+            else
+                # No add the current signal.
+                vars_with_fullname[self] = HDLRuby::High.vcd_name(self.fullname)
+            end
+            return vars_with_full_name
+        end
+
+        ## Gets the VCD variables with their id string.
+        def get_vars_with_idstr(vars_with_idstr = {})
+            if self.each_signal.any? then
+                # There are sub signals, recurse on them.
+                self.each_signal do |sig|
+                    sig.get_vars_with_idstr(vars_with_idstr)
+                end
+            else
+                # No add the current signal.
+                vars_with_idstr[self] = HDLRuby::High.vcd_idstr(self)
+            end
+            return vars_with_idstr
+        end
+    end
 
     ##
     # Enhance the Transmit class with VCD support.
@@ -329,11 +391,12 @@ module HDLRuby::High
             end
             # Shows the inner signals.
             self.each_inner do |sig|
-                # puts "showing inner signal #{HDLRuby::High.vcd_name(sig.fullname)}"
-                vcdout << "$var wire #{sig.type.width} "
-                # vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
-                vcdout << "#{HDLRuby::High.vcd_idstr(sig)} "
-                vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
+                sig.show_hierarchy(vcdout)
+                # # puts "showing inner signal #{HDLRuby::High.vcd_name(sig.fullname)}"
+                # vcdout << "$var wire #{sig.type.width} "
+                # # vcdout << "#{HDLRuby::High.vcd_name(sig.fullname)} "
+                # vcdout << "#{HDLRuby::High.vcd_idstr(sig)} "
+                # vcdout << "#{HDLRuby::High.vcd_name(sig.name)} $end\n"
             end
             # Recurse on the statements
             self.each_statement do |stmnt|
@@ -347,9 +410,14 @@ module HDLRuby::High
 
         ## Gets the VCD variables with their long name.
         def get_vars_with_fullname(vars_with_fullname = {})
-            # Adds the inner signals.
+            # # Adds the inner signals.
+            # self.each_inner do |sig|
+            #     vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
+            # end
+            # Recurse on the inner signals.
             self.each_inner do |sig|
-                vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
+                sig.get_vars_with_fullname(vars_with_fullname)
+                # vars_with_fullname[sig] = HDLRuby::High.vcd_name(sig.fullname)
             end
             # Recurse on the statements.
             self.each_statement do |stmnt|
@@ -360,9 +428,13 @@ module HDLRuby::High
 
         ## Gets the VCD variables with their id string.
         def get_vars_with_idstr(vars_with_idstr = {})
-            # Adds the inner signals.
+            # # Adds the inner signals.
+            # self.each_inner do |sig|
+            #     vars_with_idstr[sig] = HDLRuby::High.vcd_idstr(sig)
+            # end
+            # Recurse on the inner signals.
             self.each_inner do |sig|
-                vars_with_idstr[sig] = HDLRuby::High.vcd_idstr(sig)
+                sif.get_vars_with_idstr(vars_with_idstr)
             end
             # Recurse on the statements.
             self.each_statement do |stmnt|

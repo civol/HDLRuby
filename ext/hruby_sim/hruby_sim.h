@@ -530,6 +530,9 @@ typedef struct SignalIS_ {
     Value c_value;      /* The current value of the signal. */
     Value f_value;      /* The future (next) value of the signal. */
 
+    int num_signals;    /* The number of sub signals. */
+    SignalI* signals;   /* The sub signals. */
+
     int fading;         /* Tell if the signal can be overwritten by Z. */
 
     int num_any;        /* The number of behavior activated on any edge. */

@@ -850,6 +850,7 @@ module HDLRuby::Low
         
         # Adds inner signal +signal+.
         def add_inner(signal)
+            # puts "adding inner signal: #{signal.name}(#{signal})"
             # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
@@ -1925,7 +1926,7 @@ module HDLRuby::Low
         def each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub name/type pair.
             @types.each(&ruby_block)
         end
 
@@ -1935,7 +1936,7 @@ module HDLRuby::Low
         def each_type(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub type.
             @types.each(&ruby_block)
         end
 
@@ -2088,7 +2089,7 @@ module HDLRuby::Low
         def each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub name/type pair.
             @types.each(&ruby_block)
         end
 
@@ -2098,8 +2099,18 @@ module HDLRuby::Low
         def each_type(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub type.
             @types.each_value(&ruby_block)
+        end
+
+        # Iterates over the keys.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_key(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_key) unless ruby_block
+            # A ruby block? Apply it on each key.
+            @types.each_key(&ruby_block)
         end
 
         # Iterates over the sub type names.
@@ -2108,7 +2119,7 @@ module HDLRuby::Low
         def each_name(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_name) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each name.
             @types.each_key(&ruby_block)
         end
 
@@ -2128,7 +2139,11 @@ module HDLRuby::Low
         #
         # NOTE: must be redefined for specific types.
         def width
-            return @types.reduce(0) {|sum,type| sum + type.width }
+            if @types.is_a?(Array) then
+                return @types.reduce(0) {|sum,type| sum + type.width }
+            else
+                return @types.each_value.reduce(0) {|sum,type| sum + type.width }
+            end
         end
 
         # # Checks the compatibility with +type+
@@ -2506,8 +2521,9 @@ module HDLRuby::Low
                 end
                 @value = val
                 val.parent = self
-            else
-                @value = nil
+            # For memory optimization: no  initialization if not used.
+            # else
+            #     @value = nil
             end
         end
 
@@ -2515,6 +2531,40 @@ module HDLRuby::Low
         def immutable?
             # By default, signals are not immutable.
             false
+        end
+
+        # Adds sub signal +sig+
+        def add_signal(sig)
+            # puts "add sub=#{sig.name} in signal=#{self}"
+            # Sets the hash of sub signals if none.
+            @signals = HashName.new unless @signals
+            # Check and add the signal.
+            unless sig.is_a?(SignalI)
+                raise AnyError,
+                      "Invalid class for a signal instance: #{sig.class}"
+            end
+            # if @signals.include?(sig) then
+            #     raise AnyError, "SignalI #{sig.name} already present."
+            # end
+            # Set its parent.
+            sig.parent = self
+            # And add it
+            @signals.add(sig)
+        end
+
+        # Gets a sub signal by name.
+        def get_signal(name)
+            return @signals ? @signals[name] : nil
+        end
+
+        # Iterates over the sub signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal) unless ruby_block
+            # A ruby block? Apply it on each sub signal instance if any.
+            @signals.each(&ruby_block) if @signals
         end
 
         # # Add decorator capability (modifies intialize to put after).

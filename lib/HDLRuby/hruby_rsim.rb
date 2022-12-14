@@ -66,7 +66,6 @@ module HDLRuby::High
                 @sig_active.each do |sig|
                     next if (sig.c_value.eql?(sig.f_value))
                     # next if (sig.c_value.to_vstr == sig.f_value.to_vstr)
-                    # puts "sig.c_value: #{sig.c_value.to_vstr}, sig.f_value=#{sig.f_value.to_vstr}"
                     sig.each_anyedge { |beh| @sig_exec << beh }
                     if (sig.c_value.zero?) then
                         # puts "sig.c_value=#{sig.c_value.content}"
@@ -490,6 +489,12 @@ module HDLRuby::High
 
         ## Initialize the simulation for +systemT+
         def init_sim(systemT)
+            # Recurse on the sub signals if any.
+            if self.each_signal.any? then
+                self.each_signal {|sig| sig.init_sim(systemT) }
+                return
+            end
+            # No sub signal, really initialize the current signal.
             if self.value then
                 @c_value = self.value.execute(:par).to_value
                 @f_value = @c_value.to_value
@@ -1219,6 +1224,36 @@ module HDLRuby::High
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
             @sim = systemT
+
+            # Modify the exectute and assign methods if the object has
+            # sub signals (for faster execution).
+            if self.object.each_signal.any? then
+                ## Execute the expression.
+                self.define_singleton_method(:execute) do |mode|
+                    # Recurse on the children.
+                    tmpe = self.object.each_signal.map {|sig| sig.execute(mode) }
+                    # Concatenate the result.
+                    return tmpe.reduce(:concat)
+                end
+                ## Assigns +value+ the the reference.
+                self.define_singleton_method(:assign) do |mode,value|
+                    # Flatten the value type.
+                    value.type = [value.type.width].to_type
+                    pos = 0
+                    width = 0
+                    # Recurse on the children.
+                    self.object.each_signal.reverse_each do |sig|
+                        width = sig.type.width
+                        sig.assign(mode,value[(pos+width-1).to_expr..pos.to_expr])
+                        # Tell the signal changed.
+                        if !(sig.c_value.eql?(sig.f_value)) then
+                            @sim.add_sig_active(sig)
+                        end
+                        # Prepare for the next reference.
+                        pos += width
+                    end
+                end
+            end
         end
 
         ## Execute the expression.

@@ -319,6 +319,9 @@ VALUE rcsim_make_signal(VALUE mod, VALUE name, VALUE type) {
     // printf("Creating signal named=%s\n",signal->name);
     value_to_rcsim(TypeS,type,signal->type);
     // printf("&type=%p type=%p width=%llu\n",&(signal->type),signal->type,type_width(signal->type));
+    signal->num_signals= 0;
+    signal->signals = NULL;
+
     signal->c_value = make_value(signal->type,0);
     // printf("signal->c_value=%p\n",signal->c_value);
     signal->c_value->signal = signal;
@@ -1075,6 +1078,29 @@ VALUE rcsim_add_systemI_systemTs(VALUE mod, VALUE systemIV, VALUE sysVs) {
     return systemIV;
 }
 
+/* Adds sub signals a C signal. */
+VALUE rcsim_add_signal_signals(VALUE mod, VALUE signalIV, VALUE sigVs) {
+    /* Get the C signal from the Ruby value. */
+    SignalI signalI;
+    value_to_rcsim(SignalIS,signalIV,signalI);
+    // printf("rcsim_add_signal_signals with signalI=%p\n",signalI);
+    /* Prepare the size for the alternate system types. */
+    long num = RARRAY_LEN(sigVs);
+    long old_num = signalI->num_signals;
+    signalI->num_signals += num;
+    signalI->signals=realloc(signalI->signals,
+            sizeof(SignalI[signalI->num_signals]));
+    // signalI->signals = (SignalI*)my_realloc(signalI->signals,
+    //         sizeof(SignalI[old_num]), sizeof(SignalI[signalI->num_signals]));
+    /* Get and add the alternate system types from the Ruby value. */
+    for(long i=0; i< num; ++i) {
+        SignalI sig;
+        value_to_rcsim(SignalIS,rb_ary_entry(sigVs,i),sig);
+        signalI->signals[old_num + i] = sig;
+    }
+    return signalIV;
+}
+
 /* Adds arguments to a C print. */
 VALUE rcsim_add_print_args(VALUE mod, VALUE printV, VALUE argVs) {
     /* Get the C print from the Ruby value. */
@@ -1459,6 +1485,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_add_scope_scopes",rcsim_add_scope_scopes,2);
     rb_define_singleton_method(mod,"rcsim_add_behavior_events",rcsim_add_behavior_events,2);
     rb_define_singleton_method(mod,"rcsim_add_systemI_systemTs",rcsim_add_systemI_systemTs,2);
+    rb_define_singleton_method(mod,"rcsim_add_signal_signals",rcsim_add_signal_signals,2);
     rb_define_singleton_method(mod,"rcsim_add_print_args",rcsim_add_print_args,2);
     rb_define_singleton_method(mod,"rcsim_add_hif_noifs",rcsim_add_hif_noifs,3);
     rb_define_singleton_method(mod,"rcsim_add_hcase_whens",rcsim_add_hcase_whens,3);

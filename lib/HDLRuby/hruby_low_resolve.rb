@@ -110,6 +110,20 @@ module HDLRuby::Low
 
 
     ##
+    #  Extends SignalI with the capability of finding one of its inner object
+    #  by name.
+    class SignalI
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            return self.get_signal(name)
+        end
+    end
+
+
+
+    ##
     #  Extends RefIndex with the capability of finding the object it
     #  refered to.
     class Ref

@@ -3819,9 +3819,10 @@ module HDLRuby::High
             # the corresponding methods.
             if type.struct? then
                 type.each_name do |name|
+                    sig = SignalI.new(name,type.get_type(name),dir)
+                    self.add_signal(sig)
                     self.define_singleton_method(name) do
-                        RefObject.new(self.to_ref,
-                                    SignalI.new(name,type.get_type(name),dir))
+                        RefObject.new(self.to_ref,sig)
                     end
                 end
             end
@@ -3887,6 +3888,10 @@ module HDLRuby::High
             # return HDLRuby::Low::SignalI.new(name,self.type.to_low)
             valueL = self.value ? self.value.to_low : nil
             signalIL = HDLRuby::Low::SignalI.new(name,self.type.to_low,valueL)
+            # Recurse on the sub signals if any.
+            self.each_signal do |sig|
+                signalIL.add_signal(sig.to_low)
+            end
             # # For debugging: set the source high object 
             # signalIL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = signalIL
@@ -3953,6 +3958,10 @@ module HDLRuby::High
             #                                  self.value.to_low)
             signalCL = HDLRuby::Low::SignalC.new(name,self.type.to_low,
                                              self.value.to_low)
+            # Recurse on the sub signals if any.
+            self.each_signal do |sig|
+                signalCL.add_signal(sig.to_low)
+            end
             # # For debugging: set the source high object 
             # signalCL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = signalCL

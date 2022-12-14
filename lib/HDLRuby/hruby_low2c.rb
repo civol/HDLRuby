@@ -641,12 +641,10 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
-            # return "get_type_struct(#{self.each.join(",") do |key,type|
-            #     "\"#{key.to_s}\",#{type.to_c(level+1)}"
-            # end})"
-            res << "get_type_struct(#{self.each.join(",") do |key,type|
-                "\"#{key.to_s}\",#{type.to_c("",level+1)}"
-            end})"
+            # res << "get_type_struct(#{self.each.map do |key,type|
+            #     "\"#{key.to_s}\",#{type.to_c("",level+1)}"
+            # end.join(",")})"
+            self.to_vector.to_c(res,level)
             return res
         end
     end
@@ -897,8 +895,12 @@ module HDLRuby::Low
         #  +level+ is the hierachical level of the object.
         # def to_c(level = 0)
         def to_c(res,level = 0)
+            # First generate the sub signals if any.
+            self.each_signal do |signal|
+                signal.to_c(res,level)
+            end
 
-            # puts "Signal.to_c with name: #{Low2C.obj_name(self)}"
+            # puts "Signal.to_c with signal #{self.name} and c_name: #{Low2C.obj_name(self)}"
             # Declare the global variable holding the signal.
             res << "SignalI "
             self.to_c_signal(res,level+1)
@@ -943,6 +945,22 @@ module HDLRuby::Low
             res << "signalI->type = "
             self.type.to_c(res,level+2)
             res << ";\n"
+
+            # Generate and set the sub signals if any.
+            res << " " * (level+1)*3
+            num_sig = self.each_signal.to_a.size
+            res << "signalI->num_signals = #{num_sig};\n"
+            if num_sig > 0 then
+                res << " " * (level+1)*3
+                res << "signalI->signals = calloc(sizeof(SignalI),#{num_sig});\n"
+                self.each_signal.with_index do |sig,i|
+                    res << " " * (level+1)*3
+                    res << "#{Low2C.obj_name(sig)} = #{Low2C.make_name(sig)}();\n"
+                    res << " " * (level+1)*3
+                    res << "signalI->signals[#{i}] = #{Low2C.obj_name(sig)};\n"
+                end
+            end
+
             # Set the current and the next value.
             res << " " * (level+1)*3
             res << "signalI->c_value = make_value(signalI->type,0);\n"
@@ -1000,6 +1018,10 @@ module HDLRuby::Low
         ## Generates the content of the h file.
         # def to_ch
         def to_ch(res)
+            # First generate the sub signals if any.
+            self.each_signal do |signal|
+                signal.to_ch(res)
+            end
             # res = ""
             # puts "to_ch for SignalI: #{self.to_c_signal()}"
             # Declare the global variable holding the signal.
@@ -3060,8 +3082,7 @@ module HDLRuby::Low
         # +level+ is the hierarchical level of the object.
         # def to_c_signal(level = 0)
         def to_c_signal(res,level = 0)
-            # puts "to_c_signal with self=#{self.name}, resolve=#{self.resolve}"
-            # return "#{self.resolve.to_c_signal(level+1)}"
+            # puts "to_c_signal with self=#{self.name}"
             self.resolve.to_c_signal(res,level+1)
             return res
         end

@@ -155,12 +155,28 @@ static void vcd_print_value(Value value) {
 /** Prints a signal declaration.
  *  @param signal the signal to declare */
 static void vcd_print_var(SignalI signal) {
-    vcd_print("$var wire %d ",type_width(signal->type));
-    // vcd_print_full_name((Object)signal);
-    vcd_print_signal_id(signal);
-    vcd_print(" ");
-    vcd_print_name((Object)signal);
-    vcd_print(" $end\n");
+    if (signal->num_signals > 0) {
+        int i;
+        /* The signal is hierarchical, declare its sub signals. */
+        /* Declares the hierachical name. */
+        vcd_print("$scope module ");
+        vcd_print_name((Object)signal);
+        vcd_print(" $end\n");
+        /* Declare the inners of the systems. */
+        for(i=0; i<signal->num_signals; ++i) {
+            vcd_print_var(signal->signals[i]);
+        }
+        /* Close the hierarchy. */
+        vcd_print("$upscope $end\n");
+    } else {
+        /* The signal is flat, can declarate it directly. */
+        vcd_print("$var wire %d ",type_width(signal->type));
+        // vcd_print_full_name((Object)signal);
+        vcd_print_signal_id(signal);
+        vcd_print(" ");
+        vcd_print_name((Object)signal);
+        vcd_print(" $end\n");
+    }
 }
 
 
@@ -180,7 +196,8 @@ static void vcd_print_signal_fvalue(SignalI signal) {
 /** Prints a signal with its current value if any
  *  @param signal the signal to show */
 static void vcd_print_signal_cvalue(SignalI signal) {
-    if (signal->c_value) {
+    if ((signal->num_signals == 0) && signal->c_value) {
+        /* The signal is not hierachical and has a current value. */
         vcd_print_value(signal->c_value);
         // vcd_print(" ");
         // vcd_print_full_name((Object)signal);
