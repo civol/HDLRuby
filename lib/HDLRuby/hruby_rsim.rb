@@ -130,6 +130,9 @@ module HDLRuby::High
             self.init_untimeds
             # puts "End of init_untimed."
 
+            # Maybe there is nothing to execute.
+            return if @total_timed_behaviors == 0
+
             # Is there more than one timed behavior.
             if @total_timed_behaviors <= 1 then
                 # No, no need of multithreading.

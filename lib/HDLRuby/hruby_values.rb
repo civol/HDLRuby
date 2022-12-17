@@ -13,6 +13,9 @@ module HDLRuby
 
         # Truncs integer +val+ to +width+
         def trunc(val,width)
+            if val.is_a?(BitString) then
+                return val[(width-1)..0]
+            end
             if val.bit_length > width then
                 if val >= 0 then
                     # return val & (2**width-1)
@@ -309,7 +312,7 @@ module HDLRuby
                         break if count == width
                     end
                     if count < width then
-                        res_content.concat(res_content[-1] * (width-count))
+                        res_content.concat([res_content[-1]] * (width-count))
                     end
                 else
                     width.times do |p|
