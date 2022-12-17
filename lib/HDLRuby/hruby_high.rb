@@ -26,6 +26,14 @@ module HDLRuby::High
         return HDLRuby::Infinity
     end
 
+    # Reimplementation of the Proc's curry that transmit the context for
+    # execution.
+    def curry_with_context(*args,&ruby_block)
+        return proc do |cxt,*new_args|
+            cxt.instance_exec(*(args+new_args),&ruby_block)
+        end
+    end
+
 
 
     ##
@@ -1714,10 +1722,10 @@ module HDLRuby::High
             # Set the new method for the operator.
             self.define_singleton_method(comp_operator(operator)) do |*args|
                 # puts "Top user=#{HDLRuby::High.top_user}"
-                HDLRuby::High.top_user.instance_exec do
-                   sub do
-                        HDLRuby::High.top_user.instance_exec(*args,&ruby_block)
-                   end
+                HDLRuby::High.top_user.sub(HDLRuby.uniq_name) do
+                    # It is assumed that the first argument of the ruby_block
+                    # is the context in which it must be executed.
+                    ruby_block.call(self,*args)
                 end
             end
         end
@@ -1950,7 +1958,8 @@ module HDLRuby::High
                                    gtype)
             # Adds the possible overloaded operators.
             self.each_overload do |op,ruby_block|
-                gtype.define_operator(op,&(ruby_block.curry[*args]))
+                # gtype.define_operator(op,&(ruby_block.curry[*args]))
+                gtype.define_operator(op,&(High.curry_with_context(*args,&ruby_block)))
             end
             # Returns the resulting type
             return gtype
