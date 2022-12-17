@@ -40,6 +40,7 @@ module HDLRuby
                     # HDLRuby code.
                     return self.send(orig_operator(op),val)
                 end
+                val = val.to_value unless val.is_a?(Value)
                 # Handle Numeric op BitString case.
                 if self.content.is_a?(Numeric) && val.content.is_a?(BitString)
                     if val.content.specified? then
