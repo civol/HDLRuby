@@ -30,6 +30,7 @@ module HDLRuby::High
     # execution.
     def curry_with_context(*args,&ruby_block)
         return proc do |cxt,*new_args|
+            puts "cxt=#{cxt}"
             cxt.instance_exec(*(args+new_args),&ruby_block)
         end
     end
@@ -1723,6 +1724,23 @@ module HDLRuby::High
             self.define_singleton_method(comp_operator(operator)) do |*args|
                 # puts "Top user=#{HDLRuby::High.top_user}"
                 HDLRuby::High.top_user.sub(HDLRuby.uniq_name) do
+                    ruby_block.call(*args)
+                end
+            end
+        end
+
+        # Redefinition of +operator+ when requiring the context to be passed
+        # as argument (normally only used internally).
+        def define_operator_with_context(operator,&ruby_block)
+            # Ensure there is a block.
+            ruby_block = proc {} unless block_given?
+            # Register the operator as overloaded.
+            @overloads ||= {}
+            @overloads[operator] = ruby_block
+            # Set the new method for the operator.
+            self.define_singleton_method(comp_operator(operator)) do |*args|
+                # puts "Top user=#{HDLRuby::High.top_user}"
+                HDLRuby::High.top_user.sub(HDLRuby.uniq_name) do
                     # It is assumed that the first argument of the ruby_block
                     # is the context in which it must be executed.
                     ruby_block.call(self,*args)
@@ -1959,7 +1977,7 @@ module HDLRuby::High
             # Adds the possible overloaded operators.
             self.each_overload do |op,ruby_block|
                 # gtype.define_operator(op,&(ruby_block.curry[*args]))
-                gtype.define_operator(op,&(High.curry_with_context(*args,&ruby_block)))
+                gtype.define_operator_with_context(op,&(High.curry_with_context(*args,&ruby_block)))
             end
             # Returns the resulting type
             return gtype
