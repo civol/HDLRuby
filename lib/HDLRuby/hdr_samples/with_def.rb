@@ -12,8 +12,8 @@ system :def_bench do
     [8].inner :val0, :val1
 
     par do
-        val0 <= lut84([0,1,4,9],addr)
-        val1 <= lut84([0,1,4,9],3-addr)
+        val0 <= lut84([_b8d0,_b8d1,_b8d4,_b8d9],addr)
+        val1 <= lut84([_b8d0,_b8d1,_b8d4,_b8d9],3-addr)
     end
 
     timed do
