@@ -2148,6 +2148,7 @@ module HDLRuby::High
                     gtype = type.generate(*args)
                     # And add it as a local type of the system.
                     HDLRuby::High.top_user.add_type(gtype)
+                    gtype
                 end
             end
         else
@@ -3844,6 +3845,9 @@ module HDLRuby::High
 
             # Hierarchical type allows access to sub references, so generate
             # the corresponding methods.
+            # For that first get the real type.
+            type = type.def while type.is_a?(TypeDef)
+            # Now process it if it is a structured type.
             if type.struct? then
                 type.each_name do |name|
                     sig = SignalI.new(name,type.get_type(name),dir)
