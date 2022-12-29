@@ -1446,11 +1446,11 @@ The base specifiers are the followings:
 
  - `h`: hexadecimal.
 
-For example, all the following immediate values represent an 8-bit `100` (either in unsigned or signed representation):
+For example, all the following immediate values represent an 8-bit `hundred` (either in unsigned or signed representation):
 
 ```ruby
 _bb01100100
-_b8b1100100
+_b8b110_0100
 _b01100100
 _u8d100
 _s8d100
@@ -1458,7 +1458,13 @@ _uh64
 _s8o144
 ```
 
-Finally, it is possible to omit either the type specifier, the default being unsigned bit, or the base specifier, the default being binary.
+Finally, it is possible to omit either the type specifier, the default being unsigned bit, or the base specifier, the default being binary. For example, all the following immediate values represent an 8-bit unsigned `hundred`:
+
+```ruby
+_b01100100
+_h64
+_o144
+```
 
 __Notes__:
 
