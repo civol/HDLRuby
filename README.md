@@ -1426,7 +1426,7 @@ They include [immediate values](#values), [reference to signals](#references) an
 ### Immediate values
 <a name="values"></a>
 
-The immediate values of HDLRuby can represent vectors of `bit`, `unsigned`, and `signed`, and integer or floating-point numbers. They are prefixed by a `_` character and include a header that indicates the vector type and the base used for representing the value, followed by a numeral representing the value.  The bit width of a value is obtained by default from the width of the numeral, but it is also possible to enforce it in the header.
+The immediate values of HDLRuby can represent vectors of `bit`, `unsigned`, and `signed`, and integer or floating-point numbers. They are prefixed by a `_` character and include a header that indicates the vector type and the base used for representing the value, followed by a numeral representing the value. The bit width of a value is obtained by default from the width of the numeral, but it is also possible to specify it in the header. In addition, the character `_` can be put anywhere in the number for increasing the readability, it will be ignored.
 
 The vector type specifiers are the followings:
  
@@ -1457,6 +1457,8 @@ _s8d100
 _uh64
 _s8o144
 ```
+
+Finally, it is possible to omit either the type specifier, the default being unsigned bit, or the base specifier, the default being binary.
 
 __Notes__:
 

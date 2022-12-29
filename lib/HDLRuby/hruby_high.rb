@@ -5039,10 +5039,12 @@ module HDLRuby::High
             str = self.to_s
             return nil if str[0] != "_" # Bit string are prefixed by "_"
             # Remove the "_" not needed any longer.
-            str = str[1..-1]
+            # str = str[1..-1]
+            str = str.delete("_")
             # Get and check the type
             type = str[0]
-            if type == "0" or type == "1" or type == "z" or type == "Z" then
+            # if type == "0" or type == "1" or type == "z" or type == "Z" then
+            if ["0", "1", "z", "Z", "o", "d", "h"] then
                 # Default binary
                 type = "b"
             else
