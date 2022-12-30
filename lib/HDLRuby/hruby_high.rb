@@ -3886,17 +3886,41 @@ module HDLRuby::High
 
         # Creates a positive edge event from the signal.
         def posedge
-            return Event.new(:posedge,self.to_ref)
+            # return Event.new(:posedge,self.to_ref)
+            # Is there any sub signals?
+            if self.each_signal.any? then
+                # Yes, make events with them instead.
+                return self.each_signal.map { |sig| sig.posedge }
+            else
+                # No, create a single event.
+                return Event.new(:posedge,self.to_ref)
+            end
         end
 
         # Creates a negative edge event from the signal.
         def negedge
-            return Event.new(:negedge,self.to_ref)
+            # return Event.new(:negedge,self.to_ref)
+            # Is there any sub signals?
+            if self.each_signal.any? then
+                # Yes, make events with them instead.
+                return self.each_signal.map { |sig| sig.negedge }
+            else
+                # No, create a single event.
+                return Event.new(:negedge,self.to_ref)
+            end
         end
 
         # Creates an edge event from the signal.
-        def edge
-            return Event.new(:edge,self.to_ref)
+        def anyedge
+            # return Event.new(:edge,self.to_ref)
+            # Is there any sub signals?
+            if self.each_signal.any? then
+                # Yes, make events with them instead.
+                return self.each_signal.map { |sig| sig.anyedge }
+            else
+                # No, create a single event.
+                return Event.new(:anyedge,self.to_ref)
+            end
         end
 
         # Converts to a new reference.
@@ -4383,8 +4407,8 @@ module HDLRuby::High
             # @location = caller_locations
             # Sets the current behavior
             @@cur_behavior = self
-            # Add the events.
-            events.each { |event| self.add_event(event) }
+            # Add the events (they may be hierarchical to flatten)
+            events.flatten.each { |event| self.add_event(event) }
             # Create and add the block.
             self.block = High.make_block(mode,&ruby_block)
             # Unset the current behavior

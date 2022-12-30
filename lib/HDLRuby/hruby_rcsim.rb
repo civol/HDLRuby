@@ -693,6 +693,20 @@ module HDLRuby::High
     class Connection
         attr_reader :rcbehavior
 
+        # Add recursively any event to +rcevs+ for activativing the 
+        # connection from signal +sig+ attached to +rcbehavior+
+        def self.add_rcevents(sig,rcevs,rcbehavior)
+            # Recurse on sub signals if any.
+            sig.each_signal do |sub|
+                Connection.add_rcevents(sub,rcevs,rcbehavior)
+            end
+            # Apply on the current node.
+            rcsig = sig.is_a?(SignalI) ? sig.rcsignalI : sig.rcsignalC
+            ev = RCSim.rcsim_make_event(:anyedge,rcsig)
+            RCSim.rcsim_set_owner(ev,rcbehavior)
+            rcevs << ev
+        end
+
         # Generate the C description of the connection.
         # +rcowner+ is a link to the C description of the owner scope.
         def to_rcsim(rcowner)
@@ -707,9 +721,10 @@ module HDLRuby::High
             rcevs = []
             self.right.each_node_deep do |node|
                 if node.is_a?(RefObject) && !node.parent.is_a?(RefObject) then
-                    ev = RCSim.rcsim_make_event(:anyedge,node.to_rcsim)
-                    RCSim.rcsim_set_owner(ev,@rcbehavior)
-                    rcevs << ev
+                    Connection.add_rcevents(node.object,rcevs,@rcbehavior)
+                    # ev = RCSim.rcsim_make_event(:anyedge,node.to_rcsim)
+                    # RCSim.rcsim_set_owner(ev,@rcbehavior)
+                    # rcevs << ev
                 end
             end
             if rcevs.any? then

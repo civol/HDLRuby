@@ -514,18 +514,27 @@ module HDLRuby::High
 
         ## Adds behavior +beh+ activated on a positive edge of the signal.
         def add_posedge(beh)
+            # Recurse on the sub signals.
+            self.each_signal {|sig| sig.add_posedge(beh) }
+            # Apply on current signal.
             @posedge_behaviors ||= []
             @posedge_behaviors << beh
         end
 
         ## Adds behavior +beh+ activated on a negative edge of the signal.
         def add_negedge(beh)
+            # Recurse on the sub signals.
+            self.each_signal {|sig| sig.add_negedge(beh) }
+            # Apply on current signal.
             @negedge_behaviors ||= []
             @negedge_behaviors << beh
         end
 
         ## Adds behavior +beh+ activated on a any edge of the signal.
         def add_anyedge(beh)
+            # Recurse on the sub signals.
+            self.each_signal {|sig| sig.add_anyedge(beh) }
+            # Apply on current signal.
             @anyedge_behaviors ||= []
             @anyedge_behaviors << beh
         end
@@ -897,8 +906,9 @@ module HDLRuby::High
         def init_sim(systemT)
             # Add the connection to the list of untimed objets.
             systemT.add_untimed(self)
-            # Recurse on the left.
+            # Recurse on the left and right.
             self.left.init_sim(systemT)
+            self.right.init_sim(systemT)
             # Process the sensitivity list.
             # Is it a clocked behavior?
             events = []
@@ -922,7 +932,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
-            # puts "connection = #{self}" if self.left.is_a?(RefObject) && self.left.object.name.to_s.include?("xnor")
+            # puts "connection left=#{left} right=#{right}"
             self.left.assign(mode,self.right.execute(mode))
         end
     end
@@ -1287,6 +1297,7 @@ module HDLRuby::High
                 end
                 ## Assigns +value+ the the reference.
                 self.define_singleton_method(:assign) do |mode,value|
+                    # puts "RefObject #{self} assign with object=#{self.object}"
                     # Flatten the value type.
                     value.type = [value.type.width].to_type
                     pos = 0
