@@ -1633,6 +1633,112 @@ module HDLRuby::Low
 
         alias_method :each_deep, :each_type_deep
 
+        # Tells if the type signed.
+        def signed?
+            return @def.signed?
+        end
+
+        # Tells if the type is unsigned.
+        def unsigned?
+            return @def.unsigned?
+        end
+
+        # Tells if the type is fixed point.
+        def fixed?
+            return @def.fixed?
+        end
+
+        # Tells if the type is floating point.
+        def float?
+            return @def.float?
+        end
+
+        # Tells if the type is a leaf.
+        def leaf?
+            return @def.leaf?
+        end
+
+        # Tells if the type of of vector kind.
+        def vector?
+            return @def.vector?
+        end
+
+        # Gets the bitwidth of the type, by default 0.
+        # Bit, signed, unsigned and Float base have a width of 1.
+        def width
+            return @def.width
+        end
+
+        # Gets the type max value if any.
+        # Default: not defined.
+        def max
+            return @def.max
+        end
+
+        # Gets the type min value if any.
+        # Default: not defined.
+        def min
+            return @def.min
+        end
+
+        # Get the direction of the type, little or big endian.
+        def direction
+            return @def.direction
+        end
+
+        # Tells if the type has a range.
+        def range?
+            return @def.range?
+        end
+
+        # Gets the range of the type, by default range is not defined.
+        def range
+            return @def.range
+        end
+
+        # Tells if the type has a base.
+        def base?
+            return @def.base?
+        end
+
+        # Gets the base type, by default base type is not defined.
+        def base
+            return @def.base
+        end
+
+        # Tells if the type has sub types.
+        def types?
+            return @def.types?
+        end
+
+        # Tells if the type is regular (applies for tuples).
+        def regular?
+            return @def.regular?
+        end
+
+        # Tells if the type has named sub types.
+        def struct?
+            return @def.struct?
+        end
+
+        # Tells if the type is hierarchical.
+        def hierarchical?
+            return @def.hierarchical?
+        end
+
+        # Tell if +type+ is equivalent to current type.
+        #
+        # NOTE: type can be compatible while not being equivalent, please
+        #       refer to `hruby_types.rb` for type compatibility.
+        def equivalent?(type)
+            return @def.equivalent?(type)
+        end
+
+        # Converts to a bit vector.
+        def to_vector
+            return @def.to_vector
+        end
+
     end
 
 
@@ -2022,16 +2128,18 @@ module HDLRuby::Low
     ##
     # Describes a structure type.
     class TypeStruct < Type
-        # Creates a new structure type named +name+ with +direction+ and 
+        attr_reader :direction
+
+        # Creates a new structure type named +name+ with direction +dir+ and 
         # whose hierachy is given by +content+.
-        def initialize(name,direction,content)
+        def initialize(name,dir,content)
             # Initialize the type.
             super(name)
 
             # Set the direction.
-            @direction = direction.to_sym
+            @direction = dir.to_sym
             unless [:little, :big].include?(@direction)
-                raise AnyError, "Invalid direction for a type: #{direction}"
+                raise AnyError, "Invalid direction for a type: #{dir}"
             end
 
             # Check and set the content.
@@ -2047,7 +2155,8 @@ module HDLRuby::Low
         # Comparison for hash: structural comparison.
         def eql?(obj)
             # General type comparison.
-            return false unless super(obj)
+            # return false unless super(obj)
+            return false unless obj.is_a?(TypeStruct)
             # Specific comparison.
             idx = 0
             obj.each_key do |name|

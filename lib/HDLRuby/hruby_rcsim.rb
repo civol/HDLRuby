@@ -971,12 +971,16 @@ module HDLRuby::High
         # Generate the C description of the reference object with sub signals.
         def to_rcsim_subs
             # Create the reference concat C object.
-            rcref = RCSim.rcsim_make_refConcat(self.type.to_rcsim,
-                                         self.type.direction)
+            # The reference is always big endian, it is the sequence
+            # of element which is reversed if necessary.
+            rcref = RCSim.rcsim_make_refConcat(self.type.to_rcsim,:big)
+                                         # self.type.direction)
 
             # Add the concatenated expressions. */
-            if self.each_signal.any? then
-                RCSim.rcsim_add_refConcat_refs(rcref,self.each_signal.map do|sig|
+            if self.object.each_signal.any? then
+                iter = self.object.each_signal
+                iter = iter.reverse_each if self.type.direction == :big
+                RCSim.rcsim_add_refConcat_refs(rcref, iter.map do|sig|
                     sig.is_a?(SignalI) ? sig.rcsignalI : sig.rcsignalC
                 end)
             end
@@ -988,10 +992,10 @@ module HDLRuby::High
         def to_rcsim
             # puts "object=#{self.object.name}(#{self.object})"
             if self.object.is_a?(SignalI)
-                return self.each_signal.any? ? self.to_rcsim_subs :
+                return self.object.each_signal.any? ? self.to_rcsim_subs :
                     self.object.rcsignalI
             elsif self.object.is_a?(SignalC)
-                return self.each_signal.any? ? self.to_rcsim_subs :
+                return self.object.each_signal.any? ? self.to_rcsim_subs :
                     self.object.rcsignalC
             else
                 raise "Invalid object: #{self.object}"

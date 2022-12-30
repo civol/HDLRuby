@@ -551,8 +551,7 @@ module HDLRuby::High
 
         ## Execute the expression.
         def execute(mode)
-            # puts "Executing signal=#{self.fullname}"
-            # return mode == :par ? self.c_value : self.f_value
+            # puts "Executing signal=#{self.fullname} with c_value=#{self.c_value} and f_value=#{self.f_value}"
             return @mode == :seq ? self.f_value : self.c_value
         end
 
@@ -657,6 +656,7 @@ module HDLRuby::High
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
             self.left.init_sim(systemT)
+            self.right.init_sim(systemT)
         end
 
         ## Executes the statement.
@@ -934,6 +934,11 @@ module HDLRuby::High
     #
     # NOTE: this is an abstract class which is not to be used directly.
     class Expression
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # By default: do nothing.
+        end
+
         ## Executes the expression in +mode+ (:blocking or :nonblocking)
         #  NOTE: to be overrided.
         def execute(mode)
@@ -945,6 +950,11 @@ module HDLRuby::High
     ##
     # Describes a value.
     class Value
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Nothing to do.
+        end
+
         # include Vprocess
 
         ## Executes the expression.
@@ -957,10 +967,16 @@ module HDLRuby::High
     ##
     # Describes a cast.
     class Cast
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Recurse on the child.
+            self.child.init_sim(systemT)
+        end
+
         ## Executes the expression.
         def execute(mode)
-            # Recurse on the child.
-            # res = tocast.execute(mode)
+            # puts "child=#{self.child}"
+            # puts "child object=#{self.child.object}(#{self.child.object.name})" if self.child.is_a?(RefObject)
             # Shall we reverse the content of a concat.
             if self.child.is_a?(Concat) && 
                     self.type.direction != self.child.type.direction then
@@ -969,6 +985,7 @@ module HDLRuby::High
             else
                 res = self.child.execute(mode)
             end
+            # puts "res=#{res}"
             # Cast it.
             res = res.cast(self.type,true)
             # Returns the result.
@@ -989,6 +1006,12 @@ module HDLRuby::High
     ## 
     # Describes an unary operation.
     class Unary
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Recurse on the child.
+            self.child.init_sim(systemT)
+        end
+
         ## Execute the expression.
         def execute(mode)
             # puts "Unary with operator=#{self.operator}"
@@ -1004,6 +1027,13 @@ module HDLRuby::High
     ##
     # Describes an binary operation.
     class Binary
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Recurse on the children.
+            self.left.init_sim(systemT)
+            self.right.init_sim(systemT)
+        end
+
         ## Execute the expression.
         def execute(mode)
             # Recurse on the children.
@@ -1020,6 +1050,13 @@ module HDLRuby::High
     #
     # NOTE: choice is using the value of +select+ as an index.
     class Select
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Recurse on the children.
+            self.select.init_sim(systemT)
+            self.each_choice { |choice| choice.init_sim(systemT) }
+        end
+
         ## Execute the expression.
         def execute(mode)
             unless @mask then
@@ -1041,6 +1078,12 @@ module HDLRuby::High
     ## 
     # Describes a concatenation expression.
     class Concat
+        ## Initialize the simulation for system +systemT+.
+        def init_sim(systemT)
+            # Recurse on the children.
+            self.each_expression { |expr| expr.init_sim(systemT) }
+        end
+
         ## Execute the expression.
         def execute(mode, reverse=false)
             # Recurse on the children.
@@ -1226,6 +1269,7 @@ module HDLRuby::High
     class RefObject
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
+            # puts "init_sim for RefObject=#{self}"
             @sim = systemT
 
             # Modify the exectute and assign methods if the object has
@@ -1234,9 +1278,12 @@ module HDLRuby::High
                 ## Execute the expression.
                 self.define_singleton_method(:execute) do |mode|
                     # Recurse on the children.
-                    tmpe = self.object.each_signal.map {|sig| sig.execute(mode) }
+                    iter = self.object.each_signal
+                    iter = iter.reverse_each unless self.object.type.direction == :big
+                    tmpe = iter.map {|sig| sig.execute(mode) }
                     # Concatenate the result.
-                    return tmpe.reduce(:concat)
+                    # return tmpe.reduce(:concat)
+                    return Vprocess.concat(*tmpe)
                 end
                 ## Assigns +value+ the the reference.
                 self.define_singleton_method(:assign) do |mode,value|
@@ -1245,7 +1292,9 @@ module HDLRuby::High
                     pos = 0
                     width = 0
                     # Recurse on the children.
-                    self.object.each_signal.reverse_each do |sig|
+                    iter = self.object.each_signal
+                    iter = iter.reverse_each unless self.object.type.direction == :big
+                    iter.each do |sig|
                         width = sig.type.width
                         sig.assign(mode,value[(pos+width-1).to_expr..pos.to_expr])
                         # Tell the signal changed.
