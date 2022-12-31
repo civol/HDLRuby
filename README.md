@@ -2822,6 +2822,38 @@ fsm(clk.posedge,rst,:sync) do
 end
 ```
 
+__Note__: the goto statements acts globally, i.e., they are independant of the place where they are declared within the state. For example for both following statements, the next state will always be `st_a` whatever `cond` maybe:
+
+```ruby
+   state(:st_0) do
+      goto(:st_a)
+   end
+   state(:st_1) do
+      hif(cond) { goto(:st_a) }
+   end
+```
+
+That is to say, for a conditional `goto` for `st_1` the code should have been written as follows:
+
+```ruby
+   state(:st_1) do
+      goto(cond,:st_a)
+   end
+```
+
+The use of `goto` makes the design of FSM shorter for a majority of the cases, be sometimes, a finer control is required. For that purpose it is also possible to configure the FSM is `static` mode where the `next_state` statement that indicates implicitly the next state. Putting is static mode is done by passing `:static` as argument when declaring the FSM. For example the following FSM uses `next_state` to specify explicitly the next states depending on some condition signals `cond0` and `cond1`:
+
+```ruby
+fsm(clk.posedge,rst,:static)
+   state(:st_0) do
+      next_state(:st_1)
+   state(:st_1) do
+      hif(cond) { next_state(:st_1) }
+      helse { next_state(:st_0) }
+   end
+end
+```
+
 
 ## Fixed-point (fixpoint)
 <a name="fixpoint"></a>

@@ -38,7 +38,8 @@ module HDLRuby::High::Std
             @name = name.to_sym
             # Check and set the type of fsm depending of the options.
             @dual = false
-            @type = :sync
+            @type = :sync      # By default, the FSM is synchronous.
+            @sequential = true # By default, the default next state is the next one in the list.
             options.each do |opt|
                 case opt
                 when :sync,:synchronous then
@@ -47,6 +48,8 @@ module HDLRuby::High::Std
                     @type = :async
                 when :dual then
                     @dual = true
+                when :static then
+                    @sequential = false
                 else
                     raise AnyError, "Invalid option for a fsm: :#{type}"
                 end
@@ -112,6 +115,7 @@ module HDLRuby::High::Std
             mk_rst = @mk_rst
             type = @type
             dual = @dual
+            sequential = @sequential
             extra_syncs   = @extra_syncs
             extra_asyncs  = @extra_asyncs
             default_codes = @default_codes
@@ -238,8 +242,10 @@ module HDLRuby::High::Std
                             else
                                 # No gotos, by default the next step is
                                 # current + 1
-                                # this.next_state_sig <= mux(mk_rst.call , 0, this.cur_state_sig + 1)
-                                this.next_state_sig <=  this.cur_state_sig + 1
+                                # this.next_state_sig <=  this.cur_state_sig + 1
+                                if sequential then
+                                    this.next_state_sig <= this.cur_state_sig + 1
+                                end
                             end
                         end
                     end
@@ -404,6 +410,17 @@ module HDLRuby::High::Std
             @extra_asyncs << result
             # Return it
             return result
+        end
+
+        # Get a state by +name+.
+        def get_state(name)
+            name = name.to_sym
+            (@states.detect { |st| st.name == name }).value
+        end
+
+        # Sets the next state by +name+.
+        def next_state(name)
+            @next_state_sig <= get_state(name)
         end
 
         # Sets the next state. Arguments can be:
