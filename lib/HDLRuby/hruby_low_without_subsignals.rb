@@ -84,6 +84,7 @@ module HDLRuby::Low
             self.map_statements! do |stmnt|
                 stmnt.signal2subs!
             end
+            return self
         end
     end
 
@@ -165,7 +166,7 @@ module HDLRuby::Low
             # Recurse on the no block if any.
             self.no.signal2subs! if self.no
             # Recurse on the alternate ifs.
-            self.map_noifs do |cond,stmnt|
+            self.map_noifs! do |cond,stmnt|
                 [cond.signal2subs!,stmnt.signal2subs!]
             end
             return self
@@ -200,7 +201,7 @@ module HDLRuby::Low
             # Recurse on the whens.
             self.each_when(&:signal2subs!)
             # Recurse on the default.
-            self.set_default!(self.default.signal2subs!)
+            self.set_default!(self.default.signal2subs!) if self.default
             return self
         end
     end

@@ -911,6 +911,10 @@ module HDLRuby::Low
         # Sets the default.
         def set_default!(default)
             # Checks and set the default case if any.
+            if self.default then
+                # There is a default first detach it.
+                @default = nil
+            end
             self.default = default
         end
 
