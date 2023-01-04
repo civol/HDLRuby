@@ -4881,9 +4881,15 @@ module HDLRuby::Low
                         content.is_a?(HDLRuby::BitString)
                     # content = HDLRuby::BitString.new(content.to_s)
                     content = content.to_s
-                    if self.type.unsigned? && content[0] != 0 then
+                    if self.type.unsigned? && content[0] != "0" then
                         # content = "0" + content.rjust(self.type.width,content[0])
-                        content = "0" + content.rjust(self.type.width,"0")
+                        if content[0] == "1" then
+                            # Do not extend the 1, but 0 instead.
+                            content = "0" + content.rjust(self.type.width,"0")
+                        else
+                            # But extend the other.
+                            content = "0" + content.rjust(self.type.width,content[0])
+                        end
                     end
                     content = HDLRuby::BitString.new(content)
                 end

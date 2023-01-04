@@ -225,6 +225,7 @@ module HDLRuby
         #       * when index is larger than the bit width, the bit string is
         #         X extended accordingly.
         def []=(index,value)
+            # puts "first @content=#{@content}"
             # Change inside the bit string, it is not know any longer if it
             # is specified or not
             @specified = nil
@@ -250,8 +251,8 @@ module HDLRuby
                     sign = @content[-1]
                     @content.concat([sign] * (right-@content.size+1))
                 end
+                # puts "left=#{left} right=#{right} sign=#{sign} @content=#{@content}"
                 if right >= left then
-                    # puts "left=#{left} right=#{right} value=#{value} (#{value.class})"
                     # Sets the value to a copy of the bit string.
                     @content[left..right] = value.is_a?(BitString) ?
                         value.raw_content[0..right-left] : 
