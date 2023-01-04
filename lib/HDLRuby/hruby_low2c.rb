@@ -2237,7 +2237,7 @@ module HDLRuby::Low
                         res << "value->data_int = #{self.content}LLU;\n"
                     else
                         res << "value->data_int = "
-                        res << "#{self.content & 0xFFFFFFFFFFFF}LLU;\n"
+                        res << "#{self.content & 0xFFFF_FFFF_FFFF_FFFF}LLU;\n"
                     end
                     # Close the value.
                     res << " " * (level+1)*3
