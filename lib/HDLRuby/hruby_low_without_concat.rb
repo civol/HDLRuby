@@ -33,6 +33,7 @@ module HDLRuby::Low
 
     end
 
+
     ## Extends the Scope class with functionality for breaking assingments
     #  to concats.
     class Scope
@@ -42,7 +43,8 @@ module HDLRuby::Low
             self.each_scope(&:break_concat_assigns!)
             # Recurse on the statements.
             self.each_behavior do |behavior|
-                behavior.block.each_block_deep(&:break_concat_assigns!)
+                # behavior.block.each_block_deep(&:break_concat_assigns!)
+                behavior.break_concat_assigns!
             end
             # Work on the connections.
             self.each_connection.to_a.each do |connection|
@@ -100,6 +102,18 @@ module HDLRuby::Low
         end
     end
 
+    ## Extends the Behavior class with functionality for breaking assingments
+    #  to concats.
+    class Behavior
+        # Breaks the assignments to concats.
+        def break_concat_assigns!
+            # Recruse on the block.
+            self.block.each_block_deep(&:break_concat_assigns!)
+        end
+    end
+
+
+
     ## Extends the Block class with functionality for breaking assingments
     #  to concats.
     class Block
@@ -107,18 +121,23 @@ module HDLRuby::Low
         #
         # NOTE: work on the direct sub statement only, not deeply.
         def break_concat_assigns!
+            # puts "breack_concat_assigns! with block=#{self} with #{self.each_statement.count} statements"
             # Check each transmit.
-            self.each_statement.each.with_index do |stmnt,i|
+            self.each_statement.to_a.each_with_index do |stmnt|
+                # puts "stmnt=#{stmnt}"
                 if stmnt.is_a?(Transmit) then
                     # Transmit, breaking may be necessary.
                     nstmnt = stmnt.break_concat_assigns
                     if nstmnt.is_a?(Block) then
                         # The transmit has been broken, remove the former
                         # version and add the generated block as a behavior.
-                        self.set_statement!(i,nstmnt)
+                        # self.set_statement!(i,nstmnt)
+                        self.replace_statement!(stmnt,nstmnt)
+                        # puts "nstmnt.parent=#{nstmnt.parent}"
                     end
                 end
             end
+            return self
         end
     end
 
@@ -144,11 +163,12 @@ module HDLRuby::Low
                     top_scope = top_block.top_scope
                     aux = top_scope.add_inner(
                         SignalI.new(HDLRuby.uniq_name,self.right.type) )
-                    # puts "new signal: #{aux.name}"
                     aux = RefName.new(aux.type,RefThis.new,aux.name)
                     # Is a default value required to avoid latch generation?
-                    unless top_block.parent.each_event.
-                            find {|ev| ev.type!=:change} then
+                    unless top_block.is_a?(TimeBlock) ||
+                           top_block.parent.each_event.
+                            # find {|ev| ev.type!=:change} then
+                            find {|ev| ev.type!=:anyedge} then
                         # Yes, generate it.
                         top_block.insert_statement!(0,
                             Transmit.new(aux.clone,Value.new(aux.type,0)))
@@ -204,8 +224,8 @@ module HDLRuby::Low
                         end
                         pos += ref.type.width
                     end
-                    # puts "Resulting block=#{block.to_vhdl}"
                     # Return the resulting block
+                    # puts "new block=#{block}"
                     return block
                 end
             end
@@ -229,7 +249,7 @@ module HDLRuby::Low
                 if node.is_a?(RefConcat) then
                     # Yes, must break. Create the resulting sequential
                     # block that will contain the new assignements.
-                    block = Block.new(:seq)
+                    block = Block.new(:par)
                     # Create an intermediate signal for storing the
                     # right value. Put it in the top scope.
                     top_scope = self.top_scope

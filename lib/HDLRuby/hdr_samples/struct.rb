@@ -41,6 +41,8 @@ system :my_system do
         !10.ns
         sigB <= sigA
         !10.ns
+        sigB <= sigA + 1
+        !10.ns
     end
 
 end

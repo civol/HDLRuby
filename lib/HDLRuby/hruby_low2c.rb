@@ -896,9 +896,14 @@ module HDLRuby::Low
         # def to_c(level = 0)
         def to_c(res,level = 0)
             # First generate the sub signals if any.
-            self.each_signal do |signal|
-                signal.to_c(res,level)
+            if self.each_signal.any? then
+                self.each_signal do |signal|
+                    signal.to_c(res,level)
+                end
+                # return res
             end
+
+            # No sub signals, generate for the current one.
 
             # puts "Signal.to_c with signal #{self.name} and c_name: #{Low2C.obj_name(self)}"
             # Declare the global variable holding the signal.
@@ -1019,9 +1024,14 @@ module HDLRuby::Low
         # def to_ch
         def to_ch(res)
             # First generate the sub signals if any.
-            self.each_signal do |signal|
-                signal.to_ch(res)
+            if self.each_signal.any? then
+                self.each_signal do |signal|
+                    signal.to_ch(res)
+                end
+                # return res
             end
+
+            # No sub sub signal, generate for the current signal.
             # res = ""
             # puts "to_ch for SignalI: #{self.to_c_signal()}"
             # Declare the global variable holding the signal.
@@ -2719,7 +2729,7 @@ module HDLRuby::Low
             end
             # Compute the resulting concatenation.
             res << (" " * ((level+1)*3))
-            # puts "self.type.direction=#{self.type.direction}\n"
+            # puts "self.type=#{self.type} self.type.direction=#{self.type.direction}\n"
             res << "sconcat(#{expressions.size},"
             res << (self.type.direction == :little ? "1" : "0")
             res << ");\n"
@@ -3076,6 +3086,35 @@ module HDLRuby::Low
             res << "->" << (left ? "f_value" : "c_value")
             res << ");\n"
             return res
+            # sig = self.resolve
+            # if sig.each_signal.any? then
+            #     # Save the value pool state.
+            #     res << (" " * (level*3)) << "PV;\n"
+            #     # There are sub signals, get and concat their values.
+            #     subs = sig.each_signal.to_a
+            #     subs.each do |sub|
+            #         res << (" " * (level*3))
+            #         res << "push("
+            #         sub.to_c_signal(res,level+1)
+            #         res << "->" << (left ? "f_value" : "c_value")
+            #         res << ");\n"
+            #     end
+            #     # Compute the resulting concatenation.
+            #     res << (" " * ((level+1)*3))
+            #     res << "sconcat(#{subs.size},"
+            #     res << (sig.type.direction == :little ? "1" : "0")
+            #     res << ");\n"
+            #     # Restore the value pool state.
+            #     res << (" " * (level*3)) << "RV;\n"
+            # else
+            #     # There is no sub signals, get the signal value.
+            #     res << (" " * (level*3))
+            #     res << "push("
+            #     sig.to_c_signal(res,level+1)
+            #     res << "->" << (left ? "f_value" : "c_value")
+            #     res << ");\n"
+            # end
+            # return res
         end
 
         # Generates the C text for reference as left value to a signal.

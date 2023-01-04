@@ -2188,8 +2188,13 @@ module HDLRuby::Low
         end
 
         # Gets a sub type by +name+.
+        # NOTE: +name+ can also be an index.
         def get_type(name)
-            return @types[name.to_sym]
+            if name.respond_to?(:to_sym) then
+                return @types[name.to_sym]
+            else
+                return @types.values[name.to_i]
+            end
         end
 
         # Iterates over the sub name/type pair.

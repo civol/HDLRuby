@@ -600,6 +600,9 @@ module HDLRuby::Low
             right.parent = self unless right.parent
         end
 
+        alias_method :map_expressions!, :map_nodes!
+
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -1172,7 +1175,11 @@ module HDLRuby::Low
                 raise AnyError, "Invalid type for a statement: #{stmnt.class}"
             end
             idx = @statements.index(org)
-            @statements[idx] = stmnt if idx
+            # @statements[idx] = stmnt if idx
+            if idx then
+                @statements[idx] = stmnt
+                stmnt.parent = self unless stmnt.parent
+            end
         end
 
         # Maps on the statements.
@@ -1403,6 +1410,8 @@ module HDLRuby::Low
             @child.parent = self unless @child.parent
         end
 
+        alias_method :map_expressions!, :map_nodes!
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -1507,6 +1516,8 @@ module HDLRuby::Low
             @right.parent = self unless @right.parent
         end
 
+        alias_method :map_expressions!, :map_nodes!
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -1589,6 +1600,8 @@ module HDLRuby::Low
             @select.parent = self unless @select.parent
             map_choices!(&ruby_block)
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1707,6 +1720,8 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             # Nothing to do.
         end
+
+        alias_method :map_expressions!, :map_nodes!
     end
 
 
@@ -1774,6 +1789,8 @@ module HDLRuby::Low
             @ref   = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1856,6 +1873,8 @@ module HDLRuby::Low
             @ref.parent = self unless @ref.parent
         end
 
+        alias_method :map_expressions!, :map_nodes!
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -1934,6 +1953,8 @@ module HDLRuby::Low
             @ref.parent = self unless @ref.parent
         end
 
+        alias_method :map_expressions!, :map_nodes!
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -1970,6 +1991,8 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             # Nothing to do.
         end
+
+        alias_method :map_expressions!, :map_nodes!
     end
 
     ##
@@ -1991,5 +2014,7 @@ module HDLRuby::Low
         def map_nodes!(&ruby_block)
             self.map_args!(&ruby_block)
         end
+
+        alias_method :map_expressions!, :map_nodes!
     end
 end

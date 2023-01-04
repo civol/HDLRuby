@@ -807,7 +807,8 @@ module HDLRuby::Low
             res << " " * (level*3)
             res << "begin\n"
             # Generate the edges if any.
-            if self.each_event.find {|event| event.type != :change} then
+            # if self.each_event.find {|event| event.type != :change} then
+            if self.each_event.find {|event| event.type != :anyedge} then
                 # Generate the edge test.
                 level = level + 1
                 res << " " * (level*3)

@@ -60,6 +60,7 @@ require 'HDLRuby/hruby_check.rb'
 require 'HDLRuby/hruby_low2hdr'
 require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
+require 'HDLRuby/hruby_low_without_subsignals'
 require 'HDLRuby/hruby_low_fix_types'
 # require 'HDLRuby/hruby_low_expand_types' # For now dormant
 require 'HDLRuby/hruby_low_without_outread'
@@ -641,8 +642,12 @@ elsif $options[:clang] then
     # top_system = $top_system
     # Preprocess the HW description for valid C generation.
     $top_system.each_systemT_deep do |systemT|
+        HDLRuby.show? "signal2subs step..."
+        # Ensure there is not implicit assign to sub signals.
+        systemT.signal2subs!
+        HDLRuby.show? "#{Time.now}#{show_mem}"
         HDLRuby.show? "seq2seq step..."
-        # Coverts the par blocks in seq blocks to seq blocks to match
+        # Converts the par blocks in seq blocks to seq blocks to match
         # the simulation engine.
         systemT.par_in_seq2seq!
         HDLRuby.show? "#{Time.now}#{show_mem}"
@@ -801,6 +806,9 @@ elsif $options[:verilog] then
     # top_system = $top_system
     # Make description compatible with verilog generation.
     $top_system.each_systemT_deep do |systemT|
+        HDLRuby.show? "signal2subs step..."
+        # Ensure there is not implicit assign to sub signals.
+        systemT.signal2subs!
         # HDLRuby.show "casts_without_expression! step..."
         # systemT.casts_without_expression!
         # HDLRuby.show Time.now
@@ -902,6 +910,9 @@ elsif $options[:vhdl] then
     # top_system = $top_system
     # Make description compatible with vhdl generation.
     $top_system.each_systemT_deep do |systemT|
+        HDLRuby.show? "signal2subs step..."
+        # Ensure there is not implicit assign to sub signals.
+        systemT.signal2subs!
         systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
         systemT.with_boolean!
         systemT.boolean_in_assign2select! unless $options[:alliance]

@@ -3325,7 +3325,8 @@ module HDLRuby::High
 
         # Converts to a new event.
         def to_event
-            return Event.new(:change,self.to_ref)
+            # return Event.new(:change,self.to_ref)
+            return Event.new(:anyedge,self.to_ref)
         end
 
         # Iterate over the elements.

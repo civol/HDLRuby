@@ -297,6 +297,20 @@ module HDLRuby::High
 
         attr_reader :rcbehavior
 
+        # Add sub leaf events from +sig+ of +type+.
+        def add_sub_events(type,sig)
+            if sig.each_signal.any? then
+                # The event is hierarchical, recurse.
+                sig.each_signal do |sub|
+                    self.add_sub_events(type,sub)
+                end
+            else
+                # Te event is not hierarchical, add it.
+                ref = RefObject.new(this,sig)
+                self.add_event(Event.new(type,ref))
+            end
+        end
+
         # Generate the C description of the behavior comming from object
         # whose C description is +rcowner+
         def to_rcsim(rcowner)
@@ -325,6 +339,16 @@ module HDLRuby::High
                 events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
                 # Add them to the behavior for further processing.
                 events.each {|event| self.add_event(event) }
+            else
+                # Maybe there are event on hierachical signals.
+                events.each do |event|
+                    if event.ref.object.each_signal.any? then
+                        # This is a hierarchical event, remove it.
+                        self.delete_event!(event)
+                        # And replace it by event of the subs of the signal.
+                        self.add_sub_events(event.type,event.ref)
+                    end
+                end
             end
 
             # Create the behavior C object.
@@ -338,7 +362,6 @@ module HDLRuby::High
             if self.each_event.any? then
                 RCSim.rcsim_add_behavior_events(@rcbehavior,
                                                 self.each_event.map do |ev|
-                    # puts "adding event: #{ev.ref.object.name}(#{ev.type})"
                     ev.to_rcsim(@rcbehavior)
                 end)
             end

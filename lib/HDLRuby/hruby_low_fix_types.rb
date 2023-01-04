@@ -389,6 +389,7 @@ module HDLRuby::Low
                 # No, recurse on the sub expressions.
                 return RefConcat.new(self.type,self.each_ref.map.with_index do
                     |ref,i| 
+                    puts "self.type=#{self.type}"
                     ref.explicit_types(self.type.get_type(i))
                 end)
             end

@@ -82,7 +82,7 @@ module HDLRuby::Low
                 selects = connection.extract_selects!
                 if selects.any? then
                     # Selects have been extract, replace the connection
-                    # be y behavior.
+                    # by a behavior.
                     # Generate the block with cases.
                     blk = LowWithoutSelect.selects2block(selects)
                     # Add a transmit replacing the connection.
@@ -214,7 +214,7 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the If class with functionality for converting select
+    ## Extends the Case class with functionality for converting select
     #  expressions to case statements.
     class Case
 
