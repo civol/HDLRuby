@@ -2083,10 +2083,10 @@ module HDLRuby::High
 
         # Converts the type to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
-            # return HDLRuby::Low::TypeTuple.new(name,self.direction,
-            #                    *@types.map { |type| type.to_low } )
-            typeTupleL = HDLRuby::Low::TypeTuple.new(name,self.direction,
-                               *@types.map { |type| type.to_low } )
+            # typeTupleL = HDLRuby::Low::TypeTuple.new(name,self.direction,
+            #                    *@types.map do |typ| typ.to_low  )
+            typeTupleL = HDLRuby::Low::TypeTuple.new(name,self.direction)
+            @types.each { |typ| typeTupleL.add_type(typ.to_low) }
             # # For debugging: set the source high object 
             # typeTupleL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = typeTupleL
@@ -3241,6 +3241,7 @@ module HDLRuby::High
             #         expr.to_low
             #     end
             # )
+            i = 0
             concatL = HDLRuby::Low::Concat.new(self.type.to_low,
                 self.each_expression.map do |expr|
                     expr.to_low

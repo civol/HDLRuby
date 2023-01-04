@@ -14,7 +14,7 @@
  **/
 
 /* The stack variables. */
-#define STACK_SIZE 0x10000
+#define STACK_SIZE 0x100000
 static Value stack[STACK_SIZE];
 static int head = STACK_SIZE;
 
