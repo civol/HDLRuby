@@ -5063,21 +5063,21 @@ module HDLRuby::High
         def to_value
             str = self.to_s
             return nil if str[0] != "_" # Bit string are prefixed by "_"
-            # Remove the "_" not needed any longer.
-            # str = str[1..-1]
-            str = str.delete("_")
             # Get and check the type
-            type = str[0]
-            # if type == "0" or type == "1" or type == "z" or type == "Z" then
-            if ["0", "1", "z", "Z", "o", "d", "h"] then
+            # type = str[0]
+            type = str[1]
+            if ["0", "1", "z", "Z", "o", "d", "h"].include?(type) then
                 # Default binary
                 type = "b"
             else
                 # Not a default type
-                str = str[1..-1]
+                # str = str[1..-1]
+                str = str[2..-1]
             end
-            return nil if str.empty?
             return nil unless ["b","u","s"].include?(type)
+            # Remove the "_"
+            str = str.delete("_")
+            return nil if str.empty?
             # Get the width if any.
             if str[0].match(/[0-9]/) then
                 width = str.scan(/[0-9]*/)[0]
