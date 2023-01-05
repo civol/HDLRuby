@@ -560,8 +560,9 @@ module HDLRuby::High
 
         ## Execute the expression.
         def execute(mode)
-            # puts "Executing signal=#{self.fullname} with c_value=#{self.c_value} and f_value=#{self.f_value}"
-            return @mode == :seq ? self.f_value : self.c_value
+            # puts "Executing signal=#{self.fullname} in mode=#{mode}  with c_value=#{self.c_value} and f_value=#{self.f_value}"
+            # return @mode == :seq ? self.f_value : self.c_value
+            return @mode == :seq || mode == :seq ? self.f_value : self.c_value
         end
 
         ## Assigns +value+ the the reference.
@@ -670,6 +671,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
+            # puts "execute Transmit in mode=#{mode} for left=#{self.left.object.name}"
             self.left.assign(mode,self.right.execute(mode))
         end
     end
@@ -687,6 +689,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
+            # puts "execute hif with mode=#{mode}"
             # Check the main condition.
             if !(self.condition.execute(mode).zero?) then
                 self.yes.execute(mode)
@@ -865,6 +868,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
+            # puts "execute block of mode=#{self.mode}"
             self.each_statement { |stmnt| stmnt.execute(self.mode) }
         end
 

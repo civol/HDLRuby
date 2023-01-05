@@ -4143,7 +4143,8 @@ module HDLRuby::High
         # +ruby_block+.
         #
         # NOTE: the else part is defined through the helse method.
-        def hif(condition, mode = nil, &ruby_block)
+        # def hif(condition, mode = nil, &ruby_block)
+        def hif(condition, mode = self.mode, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             # Creates the if statement.
