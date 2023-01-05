@@ -14,13 +14,15 @@ end
 
 
 sat.define_operator(:+) do |width,max, x,y|
-    [width].inner :res
-    seq do
-        tmp = x.as(bit[width]) + y.as(bit[width])
-        res <= tmp
-        ( res <= max ).hif(tmp > max)
-    end
-    res
+    # [width].inner :res
+    # seq do
+    #     tmp = x.as(bit[width]) + y.as(bit[width])
+    #     res <= tmp
+    #     ( res <= max ).hif(tmp > max)
+    # end
+    # res
+    tmp = x.as(signed[width]) + y.as(signed[width])
+    mux(tmp > max, tmp, max)
 end
 
 

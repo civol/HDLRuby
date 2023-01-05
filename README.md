@@ -539,10 +539,8 @@ A second possible approach provided by HDLRuby is to declare a new data type wit
 signed[16].typedef(:sat16_1000)
 
 sat16_1000.define_operator(:+) do |x,y|
-   [16].inner :res
-   seq do
-      res <= x + y
-      ( res <= 1000 ).hif(res > 1000)
+      tmp = x + y
+      mux(tmp > 1000,tmp,1000)
    end
 end
 ```
@@ -565,10 +563,8 @@ end
 
 
 sat.define_operator(:+) do |width,max, x,y|
-   [width].inner :res
-   seq do
-      res <= x + y
-      ( res <= max ).hif(res > max)
+      tmp = x + y
+      mux(tmp > max, tmp, max)
    end
 end
 ```
@@ -2318,7 +2314,7 @@ Where:
  * `type` is the type from which the operation is overloaded.
  * `op` is the operator that is overloaded (e.g., `+`)
  * `args` are the arguments of the operation.
- * `operation description` is an HDLRuby description of the new operation.
+ * `operation description` is an HDLRuby expression of the new operation.
 
 For example, for `fix32` a 32-bit (decimal point at 16-bit) fixed-point type defined as follows:
 

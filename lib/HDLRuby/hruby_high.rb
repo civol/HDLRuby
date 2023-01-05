@@ -30,7 +30,6 @@ module HDLRuby::High
     # execution.
     def curry_with_context(*args,&ruby_block)
         return proc do |cxt,*new_args|
-            puts "cxt=#{cxt}"
             cxt.instance_exec(*(args+new_args),&ruby_block)
         end
     end
