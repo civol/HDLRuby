@@ -1,6 +1,6 @@
 # Rom access generator, def case.
 def rom_gen(addr,&func)
-    bit[8][-8].constant tbl? => 8.times.map {|i| func.(i).to_i }
+    bit[8][-8].constant tbl? => 8.times.map {|i| func.(i).to_value.as(bit[8]) }
     tbl![addr]
 end
 
