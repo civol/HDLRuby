@@ -236,6 +236,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                             lastV = calc_expression(refr->last,lastV);
                             long long last = value2integer(lastV);
                             free_value();
+                            // printf("firstV=%lld lastV=%lld right=%lld mode=%d\n",firstV->data_int,lastV->data_int,right->data_int,mode);
                             /* Generate the reference inside the left value. */
                             RefRangeS ref = 
                                 make_ref_rangeS((SignalI)(refr->ref),refr->type,
