@@ -181,7 +181,7 @@ Value calc_expression(Expression expr, Value res) {
  *  @param behavior the behavior in execution. */
 void execute_statement(Statement stmnt, int mode, Behavior behavior) {
     /* Depending on the kind of statement. */
-    // printf("Executing statement=%p with kind=%d\n",stmnt,stmnt->kind);fflush(stdout);
+    // printf("Executing statement=%p with kind=%d in mode=%d\n",stmnt,stmnt->kind,mode);fflush(stdout);
     switch(stmnt->kind) {
         case TRANSMIT: 
             {
@@ -407,6 +407,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
         case BLOCK:
             {
                 Block block = (Block)stmnt;
+                // printf("Block mode=%d\n",block->mode);
                 /* Execute each statement of the block. */
                 for(int i=0; i<block->num_stmnts; ++i)
                     execute_statement(block->stmnts[i],block->mode,behavior);
