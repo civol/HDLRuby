@@ -1,7 +1,7 @@
 # A simple D-FF
 system :dff do
     input  :clk, :d
-    output q: 0
+    output :q
 
     (q <= d).at(clk.posedge)
 end
@@ -18,6 +18,8 @@ system :dff_bench do
     d1 <= ~q1
 
     timed do
+        d0 <= 0
+        d1 <= 0
         clk <= 0
         !10.ns
         clk <= 1
