@@ -107,7 +107,7 @@ module HDLRuby::High::Std
         end
 
         # Make the interpolation.
-        par do
+        seq(next_data,base) do
             diff <= (next_data-base).as(diff.type) * remaining
             if(otyp.signed?) then
                 interpolated_value <= base + 
