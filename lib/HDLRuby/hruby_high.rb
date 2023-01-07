@@ -1410,6 +1410,7 @@ module HDLRuby::High
         # Merge the included systems interface in +systemT+
         # NOTE: incompatible with further to_low transformation.
         def merge_included(systemT)
+            # puts "merge_included for scope=#{self.name} with behaviors=#{self.each_behavior.count}" 
             # Recurse on the sub.
             self.each_scope {|scope| scope.merge_included(systemT) }
             # Include for current scope.
@@ -1450,6 +1451,8 @@ module HDLRuby::High
                 end
                 # Adds its subscopes.
                 included.scope.each_scope do |scope|
+                    # Do not override scopes with same name since it is prioritary!
+                    next if !scope.name.empty? && systemT.scope.each_scope.find {|sc| sc.name == scope.name}
                     scope.no_parent!
                     systemT.scope.add_scope(scope)
                 end
