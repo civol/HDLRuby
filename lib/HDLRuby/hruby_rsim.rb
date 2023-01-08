@@ -107,6 +107,8 @@ module HDLRuby::High
             HDLRuby.show "#{Time.now}#{show_mem}"
             # Merge the included.
             self.merge_included!
+            # Process par in seq.
+            self.par_in_seq2seq!
             # Initializes the time.
             @time = 0
             # Initializes the time and signals execution buffers.
@@ -561,8 +563,8 @@ module HDLRuby::High
         ## Execute the expression.
         def execute(mode)
             # puts "Executing signal=#{self.fullname} in mode=#{mode}  with c_value=#{self.c_value} and f_value=#{self.f_value}"
-            # return @mode == :seq ? self.f_value : self.c_value
-            return @mode == :seq || mode == :seq ? self.f_value : self.c_value
+            return @mode == :seq ? self.f_value : self.c_value
+            # return @mode == :seq || mode == :seq ? self.f_value : self.c_value
         end
 
         ## Assigns +value+ the the reference.
@@ -876,6 +878,27 @@ module HDLRuby::High
         def fullname
             @fullname ||= self.parent.fullname + ":" + self.name.to_s
             return @fullname
+        end
+    end
+
+    class If
+        ## Returns the name of the signal with its hierarchy.
+        def fullname
+            return self.parent.fullname
+        end
+    end
+
+    class When
+        ## Returns the name of the signal with its hierarchy.
+        def fullname
+            return self.parent.fullname
+        end
+    end
+
+    class Case
+        ## Returns the name of the signal with its hierarchy.
+        def fullname
+            return self.parent.fullname
         end
     end
 

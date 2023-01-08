@@ -897,6 +897,8 @@ elsif $options[:rcsim] then
     require 'HDLRuby/hruby_rcsim.rb'
     # Merge the included from the top system.
     $top_system.merge_included!
+    # Process par in seq.
+    $top_system.par_in_seq2seq!
     # Generate the C data structures.
     $top_system.to_rcsim
     HDLRuby.show "Executing the hybrid C-Ruby-level simulator..."

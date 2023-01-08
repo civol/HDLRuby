@@ -122,6 +122,9 @@ module HDLRuby::Low
         def to_seq!
             if self.mode == :par then
                 # Need to convert.
+                # Get which module is it.
+                modul = self.is_a?(HDLRuby::High::Block) ? HDLRuby::High :
+                    HDLRuby::Low
                 # First recurse on the sub blocks.
                 self.each_statement(&:to_seq!)
                 # Now replace each left value by a new signal for
@@ -130,16 +133,23 @@ module HDLRuby::Low
                 self.each_statement do |statement|
                     left = statement.left
                     if statement.is_a?(Transmit) then
-                        sig = SignalI.new(HDLRuby.uniq_name,left.type)
-                        self.add_inner(sig)
-                        diff = RefName.new(left.type,RefThis.new,sig.name)
+                        if modul == HDLRuby::High then
+                            sig = modul::SignalI.new(HDLRuby.uniq_name,left.type,:inner)
+                            self.add_inner(sig)
+                            puts "sig.parent=#{sig.parent}"
+                            diff = modul::RefObject.new(modul::RefThis.new,sig)
+                        else
+                            sig = modul::SignalI.new(HDLRuby.uniq_name,left.type)
+                            self.add_inner(sig)
+                            diff = modul::RefName.new(left.type,modul::RefThis.new,sig.name)
+                        end
                         differeds << [left,diff]
                         statement.set_left!(diff)
                     end
                 end
                 # Adds the differed assignments.
                 differeds.each do |left,diff|
-                    self.add_statement(Transmit.new(left.clone,diff.clone))
+                    self.add_statement(modul::Transmit.new(left.clone,diff.clone))
                 end
                 # Change the mode.
                 self.set_mode!(:seq)
