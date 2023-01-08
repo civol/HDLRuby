@@ -75,7 +75,7 @@ module HDLRuby::High::Std
         base <= lut[address]
 
         # Assign the next_data discrete value.
-        next_data <= lut[address+1]
+        next_data <= lut[address+_b1.as(address.type)]
     end
 
 
@@ -107,7 +107,7 @@ module HDLRuby::High::Std
         end
 
         # Make the interpolation.
-        seq(next_data,base) do
+        seq do
             diff <= (next_data-base).as(diff.type) * remaining
             if(otyp.signed?) then
                 interpolated_value <= base + 
