@@ -18,13 +18,13 @@ system :bram_test do
 
     timed do
         clk  <= 0
-        rwb  <= 1
+        rwb  <= 0
         addr <= 0
         din  <= 0
         !10.ns
         clk  <= 1
         !10.ns
-        rwb <= 1
+        rwb <= 0
         repeat(16) do
             clk <= 0
             !10.ns
@@ -33,7 +33,7 @@ system :bram_test do
             din <= din + 1
             !10.ns
         end
-        rwb <= 0
+        rwb <= 1
         repeat(16) do
             clk <= 0
             !10.ns

@@ -1777,6 +1777,8 @@ Value write_range_bitstring_no_z(Value src,
     unsigned long long bw = type_width(base);
     first *= bw;
     last *=  bw;
+    last += bw-1;
+    // printf("bw=%lld, first=%lld, last=%lld\n",bw,first,last);
     /* Access the source and destination bitstring data. */
     char* dst_data = dst->data_str;
     char* src_data = src->data_str;
