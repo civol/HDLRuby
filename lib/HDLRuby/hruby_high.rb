@@ -4765,13 +4765,10 @@ module HDLRuby::High
                 return Value.new(TypeSigned.new(:"",self.bit_length..0),self)
             end
         end
-    end
-    
-    # Extends the Float class for computing for conversion to expression.
-    class ::Float
-        # Converts to a new high-level expression.
-        def to_expr
-            return Value.new(Float,self)
+
+        # Gets the bit width
+        def width
+            return self.bit_length
         end
     end
 
