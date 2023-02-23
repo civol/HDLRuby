@@ -31,8 +31,10 @@ module HDLRuby::High::Std
 
         # Creates a new fsm type with +name+.
         # +options+ allows to specify the type of fsm:
-        # synchronous (default) / asynchronous and
-        # mono-front(default) / dual front
+        # - :sync, :synchronous : synchronous (default)
+        # - :async, :asynchronous : asynchronous
+        # - :dual : dual front
+        # - :seq, :blocking : use blocking assignments
         def initialize(name,*options)
             # Check and set the name
             @name = name.to_sym
@@ -40,6 +42,7 @@ module HDLRuby::High::Std
             @dual = false
             @type = :sync      # By default, the FSM is synchronous.
             @sequential = true # By default, the default next state is the next one in the list.
+            @blocking = false  # By default, use non-blocking assignments (par)
             options.each do |opt|
                 case opt
                 when :sync,:synchronous then
@@ -50,8 +53,21 @@ module HDLRuby::High::Std
                     @dual = true
                 when :static then
                     @sequential = false
+                when :seq then
+                    @blocking = true
+                when :blocking then
+                    @blocking = true
                 else
                     raise AnyError, "Invalid option for a fsm: :#{type}"
+                end
+            end
+            if @blocking then
+                define_singleton_method(:fsm_block) do |*args,&ruby_block|
+                    send(:seq,*args,&ruby_block)
+                end
+            else
+                define_singleton_method(:fsm_block) do |*args,&ruby_block|
+                    send(:par,*args,&ruby_block)
                 end
             end
 
@@ -127,7 +143,8 @@ module HDLRuby::High::Std
                 # sub do
                     HDLRuby::High.space_push(namespace)
                     # Execute the instantiation block
-                    return_value = HDLRuby::High.top_user.instance_exec(&ruby_block)
+                    # return_value = HDLRuby::High.top_user.instance_exec(&ruby_block)
+                    return_value = HDLRuby::High.top_user.instance_exec(&ruby_block) if ruby_block
 
                     # Expands the extra state processing so that al all the
                     # parts of the state machine are in par (clear synthesis).
@@ -171,7 +188,8 @@ module HDLRuby::High::Std
                     # Create the fsm code
 
                     # Control part: update of the state.
-                    par(mk_ev.call) do
+                    # par(mk_ev.call) do
+                    fsm_block(mk_ev.call) do
                         hif(mk_rst.call) do
                             # Reset: current state is to put to 0.
                             this.cur_state_sig <= 0
@@ -194,7 +212,8 @@ module HDLRuby::High::Std
                         event = []
                     end
                     # The process
-                    par(*event) do
+                    # par(*event) do
+                    fsm_block(*event) do
                         # The operative code.
                         oper_code =  proc do
                             # The default code.
@@ -260,7 +279,8 @@ module HDLRuby::High::Std
                         event = mk_ev.call
                         event = event.invert if @dual
                         # The extra code.
-                        par(*event) do
+                        # par(*event) do
+                        fsm_block(*event) do
                             # Build the extra synchronous part.
                             sync_code = proc do
                                 hcase(this.cur_state_sig)
@@ -289,7 +309,8 @@ module HDLRuby::High::Std
 
                     # Extra asynchronous operative part.
                     if extra_asyncs.any? then
-                        par do
+                        # par do
+                        fsm_block do
                             # Build the extra synchronous part.
                             async_code = proc do
                                 hcase(this.cur_state_sig)
