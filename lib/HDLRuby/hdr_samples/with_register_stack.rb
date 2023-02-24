@@ -4,7 +4,7 @@ include HDLRuby::High::Soft
 
 
 # A system testing the bram-based stack.
-system :register_stach_test do
+system :register_stack_test do
 
     widthA = 3
     size   = 2**widthA
@@ -96,10 +96,17 @@ system :register_stach_test do
         end
         !10.ns
         clk <= 0
-        din <= size-1
-        cmd <= READ
+        din <= _b8hAA
+        cmd <= PUSH
         !10.ns
         clk <= 1
+        !10.ns
+        clk <= 0
+        din <= 7
+        cmd <= WRITE
+        !10.ns
+        clk <= 1
+        din <= -1
         repeat(8) do
             !10.ns
             clk <= 0
@@ -139,4 +146,5 @@ system :register_stach_test do
         !10.ns
         clk <= 1
     end
+
 end

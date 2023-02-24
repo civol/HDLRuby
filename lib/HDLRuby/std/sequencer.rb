@@ -7,9 +7,18 @@ module HDLRuby::High::Std
     # The idea is to be able to write sw-like sequential code.
     # 
     ########################################################################
+    
 
-    # Define a sequencer block.
+
+    # Defines a sequencer block.
     class SequencerT 
+        @@current = nil # The current sequencer.
+
+        # Get the sequencer currently processing.
+        def self.current
+            @@current
+        end
+
         # Create a new sequencer block synchronized on +clk+ and starting
         # on +start+
         def initialize(clk,start,&ruby_block)
@@ -23,6 +32,7 @@ module HDLRuby::High::Std
             @namespace = Namespace.new(self)
 
             # Process the ruby_block.
+            @@current = self
             HDLRuby::High.space_push(@namespace)
             blk = HDLRuby::High::Block.new(:seq,&ruby_block)
             HDLRuby::High.space_pop
@@ -141,6 +151,23 @@ module HDLRuby::High::Std
             return st
         end
 
+        # Create a sequential for statement iterating over the elements
+        # of +expr+.
+        def sfor(expr,&ruby_block)
+            # idx = nil
+            # HDLRuby::High.cur_system.open do
+            #     idx = [expr.type.size.width+1].inner(
+            #         HDLRuby.uniq_name("for_idx"))
+            # end
+            # idx <= 0
+            # # Iterate using a swhile.
+            # swhile(idx < expr.type.size) do
+            #     ruby_block.call(expr[idx],idx)
+            #     idx <= idx + 1
+            # end
+            expr.seach.with_index(&ruby_block)
+        end
+
 
         # Fills the top user with the content of block +blk+.
         def fill_top_user(blk)
@@ -150,8 +177,263 @@ module HDLRuby::High::Std
                 HDLRuby::High.top_user.add_statement(stmnt)
             end
         end
-
     end
+
+
+    # Module adding functionalities to object including the +seach+ method.
+    module SEnumerable
+        
+        # Tell if all the elements respect a given criterion given either
+        # as +arg+ or as block.
+        def all?(arg = nil,&ruby_block)
+            # Declare the result signal.
+            res = nil
+            HDLRuby::High.cur_system.open do
+                res = bit.inner(HDLRuby.uniq_name(:"all_cond"))
+            end
+            if arg then
+                # Compare elements to arg.
+                self.seach do |elem|
+                    res <= res & (elem == arg)
+                end
+            elsif ruby_block then
+                # Use the ruby block.
+                self.seach do |elem|
+                    res <= res & ruby_block.call(elem)
+                end
+            else
+                # Check if each element is not 0.
+                self.seach do |elem|
+                    res <= res & (elem == 0)
+                end
+            end
+            res
+        end
+    end
+
+
+    # Defines a sequencer enumerator class that allows to generate HW iteration
+    # over HW or SW objects within sequencers.
+    class SEnumerator
+        include SEnumerable
+
+        attr_reader :size
+        attr_reader :type
+        attr_reader :result
+        attr_reader :idx
+
+        # Create a new sequencer for +size+ elements as +typ+ with an HW
+        # array-like accesser +access+.
+        def initialize(typ,size,&access)
+            # Sets the size.
+            @size = size
+            # Sets the type.
+            @type = typ
+            # Sets the accesser.
+            @access = access
+            # Create the iterator and the iteration result.
+            idx = nil
+            result = nil
+            HDLRuby::High.cur_system.open do
+                idx = [size.width+1].inner({
+                    HDLRuby.uniq_name("enum_idx") => 0 })
+                result = typ.inner(HDLRuby.uniq_name("enum_res"))
+            end
+            @idx = idx
+            @result = result
+        end
+
+        # Clones the enumerator.
+        def clone
+            return SEnumerator.new(@type,@size,&@access)
+        end
+
+        # View the next element without advancing the iteration.
+        def speek
+            @result <= @access.call(@idx)
+            @result
+        end
+
+        # Get the next element.
+        def snext
+            @result <= @access.call(@idx)
+            @idx <= @idx + 1
+            @result
+        end
+
+        # Restart the iteration.
+        def srewind
+            @idx <= 0
+        end
+
+        # Iterate on each element.
+        def seach(&ruby_block)
+            return self unless ruby_block
+            this = self
+            # Reitialize the iteration.
+            this.srewind
+            # Performs the iteration.
+            SequencerT.current.swhile(@idx < @size) do
+                ruby_block.call(this.snext)
+            end
+        end
+
+        # Iterate on each element with index.
+        def seach_with_index(&ruby_block)
+            idx = @idx
+            seach do |elem|
+                ruby_block.call(elem,idx-1)
+            end
+        end
+
+        # Iterate on each element with arbitrary object +obj+.
+        def seach_with_object(val,&ruby_block)
+            seach do |elem|
+                ruby_block(elem,val)
+            end
+        end
+
+        # Iterates with an index.
+        def with_index(&ruby_block)
+            # Is there a ruby block?
+            if ruby_block then
+                # Yes, iterate directly.
+                return self.seach_with_index(&ruby_block)
+            end
+            # No, create a new iterator.
+            access = @access
+            return SEnumerator.new(@type,@size) do |idx|
+                [ access.call(idx),idx ]
+            end
+        end
+
+        # Return a new SEnumerator with an arbitrary arbitrary object +obj+.
+        def with_object(obj)
+            # Is there a ruby block?
+            if ruby_block then
+                # Yes, iterate directly.
+                return self.seach_with_object(obj,&ruby_block)
+            end
+            # No, create a new iterator.
+            access = @access
+            return SEnumerator.new(@type,@size) do |idx|
+                [ access.call(idx),obj ]
+            end
+        end
+
+        # Return a new SEnumerator going on iteration over enumerable +obj+
+        def +(obj)
+            enum = self.clone
+            obj_enum = obj.seach
+            res = nil
+            typ = @type
+            HDLRuby::High.cur_system.open do
+                res = typ.inner(HDLRuby.uniq_name("enum_plus"))
+            end
+            return SEnumerator.new(typ,@size+obj_enum.size) do |idx|
+                HDLRuby::High.top_user.hif(idx < @size) { res <= enum.snext }
+                HDLRuby::High.top_user.helse        { res <= obj_enum.snext }
+                res
+            end
+        end
+    end
+
+
+    # Enhance the HExpression module with sequencer iteration.
+    module HDLRuby::High::HExpression
+        # HW iteration on each element.
+        def seach(&ruby_block)
+            # Create the hardware iterator.
+            this = self
+            hw_enum = SEnumerator.new(this.type.base,this.type.size) do |idx|
+                this[idx]
+            end
+            # Is there a ruby block?
+            if(ruby_block) then
+                # Yes, apply it.
+                return hw_enum.seach(&ruby_block)
+            else
+                # No, return the resulting enumerator.
+                return hw_enum
+            end
+        end
+    end
+
+    # Enhance the Enumerable module with sequencer iteration.
+    module ::Enumerable
+        # HW iteration on each element.
+        def seach(&ruby_block)
+            # Convert the enumrable to an array for easier processing.
+            ar = self.to_a
+            return if ar.empty? # The array is empty, nothing to do.
+            # Compute the type of the elements.
+            typ = ar[0].respond_to?(:type) ? ar[0].type : signed[32]
+            # Create the hardware iterator.
+            hw_enum = SEnumerator.new(typ,ar.size) do |idx|
+                smux(idx,*ar)
+            end
+            # Is there a ruby block?
+            if(ruby_block) then
+                # Yes, apply it.
+                return hw_enum.seach(&ruby_block)
+            else
+                # No, return the resulting enumerator.
+                return hw_enum
+            end
+        end
+    end
+
+    # Enhance the Range class with sequencer iteration.
+    class ::Range
+        # HW iteration on each element.
+        def seach(&ruby_block)
+            # Create the hardware iterator.
+            this = self
+            hw_enum = SEnumerator.new(signed[32],this.size) do |idx|
+                idx + self.first
+            end
+            # Is there a ruby block?
+            if(ruby_block) then
+                # Yes, apply it.
+                return hw_enum.seach(&ruby_block)
+            else
+                # No, return the resulting enumerator.
+                return hw_enum
+            end
+        end
+    end
+
+    # Enhance the Integer class with sequencer iterations.
+    class ::Integer
+        # HW times iteration.
+        def stime(&ruby_block)
+            return (0...self).seach(&ruby_block)
+        end
+
+        # HW upto iteration.
+        def upto(val,&ruby_block)
+            return (self..val).seach(&ruby_block)
+        end
+
+        # HW downto iteration.
+        def downto(val,&ruby_block)
+            # Create the hardware iterator.
+            range = val..self
+            hw_enum = SEnumerator.new(signed[32],range.size) do |idx|
+                range.last - idx
+            end
+            # Is there a ruby block?
+            if(ruby_block) then
+                # Yes, apply it.
+                return hw_enum.seach(&ruby_block)
+            else
+                # No, return the resulting enumerator.
+                return hw_enum
+            end
+        end
+    end
+
+
 
     # Create a sequencer of code synchronised of +clk+ and starting on +start+.
     def sequencer(clk,start,&ruby_block)
