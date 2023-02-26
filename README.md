@@ -2751,7 +2751,7 @@ It can be noticed for field `z` in the example above that the bits are not requi
 
 This library provides a new set of control statements for easily describing a finite state machine (FSM).
 
-A finite state machine can be declared anywhere provided it is outside a behavior using the `fsm` keyword as follows:
+A finite state machine can be declared anywhere in a system provided it is outside a behavior using the `fsm` keyword as follows:
 
 ```ruby
 fsm(<event>,<reset>,<mode>) <block>
@@ -2849,6 +2849,109 @@ fsm(clk.posedge,rst,:static)
    end
 end
 ```
+
+## Sequencer (softare-like hardware coding)
+<a name="sequencer"></a>
+
+This library provides a new sets of control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description.
+
+A sequencer can be declared anywhere in a system provided it is outside a behavior using the `sequencer` keyword as follows:
+
+```ruby
+sequencer(<event>,<start>) <block>
+```
+
+Where `event` is the event (rising or falling edge of a signal) advancing the execution of the sequence, `start` is the signal starting the execution, and `block` is the description of the sequence to be executed. A sequence is a specific case of `seq` block that includes the following software-like additional constructs:
+
+ - `step`: wait until the next event (given argument `event` of the sequencer).
+
+ - `sif(<condition>) <block>`: executes `block` if `condition` is met.
+
+ - `selse <block>`: executes `block` if the condition of the previous `sif` statement is not met.
+
+ - `swhile(<condition>) <block>`: executes `block` while `condition` is met.
+
+ - `sfor(<enumerable>) <block>`: executes `block` on each element of `enumerable`. This latter can be any enumerable Ruby object, or any signal. If the signal is not hierarchical (e.g., bit vector), the iteration will be over each bit.
+
+ - `sbreak`: ends current iteration.
+
+ - `sterminate`: ends the execution of the sequence.
+
+It is also possible to use iterators similar to the Ruby `each` using the following methods within sequences:
+
+ - `<object>.seach`: `object` any enumerable Ruby object or any signal. If a block is given, it works like `sfor`, otherwise, it return a HDLRuby enumerator (please see [enumerator](#enumerator) for details about them).
+
+ - `<object>.stimes`: can be used on integers and is equivalent to `seach` on each integer from 0 up to `object-1`.
+
+ - `<object>.supto(<last>)`: can be used on integers and is equivalent to `seach` on each integer from `object` up to `last`.
+
+ - `<object>.sdownto(<last>)`: can be used on integer and is equivalent to `seach` on each integer from `object` down to `last`.
+
+
+Here are a few example of sequencers synchronised in the positive edge of `clk` and starting when `start` becomes one. The first one computes the Fibonacci series until 100, producing a new term in signal `v` at each cycle:
+
+```ruby
+inner :clk, :start
+[16].inner :a, :b
+
+sequencer(clk.posedge,start) do
+   a <= 0
+   b <= 1
+   swhile(v < 100) do
+      b <= a + b
+      a <= b - a
+   end
+end
+```
+
+The second one computes the square of the integers from 10 to 100, producing one result per cycle in signal `a`:
+
+```ruby
+inner :clk, :start
+[16].inner :a
+
+sequencer(clk.posedge,start) do
+   10.supto(100) { |i| a <= i*i }
+end
+```
+
+The third one reverses the content of memory `mem` (the result will be "!dlrow olleH"):
+
+```ruby
+inner :clk, :start
+bit[8][-12].inner mem: "Hello world!"
+
+sequencer(clk.posedge,start) do
+   mem.size.stimes do |i|
+      [8].inner :tmp
+      tmp       <= mem[i]
+      mem[i]    <= mem[-i-1]
+      mem[-i-1] <= tmp
+   end
+end
+```
+
+The forth one compute the sum of all the elements of memory `mem` but stops if the sum is larger than 16:
+
+```ruby
+inner :clk, :start
+bit[8][-8].inner mem: [ _h02, _h04, _h06, _h08, _h0A, _h0C, _h0E ]
+bit[8] :sum
+
+sequencer(clk.posedge,start) do
+   sum <= 0
+   sfor(mem) do |elem|
+      sum <= sum + elem
+      sif(sum > 16) { sterminate }
+   end
+end
+```
+
+
+### HDLRuby enumerators
+<a name="enumerator"></a>
+
+HDLRuby enumerator are objects for generating iterations within sequencers. These objects have all the method of the Ruby `Enumerator` including the ones of the `Enumerable` class, but generate hardware code for iterating instead of directly iterating. For example, the following code
 
 
 ## Fixed-point (fixpoint)
