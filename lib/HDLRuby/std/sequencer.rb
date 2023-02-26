@@ -19,17 +19,41 @@ module HDLRuby::High::Std
             @@current
         end
 
-        # Create a new sequencer block synchronized on +clk+ and starting
+        # The start and end states values.
+        attr_reader :start_state_value, :end_state_value
+
+        # Create a new sequencer block synchronized on +ev+ and starting
         # on +start+
-        def initialize(clk,start,&ruby_block)
+        def initialize(ev,start,&ruby_block)
+            this = self
             # Create the fsm from the block.
-            @fsm = fsm(clk.posedge,start,:seq)
-            @fsm.reset {}
+            @fsm = fsm(ev,start,:seq)
+            # On reset (start) go to the first state.
+            @fsm.reset do
+                HDLRuby::High.top_user.instance_exec do
+                    next_state_sig <= this.start_state_value
+                end
+            end
+
             # The status stack of the sequencer.
             @status = [ {} ]
             # Creates the namespace to execute the sequencer deescription 
             # block in.
             @namespace = Namespace.new(self)
+
+            # The end state is actually 0, allows to sequencer to be stable
+            # by default.
+            @end_state = @fsm.state {}
+            @end_state.gotos << proc do
+                HDLRuby::High.top_user.instance_exec do
+                    # next_state_sig <= st.value
+                    next_state_sig <= this.end_state_value
+                end
+            end
+            # Record the start and end state values.
+            # For now, the start state is the one just following the end state.
+            @end_state_value = @end_state.value
+            @start_state_value = @end_state_value + 1
 
             # Process the ruby_block.
             @@current = self
@@ -44,13 +68,14 @@ module HDLRuby::High::Std
                     this.fill_top_user(blk)
                 end
             end
-            # Ends the fsm with an infinite loop state.
-            st = @fsm.state {}
-            st.gotos << proc do
-                HDLRuby::High.top_user.instance_exec do
-                    next_state_sig <= st.value
-                end
-            end
+            # # Ends the fsm with an infinite loop state.
+            # st = @fsm.state {}
+            # st.gotos << proc do
+            #     HDLRuby::High.top_user.instance_exec do
+            #         # next_state_sig <= st.value
+            #         next_state_sig <= EndStateValue
+            #     end
+            # end
 
             # Build the fsm.
             @fsm.build
@@ -70,8 +95,38 @@ module HDLRuby::High::Std
             # Create a state for this block.
             this = self
             st = @fsm.state { this.fill_top_user(blk) }
-            # Set the previous step in sequence.
-            @status.last[:state] = st
+            # # Set the previous step in sequence.
+            # @status.last[:state] = st
+            return st
+        end
+
+        # Breaks current iteration.
+        def sbreak
+            # Mark a step.
+            st = self.step
+            # Tell there is a break to process.
+            # Do that in the first swhile status met.
+            i = @status.size-1
+            begin
+               status = @status[i -= 1]
+               raise "No loop for sbreak." unless status
+            end while(!status[:swhile])
+            status[:sbreaks] ||= []
+            status[:sbreaks] << st
+            return st
+        end
+
+        # Terminates the sequencer.
+        def sterminate
+            # Mark a step.
+            st = self.step
+            # Adds a goto the ending state.
+            this = self
+            st.gotos << proc do
+                HDLRuby::High.top_user.instance_exec do
+                    next_state_sig <= this.end_state_value
+                end
+            end
             return st
         end
 
@@ -89,13 +144,14 @@ module HDLRuby::High::Std
             this = self
             yes = @fsm.state(yes_name) { this.fill_top_user(yes_blk) }
             # Add a goto to the previous state.
-            prev.gotos << proc do
+            st.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    hif(cond) do
-                        next_state_sig <= yes.value
-                    end
+                    hif(cond) { next_state_sig <= st.value + 1 }
+                    helse { next_state_sig <= yes.value + 1 }
                 end
             end
+            # Remeber the if yes state for being able to add else afterward.
+            @status.last[:sif_yes] = yes
             return st
         end
 
@@ -108,46 +164,66 @@ module HDLRuby::High::Std
             no_blk = HDLRuby::High::Block.new(:seq,&ruby_block)
             @status.pop
             this = self
-            no = @fsm.state(no_name) { this.fill_top_user(yes_blk) }
-            # Adds a goto to the previous state for the else case.
-            st = @status.last[:state]
-            raise "Cannot use selse here." unless st
-            cond = @satus.last[:cond]
-            st.gotos << proc do
+            no = @fsm.state(no_name) { this.fill_top_user(no_blk) }
+            # Adds a goto to the previous if yes state for jumping the no state.
+            yes = @status.last[:sif_yes]
+            raise "Cannot use selse here." unless yes
+            cond = @status.last[:condition]
+            yes.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    hif(~cond) do
-                        next_state_sig <= no.value
-                    end
+                    next_state_sig <= no.value + 1
                 end
             end
-            return st
+            return no
         end
 
         # Create a sequential while statement on +cond+.
         def swhile(cond,&ruby_block)
             # Mark a step.
             st = self.step
+
+            # Tell we are building a while.
+            @status.last[:swhile] = true
+
             # Create a state to be executed if the condition is met.
             @status.push({})
+            # Build the loop sub sequence.
             yes_name = HDLRuby.uniq_name("yes")
             yes_blk = HDLRuby::High::Block.new(:seq,&ruby_block)
             @status.pop
+
             this = self
             yes = @fsm.state(yes_name) { this.fill_top_user(yes_blk) }
             # Add a goto to the previous state.
             st.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    hif(cond) { next_state_sig <= yes.value }
+                    hif(cond) { next_state_sig <= st.value + 1 }
                     helse { next_state_sig <= yes.value + 1 }
                 end
             end
             # And to the yes state.
             yes.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    hif(cond) { next_state_sig <= yes.value }
+                    hif(cond) { next_state_sig <= st.value + 1 }
                     helse { next_state_sig <= yes.value + 1 }
                 end
             end
+
+            # Where there any break?
+            if @status.last[:sbreaks] then
+                # Yes, adds them the right goto since the end of loop state
+                # is now defined.
+                @status.last[:sbreaks].each do |st_brk|
+                    st_brk.gotos << proc do
+                        HDLRuby::High.top_user.instance_exec do
+                            next_state_sig <= yes.value + 1
+                        end
+                    end
+                end
+                # And remove them from the status to avoid reprocessing them,
+                @status.last.clear
+            end
+
             return st
         end
 
@@ -411,12 +487,12 @@ module HDLRuby::High::Std
         end
 
         # HW upto iteration.
-        def upto(val,&ruby_block)
+        def supto(val,&ruby_block)
             return (self..val).seach(&ruby_block)
         end
 
         # HW downto iteration.
-        def downto(val,&ruby_block)
+        def sdownto(val,&ruby_block)
             # Create the hardware iterator.
             range = val..self
             hw_enum = SEnumerator.new(signed[32],range.size) do |idx|
