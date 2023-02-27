@@ -81,6 +81,19 @@ module HDLRuby::High::Std
             @fsm.build
         end
 
+        # Get the closest swhile status in the status stack.
+        # NOTE: raises an exception if there are not swhile state.
+        def swhile_status
+            i = @status.size-1
+            begin
+               status = @status[i -= 1]
+               raise "No loop for sbreak." unless status
+            end while(!status[:swhile])
+            return status
+        end
+
+
+
         # Mark a step.
         def step
             # Create a new block from all the statements in the previous block.
@@ -106,13 +119,24 @@ module HDLRuby::High::Std
             st = self.step
             # Tell there is a break to process.
             # Do that in the first swhile status met.
-            i = @status.size-1
-            begin
-               status = @status[i -= 1]
-               raise "No loop for sbreak." unless status
-            end while(!status[:swhile])
+            status = self.swhile_status
             status[:sbreaks] ||= []
             status[:sbreaks] << st
+            return st
+        end
+
+        # Continues current iteration.
+        def scontinue
+            # Mark a step.
+            st = self.step
+            # Go to the begining of the iteration, i.e., the first swhile
+            # status met.
+            status = self.swhile_status
+            st.gotos << proc do
+                HDLRuby::High.top_user.instance_exec do
+                    next_state_sig <= status[:swhile]
+                end
+            end
             return st
         end
 
@@ -182,8 +206,8 @@ module HDLRuby::High::Std
             # Mark a step.
             st = self.step
 
-            # Tell we are building a while.
-            @status.last[:swhile] = true
+            # Tell we are building a while and remember the state number.
+            @status.last[:swhile] = st.value + 1
 
             # Create a state to be executed if the condition is met.
             @status.push({})
@@ -261,7 +285,7 @@ module HDLRuby::High::Std
         
         # Tell if all the elements respect a given criterion given either
         # as +arg+ or as block.
-        def all?(arg = nil,&ruby_block)
+        def sall?(arg = nil,&ruby_block)
             # Declare the result signal.
             res = nil
             HDLRuby::High.cur_system.open do

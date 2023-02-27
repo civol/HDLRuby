@@ -8,6 +8,8 @@ include HDLRuby::High::Std
 #   for testing sterminate.
 # - One sequencer computes a fibbnacci series until 1000 with ealry break
 #   for testing sbreak.
+# - One sequence that increase a first counter and the other one every four
+#   increases of the first one for testing scontinue.
 # - One sequencer computes the square value of each elements of a buffer.
 # - One sequencer computes the square value of each elements of a range.
 # - One sequencer concatenates the value of a counter with its index.
@@ -66,6 +68,22 @@ system :my_seqencer do
             selse { res00 <= res00 + 1 }
         end
         hprint("##2 res00=",res00,"... and should be here!\n")
+    end
+
+    [8].inner :a,:b
+
+    sequencer(clk,rst) do
+        hprint("=0\n")
+        a <= 0
+        b <= 0
+        sfor(0..19) do
+            a <= a + 1
+            hprint("=1 a=",a,"\n")
+            sif(a % 4) { scontinue }
+            b <= b + 1
+            hprint("=2 b=",b,"\n")
+        end
+        hprint("=3 a=",a," b=",b,"\n")
     end
 
 
