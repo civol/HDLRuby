@@ -81,14 +81,14 @@ module HDLRuby::High::Std
             @fsm.build
         end
 
-        # Get the closest swhile status in the status stack.
+        # Get the closest loop status in the status stack.
         # NOTE: raises an exception if there are not swhile state.
-        def swhile_status
+        def loop_status
             i = @status.size-1
             begin
                status = @status[i -= 1]
                raise "No loop for sbreak." unless status
-            end while(!status[:swhile])
+            end while(!status[:loop])
             return status
         end
 
@@ -118,8 +118,8 @@ module HDLRuby::High::Std
             # Mark a step.
             st = self.step
             # Tell there is a break to process.
-            # Do that in the first swhile status met.
-            status = self.swhile_status
+            # Do that in the first loop status met.
+            status = self.loop_status
             status[:sbreaks] ||= []
             status[:sbreaks] << st
             return st
@@ -129,12 +129,12 @@ module HDLRuby::High::Std
         def scontinue
             # Mark a step.
             st = self.step
-            # Go to the begining of the iteration, i.e., the first swhile
+            # Go to the begining of the iteration, i.e., the first loop
             # status met.
-            status = self.swhile_status
+            status = self.loop_status
             st.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    next_state_sig <= status[:swhile]
+                    next_state_sig <= status[:loop]
                 end
             end
             return st
@@ -201,13 +201,21 @@ module HDLRuby::High::Std
             return no
         end
 
+        # Wait a given condition.
+        def swait(cond)
+            return self.swhile(~cond)
+        end
+
         # Create a sequential while statement on +cond+.
         def swhile(cond,&ruby_block)
+            # Ensures there is a ruby block. This allows to use empty while
+            # statement.
+            ruby_block = proc { } unless ruby_block
             # Mark a step.
             st = self.step
 
             # Tell we are building a while and remember the state number.
-            @status.last[:swhile] = st.value + 1
+            @status.last[:loop] = st.value + 1
 
             # Create a state to be executed if the condition is met.
             @status.push({})
@@ -221,15 +229,27 @@ module HDLRuby::High::Std
             # Add a goto to the previous state.
             st.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    hif(cond) { next_state_sig <= st.value + 1 }
-                    helse { next_state_sig <= yes.value + 1 }
+                    if cond then
+                        # There is a condition, it is a real while loop.
+                        hif(cond) { next_state_sig <= st.value + 1 }
+                        helse { next_state_sig <= yes.value + 1 }
+                    else
+                        # There is no ending condition, this is an infinite loop.
+                        next_state_sig <= st.value + 1
+                    end
                 end
             end
             # And to the yes state.
             yes.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    hif(cond) { next_state_sig <= st.value + 1 }
-                    helse { next_state_sig <= yes.value + 1 }
+                    if cond then
+                        # There is a condition, it is a real while loop
+                        hif(cond) { next_state_sig <= st.value + 1 }
+                        helse { next_state_sig <= yes.value + 1 }
+                    else
+                        # There is no ending condition, this is an infinite loop.
+                        next_state_sig <= st.value + 1
+                    end
                 end
             end
 
@@ -251,20 +271,17 @@ module HDLRuby::High::Std
             return st
         end
 
+        # Create a sequential infinite loop statement.
+        def sloop(&ruby_block)
+            self.swhile(nil,&ruby_block)
+        end
+
         # Create a sequential for statement iterating over the elements
         # of +expr+.
         def sfor(expr,&ruby_block)
-            # idx = nil
-            # HDLRuby::High.cur_system.open do
-            #     idx = [expr.type.size.width+1].inner(
-            #         HDLRuby.uniq_name("for_idx"))
-            # end
-            # idx <= 0
-            # # Iterate using a swhile.
-            # swhile(idx < expr.type.size) do
-            #     ruby_block.call(expr[idx],idx)
-            #     idx <= idx + 1
-            # end
+            # Ensures there is a ruby block to avoid returning an enumerator
+            # (returning an enumerator would be confusing for a for statement).
+            ruby_block = proc {} unless ruby_block
             expr.seach.with_index(&ruby_block)
         end
 
@@ -291,6 +308,9 @@ module HDLRuby::High::Std
             HDLRuby::High.cur_system.open do
                 res = bit.inner(HDLRuby.uniq_name(:"all_cond"))
             end
+            # Initialize the result.
+            res <= 1
+            # Performs the computation.
             if arg then
                 # Compare elements to arg.
                 self.seach do |elem|
@@ -302,25 +322,1313 @@ module HDLRuby::High::Std
                     res <= res & ruby_block.call(elem)
                 end
             else
-                # Check if each element is not 0.
-                self.seach do |elem|
-                    res <= res & (elem == 0)
-                end
+                raise "Ruby nil does not have any meaning in HW."
             end
             res
         end
+
+        # Tell if any of the elements respects a given criterion given either
+        # as +arg+ or as block.
+        def sany?(arg = nil,&ruby_block)
+            # Declare the result signal.
+            res = nil
+            HDLRuby::High.cur_system.open do
+                res = bit.inner(HDLRuby.uniq_name(:"any_cond"))
+            end
+            # Initialize the result.
+            res <= 0
+            # Performs the computation.
+            if arg then
+                # Compare elements to arg.
+                self.seach do |elem|
+                    res <= res | (elem == arg)
+                end
+            elsif ruby_block then
+                # Use the ruby block.
+                self.seach do |elem|
+                    res <= res | ruby_block.call(elem)
+                end
+            else
+                raise "Ruby nil does not have any meaning in HW."
+            end
+            res
+        end
+
+        # Returns an SEnumerator generated from current enumerable and +arg+
+        def schain(arg)
+            return self.seach + arg
+        end
+
+        # HW implementation of the Ruby chunk.
+        # NOTE: to do, or may be not.
+        def schunk(*args,&ruby_block)
+            raise "schunk is not supported yet."
+        end
+
+        # HW implementation of the Ruby chunk_while.
+        # NOTE: to do, or may be not.
+        def schunk_while(*args,&ruby_block)
+            raise "schunk_while is not supported yet."
+        end
+
+        # Returns a vector containing the execution result of the given block 
+        # on each element. If no block is given, return an SEnumerator.
+        # NOTE: be carful that the resulting vector can become huge if there
+        # are many element.
+        def smap(&ruby_block)
+            # No block given? Generate a new wrapper enumerator for smap.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:smap)
+            end
+            # A block given? Fill the vector it with the computation result.
+            # Generate the vector to put the result in.
+            # The declares the resulting vector.
+            res = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"map_vec"))
+            end
+            # And do the iteration.
+            enum.with_index do |elem,idx|
+                res[idx] <= ruby_block.call(elem)
+            end
+            # Return the resulting vector.
+            return res
+        end
+
+        # HW implementation of the Ruby flat_map.
+        # NOTE: actually due to the way HDLRuby handles vectors, should work
+        #       like smap
+        def sflat_map(&ruby_block)
+            return smap(&ruby_block)
+        end
+
+        # HW implementation of the Ruby compact, but remove 0 values instead
+        # on nil (since nil that does not have any meaning in HW).
+        def scompact
+            # Generate the vector to put the result in.
+            # The declares the resulting vector and index.
+            res = nil
+            idx = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"compact_vec"))
+                idx = [enum.size.width].inner(HDLRuby.uniq_name(:"compact_idx"))
+            end
+            # And do the iteration.
+            idx <= 0
+            enum.seach do |elem|
+                HDLRuby::High.top_user.hif(elem != 0) do
+                    res[idx] <= elem
+                    idx <= idx + 1
+                end
+            end
+            SequencerT.current.swhile(idx < enum.size) do
+                res[idx] <= 0
+                idx <= idx + 1
+            end
+            # Return the resulting vector.
+            return res
+        end
+
+
+        # WH implementation of the Ruby count.
+        def scount(obj = nil, &ruby_block)
+            # Generate the counter result signal.
+            cnt = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                cnt = [enum.size.width].inner(HDLRuby.uniq_name(:"count_idx"))
+            end
+            # Do the counting.
+            cnt <= 0
+            # Is obj present?
+            if obj then
+                # Yes, count the occurences of obj.
+                enum.seach do |elem|
+                    HDLRuby::High.top_user.hif(obj == elem) { cnt <= cnt + 1 }
+                end
+            elsif ruby_block
+                # No, but there is a ruby block, use its result for counting.
+                enum.seach do |elem|
+                    HDLRuby::High.top_user.hif(ruby_block.call(elem)) do
+                        cnt <= cnt + 1
+                    end
+                end
+            else
+                # No, the result is simply the number of elements.
+                cnt <= enum.size
+            end
+            return cnt
+        end
+
+        # HW implementation of the Ruby cycle.
+        def scycle(n = nil,&ruby_block)
+            # No block given? Generate a new wrapper enumerator for scycle.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:scycle,n)
+            end
+            this = self
+            # Is n nil?
+            if n == nil then
+                # Yes, infinite loop.
+                SequencerT.current.sloop do
+                    this.seach(&ruby_block)
+                end
+            else
+                # Finite loop.
+                (0..(n-1)).seach do
+                    this.seach(&ruby_block)
+                end
+            end
+        end
+
+        # HW implementation of the Ruby find.
+        # NOTE: contrary to Ruby, if_none_proc is mandatory since there is no
+        #       nil in HW. Moreover, the argument can also be a value.
+        def sfind(if_none_proc, &ruby_block)
+            # No block given? Generate a new wrapper enumerator for sfind.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:sfind,if_none_proc)
+            end
+            # Generate the found result signal and flag signals.
+            found = nil
+            flag = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                found = enum.type.inner(HDLRuby.uniq_name(:"find_found"))
+                flag = bit.inner(HDLRuby.uniq_name(:"find_flag"))
+            end
+            # Look for the element.
+            flag <= 0
+            enum.srewind
+            SequencerT.current.swhile((flag == 0) & (enum.snext?)) do
+                found <= enum.snext
+                hif(ruby_block.call(found)) do
+                    # Found, save the element and raise the flag.
+                    flag <= 1
+                end
+            end
+            HDLRuby::High.top_user.hif(~flag) do
+                # Not found, execute the none block.
+                if if_none_proc.respond_to?(:call) then
+                    found <= f_none_proc.call
+                else
+                    found <= if_none_proc
+                end
+            end
+            found
+        end
+
+        # HW implementation of the Ruby drop.
+        def sdrop(n)
+            # Generate the vector to put the result in.
+            # The declares the resulting vector and index.
+            res = nil
+            idx = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                # res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"drop_vec"))
+                res = enum.type[-enum.size+n].inner(HDLRuby.uniq_name(:"drop_vec"))
+                # idx = [enum.size.width].inner(HDLRuby.uniq_name(:"drop_idx"))
+            end
+            # And do the iteration.
+            # idx <= 0
+            # enum.seach.with_index do |elem,i|
+            #     HDLRuby::High.top_user.hif(i >= n) do
+            #         res[idx] <= elem
+            #         idx <= idx + 1
+            #     end
+            # end
+            # SequencerT.current.swhile(idx < enum.size) do
+            #     res[idx] <= 0
+            #     idx <= idx + 1
+            # end
+            (enum.size-n).stimes do |i|
+                res[i] <= enum.access(i+n)
+            end
+            # Return the resulting vector.
+            return res
+        end
+
+        # HW implementation of the Ruby drop_while.
+        def sdrop_while(&ruby_block)
+            # No block given? Generate a new wrapper enumerator for sdrop_while.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:sdrop_while)
+            end
+            # A block is given.
+            # Generate the vector to put the result in.
+            # The declares the resulting vector, index and drop flag.
+            res = nil
+            idx = nil
+            flg = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"drop_vec"))
+                idx = [enum.size.width].inner(HDLRuby.uniq_name(:"drop_idx"))
+                flg = bit.inner(HDLRuby.uniq_name(:"drop_flg"))
+            end
+            # And do the iteration.
+            # First drop and fill from current enumerable elements.
+            idx <= 0
+            flg <= 1
+            enum.seach.with_index do |elem,i|
+                HDLRuby::High.top_user.hif(flg == 1) do
+                    HDLRuby::High.top_user.hif(ruby_block.call(elem) == 0) do
+                        flg <= 0
+                    end
+                end
+                HDLRuby::High.top_user.hif(flg == 0) do
+                    res[idx] <= elem
+                    idx <= idx + 1
+                end
+            end
+            # Finally, end with zeros.
+            SequencerT.current.swhile(idx < enum.size) do
+                res[idx] <= 0
+                idx <= idx + 1
+            end
+            # Return the resulting vector.
+            return res
+        end
+       
+        # HW implementation of the Ruby each_cons
+        def seach_cons(n,&ruby_block)
+            # No block given? Generate a new wrapper enumerator for seach_cons.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:seach_cons)
+            end
+            # A block is given.
+            # Declares the indexes and the buffer for cosecutive elements.
+            enum = self.seach
+            idx  = nil
+            buf  = nil
+            HDLRuby::High.cur_system.open do
+                idx = [enum.size.width].inner(HDLRuby.uniq_name(:"each_cons_idx"))
+                buf = n.times.map do |i|
+                    [enum.type].inner(HDLRuby.uniq_name(:"each_cons_buf#{i}"))
+                end
+            end
+            # And do the iteration.
+            this = self
+            # Initialize the buffer.
+            n.times do |i|
+                buf[i] <= enum.access(i)
+                SequencerT.current.step
+            end
+            # Do the first iteration.
+            ruby_block.call(*buf)
+            # Do the remaining iteration.
+            idx <= n
+            SequencerT.current.swhile(idx < enum.size) do
+                # Shifts the buffer (in parallel)
+                buf.each_cons(2) { |a0,a1| a0 <= a1 }
+                # Adds the new element.
+                buf[-1] <= enum.access(idx)
+                idx <= idx + 1
+                # Executes the block.
+                ruby_block.call(*buf)
+            end
+        end
+
+        # HW implementation of the Ruby each_entry.
+        # NOTE: to do, or may be not.
+        def seach_entry(*args,&ruby_block)
+            raise "seach_entry is not supported yet."
+        end
+
+        # HW implementation of the Ruby each_slice
+        def seach_slice(n,&ruby_block)
+            # No block given? Generate a new wrapper enumerator for seach_slice.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:seach_slice)
+            end
+            # A block is given.
+            # Declares the indexes and the buffer for consecutive elements.
+            enum = self.seach
+            idx  = nil
+            buf  = nil
+            HDLRuby::High.cur_system.open do
+                idx = [(enum.size+n).width].inner(HDLRuby.uniq_name(:"each_slice_idx"))
+                buf = n.times.map do |i|
+                    [enum.type].inner(HDLRuby.uniq_name(:"each_slice_buf#{i}"))
+                end
+            end
+            # And do the iteration.
+            this = self
+            # Adjust n if too large.
+            n = enum.size if n > enum.size
+            # Initialize the buffer.
+            n.times do |i|
+                buf[i] <= enum.access(i)
+                SequencerT.current.step
+            end
+            # Do the first iteration.
+            ruby_block.call(*buf)
+            # Do the remaining iteration.
+            idx <= n
+            SequencerT.current.swhile(idx < enum.size) do
+                # Gets the new element.
+                n.times do |i|
+                    sif(idx+i < enum.size) do
+                        buf[i] <= enum.access(idx+i)
+                    end
+                    selse do
+                        buf[i] <= 0
+                    end
+                end
+                idx <= idx + n
+                # Executes the block.
+                ruby_block.call(*buf)
+            end
+        end
+
+        # HW implementation of the Ruby each_with_index.
+        def seach_with_index(*args,&ruby_block)
+            self.seach.with_index(*args,&ruby_block)
+        end
+
+        # HW implementation of the Ruby each_with_object.
+        def seach_with_object(obj,&ruby_block)
+            self.seach.with_object(obj,&ruby_block)
+        end
+
+        # HW implementation of the Ruby to_a.
+        def sto_a
+            # Declares the resulting vector.
+            enum = self.seach
+            res  = nil
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"to_a_res"))
+            end
+            # Fills it.
+            self.seach_with_index do |elem,i|
+                res[i] <= elem
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby select.
+        def sselect(&ruby_block)
+            # No block given? Generate a new wrapper enumerator for sselect.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:sselect)
+            end
+            # A block is given.
+            # Generate the vector to put the result in.
+            # The declares the resulting vector and index.
+            res = nil
+            idx = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"select_vec"))
+                idx = [enum.size.width].inner(HDLRuby.uniq_name(:"select_idx"))
+            end
+            # And do the iteration.
+            # First select and fill from current enumerable elements.
+            idx <= 0
+            enum.seach do |elem|
+                HDLRuby::High.top_user.hif(ruby_block.call(elem) == 1) do
+                    res[idx] <= elem
+                    idx <= idx + 1
+                end
+            end
+            # Finally, end with zeros.
+            SequencerT.current.swhile(idx < enum.size) do
+                res[idx] <= 0
+                idx <= idx + 1
+            end
+            # Return the resulting vector.
+            return res
+        end
+
+        # HW implementation of the Ruby find_index.
+        def sfind_index(obj = nil, &ruby_block)
+            # No block given nor obj? Generate a new wrapper enumerator for
+            # sfind.
+            if !ruby_block && !obj then
+                return SEnumeratorWrapper.new(self,:sfind,if_none_proc)
+            end
+            # Generate the index result signal and flag signals.
+            idx  = nil
+            flag = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                idx = signed[enum.size.width+1].inner(HDLRuby.uniq_name(:"find_idx"))
+                flag = bit.inner(HDLRuby.uniq_name(:"find_flag"))
+            end
+            # Look for the element.
+            flag <= 0
+            idx <= 0
+            enum.srewind
+            SequencerT.current.swhile((flag == 0) & (enum.snext?)) do
+                if (obj) then
+                    # There is obj case.
+                    HDLRuby::High.top_user.hif(enum.snext == obj) do
+                        # Found, save the element and raise the flag.
+                        flag <= 1
+                    end
+                else
+                    # There is a block case.
+                    HDLRuby::High.top_user.hif(ruby_block.call(enum.snext)) do
+                        # Found, save the element and raise the flag.
+                        flag <= 1
+                    end
+                end
+                HDLRuby::High.top_user.helse do
+                    idx <= idx + 1
+                end
+            end
+            HDLRuby::High.top_user.hif(flag ==0) { idx <= -1 }
+            return idx
+        end
+
+        # HW implementation of the Ruby first.
+        def sfirst(n=1)
+            # Generate the vector to put the result in.
+            # The declares the resulting vector and index.
+            res = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-n].inner(HDLRuby.uniq_name(:"first_vec"))
+            end
+            # And do the iteration.
+            n.stimes do |i|
+                res[i] <= enum.access(i)
+            end
+            # Return the resulting vector.
+            return res
+        end
+
+        # HW implementation of the Ruby grep.
+        # NOTE: to do, or may be not.
+        def sgrep(*args,&ruby_block)
+            raise "sgrep is not supported yet."
+        end
+
+        # HW implementation of the Ruby grep_v.
+        # NOTE: to do, or may be not.
+        def sgrep_v(*args,&ruby_block)
+            raise "sgrep_v is not supported yet."
+        end
+
+        # HW implementation of the Ruby group_by.
+        # NOTE: to do, or may be not.
+        def sgroup_by(*args,&ruby_block)
+            raise "sgroup_by is not supported yet."
+        end
+
+        # HW implementation of the Ruby include?
+        def sinclude?(obj)
+            # Generate the result signal.
+            res  = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = bit.inner(HDLRuby.uniq_name(:"include_res"))
+            end
+            # Look for the element.
+            res <= 0
+            enum.srewind
+            SequencerT.current.swhile((res == 0) & (enum.snext?)) do
+                # There is obj case.
+                HDLRuby::High.top_user.hif(enum.snext == obj) do
+                    # Found, save the element and raise the flag.
+                    res <= 1
+                end
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby inject.
+        def sinject(*args,&ruby_block)
+            init = nil
+            symbol = nil
+            # Process the arguments.
+            if args.size > 2 then
+                raise ArgumentError.new("wrong number of arguments (given #{args.size} expected 0..2)")
+            elsif args.size == 2 then
+                # Initial value and symbol given case.
+                init, symbol = args
+            elsif args.size == 1 && ruby_block then
+                # Initial value and block given case.
+                init = args[0]
+            elsif args.size == 1 then
+                # Symbol given case.
+                symbol = args[0]
+            end
+            enum = self.seach
+            # Generate the result signal.
+            res  = nil
+            HDLRuby::High.cur_system.open do
+                res = enum.type.inner(HDLRuby.uniq_name(:"inject_res"))
+            end
+            # Start the initialization
+            enum.srewind
+            # Is there an initial value?
+            if (init) then
+                # Yes, start with it.
+                res <= init
+            else
+                # No, start with the first element of the enumerator.
+                res <= 0
+                SequencerT.current.sif(!enum.snext?) { res <= enum.snext }
+            end
+            SequencerT.current.swhile(enum.snext?) do
+                # Do the accumulation.
+                if (symbol) then
+                    res <= res.send(symbol,enum.snext)
+                else
+                    res <= ruby_block.call(res,enum.snext)
+                end
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby lazy.
+        # NOTE: to do, or may be not.
+        def slazy(*args,&ruby_block)
+            raise "slazy is not supported yet."
+        end
+
+        # HW implementation of the Ruby max.
+        def smax(n = nil, &ruby_block)
+            # Process the arguments.
+            n = 1 unless n
+            enum = self.seach
+            # Declare the result signal the flag and the result array size index
+            # used for implementing the algorithm (shift-based sorting) in
+            # case of multiple max.
+            res  = nil
+            flg = nil
+            idx = nil
+            HDLRuby::High.cur_system.open do
+                if n == 1 then
+                    res = enum.type.inner(HDLRuby.uniq_name(:"max_res"))
+                    # No flg nor idx!
+                else
+                    res = enum.type[-n].inner(HDLRuby.uniq_name(:"max_res"))
+                    flg = bit.inner(HDLRuby.uniq_name(:"max_flg"))
+                    idx = bit[n.width].inner(HDLRuby.uniq_name(:"max_idx"))
+                end
+            end
+            enum.srewind
+            if n == 1 then
+                # Single max case, initialize res with the first element(s)
+                res <= enum.type.min
+                SequencerT.current.sif(enum.snext?) { res <= enum.snext }
+            else
+                # Multiple max case, initialize the resulting array size index.
+                idx <= 0
+            end
+            # Do the iteration.
+            SequencerT.current.swhile(enum.snext?) do
+                if n == 1 then
+                    # Single max case.
+                    elem = enum.snext
+                    if ruby_block then
+                        hif(ruby_block.call(res,elem) < 0) { res <= elem }
+                    else
+                        hif(res < elem) { res <= elem }
+                    end
+                else
+                    # Multiple max case.
+                    SequencerT.current.sif(enum.snext?) do
+                        elem = enum.snext
+                        flg <= 1
+                        n.times do |i|
+                            # Compute the comparison between the result element
+                            # at i and the enum element.
+                            if ruby_block then
+                                cond = ruby_block.call(res[i],elem) < 0
+                            else
+                                cond = res[i] < elem
+                            end
+                            # If flg is 0, elem is already set as max, skip.
+                            # If the result array size index is equal to i, then
+                            # put the element whatever the comparison is since
+                            # the place is still empty.
+                            hif(flg & (cond | (idx == i))) do
+                                # A new max is found, shift res from i.
+                                ((i+1)..(n-1)).reverse_each { |j| res[j] <= res[j-1] }
+                                # An set the new max in current position.
+                                res[i] <= elem
+                                # For now skip.
+                                flg <= 0
+                            end
+                        end
+                        # Note: when idx >= n, the resulting array is full
+                        hif(idx < n) { idx <= idx + 1 }
+                    end
+                end
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby max_by.
+        def smax_by(n = nil, &ruby_block)
+            # No block given? Generate a new wrapper enumerator for smax_by.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:smax_by,n)
+            end
+            # A block is given, use smax with a proc that applies ruby_block
+            # before comparing.
+            return smax(n) { |a,b| ruby_block.call(a) <=> ruby_block.call(b) }
+        end
+
+        # HW implementation of the Ruby min.
+        def smin(n = nil, &ruby_block)
+            # Process the arguments.
+            n = 1 unless n
+            enum = self.seach
+            # Declare the result signal the flag and the result array size index
+            # used for implementing the algorithm (shift-based sorting) in
+            # case of multiple min.
+            res  = nil
+            flg = nil
+            idx = nil
+            HDLRuby::High.cur_system.open do
+                if n == 1 then
+                    res = enum.type.inner(HDLRuby.uniq_name(:"min_res"))
+                    # No flg nor idx!
+                else
+                    res = enum.type[-n].inner(HDLRuby.uniq_name(:"min_res"))
+                    flg = bit.inner(HDLRuby.uniq_name(:"min_flg"))
+                    idx = bit[n.width].inner(HDLRuby.uniq_name(:"min_idx"))
+                end
+            end
+            enum.srewind
+            if n == 1 then
+                # Single min case, initialize res with the first element(s)
+                res <= enum.type.max
+                SequencerT.current.sif(enum.snext?) { res <= enum.snext }
+            else
+                # Multiple min case, initialize the resulting array size index.
+                idx <= 0
+            end
+            # Do the iteration.
+            SequencerT.current.swhile(enum.snext?) do
+                if n == 1 then
+                    # Single min case.
+                    elem = enum.snext
+                    if ruby_block then
+                        hif(ruby_block.call(res,elem) > 0) { res <= elem }
+                    else
+                        hif(res > elem) { res <= elem }
+                    end
+                else
+                    # Multiple min case.
+                    SequencerT.current.sif(enum.snext?) do
+                        elem = enum.snext
+                        flg <= 1
+                        n.times do |i|
+                            # Compute the comparison between the result element
+                            # at i and the enum element.
+                            if ruby_block then
+                                cond = ruby_block.call(res[i],elem) > 0
+                            else
+                                cond = res[i] > elem
+                            end
+                            # If flg is 0, elem is already set as min, skip.
+                            # If the result array size index is equal to i, then
+                            # put the element whatever the comparison is since
+                            # the place is still empty.
+                            hif(flg & (cond | (idx == i))) do
+                                # A new min is found, shift res from i.
+                                ((i+1)..(n-1)).reverse_each { |j| res[j] <= res[j-1] }
+                                # An set the new min in current position.
+                                res[i] <= elem
+                                # For now skip.
+                                flg <= 0
+                            end
+                        end
+                        # Note: when idx >= n, the resulting array is full
+                        hif(idx < n) { idx <= idx + 1 }
+                    end
+                end
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby min_by.
+        def smin_by(n = nil, &ruby_block)
+            # No block given? Generate a new wrapper enumerator for smin_by.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:smin_by,n)
+            end
+            # A block is given, use smin with a proc that applies ruby_block
+            # before comparing.
+            return smin(n) { |a,b| ruby_block.call(a) <=> ruby_block.call(b) }
+        end
+
+        # HW implementation of the Ruby minmax.
+        def sminmax(&ruby_block)
+            # Generate the result signal.
+            res  = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[2].inner(HDLRuby.uniq_name(:"minmax_res"))
+            end
+            # Computes the min.
+            res[0] <= enum.smin(&ruby_block)
+            # Computes the max.
+            res[1] <= enum.smax(&ruby_block)
+            # Return the result.
+            return res
+        end
+
+        # HW implementation of the Ruby minmax_by.
+        def sminmax_by(&ruby_block)
+            # Generate the result signal.
+            res  = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[2].inner(HDLRuby.uniq_name(:"minmax_res"))
+            end
+            # Computes the min.
+            res[0] <= enum.smin_by(&ruby_block)
+            # Computes the max.
+            res[1] <= enum.smax_by(&ruby_block)
+            # Return the result.
+            return res
+        end
+
+        # Tell if none of the elements respects a given criterion given either
+        # as +arg+ or as block.
+        def snone?(arg = nil,&ruby_block)
+            # Declare the result signal.
+            res = nil
+            HDLRuby::High.cur_system.open do
+                res = bit.inner(HDLRuby.uniq_name(:"none_cond"))
+            end
+            # Initialize the result.
+            res <= 1
+            # Performs the computation.
+            if arg then
+                # Compare elements to arg.
+                self.seach do |elem|
+                    res <= res & (elem != arg)
+                end
+            elsif ruby_block then
+                # Use the ruby block.
+                self.seach do |elem|
+                    res <= res & ~ruby_block.call(elem)
+                end
+            else
+                raise "Ruby nil does not have any meaning in HW."
+            end
+            res
+        end
+
+        # Tell if one and only one of the elements respects a given criterion
+        # given either as +arg+ or as block.
+        def sone?(arg = nil,&ruby_block)
+            # Declare the result signal.
+            res = nil
+            HDLRuby::High.cur_system.open do
+                res = bit.inner(HDLRuby.uniq_name(:"one_cond"))
+            end
+            # Initialize the result.
+            res <= 0
+            # Performs the computation.
+            if arg then
+                # Compare elements to arg.
+                self.seach do |elem|
+                    res <= res ^ (elem == arg)
+                end
+            elsif ruby_block then
+                # Use the ruby block.
+                self.seach do |elem|
+                    res <= res ^ ruby_block.call(elem)
+                end
+            else
+                raise "Ruby nil does not have any meaning in HW."
+            end
+            res
+        end
+
+        # HW implementation of the Ruby partition.
+        # NOTE: to do, or may be not.
+        def spartition(*args,&ruby_block)
+            raise "spartition is not supported yet."
+        end
+
+        # HW implementatiob of the Ruby reject.
+        def sreject(&ruby_block)
+            return sselect {|elem| ~ruby_block.call(elem) }
+        end
+
+        # HW implementatiob of the Ruby reverse_each.
+        def sreverse_each(*args,&ruby_block)
+            # No block given? Generate a new wrapper enumerator for 
+            # sreverse_each.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:sreverse_each,*args)
+            end
+            # A block is given.
+            # Declares the index.
+            enum = self.seach
+            idx = nil
+            HDLRuby::High.cur_system.open do
+                idx = bit[enum.size.width].inner(HDLRuby.uniq_name(:"reverse_idx"))
+            end
+            # Do the iteration.
+            idx <= enum.size
+            SequencerT.current.swhile(idx > 0) do
+                idx <= idx - 1
+                ruby_block.call(*args,enum.access(idx))
+            end
+        end
+
+        # HW implementation of the Ruby slice_after.
+        # NOTE: to do, or may be not.
+        def sslice_after(pattern = nil,&ruby_block)
+            raise "sslice_after is not supported yet."
+        end
+
+        # HW implementation of the Ruby slice_before.
+        # NOTE: to do, or may be not.
+        def sslice_before(*args,&ruby_block)
+            raise "sslice_before is not supported yet."
+        end
+
+        # HW implementation of the Ruby slice_when.
+        # NOTE: to do, or may be not.
+        def sslice_when(*args,&ruby_block)
+            raise "sslice_before is not supported yet."
+        end
+
+        # HW implementation of the Ruby sort.
+        def ssort(&ruby_block)
+            enum = self.seach
+            n = enum.size
+            # Declare the result signal the flag and the result array size index
+            # used for implementing the algorithm (shift-based sorting).
+            res = nil
+            flg = nil
+            idx = nil
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-n].inner(HDLRuby.uniq_name(:"sort_res"))
+                flg = bit.inner(HDLRuby.uniq_name(:"sort_flg"))
+                idx = bit[n.width].inner(HDLRuby.uniq_name(:"sort_idx"))
+            end
+            # Performs the sort using a shift-based algorithm (also used in 
+            # smin).
+            enum.srewind
+            # Do the iteration.
+            idx <= 0
+            SequencerT.current.swhile(enum.snext?) do
+                # Multiple min case.
+                SequencerT.current.sif(enum.snext?) do
+                    elem = enum.snext
+                    flg <= 1
+                    n.times do |i|
+                        # Compute the comparison between the result element at i
+                        # and the enum element.
+                        if ruby_block then
+                            cond = ruby_block.call(res[i],elem) > 0
+                        else
+                            cond = res[i] > elem
+                        end
+                        # If flg is 0, elem is already set as min, skip.
+                        # If the result array size index is equal to i, then
+                        # put the element whatever the comparison is since the
+                        # place is still empty.
+                        hif(flg & (cond | (idx == i))) do
+                            # A new min is found, shift res from i.
+                            ((i+1)..(n-1)).reverse_each { |j| res[j] <= res[j-1] }
+                            # An set the new min in current position.
+                            res[i] <= elem
+                            # For now skip.
+                            flg <= 0
+                        end
+                    end
+                    idx <= idx + 1
+                end
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby sort.
+        def ssort_by(&ruby_block)
+            # No block given? Generate a new wrapper enumerator for smin_by.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:ssort_by,n)
+            end
+            # A block is given, use smin with a proc that applies ruby_block
+            # before comparing.
+            return ssort { |a,b| ruby_block.call(a) <=> ruby_block.call(b) }
+        end
+
+        # HW implementation of the Ruby sum.
+        def ssum(initial_value = 0,&ruby_block)
+            enum = self.seach
+            # Generate the result signal.
+            res  = nil
+            HDLRuby::High.cur_system.open do
+                res = enum.type.inner(HDLRuby.uniq_name(:"sum_res"))
+            end
+            # Start the initialization
+            enum.srewind
+            # Yes, start with the initial value.
+            res <= initial_value
+            SequencerT.current.swhile(enum.snext?) do
+                # Do the accumulation.
+                if (ruby_block) then
+                    # There is a ruby block, use it to process the element first.
+                    res <= res + ruby_block.call(enum.snext)
+                else
+                    # No ruby block, just do the su,
+                    res <= res + enum.snext
+                end
+            end
+            return res
+        end
+
+        # The HW implementation of the Ruby take.
+        def stake(n)
+            enum = self.seach
+            # Generate the result signal.
+            res  = nil
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-n].inner(HDLRuby.uniq_name(:"sum_res"))
+            end
+            # Take the n first elements.
+            n.stimes do |i|
+                res[i] <= enum.access(i)
+            end
+            return res
+        end
+
+        # The HW implementation of the Ruby take_while.
+        def stake_while(&ruby_block)
+            # No block given? Generate a new wrapper enumerator for sdrop_while.
+            if !ruby_block then
+                return SEnumeratorWrapper.new(self,:stake_while)
+            end
+            # A block is given.
+            # Generate the vector to put the result in.
+            # The declares the resulting vector and take flag.
+            res = nil
+            flg = nil
+            enum = self.seach
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"take_vec"))
+                flg = bit.inner(HDLRuby.uniq_name(:"take_flg"))
+            end
+            # And do the iteration.
+            # First fill from current enumerable elements.
+            flg <= 1
+            enum.seach.with_index do |elem,i|
+                HDLRuby::High.top_user.hif(flg == 1) do
+                    HDLRuby::High.top_user.hif(ruby_block.call(elem) == 0) do
+                        flg <= 0
+                    end
+                end
+                HDLRuby::High.top_user.hif(flg == 1) do
+                    res[i] <= elem
+                end
+                HDLRuby::High.top_user.helse do
+                    res[i] <= 0
+                end
+            end
+            # Return the resulting vector.
+            return res
+        end
+
+        # HW implementation of the Ruby tally.
+        # NOTE: to do, or may be not.
+        def stally(h = nil)
+            raise "stally is not supported yet."
+        end
+
+        # HW implementation of the Ruby to_h.
+        # NOTE: to do, or may be not.
+        def sto_h(h = nil)
+            raise "sto_h is not supported yet."
+        end
+
+        # HW implementation of the Ruby uniq.
+        def suniq(&ruby_block)
+            enum = self.seach
+            n = enum.size
+            # Declare the result signal the flag and the result array size index
+            # used for implementing the algorithm (shift-based sorting).
+            res = nil
+            flg = nil
+            idx = nil
+            HDLRuby::High.cur_system.open do
+                res = enum.type[-n].inner(HDLRuby.uniq_name(:"suniq_res"))
+                flg = bit.inner(HDLRuby.uniq_name(:"suniq_flg"))
+                idx = bit[n.width].inner(HDLRuby.uniq_name(:"suniq_idx"))
+            end
+            enum.srewind
+            # Do the iteration.
+            idx <= 0
+            SequencerT.current.swhile(enum.snext?) do
+                # Multiple min case.
+                SequencerT.current.sif(enum.snext?) do
+                    elem = enum.snext
+                    flg <= 1
+                    n.times do |i|
+                        # Compute the comparison between the result element at i
+                        # and the enum element.
+                        hif(i < idx) do
+                            if ruby_block then
+                                flg <= (flg & 
+                                        (ruby_block.call(res[i]) != ruby_block.call(elem)))
+                            else
+                                flg <= (flg & (res[i] != elem))
+                            end
+                        end
+                        # If flg is 1 the element is new, if it is the right
+                        # position, add it to the result.
+                        hif((idx == i) & flg) do
+                            # An set the new min in current position.
+                            res[i] <= elem
+                            # For next position now.
+                            idx <= idx + 1
+                            # Stop here for current element.
+                            flg <= 0
+                        end
+                    end
+                end
+            end
+            # Fills the remaining location with 0.
+            SequencerT.current.swhile(idx < enum.size) do
+                res[idx] <= 0
+                idx <= idx + 1
+            end
+            return res
+        end
+
+        # HW implementation of the Ruby zip.
+        # NOTE: for now szip is deactivated untile tuples are properly
+        #       handled by HDLRuby.
+        def szip(obj,&ruby_block)
+            raise "szip development is on hold for now, please be patient."
+            res = nil
+            idx = nil
+            enum0 = self.seach
+            enum1 = obj.seach
+            # Compute the minimal and maximal iteration sizes of both
+            # enumerables.
+            size_min = [enum0.size,enum1.size].min
+            size_max = [enum0.size,enum1.size].max
+            HDLRuby::High.cur_system.open do
+                # If there is no ruby_block, szip generates a resulting vector.
+                unless ruby_block then
+                    res = [enum0.type,enum1.type].to_type[-enum0.size].inner(HDLRuby.uniq_name(:"zip_res"))
+                end
+                # Generate the index.
+                idx = [size_max.width].inner(HDLRuby.uniq_name(:"zip_idx"))
+            end
+            # Do the iteration.
+            enum0.srewind
+            enum1.srewind
+            # As long as there is enough elements.
+            idx <= 0
+            SequencerT.current.swhile(idx < size_min) do
+                # Generate the access to the elements.
+                elem0 = enum0.snext
+                elem1 = enum1.snext
+                if ruby_block then
+                    # A ruby block is given, applies it directly on the elements.
+                    ruby_block.call(elem0,elem1)
+                else
+                    # No ruby block, put the access results into res.
+                    res[idx][0] <= elem0
+                    res[idx][1] <= elem1
+                end
+                idx <= idx + 1
+            end
+            # For the remaining iteration use zeros for the smaller enumerable.
+            SequencerT.current.swhile(idx < size_max) do
+                # Generate the access to the elements.
+                elem0 = enum0.size < size_max ? 0 : enum0.snext
+                elem1 = enum1.size < size_max ? 0 : enum1.snext
+                if ruby_block then
+                    # A ruby block is given, applies it directly on the elements.
+                    ruby_block.call(elem0,elem1)
+                else
+                    # No ruby block, put the access results into res.
+                    res[idx][0] <= elem
+                    res[idx][1] <= elem1
+                end
+                idx <= idx + 1
+            end
+        end
+
     end
 
 
     # Defines a sequencer enumerator class that allows to generate HW iteration
     # over HW or SW objects within sequencers.
+    # This is the abstract Enumerator class.
     class SEnumerator
         include SEnumerable
+
+        # The methods that need to be defined.
+        [:size, :type, :result, :index, 
+         :clone, :speek, :snext, :srewind].each do |name|
+            define_method(:name) do
+                raise "Method '#{name}' must be defined for a valid sequencer enumerator."
+            end
+        end
+
+        # Iterate on each element.
+        def seach(&ruby_block)
+            # No block given, returns self.
+            return self unless ruby_block
+            # A block is given, iterate.
+            this = self
+            # Reitialize the iteration.
+            this.srewind
+            # Performs the iteration.
+            SequencerT.current.swhile(self.index < self.size) do
+                ruby_block.call(this.snext)
+            end
+        end
+
+        # Iterate on each element with index.
+        def seach_with_index(&ruby_block)
+            return self.with_index(&ruby_block)
+        end
+
+        # Iterate on each element with arbitrary object +obj+.
+        def seach_with_object(val,&ruby_block)
+            # self.seach do |elem|
+            #     ruby_block(elem,val)
+            # end
+            return self.with_object(val,&ruby_block)
+        end
+
+        # Iterates with an index.
+        def with_index(&ruby_block)
+            # Is there a ruby block?
+            if ruby_block then
+                # Yes, iterate directly.
+                idx = self.index
+                return self.seach do |elem|
+                    ruby_block.call(elem,idx-1)
+                end
+            end
+            # No, create a new enumerator with +with_index+ as default
+            # iteration.
+            return SEnumeratorWrapper.new(self,:with_index)
+        end
+
+        # Return a new SEnumerator with an arbitrary arbitrary object +obj+.
+        def with_object(obj)
+            # Is there a ruby block?
+            if ruby_block then
+                # Yes, iterate directly.
+                return self.seach do |elem|
+                    ruby_block.call(elem,val)
+                end
+            end
+            # No, create a new enumerator with +with_index+ as default
+            # iteration.
+            return SEnumeratorWrapper.new(self,:with_object,obj)
+        end
+
+        # Return a new SEnumerator going on iteration over enumerable +obj+
+        def +(obj)
+            enum = self.clone
+            obj_enum = obj.seach
+            res = nil
+            this = self
+            HDLRuby::High.cur_system.open do
+                res = this.type.inner(HDLRuby.uniq_name("enum_plus"))
+            end
+            return SEnumeratorBase.new(this.type,this.size+obj_enum.size) do|idx|
+                HDLRuby::High.top_user.hif(idx < this.size) { res <= enum.snext }
+                HDLRuby::High.top_user.helse            { res <= obj_enum.snext }
+                res
+            end
+        end
+    end
+
+
+    # Defines a sequencer enumerator class that allows to generate HW iterations
+    # over HW or SW objects within sequencers.
+    # This is the wrapper Enumerator over an other one for applying an other
+    # interation method over the first one.
+    class SEnumeratorWrapper < SEnumerator
+
+        # Create a new SEnumerator wrapper over +enum+ with +iter+ iteration
+        # method and +args+ argument.
+        def initialize(enum,iter,*args)
+            if enum.is_a?(SEnumerator) then
+                @enumerator = enum.clone
+            else
+                @enumerator = enum.seach
+            end
+            @iterator  = iter.to_sym
+            @arguments = args
+        end
+
+        # The directly delegate methods.
+        def size
+            return @enumerator.size
+        end
+
+        def type
+            return @enumerator.type
+        end
+
+        def result
+            return @enumerator.result
+        end
+
+        def index
+            return @enumerator.index
+        end
+
+        def access(idx)
+            return @enumerator.access(idx)
+        end
+
+        def speek
+            return @enumerator.speek
+        end
+
+        def snext
+            return @enumerator.snext
+        end
+
+        def snext?
+            return @enumerator.snext?
+        end
+
+        def srewind
+            return @enumerator.srewind
+        end
+
+        # Clones the enumerator.
+        def clone
+            return SEnumeratorWrapper.new(@enumerator,@iterator,*@arguments)
+        end
+
+        # Iterate over each element.
+        def seach(&ruby_block)
+            # No block given, returns self.
+            return self unless ruby_block
+            # A block is given, iterate.
+            return @enumerator.send(@iterator,*@arguments,&ruby_block)
+        end
+    end
+
+
+    # Defines a sequencer enumerator class that allows to generate HW iterations
+    # over HW or SW objects within sequencers.
+    # This is the base Enumerator that directly iterates.
+    class SEnumeratorBase < SEnumerator
 
         attr_reader :size
         attr_reader :type
         attr_reader :result
-        attr_reader :idx
+        attr_reader :index
 
         # Create a new sequencer for +size+ elements as +typ+ with an HW
         # array-like accesser +access+.
@@ -339,113 +1647,53 @@ module HDLRuby::High::Std
                     HDLRuby.uniq_name("enum_idx") => 0 })
                 result = typ.inner(HDLRuby.uniq_name("enum_res"))
             end
-            @idx = idx
+            @index = idx
             @result = result
         end
 
         # Clones the enumerator.
         def clone
-            return SEnumerator.new(@type,@size,&@access)
+            return SEnumeratorBase.new(@type,@size,&@access)
+        end
+
+        # Generates the access at +idx+
+        def access(idx)
+            @access.call(idx)
         end
 
         # View the next element without advancing the iteration.
         def speek
-            @result <= @access.call(@idx)
-            @result
+            @result <= @access.call(@index)
+            return @result
         end
 
         # Get the next element.
         def snext
-            @result <= @access.call(@idx)
-            @idx <= @idx + 1
-            @result
+            @result <= @access.call(@index)
+            @index <= @index + 1
+            return @result
+        end
+
+        # Tell if there is a next element.
+        def snext?
+            return @index < @size
         end
 
         # Restart the iteration.
         def srewind
-            @idx <= 0
-        end
-
-        # Iterate on each element.
-        def seach(&ruby_block)
-            return self unless ruby_block
-            this = self
-            # Reitialize the iteration.
-            this.srewind
-            # Performs the iteration.
-            SequencerT.current.swhile(@idx < @size) do
-                ruby_block.call(this.snext)
-            end
-        end
-
-        # Iterate on each element with index.
-        def seach_with_index(&ruby_block)
-            idx = @idx
-            seach do |elem|
-                ruby_block.call(elem,idx-1)
-            end
-        end
-
-        # Iterate on each element with arbitrary object +obj+.
-        def seach_with_object(val,&ruby_block)
-            seach do |elem|
-                ruby_block(elem,val)
-            end
-        end
-
-        # Iterates with an index.
-        def with_index(&ruby_block)
-            # Is there a ruby block?
-            if ruby_block then
-                # Yes, iterate directly.
-                return self.seach_with_index(&ruby_block)
-            end
-            # No, create a new iterator.
-            access = @access
-            return SEnumerator.new(@type,@size) do |idx|
-                [ access.call(idx),idx ]
-            end
-        end
-
-        # Return a new SEnumerator with an arbitrary arbitrary object +obj+.
-        def with_object(obj)
-            # Is there a ruby block?
-            if ruby_block then
-                # Yes, iterate directly.
-                return self.seach_with_object(obj,&ruby_block)
-            end
-            # No, create a new iterator.
-            access = @access
-            return SEnumerator.new(@type,@size) do |idx|
-                [ access.call(idx),obj ]
-            end
-        end
-
-        # Return a new SEnumerator going on iteration over enumerable +obj+
-        def +(obj)
-            enum = self.clone
-            obj_enum = obj.seach
-            res = nil
-            typ = @type
-            HDLRuby::High.cur_system.open do
-                res = typ.inner(HDLRuby.uniq_name("enum_plus"))
-            end
-            return SEnumerator.new(typ,@size+obj_enum.size) do |idx|
-                HDLRuby::High.top_user.hif(idx < @size) { res <= enum.snext }
-                HDLRuby::High.top_user.helse        { res <= obj_enum.snext }
-                res
-            end
+            @index <= 0
         end
     end
 
 
     # Enhance the HExpression module with sequencer iteration.
     module HDLRuby::High::HExpression
+
         # HW iteration on each element.
         def seach(&ruby_block)
             # Create the hardware iterator.
             this = self
-            hw_enum = SEnumerator.new(this.type.base,this.type.size) do |idx|
+            hw_enum = SEnumeratorBase.new(this.type.base,this.type.size) do |idx|
                 this[idx]
             end
             # Is there a ruby block?
@@ -457,10 +1705,17 @@ module HDLRuby::High::Std
                 return hw_enum
             end
         end
+
+        # Also adds the methods of SEnumerable.
+        SEnumerable.instance_methods.each do |meth|
+            define_method(meth,SEnumerable.instance_method(meth))
+        end
     end
+
 
     # Enhance the Enumerable module with sequencer iteration.
     module ::Enumerable
+
         # HW iteration on each element.
         def seach(&ruby_block)
             # Convert the enumrable to an array for easier processing.
@@ -469,7 +1724,7 @@ module HDLRuby::High::Std
             # Compute the type of the elements.
             typ = ar[0].respond_to?(:type) ? ar[0].type : signed[32]
             # Create the hardware iterator.
-            hw_enum = SEnumerator.new(typ,ar.size) do |idx|
+            hw_enum = SEnumeratorBase.new(typ,ar.size) do |idx|
                 smux(idx,*ar)
             end
             # Is there a ruby block?
@@ -481,16 +1736,26 @@ module HDLRuby::High::Std
                 return hw_enum
             end
         end
+
+        # Also adds the methods of SEnumerable.
+        SEnumerable.instance_methods.each do |meth|
+            define_method(meth,SEnumerable.instance_method(meth))
+        end
     end
+
 
     # Enhance the Range class with sequencer iteration.
     class ::Range
+        include SEnumerable
+
         # HW iteration on each element.
         def seach(&ruby_block)
+            # Create the iteration type.
+            typ = bit[[self.first.width,self.last.width].max]
             # Create the hardware iterator.
             this = self
-            hw_enum = SEnumerator.new(signed[32],this.size) do |idx|
-                idx + self.first
+            hw_enum = SEnumeratorBase.new(signed[32],this.size) do |idx|
+                idx.as(typ) + this.first
             end
             # Is there a ruby block?
             if(ruby_block) then
@@ -503,10 +1768,11 @@ module HDLRuby::High::Std
         end
     end
 
+
     # Enhance the Integer class with sequencer iterations.
     class ::Integer
         # HW times iteration.
-        def stime(&ruby_block)
+        def stimes(&ruby_block)
             return (0...self).seach(&ruby_block)
         end
 
@@ -519,7 +1785,7 @@ module HDLRuby::High::Std
         def sdownto(val,&ruby_block)
             # Create the hardware iterator.
             range = val..self
-            hw_enum = SEnumerator.new(signed[32],range.size) do |idx|
+            hw_enum = SEnumeratorBase.new(signed[32],range.size) do |idx|
                 range.last - idx
             end
             # Is there a ruby block?
@@ -541,330 +1807,5 @@ module HDLRuby::High::Std
     end
 
 
-    # ## 
-    # # Describes a high-level sequencer type.
-    # class SequencerT
-    #     include HDLRuby::High::HScope_missing
-
-    #     # The state class
-    #     class State
-    #         attr_accessor :value, :name, :code, :gotos
-    #     end
-
-    #     # The name of the sequencer type.
-    #     attr_reader :name
-
-    #     # The namespace associated with the sequencer
-    #     attr_reader :namespace
-
-    #     # The reset code
-    #     attr_reader :reset
-
-    #     # The current and next state signals.
-    #     attr_accessor :cur_state_sig, :next_state_sig, :work_state
-
-    #     # Creates a new sequencer type with +name+.
-    #     def initialize(name)
-    #         # Check and set the name
-    #         @name = name.to_sym
-
-    #         # Initialize the internals of the sequencer.
-
-
-    #         # Initialize the environment for building the sequencer.
-
-    #         # The main states.
-    #         @states = []
-
-    #         # The working state.
-    #         @work_state = nil
-
-    #         # The current and next state signals
-    #         @cur_state_sig = nil
-    #         @next_state_sig = nil
-
-    #         # The event synchronizing the fsm
-    #         @mk_ev = proc { $clk.posedge }
-
-    #         # The reset check.
-    #         @mk_rst = proc { $rst }
-
-    #         # The code executed in case of reset.
-    #         # (By default, nothing).
-    #         @reset  = nil
-
-    #         # Creates the namespace to execute the fsm block in.
-    #         @namespace = Namespace.new(self)
-
-    #         # Generates the function for setting up the sequencer
-    #         # provided there is a name.
-    #         obj = self # For using the right self within the proc
-    #         HDLRuby::High.space_reg(@name) do |&ruby_block|
-    #             if ruby_block then
-    #                 # Builds the fsm.
-    #                 obj.build(&ruby_block)
-    #             else
-    #                 # Return the sequencer as is.
-    #                 return obj
-    #             end
-    #         end unless name.empty?
-
-    #     end
-
-    #     ## builds the sequencer by executing +ruby_block+.
-    #     def build(&ruby_block)
-    #         # Use local variable for accessing the attribute since they will
-    #         # be hidden when opening the sytem.
-    #         states = @states
-    #         namespace = @namespace
-    #         this   = self
-    #         mk_ev  = @mk_ev
-    #         mk_rst = @mk_rst
-
-    #         return_value = nil
-
-    #         # Enters the current system
-    #         HDLRuby::High.cur_system.open do
-    #             HDLRuby::High.space_push(namespace)
-    #             # Execute the instantiation block
-    #             return_value = HDLRuby::High.top_user.instance_exec(&ruby_block)
-
-    #             # Create the state register.
-    #             name = HDLRuby.uniq_name
-    #             # Declare the state register.
-    #             this.cur_state_sig = [states.size.width].inner(name)
-    #             # Declare the next state wire.
-    #             name = HDLRuby.uniq_name
-    #             this.next_state_sig = [states.size.width].inner(name)
-
-    #             # Create the sequencer code
-
-    #             # Control part: update of the state.
-    #             par(mk_ev.call) do
-    #                 hif(mk_rst.call) do
-    #                     # Reset: current state is to put to 0.
-    #                     this.cur_state_sig <= 0
-    #                 end
-    #                 helse do
-    #                     # No reset: current state is updated with
-    #                     # next state value.
-    #                     this.cur_state_sig <= this.next_state_sig
-    #                 end
-    #             end
-
-    #             # Operative main-part: one case per state.
-    #             event = mk_ev.call
-    #             event = event.invert
-    #             # The process
-    #             par(*event) do
-    #                 # The operative code.
-    #                 oper_code =  proc do
-    #                     # Depending on the state.
-    #                     hcase(this.cur_state_sig)
-    #                     states.each do |st|
-    #                         # Register the working state (for the gotos)
-    #                         this.work_state = st
-    #                         hwhen(st.value) do
-    #                             # Generate the content of the state.
-    #                             st.code.call
-    #                         end
-    #                     end
-    #                 end
-    #                 # Is there reset code?
-    #                 if this.reset then
-    #                     # Yes, use it before the operative code.
-    #                     hif(mk_rst.call) do
-    #                         this.reset.call
-    #                     end
-    #                     helse(&oper_code)
-    #                 else
-    #                     # Use only the operative code.
-    #                     oper_code.call
-    #                 end
-    #             end
-
-    #             # Control part: computation of the next state.
-    #             # (clock-independent)
-    #             hcase(this.cur_state_sig)
-    #             states.each do |st|
-    #                 hwhen(st.value) do
-    #                     if st.gotos.any? then
-    #                         # Gotos were present, use them.
-    #                         st.gotos.each(&:call)
-    #                     else
-    #                         # No gotos, by default the next step is
-    #                         # current + 1
-    #                         this.next_state_sig <= this.cur_state_sig + 1
-    #                     end
-    #                 end
-    #             end
-    #             # By default set the next state to 0.
-    #             helse do
-    #                 this.next_state_sig <= 0
-    #             end
-
-    #             HDLRuby::High.space_pop
-    #         end
-
-    #         return return_value
-    #     end
-
-
-    #     ## The interface for building the sequencer.
-
-    #     # Sets the event synchronizing the sequencer.
-    #     def for_event(event = nil,&ruby_block)
-    #         if event then
-    #             # An event is passed as argument, use it.
-    #             @mk_ev = proc { event.to_event }
-    #         else
-    #             # No event given, use the ruby_block as event generator.
-    #             @mk_ev = ruby_block
-    #         end
-    #     end
-
-    #     # Sets the reset.
-    #     def for_reset(reset = nil,&ruby_block)
-    #         if reset then
-    #             # An reset is passed as argument, use it.
-    #             @mk_rst = proc { reset.to_expr }
-    #         else
-    #             # No reset given, use the ruby_block as event generator.
-    #             @mk_rst = ruby_block
-    #         end
-    #     end
-
-    #     # Adds a code to be executed in case of reset.
-    #     def reset(&ruby_block)
-    #         @reset = ruby_block
-    #     end
-
-    #     # Declares a state with +name+ executing +ruby_block+.
-    #     def state(name = :"",&ruby_block)
-    #         # Create the resulting state
-    #         result = State.new
-    #         # Its value is the current number of states
-    #         result.value = @states.size
-    #         result.name = name.to_sym
-    #         result.code = ruby_block
-    #         result.gotos = []
-    #         # Add it to the list of states.
-    #         @states << result
-    #         # Return it.
-    #         return result
-    #     end
-
-    #     # Get a state by +name+.
-    #     def get_state(name)
-    #         name = name.to_sym
-    #         (@states.detect { |st| st.name == name }).value
-    #     end
-
-    #     # Sets the next state. Arguments can be:
-    #     #
-    #     # +name+: the name of the next state.
-    #     # +expr+, +names+: an expression with the list of the next statements
-    #     #                  in order of the value of the expression, the last
-    #     #                  one being necesserily the default case.
-    #     def goto(*args)
-    #         # Make reference to the fsm attributes.
-    #         next_state_sig = @next_state_sig
-    #         states = @states
-    #         # Add the code of the goto to the working state.
-    #         @work_state.gotos << proc do
-    #             # Depending on the first argument type.
-    #             unless args[0].is_a?(Symbol) then
-    #                 # expr + names arguments.
-    #                 # Get the predicate
-    #                 pred = args.shift
-    #                 # hif or hcase?
-    #                 if args.size <= 2 then
-    #                     # 2 or less cases, generate an hif
-    #                     arg = args.shift
-    #                     hif(pred) do
-    #                         next_state_sig <=
-    #                             (states.detect { |st| st.name == arg }).value
-    #                     end
-    #                     arg = args.shift
-    #                     if arg then
-    #                         # There is an else.
-    #                         helse do
-    #                             next_state_sig <=
-    #                             (states.detect { |st| st.name == arg }).value
-    #                         end
-    #                     end
-    #                 else
-    #                     # More than 2, generate a hcase
-    #                     hcase (pred)
-    #                     args[0..-2].each.with_index do |arg,i|
-    #                         # Ensure the argument is a symbol.
-    #                         arg = arg.to_sym
-    #                         # Make the when statement.
-    #                         hwhen(i) do
-    #                             next_state_sig <= 
-    #                             (states.detect { |st| st.name == arg }).value
-    #                         end
-    #                     end
-    #                     # The last name is the default case.
-    #                     # Ensure it is a symbol.
-    #                     arg = args[-1].to_sym
-    #                     # Make the default statement.
-    #                     helse do
-    #                         next_state_sig <= 
-    #                             (states.detect { |st| st.name == arg }).value
-    #                     end
-    #                 end
-    #             else
-    #                 # single name argument, check it.
-    #                 raise AnyError, "Invalid argument for a goto: if no expression is given only a single name can be used." if args.size > 1
-    #                 # Ensure the name is a symbol.
-    #                 name = args[0].to_sym
-    #                 # Get the state with name.
-    #                 next_state_sig <= (states.detect { |st| st.name == name }).value
-    #             end
-    #         end
-    #     end
-
-    # end
-
-
-    # ## Declare a new fsm.
-    # #  The arguments can be any of (but in this order):
-    # #
-    # #  - +name+:: name.
-    # #  - +clk+:: clock.
-    # #  - +event+:: clock event.
-    # #  - +rst+:: reset. (must be declared AFTER clock or clock event).
-    # #
-    # #  If provided, +ruby_block+ the fsm is directly instantiated with it.
-    # def fsm(*args, &ruby_block)
-    #     # Sets the name if any
-    #     unless args[0].respond_to?(:to_event) then
-    #         name = args.shift.to_sym
-    #     else
-    #         name = :""
-    #     end
-    #     # Get the options from the arguments.
-    #     options, args = args.partition {|arg| arg.is_a?(Symbol) }
-    #     # Create the fsm.
-    #     fsmI = FsmT.new(name,*options)
-    #     
-    #     # Process the clock event if any.
-    #     unless args.empty? then
-    #         fsmI.for_event(args.shift)
-    #     end
-    #     # Process the reset if any.
-    #     unless args.empty? then
-    #         fsmI.for_reset(args.shift)
-    #     end
-    #     # Is there a ruby block?
-    #     if ruby_block then
-    #         # Yes, generate the fsm.
-    #         fsmI.build(&ruby_block)
-    #     else
-    #         # No return the fsm structure for later generation.
-    #         return fsmI
-    #     end
-    # end
 
 end

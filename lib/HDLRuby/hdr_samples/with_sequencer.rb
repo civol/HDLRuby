@@ -21,7 +21,7 @@ system :my_seqencer do
     inner :clk,:rst
     [16].inner :u, :v,:res0
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         hprint("#0\n")
         u <= 0
         v <= 1
@@ -38,7 +38,7 @@ system :my_seqencer do
     end
 
     [16].inner :uu, :vv
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         hprint("##0\n")
         uu <= 0
         vv <= 1
@@ -54,7 +54,7 @@ system :my_seqencer do
 
     [16].inner :uuu, :vvv, :res00
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         hprint("###0\n")
         res00 <= 0
         uuu <= 0
@@ -72,7 +72,7 @@ system :my_seqencer do
 
     [8].inner :a,:b
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         hprint("=0\n")
         a <= 0
         b <= 0
@@ -91,7 +91,7 @@ system :my_seqencer do
     [16].inner :res1
     # [8].inner :idx
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         res1 <= 0
         hprint("$0 res1=",res1,"\n")
         # sfor(buf) do |elem,idx|
@@ -108,7 +108,7 @@ system :my_seqencer do
 
     [32].inner :res2
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         res2 <= 0
         hprint("%0 res2=",res2,"\n")
         (0..7).seach do |elem|
@@ -120,7 +120,7 @@ system :my_seqencer do
 
     [32].inner :res3
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         res3 <= 0
         hprint("&0 res3=",res3,"\n")
         5.supto(10).with_index do |elem,idx|
@@ -134,7 +134,7 @@ system :my_seqencer do
     bit[8][-8].inner ar1: [_h01,_h02,_h03,_h04, _h05,_h06,_h07,_h08]
     bit[8][-8].inner :res4
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         sfor(ar0) do |elem,idx|
             res4[idx] <= elem + ar1[idx]
         end
@@ -143,7 +143,7 @@ system :my_seqencer do
 
     [8].inner :res5
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         res5 <= 0
         hprint("(0 res5=",res5,"\n")
         (ar0.seach + ar1).seach do |elem|
@@ -156,7 +156,7 @@ system :my_seqencer do
 
     [32].inner :res6
 
-    sequencer(clk,rst) do
+    sequencer(clk.posedge,rst) do
         res6 <= 0
         hprint(")0 res6=",res6,"\n")
         10.sdownto(1) do |elem|
