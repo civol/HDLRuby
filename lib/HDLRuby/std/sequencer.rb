@@ -858,10 +858,13 @@ module HDLRuby::High::Std
                 symbol = args[0]
             end
             enum = self.seach
+            # Define the computation type: from the initial value if any,
+            # otherwise from the enum.
+            typ = init ? init.to_expr.type : enum.type
             # Generate the result signal.
             res  = nil
             HDLRuby::High.cur_system.open do
-                res = enum.type.inner(HDLRuby.uniq_name(:"inject_res"))
+                res = typ.inner(HDLRuby.uniq_name(:"inject_res"))
             end
             # Start the initialization
             enum.srewind
@@ -1261,12 +1264,17 @@ module HDLRuby::High::Std
         end
 
         # HW implementation of the Ruby sum.
-        def ssum(initial_value = 0,&ruby_block)
+        def ssum(initial_value = nil,&ruby_block)
             enum = self.seach
+            # Define the computation type: from the initial value if any,
+            # otherwise from the enum.
+            typ = initial_value ? initial_value.to_expr.type : enum.type
+            # Ensures there is an initial value.
+            initial_value = 0.to_expr.as(typ) unless initial_value
             # Generate the result signal.
             res  = nil
             HDLRuby::High.cur_system.open do
-                res = enum.type.inner(HDLRuby.uniq_name(:"sum_res"))
+                res = typ.inner(HDLRuby.uniq_name(:"sum_res"))
             end
             # Start the initialization
             enum.srewind
@@ -1639,11 +1647,13 @@ module HDLRuby::High::Std
             @type = typ
             # Sets the accesser.
             @access = access
-            # Create the iterator and the iteration result.
+            # Compute the index width (default: safe 32 bits).
+            width = @size.respond_to?(:width) ? @size.width : 32
+            # Create the index and the iteration result.
             idx = nil
             result = nil
             HDLRuby::High.cur_system.open do
-                idx = [size.width+1].inner({
+                idx = [width].inner({
                     HDLRuby.uniq_name("enum_idx") => 0 })
                 result = typ.inner(HDLRuby.uniq_name("enum_res"))
             end
@@ -1725,7 +1735,7 @@ module HDLRuby::High::Std
             typ = ar[0].respond_to?(:type) ? ar[0].type : signed[32]
             # Create the hardware iterator.
             hw_enum = SEnumeratorBase.new(typ,ar.size) do |idx|
-                smux(idx,*ar)
+                HDLRuby::High.top_user.mux(idx,*ar)
             end
             # Is there a ruby block?
             if(ruby_block) then
@@ -1754,7 +1764,8 @@ module HDLRuby::High::Std
             typ = bit[[self.first.width,self.last.width].max]
             # Create the hardware iterator.
             this = self
-            hw_enum = SEnumeratorBase.new(signed[32],this.size) do |idx|
+            size = this.size ? this.size : this.last - this.first + 1
+            hw_enum = SEnumeratorBase.new(signed[32],size) do |idx|
                 idx.as(typ) + this.first
             end
             # Is there a ruby block?
@@ -1801,9 +1812,17 @@ module HDLRuby::High::Std
 
 
 
-    # Create a sequencer of code synchronised of +clk+ and starting on +start+.
+    # Creates a sequencer of code synchronised of +clk+ and starting on +start+.
     def sequencer(clk,start,&ruby_block)
         return SequencerT.new(clk,start,&ruby_block)
+    end
+
+    # Creates an sequencer enumerator using a specific block access.
+    # - +typ+ is the data type of the elements.
+    # - +size+ is the number of elements.
+    # - +access+ is the block implementing the access method.
+    def senumerator(typ,size,&access)
+        return SEnumeratorBase.new(typ,size,&access)
     end
 
 
