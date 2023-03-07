@@ -20,14 +20,14 @@ git clone HDLRuby
 __Warning__: 
 
  - This is still preliminary work which may change before we release a stable version.
- - It is highly recommended to have both basic knowledges of the Ruby language and hardware description languages before using HDLRuby.
+ - It is highly recommended to have both basic knowledge of the Ruby language and hardware description languages before using HDLRuby.
 
 
 # Compiling HDLRuby descriptions
 
 ## Using the HDLRuby compiler
 
-'hdrcc' is the HDLRuby compiler. It takes as input an HDLRuby file, checks it, and can produce as output a Verilog HDL, VHDL, or a YAML low-level descriptions of HW components but it can also simulate the input description.
+'hdrcc' is the HDLRuby compiler. It takes as input an HDLRuby file, checks it, and can produce as output a Verilog HDL, VHDL, or a YAML low-level description of HW components but it can also simulate the input description.
 
 
 __Usage__:
@@ -94,13 +94,13 @@ hdrcc -V -t adder --param 16 adder_gen.rb adder
 hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer
 ```
 
-* Simulate the circuit described in file `counter_bench.rb` using the default simluation engine and putting the simulator's files in directory `counter`:
+* Simulate the circuit described in file `counter_bench.rb` using the default simulation engine and putting the simulator's files in directory `counter`:
 
 ```
 hdrcc -S counter_bench.rb counter
 ```
 
-As a policy, the default simulation enigne is set to the fastest one (cuttently it is the hybrid engine).
+As a policy, the default simulation engine is set to the fastest one (currently it is the hybrid engine).
 
 * Run in interactive mode.
 
@@ -187,7 +187,7 @@ system :dff do
 end
 ```
 
-As it can be seen in the code above, `system` is the keyword used for describing a digital circuit. This keyword is an equivalent of the Verilog HDL `module`. In such a system, signals are declared using a `<type>.<direction>` construct where `type` is the data type of the signal (e.g., `bit` as in the code above) and `direction` indicates if the signal is an input, an output, an inout or an inner one; and executable blocks (similar to `always` block of Verilog HDL) are described using the `par` keyword when they are parallel and `seq` when they are sequential (i.e., with respectively non-blocking and blocking assignments).
+As can be seen in the code above, `system` is the keyword used for describing a digital circuit. This keyword is the equivalent of the Verilog HDL `module`. In such a system, signals are declared using a `<type>.<direction>` construct where `type` is the data type of the signal (e.g., `bit` as in the code above) and `direction` indicates if the signal is an input, an output, an inout or an inner one; and executable blocks (similar to `always` block of Verilog HDL) are described using the `par` keyword when they are parallel and `seq` when they are sequential (i.e., with respectively non-blocking and blocking assignments).
 
 After such a system has been defined, it can be instantiated. For example, a single instance of the `dff` system named `dff0` can be declared as follows:
 
@@ -195,7 +195,7 @@ After such a system has been defined, it can be instantiated. For example, a sin
 dff :dff0
 ```
 
-The ports of this instance can then be accessed to be used like any other signals, e.g., `dff0.d` for access the `d` input of the FF.
+The ports of this instance can then be accessed to be used like any other signals, e.g., `dff0.d` for accessing the `d` input of the FF.
 
 Several instances can also be declared in a single statement. For example, a 2-bit counter based on the previous `dff` circuits can be described as follows:
 
@@ -230,7 +230,7 @@ system :counter2 do
 end
 ```
 
-In the code above, two possible connection methods are shown: for `dff0` ports are connected by name, and for `dff1` ports are connected by declaration order. Please notice that it is also possible to connect only a subset of the ports while declaring and to reconnect already connected ports in further statements.
+In the code above, two possible connection methods are shown: for `dff0` ports are connected by name, and for `dff1` ports are connected by declaration order. Please notice that it is also possible to connect only a subset of the ports while declaring, and to reconnect already connected ports in further statements.
 
 While a circuit can be generated from the code given above, a benchmark must
 be provided to test it. Such a benchmark is described by constructs called
@@ -285,8 +285,7 @@ end
 ```
 
 Then, it often happens that a system will end up with only one instance.
-In such a case, the system declaration can be omitted and an instance
-can be directly declared as follows:
+In such a case, the system declaration can be omitted, and an instance can be directly declared as follows:
 
 ```ruby
 instance :dff_single do
@@ -395,7 +394,7 @@ system :shifter do |n|
 end
 ```
 
-As it can be seen in the above examples, in HDLRuby, any construct is an object and therefore include methods. For instance, declaring a signal of a given `type` and direction (input, output, or inout) is done as follows so that `direction` is a method of the type, and the signal names are the arguments of this method (symbols or string are supported.)
+As can be seen in the above examples, in HDLRuby, any construct is an object and therefore include methods. For instance, declaring a signal of a given `type` and direction (input, output, or inout) is done as follows so that `direction` is a method of the type, and the signal names are the arguments of this method (symbols or string are supported.)
 
 ```ruby
 <type>.<direction> <list of symbols representing the signal>
@@ -430,7 +429,7 @@ system :sumprod_16_3456 do
 end
 ```
 
-The description above is straightforward, but it would be necessary to rewrite it if another circuit with different bit width or coefficients is to be designed. Moreover, if the number of coefficients is large an error in the expression will be easy to make and hard to find. A better approach would be to use a generic description of such a circuit as follows:
+The description above is straightforward, but it would be necessary to rewrite it if another circuit with different bit widths or coefficients is to be designed. Moreover, if the number of coefficients is large an error in the expression will be easy to make and hard to find. A better approach would be to use a generic description of such a circuit as follows:
 
 ```ruby
 system :sumprod do |typ,coefs|
@@ -446,7 +445,7 @@ end
 In the code above, there are two generic parameters,
 `typ`, which indicates the data type of the circuit, and `coefs`, which is assumed to be an array of coefficients. Since the number of inputs depends on the number of provided coefficients, it is declared as an array of `width` bit signed whose size is equal to the number of coefficients.
 
-The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` simply performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_b0` initializes the sum to `0`.
+The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as an iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` simply performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_b0` initializes the sum to `0`.
 
 While slightly longer than the previous description, this description allows declaring a circuit implementing a sum of products with any bit width and any number of coefficients. For instance, the following code describes a signed 32-bit sum of products with  16 coefficients (just random numbers here).
 
@@ -456,7 +455,7 @@ sumprod(signed[32], [3,78,43,246, 3,67,1,8, 47,82,99,13, 5,77,2,4]).(:my_circuit
 
 As seen in the code above, when passing a generic argument for instantiating a generic system, the name of the instance is put between brackets for avoiding confusion.
 
-While the description `sumprod` is already usable in a wide range of cases, it still uses the standard addition and multiplication. However, there are cases where specific components are to be used for these operations, either for sake of performance, compliance with constraints, or because functionally different operations are required (e.g., saturated computations). This can be solved by using functions implementing such computation in place of operators, for example as follows:
+While the description `sumprod` is already usable in a wide range of cases, it still uses standard addition and multiplication. However, there are cases where specific components are to be used for these operations, either for sake of performance, compliance with constraints, or because functionally different operations are required (e.g., saturated computations). This can be solved by using functions implementing such computation in place of operators, for example as follows:
 
 ```ruby
 system :sumprod_func do |typ,coefs|
@@ -502,7 +501,7 @@ end
 
 It would however be necessary to add this argument when invoking the function, e.g., `add(1000,sum,mult(...))`. While this argument is relevant for addition with saturation, it is not for the other kind of addition operations, and hence, the code of `sumprod` is not general-purpose any longer.
 
-HDLRuby provides two ways to address such issues. First, it is possible to pass code as an argument. In the case of `sumprod` it would then be enough to add two arguments that perform the required addition and multiplication. The example is below:
+HDLRuby provides two ways to address such issues. First, it is possible to pass code as an argument. In the case of `sumprod`, it would then be enough to add two arguments that perform the required addition and multiplication. The example is below:
 
 ```ruby
 system :sumprod_proc do |add,mult,typ,coefs|
@@ -625,10 +624,10 @@ From there, we will describe in more detail each construct of HDLRuby.
 ## Naming rules
 <a name="names"></a>
 
-Several constructs in HDLRuby are referred to by name, e.g., systems and signals.  When such constructs are declared, their names are to be specified by Ruby symbols starting with a lower case. For example, `:hello` is a valid name declaration, but `:Hello` is not.
+Several constructs in HDLRuby are referred to by name, e.g., systems and signals.  When such constructs are declared, their names are to be specified by Ruby symbols starting with a lowercase. For example, `:hello` is a valid name declaration, but `:Hello` is not.
 
 After being declared, the construct can be referred to by using the name directly (i.e., without the `:` of Ruby symbols). For example, if a construct
-has been declared with `:hello` as name, it will be afterward referred to by `hello`.
+has been declared with `:hello` as the name, it will be afterward referred to by `hello`.
 
 ## Systems and signals
 
@@ -650,7 +649,7 @@ __Notes__:
   Ruby keywords (in which case the parentheses can be omitted) are as follows:
 
 ```ruby
-system :box do
+system :box does
 end
 ```
 
@@ -921,7 +920,7 @@ Where:
  * `<name>` is the name of the scope.
  * `<code>` is the code within the scope.
 
-Contrary to the case of scopes without a name, signals and instances declared within a named scope can be accessed outside using this name as a reference. For example, in the code below signal `sig` declared within scope named `scop` is accessed outside it using `scop.sig`:
+Contrary to the case of scopes without a name, signals, and instances declared within a named scope can be accessed outside using this name as a reference. For example, in the code below signal `sig` declared within scope named `scop` is accessed outside it using `scop.sig`:
 
 ```ruby
 sub :scop do
@@ -948,7 +947,7 @@ end
 In addition, it is possible to declare inner signals within an execution block.
 While such signals will be physically linked to the system, they are only accessible within the block they are declared into. This permits a tighter scope for signals, which improves the readability of the code and make it possible to declare several signals with identical names provided their respective scopes are different.
 
-An event represents a specific change of state of a signal. 
+An event represents a specific change in the state of a signal. 
 For example, a rising edge of a clock signal named `clk` will be represented by the event `clk.posedge`. In HDLRuby, events are obtained directly from
 expressions using the following methods: `posedge` for a rising edge, `negedge` for a falling edge, and `edge` for any edge.
 Events are described in more detail in section [Events](#events).
@@ -989,7 +988,7 @@ system :with_sequential_behavior do
 end
 ```
 
-A sub-block can also have a different execution mode if it is declared using `seq`, which will force sequential execution mode, and `par` which will force parallel execution mode. For example, in the following code a parallel sub-block is declared within a sequential one:
+A sub-block can also have a different execution mode if it is declared using `seq`, which will force sequential execution mode and `par` which will force parallel execution mode. For example, in the following code a parallel sub-block is declared within a sequential one:
 
 ```ruby
 system :with_sequential_behavior do
@@ -1002,7 +1001,7 @@ system :with_sequential_behavior do
 end
 ```
 
-Sub blocks have their scope so that it is possible to declare signals without colliding with existing ones. For example, it is possible to
+Sunblocks have their scope so that it is possible to declare signals without colliding with existing ones. For example, it is possible to
 declare three different inner signals all called `sig` as follows:
 
 ```ruby
@@ -1117,7 +1116,7 @@ unshift do
 end
 ```
 
-For example the following code inserts two statements at the beginning of the current block:
+For example, the following code inserts two statements at the beginning of the current block:
 
 ```ruby
 par do
@@ -1129,7 +1128,7 @@ par do
 end
 ```
 
-The code above will actually result in the following block:
+The code above will result in the following block:
 
 ```ruby
 par do
@@ -1151,7 +1150,7 @@ In HDLRuby, dynamically reconfigurable devices are modeled by instances having m
 <instance>.choice(<list of named systems>)
 ```
 
-For example, assuming systems `sys0`, `sys1` and `sys2` have been previously declared a device named `dev012` able to be reconfigured to one of these three systems would be declared as follows (the connections of the instance, omitted in the example, can be done as usual):
+For example, assuming systems `sys0`, `sys1`, and `sys2` have been previously declared a device named `dev012` able to be reconfigured to one of these three systems would be declared as follows (the connections of the instance, omitted in the example, can be done as usual):
 
 ```ruby
 sys0 :dev012 # dev012 is at first a standard instance of sys0
@@ -1185,7 +1184,7 @@ These reconfiguration commands are treated as regular RTL statements in HDLRuby 
 ## Events
 <a name="events"></a>
 
-Each behavior of a system is associated with a list of events, called a sensitivity list, that specifies when the behavior is to be executed. An event is associated with a signal and represents the instants when the signal reaches a given state.
+Each behavior of a system is associated with a list of events, called a sensitivity list, that specifies when the behavior is to be executed. An event is associated with a signal and represents the instant when the signal reaches a given state.
 
 There are three kinds of events: positive edge events represent the instants when their corresponding signals vary from 0 to 1, and negative edge events
 represent the instants when their corresponding signals vary from 1 to 0 and the change events represent the instants when their corresponding signals vary.
@@ -1224,7 +1223,7 @@ __Note__:
 
 ### Transmit statement
 
-A transmit statement is declared using the arrow operator `<=` within a behavior. Its right value is the expression to compute and its left value is a reference to the target signals (or parts of signals), i.e., the signals (or part of signals) that receive the computation result.
+A transmit statement is declared using the arrow operator `<=` within a behavior. Its right value is the expression to compute and its left value is a reference to the target signals (or parts of signals), i.e., the signals (or parts of signals) that receive the computation result.
 
 For example, the following code transmits the value `3` to signal `s0` and the sum of the values of signals `i0` and `i1` to the first four bits of signal `s1`:
 
@@ -1282,7 +1281,7 @@ end
 
 ### helsif
 
-In addition to `helse` it is possible to set additional conditions to an `hif` using the `helsif` keyword as follows:
+In addition to `helse`, it is possible to set additional conditions to an `hif` using the `helsif` keyword as follows:
 
 ```ruby
 hif <condition 0> do
@@ -2711,7 +2710,7 @@ Where:
  * `<clock>` is the clock to use, this argument can be omitted.
  * `<reset>` is the signal used to reset the counter used for waiting, this argument can be omitted.
 
-This statement can be used either inside or outside a clocked behavior. When used within a clocked behavior, the clock event of the behavior is used for the counter unless specified otherwise. When used outside such a behavior, the clock is the global default clock `$clk`. In both cases, the reset is the global reset `$rst` unless specified otherwise.
+This statement can be used either inside or outside a clocked behavior. When used within a clocked behavior, the clock event of the behavior is used for the counter unless specified otherwise. When used outside such behavior, the clock is the global default clock `$clk`. In both cases, the reset is the global reset `$rst` unless specified otherwise.
 
 The second construct is the `before` statement that activates a block until a given number of clock cycles is passed. Its syntax and usage are identical to the `after` statement.
 
@@ -2733,7 +2732,7 @@ Where `signal` is the signal to decode and `block` is a procedure block (i.e., R
 entry(<pattern>) <block>
 ```
 
-Where `pattern` is a string describing the pattern to match for the entry, and `block` is a procedure block describing the actions (some HDLRuby code) that are performed when the entry matches. The string describing the pattern can include `0` and `1` characters for specifying a specific value for the corresponding bit, or any alphabetical character for specifying a field in the pattern. The fields in the pattern can then be used by name in the block describing the action. When a letter is used several times within a pattern, the corresponding bits are concatenated and are used as a signal multi-bit signal in the block.
+Where `pattern` is a string describing the pattern to match the entry, and `block` is a procedure block describing the actions (some HDLRuby code) that are performed when the entry matches. The string describing the pattern can include `0` and `1` characters for specifying a specific value for the corresponding bit, or any alphabetical character for specifying a field in the pattern. The fields in the pattern can then be used by name in the block describing the action. When a letter is used several times within a pattern, the corresponding bits are concatenated and are used as a signal multi-bit signal in the block.
 
 For example, the following code describes a decoder for signal `ir` with two entries, the first one computing the sum of fields `x` and `y` and assigning the result to signal `s` and the second one computing the sum of fields `x` `y` and `z` and assigning the result to signal `s`:
 
@@ -2794,7 +2793,7 @@ goto(cond,:st_a,:st_b,:st_c)
 
 Several goto statements can be used, the last one having priority provided it is taken (i.e., its condition corresponds to one of the target states). If no goto is taken, the next transition is the next declared one.
 
-For example, the following code describes a FSM describing a circuit that checks if two buttons (`but_a` and `but_b`) are pressed and released in sequence for activating an output signal (`ok`):
+For example, the following code describes an FSM describing a circuit that checks if two buttons (`but_a` and `but_b`) are pressed and released in sequence for activating an output signal (`ok`):
 
 ```ruby
 fsm(clk.posedge,rst,:sync) do
@@ -2818,7 +2817,7 @@ fsm(clk.posedge,rst,:sync) do
 end
 ```
 
-__Note__: the goto statements acts globally, i.e., they are independant of the place where they are declared within the state. For example for both following statements, the next state will always be `st_a` whatever `cond` maybe:
+__Note__: the goto statements act globally, i.e., they are independent of the place where they are declared within the state. For example for both following statements, the next state will always be `st_a` whatever `cond` maybe:
 
 ```ruby
    state(:st_0) do
@@ -2837,7 +2836,7 @@ That is to say, for a conditional `goto` for `st_1` the code should have been wr
    end
 ```
 
-The use of `goto` makes the design of FSM shorter for a majority of the cases, be sometimes, a finer control is required. For that purpose it is also possible to configure the FSM is `static` mode where the `next_state` statement that indicates implicitly the next state. Putting is static mode is done by passing `:static` as argument when declaring the FSM. For example the following FSM uses `next_state` to specify explicitly the next states depending on some condition signals `cond0` and `cond1`:
+The use of `goto` makes the design of FSM shorter for a majority of the cases, be sometimes, a finer control is required. For that purpose, it is also possible to configure the FSM is `static` mode where the `next_state` statement that indicates implicitly the next state. Putting in static mode is done by passing `:static` as an argument when declaring the FSM. For example, the following FSM uses `next_state` to specify explicitly the next states depending on some condition signals `cond0` and `cond1`:
 
 ```ruby
 fsm(clk.posedge,rst,:static)
@@ -2850,10 +2849,10 @@ fsm(clk.posedge,rst,:static)
 end
 ```
 
-## Sequencer (softare-like hardware coding)
+## Sequencer (software-like hardware coding)
 <a name="sequencer"></a>
 
-This library provides a new sets of control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description.
+This library provides a new set of control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description.
 
 A sequencer can be declared anywhere in a system provided it is outside a behavior using the `sequencer` keyword as follows:
 
@@ -2861,7 +2860,7 @@ A sequencer can be declared anywhere in a system provided it is outside a behavi
 sequencer(<event>,<start>) <block>
 ```
 
-Where `event` is the event (rising or falling edge of a signal) advancing the execution of the sequence, `start` is the signal starting the execution, and `block` is the description of the sequence to be executed. A sequence is a specific case of `seq` block that includes the following software-like additional constructs:
+Where `event` is the event (rising or falling edge of a signal) advancing the execution of the sequence, `start` is the signal starting the execution, and `block` is the description of the sequence to be executed. A sequence is a specific case of a `seq` block that includes the following software-like additional constructs:
 
  - `step`: wait until the next event (given argument `event` of the sequencer).
 
@@ -2869,26 +2868,30 @@ Where `event` is the event (rising or falling edge of a signal) advancing the ex
 
  - `selse <block>`: executes `block` if the condition of the previous `sif` statement is not met.
 
+ - `swait(<condition>)`: waits until that `condition` is met.
+
  - `swhile(<condition>) <block>`: executes `block` while `condition` is met.
 
- - `sfor(<enumerable>) <block>`: executes `block` on each element of `enumerable`. This latter can be any enumerable Ruby object, or any signal. If the signal is not hierarchical (e.g., bit vector), the iteration will be over each bit.
+ - `sfor(<enumerable>) <block>`: executes `block` on each element of `enumerable`. This latter can be any enumerable Ruby object or any signal. If the signal is not hierarchical (e.g., bit vector), the iteration will be over each bit.
 
  - `sbreak`: ends current iteration.
 
  - `sterminate`: ends the execution of the sequence.
 
-It is also possible to use iterators similar to the Ruby `each` using the following methods within sequences:
+It is also possible to use enumerators (iterators) similar to the Ruby `each` using the following methods within sequences:
 
- - `<object>.seach`: `object` any enumerable Ruby object or any signal. If a block is given, it works like `sfor`, otherwise, it return a HDLRuby enumerator (please see [enumerator](#enumerator) for details about them).
+ - `<object>.seach`: `object` any enumerable Ruby object or any signal. If a block is given, it works like `sfor`, otherwise, it returns a HDLRuby enumerator (please see [enumerator](#enumerator) for details about them).
 
  - `<object>.stimes`: can be used on integers and is equivalent to `seach` on each integer from 0 up to `object-1`.
 
  - `<object>.supto(<last>)`: can be used on integers and is equivalent to `seach` on each integer from `object` up to `last`.
 
- - `<object>.sdownto(<last>)`: can be used on integer and is equivalent to `seach` on each integer from `object` down to `last`.
+ - `<object>.sdownto(<last>)`: can be used on an integer and is equivalent to `seach` on each integer from `object` down to `last`.
+
+The objects that support these methods are called _enumerable_ objects. They include the HDLRuby signals, the HDLRuby enumerators, and all the Ruby enumerable objects (e.g., ranges, arrays).
 
 
-Here are a few example of sequencers synchronised in the positive edge of `clk` and starting when `start` becomes one. The first one computes the Fibonacci series until 100, producing a new term in signal `v` at each cycle:
+Here are a few examples of sequencers synchronized in the positive edge of `clk` and starting when `start` becomes one. The first one computes the Fibonacci series until 100, producing a new term in signal `v` at each cycle:
 
 ```ruby
 inner :clk, :start
@@ -2931,7 +2934,7 @@ sequencer(clk.posedge,start) do
 end
 ```
 
-The forth one compute the sum of all the elements of memory `mem` but stops if the sum is larger than 16:
+The fourth one computes the sum of all the elements of memory `mem` but stops if the sum is larger than 16:
 
 ```ruby
 inner :clk, :start
@@ -2948,10 +2951,111 @@ end
 ```
 
 
-### HDLRuby enumerators
+### HDLRuby enumerators and enumerable objects.
 <a name="enumerator"></a>
 
-HDLRuby enumerator are objects for generating iterations within sequencers. These objects have all the method of the Ruby `Enumerator` including the ones of the `Enumerable` class, but generate hardware code for iterating instead of directly iterating. For example, the following code
+HDLRuby enumerators are objects for generating iterations within sequencers. They are created using the method `seach` on enumerable objects as presented in the previous section.
+
+The enumerators can be controlled using the following methods:
+
+ - `size`: returns the number of elements the enumerator can access.
+
+ - `type`: returns the type of the elements accessed by the enumerator.
+
+ - `seach`: returns the current enumerator. If a block is given, performs the iteration instead of returning an enumerator.
+
+ - `seach_with_index`: returns an enumerator over the elements of the current enumerator associated with their index position. If a block is given, performs the iteration instead of returning an enumerator.
+
+ - `seach_with_object(<obj>)`: returns an enumerator over the elements of the current enumerator associated with object `obj` (any object, HDLRuby or not, can be used). If a block is given, performs the iteration instead of returning an enumerator.
+
+ - `with_index`: identical to `seach_with_index`.
+
+ - `with_object(<obj>)`: identical to `seach_with_object`.
+
+ - `clone`: create a new enumerator on the same elements.
+
+ - `speek`: returns the current element pointed by the enumerator without advancing it.
+
+ - `snext`: returns the current element pointed by the enumerator and goes to the next one.
+
+ - `srewind`: restart the enumeration.
+
+ - `+`: concatenation of enumerators.
+
+
+With this basis, several algorithms have been implemented using enumerators and are usable for all the enumerable objects. All these algorithms are HW implantation of the Ruby Enumerable methods. They are accessible using the corresponding ruby method prefixed by character `s`. For example, the HW implementation of the ruby `all?` method is generated by the `sall?` method. In details:
+
+ - `sall?`: HW implementation of the Ruby `all?` method. Returns a single-bit signal. When 0 this value means false and when 1 it means true.
+
+ - `sany?`: HW implementation of the Ruby `any?` method. Returns a single-bit signal. When 0 this value means false and when 1 it means true.
+
+ - `schain`: HW implementation of the Ruby `chain`.
+
+ - `smap`: HW implementation of the Ruby `map` method. When used with a block returns a vector signal containing each computation result.
+
+ - `scompact`: HW implementation of the Ruby `compact` method. However, since there is no nil value in HW, use 0 instead for compacting. Returns a vector signal containing the compaction result.
+
+ - `scount`: HW implementation of the Ruby `count` method. Returns a signal whose bit width matches the size of the enumerator containing the count result.
+
+ - `scycle`: HW implementation of the Ruby `cycle` method.
+
+ - `sfind`: HW implementation of the Ruby `find` method. Returns a signal containing the found element, or 0 if not found.
+
+ - `sdrop`: HW implementation of the Ruby `drop` method. Returns a vector signal containing the remaining elements.
+
+ - `sdrop_while`: HW implementation of the Ruby `drop_while` method. Returns a vector signal containing the remaining elements.
+
+ - `seach_cons`: HW implementation of the Ruby `each_cons` method.
+
+ - `seach_slice`: HW implementation of the Ruby `each_slice` method.
+
+ - `seach_with_index`: HW implementation of the Ruby `each_with_index` method.
+
+ - `seach_with_object`: HW implementation of the Ruby `each_with_object` method.
+
+ - `sto_a`: HW implementation of the Ruby `to_a` method. Returns a vector signal containing all the elements of the enumerator.
+
+ - `sselect`: HW implementation of the Ruby `select` method. Returns a vector signal containing the selected elements.
+
+ - `sfind_index`: HW implementation of the Ruby `find_index` method. Returns the index of the found element or -1 if not.
+
+ - `sfirst`: HW implementation of the Ruby `first` method. Returns a vector signal containing the first elements.
+
+ - `sinclude?`: HW implementation of the Ruby `include?` method. Returns a single-bit signal. When 0 this value means false and when 1 it means true.
+
+ - `sinject`: HW implementation of the Ruby `inject` method. Return a signal of the type of elements containing the computation result.
+
+ - `smax`: HW implementation of the Ruby `max` method. Return a vector signal containing the found max values.
+
+ - `smax_by`: HW implementation of the Ruby `max_by` method. Return a vector signal containing the found max values.
+
+ - `smin`: HW implementation of the Ruby `min` method. Return a vector signal containing the found min values.
+
+ - `smin_by`: HW implementation of the Ruby `min_by` method. Return a vector signal containing the found min values.
+
+ - `sminmax`: HW implementation of the Ruby `minmax` method. Returns a 2-element vector signal containing the resulting min and max values.
+
+ - `sminmax_by`: HW implementation of the Ruby `minmax_by` method. Returns a 2-element vector signal containing the resulting min and max values.
+
+ - `snone?`: HW implementation of the Ruby `none?` method. Returns a single-bit signal. When 0 this value means false and when 1 it means true.
+
+ - `sone?`: HW implementation of the Ruby `one?` method. Returns a single-bit signal. When 0 this value means false and when 1 it means true.
+
+ - `sreject`: HW implementation of the Ruby `reject` method. Returns a vector signal containing the remaining elements.
+
+ - `sreverse_each`: HW implementation of the Ruby `reverse_each` method.
+
+ - `ssort`: HW implementation of the Ruby `sort` method. Returns a vector signal containing the sorted elements.
+
+ - `ssort_by`: HW implementation of the Ruby `sort_by` method. Returns a vector signal containing the sorted elements.
+
+ - `ssum`: HW implementation of the Ruby `sum` method. Returns a signal with the type of elements containing the sum result.
+
+ - `stake`: HW implementation of the Ruby `take` method. Returns a vector signal containing the taken elements.
+
+ - `stake_while`: HW implementation of the Ruby `take_while` method. Returns a vector signal containing the taken elements.
+
+ - `suniq`: HW implementation the Ruby `uniq` method. Returns a vector signal containing the selected elements.
 
 
 ## Fixed-point (fixpoint)
@@ -2979,7 +3083,7 @@ In addition to the fixed point data type, a method is added to the literal objec
 <litteral>.to_fix(<number of bits after the decimal point>)
 ```
 
-For example, the following code converts a floating-point value to a fixed point value with 16 bits after the decimal point:
+For example, the following code converts a floating-point value to a fixed-point value with 16 bits after the decimal point:
 
 ```
 3.178.to_fix(16)
@@ -3026,9 +3130,9 @@ The access points to a channel can also be handled individually by declaring por
  * `output <name>`: declares a port for writing to the channel and associates them to `name` if any
  * `inout <name>`: declares a port for reading and writing to the channel and associates them to `name` if any
 
-Such port can then be accessed using the same `read` and `write` method of a channel, the difference being that they can also be configured for new access procedures using the `wrap` method:
+Such a port can then be accessed using the same `read` and `write` method of a channel, the difference being that they can also be configured for new access procedures using the `wrap` method:
 
- * `wrap(<args>) <code>`: creates a new port whose read or write procedure has the elements of `<args>` and the ones produced by `<code>` assign to the arguments of the read or write procedure.
+ * `wrap(<args>) <code>`: creates a new port whose read or write procedure has the elements of `<args>` and the ones produced by `<code>` assigned to the arguments of the read or write procedure.
 
 For example, assuming `mem` is a channel whose read and write access have as argument the target address and data signals, the following code creates a port for always accessing at address 0:
 
@@ -3042,7 +3146,7 @@ Some channels may include several branches, they are accessed by name using the 
  
  * `branch(<name>)`: gets branch named `name` from the channel. This name can be any ruby object (e.g., a number) but it will be converted internally to a ruby symbol.
 
-A branch is a full-fledge channel and is used identically. For instance, the following code gets access to branch number 0 of channel `ch`, gets its inputs port, reads it, and put the result in signal `val` on the rising edges of signal `clk`:
+A branch is a full-fledged channel and is used identically. For instance, the following code gets access to branch number 0 of channel `ch`, gets its inputs port, reads it, and put the result in signal `val` on the rising edges of signal `clk`:
 
 ```ruby
 br = ch.branch(0)
@@ -3164,7 +3268,7 @@ end
 
 __Note__:
 
- * The code of the circuits, in the examples `producer8`, `consumer8`, and `producer_consummer8` is independent of the content of the channel. For example, the sample `with_channel.rb` (please see [sample](#sample)) use the same circuits with a channel implementing handshaking.
+ * The code of the circuits, in the examples `producer8`, `consumer8`, and `producer_consummer8` is independent of the content of the channel. For example, the sample `with_channel.rb` (please see [sample](#sample)) uses the same circuits with a channel implementing handshaking.
 
 
 ## Pipeline
@@ -3200,10 +3304,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/civol/
 
 # To do
 
- * Test the compatibility of the HDLRuby framework with the Microsoft Windows environments.
- * Add the generation of VHDL and Verilog code for the time behaviors.
- * Provide targets for the `Reconf` library.
- * Add a standard wave output for the simulator.
  * Find and fix the (maybe) terrifying number of bugs.
  * Add a GUI (any volunteer to do it?).
 
