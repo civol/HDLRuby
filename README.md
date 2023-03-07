@@ -68,11 +68,11 @@ __Notes__:
 * If no top system is given, it is automatically looked for from the input file.
 * If no option is given, it simply checks the input file.
 * If you are new to HDLRuby, or if you want to see how new features work, we strongly encourage to get a local copy of the test HDLRuby sample using:  
-  
+    
   ```bash
   hdrcc --get-samples
-  ```
-
+  ```  
+    
   Then in your current directory (folder) the `hdr_samples` subdirectory will appear that contains several HDLRuby example files.
 
 
