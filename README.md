@@ -49,54 +49,62 @@ Where:
 | `-v, --verilog`   | Output in Verilog HDL format                         |
 | `-V, --vhdl`      | Output in VHDL format                                |
 | `-s, --syntax`    | Output the Ruby syntax tree                          |
-| `-C, --clang`     | Output the C code of the standalone simulator.       |
-| `-S, --sim`       | Perform the simulation with the default engine.      |
-| `--csim`          | Perform the simulation with the standalone engine.   |
-| `--rsim`          | Perform the simulation with the Ruby engine.         |
-| `--rcsim`         | Perform the simulation with the Hybris engine.       |
+| `-C, --clang`     | Output the C code of the standalone simulator        |
+| `-S, --sim`       | Perform the simulation with the default engine       |
+| `--csim`          | Perform the simulation with the standalone engine    |
+| `--rsim`          | Perform the simulation with the Ruby engine          |
+| `--rcsim`         | Perform the simulation with the Hybris engine        |
 | `--vcd`           | Make the simulator generate a VCD file               |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
 | `-D, --debug`     | Set the HDLRuby debug mode |
 | `-t, --top system`| Specify the top system describing the circuit to compile |
 | `-p, --param x,y,z`     | Specify the generic parameters                 |
-| `--version `      | Print the version number, then exit                  |
+| `--get-samples`   | Copy the sample directory (hdr_samples) to current one, then exit |
+| `--version`       | Show the version number, then exit                  |
 | `-h, --help`      | Show the help message                                    |
 
 __Notes__:
 
 * If no top system is given, it is automatically looked for from the input file.
 * If no option is given, it simply checks the input file.
-* The simulator option (-S) requires a standard compiler (accessible through the command `cc`) to be available in the executable path.
+* If you are new to HDLRuby, or if you want to see how new features work, we strongly encourage to get a local copy of the test HDLRuby sample using:  
+  
+  ```bash
+  hdrcc --get-samples
+  ```
+
+  Then in your current directory (folder) the `hdr_samples` subdirectory will appear that contains several HDLRuby example files.
+
 
 __Examples__:
 
 * Compile system named `adder` from `adder.rb` input file and generate a low-level YAML description into directory `adder`:
 
-```
+```bash
 hdrcc --yaml --top adder adder.rb adder
 ```
 
 * Compile `adder.rb` input file and generate a low-level Verilog HDL description into directory `adder`:
 
-```
+```bash
 hdrcc -v adder.rb adder
 ```
   
 * Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit low-level VHDL description into directory `adder`:
 
-```
+```bash
 hdrcc -V -t adder --param 16 adder_gen.rb adder
 ```
 
 * Compile system `multer` with inputs and output bit width is generic from `multer_gen.rb` input file to a 16x16->32-bit circuit whose low-level YAML description into directory `multer`:
 
-```
+```bash
 hdrcc -y -t multer -p 16,16,32 multer_gen.rb multer
 ```
 
 * Simulate the circuit described in file `counter_bench.rb` using the default simulation engine and putting the simulator's files in directory `counter`:
 
-```
+```bash
 hdrcc -S counter_bench.rb counter
 ```
 
@@ -104,13 +112,13 @@ As a policy, the default simulation engine is set to the fastest one (currently 
 
 * Run in interactive mode.
 
-```
+```bash
 hdrcc -I
 ```
 
 * Run in interactive mode using pry as UI.
 
-```
+```bash
 hdrcc -I pry
 ```
 

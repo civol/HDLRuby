@@ -445,7 +445,11 @@ $optparse = OptionParser.new do |opts|
         $options[:dump] = v
         $options[:multiple] = v
     end
-    opts.on("--version", "Shows the version of HDLRuby.") do |v|
+    opts.on("--get-samples", "Copy the sample directory (hdr_samples) to current one, the exit") do
+        FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples","./hdr_samples")
+        exit
+    end
+    opts.on("--version", "Show the version of HDLRuby, then exit") do |v|
         puts VERSION
         exit
     end
