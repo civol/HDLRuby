@@ -2855,17 +2855,17 @@ module HDLRuby::High
 
         # Casts to a bit vector type.
         def to_bit
-            return self.as(bit[self.width])
+            return self.as(HDLRuby::High.top_user.bit[self.type.width])
         end
 
         # Casts to an unsigned bit vector type.
         def to_unsigned
-            return self.as(unsigned[self.width])
+            return self.as(HDLRuby::High.top_user.unsigned[self.type.width])
         end
 
         # Casts to a signed bit vector type.
-        def to_unsigned
-            return self.as(signed[self.width])
+        def to_signed
+            return self.as(HDLRuby::High.top_user.signed[self.type.width])
         end
 
         # Extends on the left to +n+ bits filling with +v+ bit values.
@@ -2995,6 +2995,12 @@ module HDLRuby::High
              define_method(operator,&meth) 
              # And save it so that it can still be accessed if overidden.
              define_method(orig_operator(operator),&meth)
+         end
+
+         # The <=> operator is also supported by is transformed into a sub
+         # with a signed result.
+         def <=>(expr)
+             return (self.as(self.type.base[self.type.width+1])-expr).to_signed
          end
 
 
