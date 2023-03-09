@@ -2163,9 +2163,10 @@ module HDLRuby::Low
                         codeC << "),"
                     end
                 end
-                # Remove the last "," for conforming with Verilog syntax.
-                # and close the port connection.
-                codeC[-1] = ");\n"
+                # Remove the last "," if any for conforming with Verilog syntax.
+                codeC.chop! if codeC[-1] == ","
+                # And close the port connection.
+                codeC << ");\n"
             end
 
 
