@@ -4416,14 +4416,14 @@ module HDLRuby::High
             super(nil)
             # # Save the Location for debugging information
             # @location = caller_locations
-            # Sets the current behavior
-            @@cur_behavior = self
+            # # Sets the current behavior
+            # @@cur_behavior = self
             # Add the events (they may be hierarchical to flatten)
             events.flatten.each { |event| self.add_event(event) }
             # Create and add the block.
             self.block = High.make_block(mode,&ruby_block)
-            # Unset the current behavior
-            @@cur_behavior = nil
+            # # Unset the current behavior
+            # @@cur_behavior = nil
         end
 
         # Sets an event to the behavior.
@@ -4590,12 +4590,21 @@ module HDLRuby::High
         end
     end
 
-    # The current behavior: by default none.
-    @@cur_behavior = nil
+    # # The current behavior: by default none.
+    # @@cur_behavior = nil
 
     # Gets the enclosing behavior if any.
     def self.cur_behavior
-        return @@cur_behavior
+        # return @@cur_behavior
+        if in_behavior? then
+            user = top_user
+            while(user && !user.is_a?(Behavior)) do
+                user = user.parent
+            end
+            return user
+        else
+            return nil
+        end
     end
 
     # Tell if we are in a behavior.
