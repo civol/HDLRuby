@@ -3,6 +3,12 @@
 HDLRuby is a library for describing and simulating digital electronic
 systems.
 
+__Note__:
+
+If you are new to HDLRuby, it is recommended that you consult first the following tuturial (even if you are a hardware person):
+
+ * [HDLRuby tutorial for software people](tutorial_sw.md)
+
 __Install__:
 
 The recommended installation method is from rubygem as follows:
