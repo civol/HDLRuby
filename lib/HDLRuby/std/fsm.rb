@@ -260,8 +260,6 @@ module HDLRuby::High::Std
                                 st.gotos.each(&:call)
                             else
                                 # No gotos, by default the next step is
-                                # current + 1
-                                # this.next_state_sig <=  this.cur_state_sig + 1
                                 if sequential then
                                     this.next_state_sig <= this.cur_state_sig + 1
                                 end
@@ -270,6 +268,7 @@ module HDLRuby::High::Std
                     end
                     # By default set the next state to 0.
                     helse do
+                        # hprint("Unknow state case: ",this.cur_state_sig,"\n")
                         this.next_state_sig <= 0
                     end
 
