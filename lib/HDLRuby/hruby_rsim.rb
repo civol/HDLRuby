@@ -12,9 +12,10 @@ module HDLRuby::High
 #
 ########################################################################
 
-    ##
-    # Enhance a system type with Ruby simulation.
+
+
     class SystemT
+        ## Enhance a system type with Ruby simulation.
 
         # Tell if the simulation is in multithread mode or not.
         attr_reader :multithread
@@ -322,9 +323,8 @@ module HDLRuby::High
     end
 
 
-    ## 
-    # Describes scopes of system types.
     class Scope
+        ## Enhance a scope with Ruby simulation.
         
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)

@@ -11,8 +11,9 @@ module HDLRuby::Low
     
 
 
-    # Add the conversion to high.
     class SystemT
+        ## Adds the conversion to high.
+
         # Creates a new high system type named +name+ with +scope+.
         def to_high
             # Create the high system type.
@@ -28,8 +29,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Scope
+        ## Adds the conversion to high.
+
         # Creates a new high scope.
         def to_high
             # Create the high scope.
@@ -55,8 +57,9 @@ module HDLRuby::Low
     end
 
     
-    # Add the conversion to high.
     class Type
+        ## Adds the conversion to high.
+
         # Creates a new high type.
         def to_high
             return HDLRuby::High::Type.new(self.name)
@@ -64,8 +67,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TypeDef
+        ## Adds the conversion to high.
+
         # Creates a new high type definition.
         def to_high
             return HDLRuby::High::Typdef.new(self.name,self.type.to_high)
@@ -73,8 +77,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TypeVector
+        ## Adds the conversion to high.
+
         # Creates a new high type vector.
         def to_high
             return HDLRuby::High::TypeVector.new(self.name,
@@ -84,8 +89,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TypeSigned
+        ## Adds the conversion to high.
+
         # Creates a new high type signed.
         def to_high
             return HDLRuby::High::TypeSigned.new(self.name,self.range)
@@ -93,8 +99,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TypeUnsigned
+        ## Adds the conversion to high.
+
         # Creates a new high type unsigned.
         def to_high
             return HDLRuby::High::TypeUnsigned.new(self.name,self.range)
@@ -103,8 +110,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TypeTuple
+        ## Adds the conversion to high.
+
         # Creates a new high type tuple.
         def to_high
             return HDLRuby::High::TypeTuple.new(self.name,self.direction,
@@ -113,8 +121,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TypeStruct
+        ## Adds the conversion to high.
+
         # Creates a new high type struct.
         def to_high
             return HDLRuby::High::TypeString.new(self.name,self.direction,
@@ -124,8 +133,9 @@ module HDLRuby::Low
 
 
 
-    # Add the conversion to high.
     class Behavior
+        ## Adds the conversion to high.
+
         # Creates a new high behavior.
         def to_high
             # Create the resulting behavior.
@@ -137,8 +147,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TimeBehavior
+        ## Adds the conversion to high.
+
         # Creates a new high time behavior.
         def to_high
             # Create the resulting behavior.
@@ -150,8 +161,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Event
+        ## Add the conversion to high.
+
         # Creates a new high event.
         def to_high
             return HDLRuby::High::Event.new(self.type.to_high,self.ref.to_high)
@@ -159,8 +171,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class SignalI
+        ## Add the conversion to high.
+
         # Creates a new high signal.
         def to_high
             # Is there an initial value?
@@ -176,8 +189,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class SignalC
+        ## Adds the conversion to high.
+
         # Creates a new high constant signal.
         def to_high
             # Is there an initial value?
@@ -193,8 +207,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class SystemI
+        ## Adds the conversion to high.
+
         # Creates a new high system instance.
         def to_high
             return HDLRuby::High::SystemI.new(self.name,self.systemT.to_high)
@@ -202,8 +217,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Chunk
+        ## Adds the conversion to high.
+
         # Creates a new high code chunk.
         def to_high
             return HDLRuby::High::Chunk.new(self.name,
@@ -212,8 +228,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Code
+        ## Adds the conversion to high.
+
         # Creates a new high code.
         def to_high
             # Create the new code.
@@ -226,8 +243,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Statement
+        ## Adds the conversion to high.
+
         # Creates a new high statement.
         def to_high
             raise AnyError,
@@ -236,8 +254,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Transmit
+        ## Adds the conversion to high.
+
         # Creates a new high transmit statement.
         def to_high
             return HDLRuby::High::Transmit.new(self.left.to_high,
@@ -246,8 +265,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class If
+        ## Adds the conversion to high.
+
         # Creates a new high if statement.
         def to_high
             # Is there a no?
@@ -269,8 +289,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class When
+        ## Adds the conversion to high.
+
         # Creates a new high when.
         def to_high
             return HDLRuby::High::When.new(self.match.to_high,
@@ -279,8 +300,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Case
+        ## Adds the conversion to high.
+
         # Creates a new high case statement.
         def to_high
             # Is there a default?
@@ -294,8 +316,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Delay
+        ## Adds the conversion to high.
+
         # Creates a new high delay.
         def to_high
             return HDLRuby::High::Delay.new(self.value,self.unit)
@@ -303,8 +326,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Print
+        ## Adds the conversion to high.
+
         # Creates a new high print statement.
         def to_high
             return HDLRuby::High::Print.new(
@@ -313,8 +337,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TimeWait
+        ## Adds the conversion to high.
+
         # Creates a new high wait statement.
         def to_high
             return HDLRuby::High::TimeWait.new(self.delay.to_high)
@@ -322,8 +347,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TimeRepeat
+        ## Adds the conversion to high.
+
         # Creates a new high repreat statement.
         def to_high
             return HDLRuby::High::TimeReapeat.new(self.delay.to_high,
@@ -332,8 +358,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Block
+        ## Adds the conversion to high.
+
         # Creates a new high block statement.
         def to_high
             # Create the new block statement.
@@ -345,8 +372,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class TimeBlock
+        ## Adds the conversion to high.
+
         # Creates a new high time block statement.
         def to_high
             # Create the new block statement.
@@ -358,8 +386,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Connection
+        ## Adds the conversion to high.
+
         # Creates a new high connection.
         def to_high
             return HDLRuby::High::Connection.new(self.left.to_high,
@@ -368,8 +397,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Expression
+        ## Adds the conversion to high.
+
         # Creates a new high expression.
         def to_high
             raise AnyError,
@@ -378,8 +408,9 @@ module HDLRuby::Low
     end
 
     
-    # Add the conversion to high.
     class Value
+        ## Adds the conversion to high.
+
         # Creates a new high value expression.
         def to_high
             # Is there a content?
@@ -396,8 +427,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Cast
+        ## Adds the conversion to high.
+
         # Creates a new high cast expression.
         def to_high
             return HDLRuby::High::Cast(self.type.to_high, self.child.to_high)
@@ -405,13 +437,14 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Operation
+        ## Adds the conversion to high.
     end
 
 
-    # Add the conversion to high.
     class Unary
+        ## Adds the conversion to high.
+
         # Creates a new high unary expression.
         def to_high
             return HDLRuby::High::Unary.new(self.type.to_high,self.operator,
@@ -420,8 +453,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Binary
+        ## Adds the conversion to high.
+
         # Creates a new high binary expression.
         def to_high
             return HDLRuby::High::Binary.new(self.type.to_high,self.operator,
@@ -431,8 +465,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Select
+        ## Adds the conversion to high.
+
         # Creates a new high select expression.
         def to_high
             return HDLRuby::High::Select(self.type.to_high,self.operator,
@@ -442,8 +477,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Concat
+        ## Adds the conversion to high.
+
         # Creates a new high concat expression.
         def to_high
             return HDLRuby::High::Concat.new(self.type.to_high,
@@ -452,13 +488,14 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class Ref
+        ## Adds the conversion to high.
     end
 
 
-    # Add the conversion to high.
     class RefConcat
+        ## Adds the conversion to high.
+
         # Creates a new high concat reference.
         def to_high
             return HDLRuby::High::Ref.new(self.type.to_high,
@@ -467,8 +504,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class RefIndex
+        ## Adds the conversion to high.
+
         # Creates a new high index reference.
         def to_high
             return HDLRuby::High::RefIndex.new(self.type.to_high,
@@ -478,8 +516,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class RefRange
+        ## Adds the conversion to high.
+
         # Creates a new high range reference.
         def to_high
             return HDLRuby::High::RefRange.new(self.type.to_high,
@@ -489,8 +528,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class RefName
+        ## Adds the conversion to high.
+
         # Creates a new high range reference.
         def to_high
             return HDLRuby::High::RefName.new(self.type.to_high,
@@ -500,8 +540,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class RefThis
+        ## Adds the conversion to high.
+
         # Creates a new high ref this.
         def to_high
             return HDLRuby::High::RefThis.new
@@ -509,8 +550,9 @@ module HDLRuby::Low
     end
 
 
-    # Add the conversion to high.
     class StringE
+        ## Adds the conversion to high.
+
         # Creates a new high string expression.
         def to_high
             return HDLRuby::High::StringE.new(self.content,

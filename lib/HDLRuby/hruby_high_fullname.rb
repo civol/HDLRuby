@@ -5,9 +5,10 @@ require "HDLRuby/hruby_high"
 module HDLRuby::High
 
 ##
-# Library for describing adding the fullname method to HDLRuby::High objects.
+# Library for adding the fullname method to HDLRuby::High objects.
 #
 ########################################################################
+
 
     class SystemT
 
@@ -31,6 +32,7 @@ module HDLRuby::High
         end
 
     end
+
 
     class Scope
         include WithFullname

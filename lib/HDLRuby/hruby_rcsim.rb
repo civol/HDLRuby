@@ -88,8 +88,8 @@ module HDLRuby::High
 
 
 
-    ## Extends the SystemT class for hybrid Ruby-C simulation.
     class SystemT
+        ## Extends the SystemT class for hybrid Ruby-C simulation.
 
         attr_reader :rcsystemT # The access to the C version of the systemT
 
@@ -141,8 +141,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Scope class for hybrid Ruby-C simulation.
     class Scope
+        ## Extends the Scope class for hybrid Ruby-C simulation.
 
         attr_reader :rcscope # The access to the C version of the scope.
 
@@ -217,8 +217,8 @@ module HDLRuby::High
 
 
 
-    ## Extends the Type class for hybrid Ruby-C simulation.
     class Type
+        ## Extends the Type class for hybrid Ruby-C simulation.
 
         attr_reader :rctype # The access to the C version of the scope.
 
@@ -238,8 +238,8 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the TypeDef class for hybrid Ruby-C simulation.
     class TypeDef
+        ## Extends the TypeDef class for hybrid Ruby-C simulation.
 
         # Generate the C description of the type.
         def to_rcsim
@@ -249,8 +249,8 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the TypeVector class for hybrid Ruby-C simulation.
     class TypeVector
+        ## Extends the TypeVector class for hybrid Ruby-C simulation.
 
         # Generate the C description of the type.
         def to_rcsim
@@ -260,8 +260,8 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the TypeTuple class for hybrid Ruby-C simulation.
     class TypeTuple
+        ## Extends the TypeTuple class for hybrid Ruby-C simulation.
         # Add the possibility to change the direction.
         def direction=(dir)
             @direction = dir == :little ? :little : :big
@@ -276,8 +276,9 @@ module HDLRuby::High
     end
 
 
-    ## Extends the TypeStruct class for hybrid Ruby-C simulation.
     class TypeStruct
+        ## Extends the TypeStruct class for hybrid Ruby-C simulation.
+
         # Add the possibility to change the direction.
         def direction=(dir)
             @direction = dir == :little ? :little : :big
@@ -374,19 +375,19 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Behavior class for hybrid Ruby-C simulation.
     class Behavior
+        ## Extends the Behavior class for hybrid Ruby-C simulation.
         include RCSimBehavior
     end
 
-    ## Extends the TimeBehavior class for hybrid Ruby-C simulation.
     class TimeBehavior
+        ## Extends the TimeBehavior class for hybrid Ruby-C simulation.
         include RCSimBehavior
     end
 
 
-    ## Extends the Event class for hybrid Ruby-C simulation.
     class Event
+        ## Extends the Event class for hybrid Ruby-C simulation.
 
         attr_reader :rcevent
 
@@ -404,8 +405,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the SignalI class for hybrid Ruby-C simulation.
     class SignalI
+        ## Extends the SignalI class for hybrid Ruby-C simulation.
 
         attr_reader :rcsignalI
 
@@ -436,8 +437,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the SignalC class for hybrid Ruby-C simulation.
     class SignalC
+        ## Extends the SignalC class for hybrid Ruby-C simulation.
 
         attr_reader :rcsignalC
 
@@ -459,8 +460,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the SystemI class for hybrid Ruby-C simulation.
     class SystemI
+        ## Extends the SystemI class for hybrid Ruby-C simulation.
 
         attr_reader :rcsystemI
 
@@ -496,19 +497,19 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Chunk class for hybrid Ruby-C simulation.
     class Chunk
+        ## Extends the Chunk class for hybrid Ruby-C simulation.
         # TODO!!
     end
 
-    ## Extends the Code class for hybrid Ruby-C simulation.
     class Code
+        ## Extends the Code class for hybrid Ruby-C simulation.
         # TODO!!
     end
 
 
-    ## Extends the Statement class for hybrid Ruby-C simulation.
     class Statement
+        ## Extends the Statement class for hybrid Ruby-C simulation.
 
         attr_reader :rcstatement
 
@@ -519,8 +520,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Transmit class for hybrid Ruby-C simulation.
     class Transmit
+        ## Extends the Transmit class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the transmit.
@@ -534,8 +535,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Print class for hybrid Ruby-C simulation.
     class Print
+        ## Extends the Print class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the print.
@@ -554,8 +555,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the TimeTerminate class for hybrid Ruby-C simulation.
     class TimeTerminate
+        ## Extends the TimeTerminate class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the terminate.
@@ -567,15 +568,15 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the Configure class for hybrid Ruby-C simulation.
     class Configure
+        ## Extends the Configure class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
         # TODO!!!
     end
 
     
-    ## Extends the If class for hybrid Ruby-C simulation.
     class If
+        ## Extends the If class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the hardware if.
@@ -597,13 +598,13 @@ module HDLRuby::High
     end
 
 
-    ## Extends the When class for hybrid Ruby-C simulation.
     class When
+        ## Extends the When class for hybrid Ruby-C simulation.
         # Nothing to add.
     end
 
-    ## Extends the Case class for hybrid Ruby-C simulation.
     class Case
+        ## Extends the Case class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the hardware case.
@@ -625,13 +626,13 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Delay class for hybrid Ruby-C simulation.
     class Delay
+        ## Extends the Delay class for hybrid Ruby-C simulation.
         # Nothing to do.
     end
 
-    ## Extends the TimeWait class for hybrid Ruby-C simulation.
     class TimeWait
+        ## Extends the TimeWait class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the time wait.
@@ -645,8 +646,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the TimeRepeat class for hybrid Ruby-C simulation.
     class TimeRepeat
+        ## Extends the TimeRepeat class for hybrid Ruby-C simulation.
         attr_reader :rcstatement
 
         # Generate the C description of the hardware case.
@@ -701,19 +702,19 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the Block class for hybrid Ruby-C simulation.
     class Block
+        ## Extends the Block class for hybrid Ruby-C simulation.
         include RCSimBlock
     end
 
-    ## Extends the TimeBlock class for hybrid Ruby-C simulation.
     class TimeBlock
+        ## Extends the TimeBlock class for hybrid Ruby-C simulation.
         include RCSimBlock
     end
 
 
-    ## Extends the Connection class for hybrid Ruby-C simulation.
     class Connection
+        ## Extends the Connection class for hybrid Ruby-C simulation.
         attr_reader :rcbehavior
 
         # Add recursively any event to +rcevs+ for activativing the 
@@ -767,8 +768,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Expression class for hybrid Ruby-C simulation.
     class Expression
+        ## Extends the Expression class for hybrid Ruby-C simulation.
 
         # attr_reader :rcexpression
 
@@ -779,8 +780,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Value class for hybrid Ruby-C simulation.
     class Value
+        ## Extends the Value class for hybrid Ruby-C simulation.
         # attr_reader :rcexpression
 
         # Generate the C description of the value.
@@ -815,8 +816,8 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the StringE class for hybrid Ruby-C simulation.
     class StringE
+        ## Extends the StringE class for hybrid Ruby-C simulation.
 
         # Generate the C description of the value.
         def to_rcsim
@@ -826,8 +827,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Cast class for hybrid Ruby-C simulation.
     class Cast
+        ## Extends the Cast class for hybrid Ruby-C simulation.
         # attr_reader :rcexpression
 
         # Generate the C description of the cast.
@@ -846,13 +847,13 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Operation class for hybrid Ruby-C simulation.
     class Operation
+        ## Extends the Operation class for hybrid Ruby-C simulation.
         # Nothing to do.
     end
 
-    ## Extends the Unary class for hybrid Ruby-C simulation.
     class Unary
+        ## Extends the Unary class for hybrid Ruby-C simulation.
         attr_reader :rcexpression
 
         # Generate the C description of the unary operation.
@@ -863,8 +864,8 @@ module HDLRuby::High
         end
     end
 
-    ## Extends the Binary class for hybrid Ruby-C simulation.
     class Binary
+        ## Extends the Binary class for hybrid Ruby-C simulation.
         # attr_reader :rcexpression
 
         # Generate the C description of the binary operation.
@@ -877,8 +878,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Select class for hybrid Ruby-C simulation.
     class Select
+        ## Extends the Select class for hybrid Ruby-C simulation.
         # attr_reader :rcexpression
 
         # Generate the C description of the select operation.
@@ -898,8 +899,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the Concat class for hybrid Ruby-C simulation.
     class Concat
+        ## Extends the Concat class for hybrid Ruby-C simulation.
         # attr_reader :rcexpression
 
         # Generate the C description of the concat operation.
@@ -920,8 +921,8 @@ module HDLRuby::High
 
 
 
-    ## Extends the Ref class for hybrid Ruby-C simulation.
     class Ref
+        ## Extends the Ref class for hybrid Ruby-C simulation.
         # attr_reader :rcref
         # alias_method :rcexpression, :rcref
 
@@ -932,8 +933,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the RefConcat class for hybrid Ruby-C simulation.
     class RefConcat
+        ## Extends the RefConcat class for hybrid Ruby-C simulation.
         # attr_reader :rcref
         # alias_method :rcexpression, :rcref
 
@@ -953,8 +954,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the RefIndex class for hybrid Ruby-C simulation.
     class RefIndex
+        ## Extends the RefIndex class for hybrid Ruby-C simulation.
         # attr_reader :rcref
         # alias_method :rcexpression, :rcref
 
@@ -967,8 +968,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the RefRange class for hybrid Ruby-C simulation.
     class RefRange
+        ## Extends the RefRange class for hybrid Ruby-C simulation.
         # attr_reader :rcref
         # alias_method :rcexpression, :rcref
 
@@ -983,14 +984,14 @@ module HDLRuby::High
     end
 
 
-    ## Extends the RefName class for hybrid Ruby-C simulation.
     class RefName
+        ## Extends the RefName class for hybrid Ruby-C simulation.
         # Should not be used with rcsim.
     end
 
 
-    ## Extends the RefThis class for hybrid Ruby-C simulation.
     class RefThis 
+        ## Extends the RefThis class for hybrid Ruby-C simulation.
         # attr_reader :rcref
         # alias_method :rcexpression, :rcref
 
@@ -1001,8 +1002,8 @@ module HDLRuby::High
     end
 
 
-    ## Extends the RefObject class for hybrid Ruby-C simulation.
     class RefObject
+        ## Extends the RefObject class for hybrid Ruby-C simulation.
         # attr_reader :rcref
         # alias_method :rcexpression, :rcref
         

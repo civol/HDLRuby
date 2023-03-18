@@ -20,8 +20,8 @@ module HDLRuby::Low
 
     
 
-    ## Extends SystemT with generation of port wires.
     class SystemT
+        ## Extends SystemT with generation of port wires.
 
         # Converts to a port-compatible system.
         #
@@ -33,8 +33,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with retrival conversion to symbol.
     class Scope
+        ## Extends the Scope class with retrival conversion to symbol.
 
         # Converts a port wire to a reference to it.
         def portw2ref(portw)
@@ -170,8 +170,8 @@ module HDLRuby::Low
 
 
 
-    ## Extends SystemT with generation of port wires.
     class SystemI
+        ## Extends SystemT with generation of port wires.
 
         def with_port!
             self.systemT.with_port!

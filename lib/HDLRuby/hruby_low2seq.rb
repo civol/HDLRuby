@@ -13,9 +13,9 @@ module HDLRuby::Low
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for converting par block
-    #  to seq.
     class SystemT
+        ## Extends the SystemT class with functionality for converting par block
+        #  to seq.
         
         # Converts the par sub blocks to seq.
         def blocks2seq!
@@ -32,10 +32,10 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the Scope class with functionality for converting par block
-    #  to seq.
 
     class Scope
+    ## Extends the Scope class with functionality for converting par block
+    #  to seq.
         
         # Converts the par sub blocks to seq.
         def blocks2seq!
@@ -53,10 +53,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with functionality for converting par block
-    #  to seq.
 
     class Behavior
+        ## Extends the Behavior class with functionality for converting par block
+        #  to seq.
         
         # Converts the par sub blocks to seq.
         def blocks2seq!
@@ -76,9 +76,10 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the Statement class with functionality for converting par block
-    #  to seq.
+
     class Statement
+        ## Extends the Statement class with functionality for converting par
+        #  block to seq.
 
         # Converts the par sub blocks to seq.
         def blocks2seq!
@@ -94,9 +95,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the If class with functionality for converting par block
-    #  to seq.
+
     class If
+        ## Extends the If class with functionality for converting par block
+        #  to seq.
         
         # Converts the par sub blocks to seq.
         def blocks2seq!
@@ -128,9 +130,11 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the When class with functionality for converting par block
-    #  to seq.
+
     class When
+        ## Extends the When class with functionality for converting par block
+        #  to seq.
+
         # Converts the par sub blocks to seq.
         def blocks2seq!
             # Convert the statement.
@@ -147,9 +151,11 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the When class with functionality for converting par block
-    #  to seq.
+
     class Case
+        ## Extends the When class with functionality for converting par block
+        #  to seq.
+
         # Converts the par sub blocks to seq.
         def blocks2seq!
             # Recurse on the whens.
@@ -170,9 +176,10 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the TimeRepeat class with functionality for converting par block
-    #  to seq.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with functionality for converting par
+        #  block to seq.
 
         # Converts the par sub blocks to seq.
         def blocks2seq!
@@ -190,9 +197,10 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the Block class with functionality for converting par block
-    #  to seq.
+
     class Block
+        ## Extends the Block class with functionality for converting par block
+        #  to seq.
 
         # Converts the par sub blocks to seq.
         def blocks2seq!

@@ -4,10 +4,8 @@ require "HDLRuby/hruby_verilog_name.rb"
 require 'HDLRuby/hruby_low_mutable'
 
 
-# module HDLRuby::Verilog
 include HDLRuby::Verilog
 
-#include HDLRuby::Low
 module HDLRuby::Low
 
 
@@ -38,12 +36,16 @@ module HDLRuby::Low
     $vector_reg = ""   # For storing signal type at structure declaration. (temporary)
     $vector_cnt = 0    # For allocating numbers at structure declaration.  (temporary)
 
+    
     class ::Integer
+        ## Extends the Integer class with generation of verilog text.
+
         def to_verilog
             to_s
         end
     end
 
+    
     # Class summarizing "hash" used for "par" or "seq" conversion.
     class Fm
         attr_reader :fm_seq, :fm_par, :rep, :rep_sharp
@@ -115,8 +117,9 @@ module HDLRuby::Low
     TruncersI = Truncers.new
 
 
-    # A class that translates the left-hand side, operator, and right-hand side into form of expression.
     class Binary
+        ## Enhances Binary with verilog generation.
+
         # Converts the system to Verilog code.
         def to_verilog
             return "(#{self.left.to_verilog} #{self.operator} #{self.right.to_verilog})"
@@ -158,9 +161,10 @@ module HDLRuby::Low
         end
     end
 
-    # class of Represent blocking substitution or nonblocking assignment.
-    # Enhance Transmit with generation of verilog code.
+
     class Transmit
+        ## Enhances Transmit with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog(spc = 3)
             # Determine blocking assignment or nonblocking substitution from mode and return it.
@@ -169,8 +173,10 @@ module HDLRuby::Low
         end
     end
 
-    # Enhance Print with generation of verilog code.
+
     class Print
+        ## Enhances Print with generation of verilog code.
+
         # Converts the print to Verilog code.
         def to_verilog(spc = 3)
             code = "#{" " * spc}$write(#{self.each_arg.map do |arg|
@@ -180,17 +186,20 @@ module HDLRuby::Low
         end
     end
 
-    # Enhance TimeTerminate with generation of verilog code.
+
     class TimeTerminate
+        ## Enhances TimeTerminate with generation of verilog code.
+
         # Converts the terminate to Verilog code.
         def to_verilog(spc = 3)
             return "#{" " * spc}$finish;"
         end
     end
 
-    # To scheduling to the Block.
-    # Enhance Block with generation of verilog code.
+
     class Block
+        ## Enhances Block with generation of verilog code.
+        # To scheduling to the Block.
 
         # Converts the system to Verilog code adding 'spc' spaces at the begining
         # of each line.
@@ -1439,9 +1448,10 @@ module HDLRuby::Low
         end
     end
 
-    # Used to display variable names.
-    # Enhance RefName with generation of verilog code.
+
     class RefName
+        ## Enhances RefName with generation of verilog code.
+
         # Converts the system to Verilog code using +renamer+ for producing Verilog-compatible names.
         def to_verilog
             vname = name_to_verilog(self.name)
@@ -1463,9 +1473,10 @@ module HDLRuby::Low
         end
     end
 
-    # Used to convert an array.
-    # Enhance RefIndex with generation of verilog code.
+    
     class RefIndex
+        ## Enhances RefIndex with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
@@ -1473,9 +1484,9 @@ module HDLRuby::Low
     end
 
 
-    # Used to indicate the number of bits.
-    # Enhance TypeVector with generation of verilog code.
     class TypeVector
+        ## Enhances TypeVector with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             # if self.base.name.to_s != "bit"
@@ -1486,16 +1497,22 @@ module HDLRuby::Low
         end
     end
 
-    # Necessary for displaying bit width (eg, specify and assign).
+
     class RefRange
+        ## Enhances RefRange with generation of verilog code.
+
+        # Necessary for displaying bit width (eg, specify and assign).
+
         # Converts the system to Verilog code.
         def to_verilog(unknown = false)
             return "#{self.ref.to_verilog}[#{self.range.first.to_getrange}:#{self.range.last.to_getrange}]"
         end
     end
 
-    # Use it when collecting references.
+
     class RefConcat
+        ## Enhances RefConcat with generation of verilog code.
+
         def to_verilog    
             ref = self.each_ref.to_a
 
@@ -1509,18 +1526,20 @@ module HDLRuby::Low
         end
     end
 
-    # Used to output bitstring.
-    # Enhance HDLRuby with generation of verilog code.
+
     class HDLRuby::BitString
+        ## Enhances BitString with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             return "#{self.to_s}"
         end
     end
 
-    # Used for connection using choice.
-    # Enhance Select with generation of verilog code.
+
     class Select
+        ## Enhances Select with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             # Outputs the first and second choices (choice (0) and choice (1)).
@@ -1535,9 +1554,10 @@ module HDLRuby::Low
         end
     end
 
-    # Used to output numbers.
-    # Enhance Value with generation of verilog code.
+
     class Value
+        ## Enhances Value with generation of verilog code.
+
         # Converts the system to Verilog code.
         # If it is bit, it is b, and if it is int, it is represented by d. (Example: 4'b0000, 32'd1)
         def to_verilog(unknown = nil)
@@ -1579,9 +1599,9 @@ module HDLRuby::Low
     end
 
 
-    # Used to transrate if.
-    # Enhance If with generation of verilog code.
     class If
+        ## Enhances If with generation of verilog code.
+
         # # Converts the system to Verilog code.
         # def to_verilog(mode = nil)
         # Converts to Verilog code, checking adding 'spc' spaces at the begining
@@ -1617,10 +1637,10 @@ module HDLRuby::Low
         end
     end
 
-    # Used to translate case
+
     class Case
-        # def to_verilog(mode = nil)
-        #
+        ## Enhances Case with generation of verilog code.
+
         # Converts to Verilog code, checking if variables are register
         # or wire adding 'spc' spaces at the begining of each line.
         def to_verilog(spc = 3)
@@ -1656,9 +1676,10 @@ module HDLRuby::Low
         end
     end
 
-    # Translate expression of combination circuit.
-    # Enhance Connection with generation of verilog code.
+    
     class Connection
+        ## Enhances Connection with generation of verilog code.
+
         # Converts the system to Verilog code.
 
         # Method used for array.
@@ -1715,23 +1736,29 @@ module HDLRuby::Low
         end
     end
 
-    # It could be used for instantiation.
+    
     class RefThis
+        ## Enhances RefThis with generation of verilog code.
+
         def to_another_verilog
             return ""
         end
     end
 
-    # Used when using "~" for expressions.
+    
     class Unary
+        ## Enhances Unary with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             return "#{self.operator[0]}#{self.child.to_verilog}"
         end
     end
 
-    # Used when casting expressions.
+    
     class Cast
+        ## Enhances Cast with generation of verilog code.
+
         # Converts the system to Verilog code.
         # NOTE: the cast is rounded up size bit-width cast is not supported
         #       by traditional verilog.
@@ -1773,9 +1800,10 @@ module HDLRuby::Low
         end
     end
 
-    # For declaring variables.
-    # Enhance SignalI with generation of verilog code.
+
     class SignalI
+        ## Enhances SignalI with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             # Convert unusable characters and return them.
@@ -1785,25 +1813,30 @@ module HDLRuby::Low
         end
     end
 
-    # If it is signed, it outputs signed.
-    # Enhance Type with generation of verilog code.
+    
     class Type
+        ## Enhances Type with generation of verilog code.
+
         # Converts the type to Verilog code.
         def to_verilog
             return self.name == :signed ? "#{self.name.to_s} " : ""
         end
     end
 
-    # Replace type by refered type.
+    
     class TypeDef
+        ## Enhances TypeDef with generation of verilog code.
+
         # Converts the type to verilog code.
         def to_verilog
             return self.def.to_verilog
         end
     end
 
-    # Use it when collecting.
+    
     class Concat
+        ## Enhances Concat with generation of verilog code.
+
         def to_verilog    
             expression = self.each_expression.to_a
 
@@ -1817,14 +1850,19 @@ module HDLRuby::Low
         end
     end
 
-    # Look at the unit of time, convert the time to ps and output it.
-    # One of two people, TimeWait and Delay.
+    
     class TimeWait
+        ## Enhances TimeWait with generation of verilog code.
+
         def to_verilog(spc = 3)
             return (" " * spc) + self.delay.to_verilog + "\n"
         end
     end
+
+
     class Delay
+        ## Enhances Delay with generation of verilog code.
+
         def to_verilog
             time = self.value.to_s
             if(self.unit.to_s == "ps") then
@@ -1842,8 +1880,9 @@ module HDLRuby::Low
     end
 
 
-    # Generate verilog code for the TimeRepeat.
     class TimeRepeat
+        ## Enhances TimeRepeat with generation of verilog code.
+
         def to_verilog(spc = 3)
             result = (" " * spc) + "repeat(#{self.number})" + "\n"
             result << self.statement.to_verilog(spc+3)
@@ -1855,8 +1894,9 @@ module HDLRuby::Low
     #class TypeTuple
     #class Event
 
-    # Enhance SystemT with generation of verilog code.
+    
     class SystemT
+        ## Enhances SystemT with generation of verilog code.
 
         ## Tells if a connection is actually a port connection.
         def port_output_connection?(connection)
@@ -2255,8 +2295,9 @@ module HDLRuby::Low
     end
 
 
-    # Enhance StringE with generation of verilog code.
     class StringE
+        ## Enhances stringE with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog(spc = 3)
             code = "\"#{Low.v_string(self.content)}" +
@@ -2271,8 +2312,8 @@ end
 
 
 
-## Extends the Numeric class with generation of verilog text.
 class ::Numeric
+## Extends the Numeric class with generation of verilog text.
 
     # Generates the text of the equivalent verilog code.
     # +level+ is the hierachical level of the object.

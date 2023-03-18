@@ -1,14 +1,13 @@
 require "HDLRuby/hruby_rsim"
 
 ##
-# Library for enhancing the Ruby simulator with VCD support
+# Library for enhancing the Ruby simulator with muted output support
 #
 ########################################################################
 module HDLRuby::High
 
-    ##
-    # Enhance the system type class with VCD support.
     class SystemT
+        # Enhance the system type class with mute support.
 
         ## Initializes the displayer for generating a vcd on +vcdout+
         def show_init(vcdout)

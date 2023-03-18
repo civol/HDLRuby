@@ -13,9 +13,9 @@ module HDLRuby::Low
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for converting par blocks
-    #  within seq blocks to seq blocks.
     class SystemT
+        ## Extends the SystemT class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
 
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
@@ -23,9 +23,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Scope class with functionality for breaking assingments
-    #  to concats.
+
     class Scope
+        ## Extends the Scope class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             # Recruse on the sub scopes.
@@ -38,9 +40,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with functionality for breaking assingments
-    #  to concats.
     class Statement
+        ## Extends the Statement class with functionality for converting par 
+        #  blocks within seq blocks to seq blocks.
+ 
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             # By default nothing to do.
@@ -55,9 +58,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the If class with functionality for breaking assingments
-    #  to concats.
     class If
+        ## Extends the If class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             self.yes.par_in_seq2seq!
@@ -78,9 +82,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with functionality for breaking assingments
-    #  to concats.
     class Case
+        ## Extends the Case class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             self.each_when do |w|
@@ -99,9 +104,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for breaking assingments
-    #  to concats.
     class Block
+        ## Extends the Block class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             # Recurse on the sub blocks.

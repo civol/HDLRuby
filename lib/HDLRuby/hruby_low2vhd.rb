@@ -340,8 +340,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemT class with generation of HDLRuby::High text.
     class SystemT
+        ## Extends the SystemT class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -403,8 +403,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with generation of HDLRuby::High text.
     class Scope
+        ## Extends the Scope class with generation of HDLRuby::High text.
 
         ## Tells if an expression is a reference to port +systemI.signal+.
         def port_assign?(expr, systemI, signal)
@@ -611,8 +611,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Type class with generation of HDLRuby::High text.
     class Type
+        ## Extends the Type class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -621,8 +621,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeDef class with generation of HDLRuby::High text.
+
     class TypeDef
+        ## Extends the TypeDef class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -644,8 +645,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeVector class with generation of HDLRuby::High text.
+
     class TypeVector
+        ## Extends the TypeVector class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -703,8 +705,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeTuple class with generation of HDLRuby::High text.
+
     class TypeTuple
+        ## Extends the TypeTuple class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -716,8 +719,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeStruct class with generation of HDLRuby::High text.
+
     class TypeStruct
+        ## Extends the TypeStruct class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -740,8 +744,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with generation of HDLRuby::High text.
     class Behavior
+        ## Extends the Behavior class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -845,20 +849,24 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBehavior class with generation of HDLRuby::High text.
+
     class TimeBehavior
+        ## Extends the TimeBehavior class with generation of HDLRuby::High text.
+
         # TimeBehavior is identical to Behavior in VHDL
     end
 
 
-    ## Extends the Event class with generation of HDLRuby::High text.
     class Event
+        ## Extends the Event class with generation of HDLRuby::High text.
+
         # Events are not directly generated.
     end
 
 
-    ## Extends the SignalI class with generation of HDLRuby::High text.
     class SignalI
+        ## Extends the SignalI class with generation of HDLRuby::High text.
+
         # Signals are not directly generated.
 
         # Generates the text of the equivalent HDLRuby::High code.
@@ -870,8 +878,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with generation of HDLRuby::High text.
     class SystemI
+        ## Extends the SystemI class with generation of HDLRuby::High text.
+
         # Instances are not directly generated.
 
         # Generates the text of the equivalent HDLRuby::High code.
@@ -883,8 +892,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with generation of HDLRuby::High text.
     class Statement
+        ## Extends the Statement class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -895,8 +904,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Transmit class with generation of HDLRuby::High text.
+
     class Transmit
+        ## Extends the Transmit class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -913,8 +923,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Print class with generation of HDLRuby::High text.
+
     class Print
+        ## Extends the Print class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -927,8 +938,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeTerminate class with generation of HDLRuby::High text.
+
     class TimeTerminate
+        ## Extends the TimeTerminate class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -938,9 +950,10 @@ module HDLRuby::Low
             return " " * (level*3) + "finish;\n"
         end
     end
-    
-    ## Extends the If class with generation of HDLRuby::High text.
+  
+
     class If
+        ## Extends the If class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -972,8 +985,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with generation of HDLRuby::High text.
+
     class When
+        ## Extends the When class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code ensuring
         # the match is of +type+.
@@ -991,8 +1005,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Case class with generation of HDLRuby::High text.
+
     class Case
+        ## Extends the Case class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -1027,8 +1042,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Delay class with generation of HDLRuby::High text.
     class Delay
+        ## Extends the Delay class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1038,8 +1053,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with generation of HDLRuby::High text.
     class TimeWait
+        ## Extends the TimeWait class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
@@ -1054,8 +1069,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with generation of HDLRuby::High text.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with generation of HDLRuby::High text.
+
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of the variables and
         # +level+ is the hierachical level of the object.
@@ -1094,8 +1111,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Block class with generation of HDLRuby::High text.
+
     class Block
+        ## Extends the Block class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +vars+ is the list of variables and
@@ -1115,14 +1133,16 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBlock class with generation of HDLRuby::High text.
+
     class TimeBlock
+        ## Extends the TimeBlock class with generation of HDLRuby::High text.
+
         # TimeBlock is identical to Block in VHDL
     end
 
 
-    ## Extends the Code class with generation of HDLRuby::High text.
     class Code
+        ## Extends the Code class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1131,14 +1151,16 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Connection class with generation of HDLRuby::High text.
+
     class Connection
+        ## Extends the Connection class with generation of HDLRuby::High text.
+
         # Nothing required, Transmit is generated identically.
     end
 
 
-    ## Extends the Expression class with generation of HDLRuby::High text.
     class Expression
+        ## Extends the Expression class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1148,8 +1170,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Value class with generation of HDLRuby::High text.
+
     class Value
+        ## Extends the Value class with generation of HDLRuby::High text.
 
         # Generate the text of the equivalent VHDL is case of arithmetic
         # expression.
@@ -1209,8 +1232,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Cast class with generation of HDLRuby::High text.
+
     class Cast
+        ## Extends the Cast class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1241,8 +1265,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Operation class with generation of HDLRuby::High text.
+
     class Operation
+        ## Extends the Operation class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1252,8 +1277,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Unary class with generation of HDLRuby::High text.
+
     class Unary
+        ## Extends the Unary class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1277,8 +1303,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Binary class with generation of HDLRuby::High text.
+
     class Binary
+        ## Extends the Binary class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1352,8 +1379,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Select class with generation of HDLRuby::High text.
+
     class Select
+        ## Extends the Select class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1378,8 +1406,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Concat class with generation of HDLRuby::High text.
+
     class Concat
+        ## Extends the Concat class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +type+ is the expected type of the content.
@@ -1417,8 +1446,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Ref class with generation of HDLRuby::High text.
     class Ref
+        ## Extends the Ref class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1428,8 +1457,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefConcat class with generation of HDLRuby::High text.
+
     class RefConcat
+        ## Extends the RefConcat class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1449,8 +1479,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefIndex class with generation of HDLRuby::High text.
+
     class RefIndex
+        ## Extends the RefIndex class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1466,8 +1497,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefRange class with generation of HDLRuby::High text.
+
     class RefRange
+        ## Extends the RefRange class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1499,8 +1531,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefName class with generation of HDLRuby::High text.
+
     class RefName
+        ## Extends the RefName class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1520,13 +1553,15 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefThis class with generation of HDLRuby::High text.
+
     class RefThis 
+        ## Extends the RefThis class with generation of HDLRuby::High text.
         # Nothing to generate.
     end
 
-    ## Extends the StringE class with generation of HDLRuby::High text.
+
     class StringE
+        ## Extends the StringE class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.
@@ -1537,8 +1572,8 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Numeric class with generation of HDLRuby::High text.
     class ::Numeric
+        ## Extends the Numeric class with generation of HDLRuby::High text.
 
         # Generates the text of the equivalent HDLRuby::High code.
         # +level+ is the hierachical level of the object.

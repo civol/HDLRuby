@@ -12,8 +12,9 @@ module HDLRuby::Low
 ########################################################################
 
 
-    ## Extends the SystemT class with fixing of types and constants.
     class SystemT
+        ## Extends the SystemT class with fixing of types and constants.
+
         # Explicit the types conversions in the system.
         def explicit_types!
             # No direct fix required in the system, recurse on the scope.
@@ -23,8 +24,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with fixing of types and constants.
     class Scope
+        ## Extends the Scope class with fixing of types and constants.
+
         # Explicit the types conversions in the scope.
         def explicit_types!
             # Recurse on the sub scopes.
@@ -40,8 +42,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with fixing of types and constants.
     class Behavior
+        ## Extends the Behavior class with fixing of types and constants.
+
         # Explicit the types conversions in the scope.
         def explicit_types!
             # Fix the types of the block.
@@ -51,8 +54,9 @@ module HDLRuby::Low
     end
 
     
-    ## Extends the SignalI class with fixing of types and constants.
     class SignalI
+        ## Extends the SignalI class with fixing of types and constants.
+
         # Explicit the types conversions in the signal.
         def explicit_types!
             # Is there a value?
@@ -67,8 +71,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with fixing of types and constants.
     class Statement
+        ## Extends the Statement class with fixing of types and constants.
+
         # Explicit the types conversions in the statement.
         def explicit_types!
             raise "Should implement explicit_types! for class #{self.class}."
@@ -76,8 +81,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Transmit class with fixing of types and constants.
     class Transmit
+        ## Extends the Transmit class with fixing of types and constants.
+
         # Explicit the types conversions in the statement.
         def explicit_types!
             # Recurse on the left and the right.
@@ -90,8 +96,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Print class with fixing of types and constants.
     class Print
+        ## Extends the Print class with fixing of types and constants.
+
         # Explicit the types conversions in the statement.
         def explicit_types!
             # Recurse on the arguments.
@@ -101,8 +108,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Configure class with fixing of types and constants.
     class Configure
+        ## Extends the Configure class with fixing of types and constants.
+
         # Explicit the types conversions in the statement.
         def explicit_types!
             # Nothing to do.
@@ -111,8 +119,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeTerminate class with fixing of types and constants.
     class TimeTerminate
+        ## Extends the TimeTerminate class with fixing of types and constants.
+
         # Explicit the types conversions in the statement.
         def explicit_types!
             # Nothing to do.
@@ -123,8 +132,9 @@ module HDLRuby::Low
 
 
     
-    ## Extends the If class with fixing of types and constants.
     class If
+        ## Extends the If class with fixing of types and constants.
+
         # Explicit the types conversions in the if.
         def explicit_types!
             # Recurse on the condition: it must be a Bit.
@@ -142,8 +152,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the When class with fixing of types and constants.
     class When
+        ## Extends the When class with fixing of types and constants.
+
         # Explicit the types conversions in the when where +type+ is the
         # type of the selecting value.
         def explicit_types!(type)
@@ -156,8 +167,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with fixing of types and constants.
     class Case
+        ## Extends the Case class with fixing of types and constants.
+
         # Explicit the types conversions in the case.
         def explicit_types!
             # Recurse on the value.
@@ -169,9 +181,10 @@ module HDLRuby::Low
         end
     end
 
-    ## 
-    # Describes a wait statement: not synthesizable!
+
     class TimeWait
+        ## Extends the TimeWait class with fixing of types and constants.
+
         # Explicit the types conversions in the time wait.
         def explicit_types!
             # Nothing to do.
@@ -179,8 +192,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with fixing of types and constants.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with fixing of types and constants.
+
         # Explicit the types conversions in the time repeat.
         def explicit_types!
             # Recurse on the statement.
@@ -190,8 +205,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with fixing of types and constants.
     class Block
+        ## Extends the Block class with fixing of types and constants.
+
         # Explicit the types conversions in the block.
         def explicit_types!
             # Recurse on the statements.
@@ -201,14 +217,16 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Connection class with fixing of types and constants.
     class Connection
+        ## Extends the Connection class with fixing of types and constants.
+
         # Nothing required, Transmit is generated identically.
     end
 
 
-    ## Extends the Expression class with fixing of types and constants.
     class Expression
+        ## Extends the Expression class with fixing of types and constants.
+
         # Explicit the types conversions in the expression where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -217,8 +235,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Value class with fixing of types and constants.
     class Value
+        ## Extends the Value class with fixing of types and constants.
+
         # Explicit the types conversions in the value where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -234,8 +253,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Cast class with fixing of types and constants.
     class Cast
+        ## Extends the Cast class with fixing of types and constants.
+
         # Explicit the types conversions in the cast where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -251,8 +271,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Operation class with fixing of types and constants.
     class Operation
+        ## Extends the Operation class with fixing of types and constants.
+
         # Explicit the types conversions in the operation where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -261,8 +282,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Unary class with fixing of types and constants.
     class Unary
+        ## Extends the Unary class with fixing of types and constants.
+
         # Explicit the types conversions in the unary operation where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -281,8 +303,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Binary class with fixing of types and constants.
     class Binary
+        ## Extends the Binary class with fixing of types and constants.
+
         # Explicit the types conversions in the binary operation where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -305,8 +328,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Select class with fixing of types and constants.
     class Select
+        ## Extends the Select class with fixing of types and constants.
+
         # Explicit the types conversions in the selection where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -319,8 +343,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Concat class with fixing of types and constants.
     class Concat
+        ## Extends the Concat class with fixing of types and constants.
+
         # Explicit the types conversions in the concat where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -354,8 +379,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Ref class with fixing of types and constants.
     class Ref
+        ## Extends the Ref class with fixing of types and constants.
+
         # Explicit the types conversions in the reference where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -364,8 +390,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefConcat class with fixing of types and constants.
     class RefConcat
+        ## Extends the RefConcat class with fixing of types and constants.
+
         # Explicit the types conversions in the concat ref where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -397,8 +424,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefIndex class with fixing of types and constants.
     class RefIndex
+        ## Extends the RefIndex class with fixing of types and constants.
+
         # Explicit the types conversions in the index ref where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -418,8 +446,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefRange class with fixing of types and constants.
     class RefRange
+        ## Extends the RefRange class with fixing of types and constants.
+
         # Explicit the types conversions in the range ref where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -441,8 +470,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefName class with fixing of types and constants.
     class RefName
+        ## Extends the RefName class with fixing of types and constants.
+
         # Explicit the types conversions in the index ref where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -461,8 +491,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefThis class with fixing of types and constants.
     class RefThis 
+        ## Extends the RefThis class with fixing of types and constants.
+
         # Explicit the types conversions in the index ref where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)
@@ -472,8 +503,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the stringE class with fixing of types and constants.
     class StringE
+        ## Extends the stringE class with fixing of types and constants.
+
         # Explicit the types conversions in the concat where
         # +type+ is the expected type of the condition if any.
         def explicit_types(type = nil)

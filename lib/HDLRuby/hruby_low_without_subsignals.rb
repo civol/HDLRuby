@@ -12,10 +12,11 @@ module HDLRuby::Low
 # Makes handling by some synthesis tools easier.
 #
 ########################################################################
+ 
 
-    ## Extends the SystemT class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class SystemT
+        ## Extends the SystemT class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -24,9 +25,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Scope
+        ## Extends the Scope class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -49,9 +50,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Behavior
+        ## Extends the Behavior class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -74,9 +75,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Block
+        ## Extends the Block class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -89,9 +90,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class TimeWait
+        ## Extends the TimeWait class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -101,9 +102,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeRepeat class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class TimeRepeat
+        ## Extends the TimeRepeat class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -114,9 +115,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Transmit class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Transmit
+        ## Extends the Transmit class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -128,9 +129,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Print class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Print
+        ## Extends the Print class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -141,9 +142,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Print class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class TimeTerminate
+        ## Extends the Print class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -153,9 +154,9 @@ module HDLRuby::Low
     end
     
 
-    ## Extends the If class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class If
+        ## Extends the If class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -174,9 +175,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the When class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class When
+        ## Extends the When class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -190,9 +191,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Case
+        ## Extends the Case class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -207,9 +208,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Expression class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class Expression
+        ## Extends the Expression class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
@@ -221,9 +222,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefName class with functionality for decomposing the
-    #  hierachical signals in the statements.
     class RefName
+        ## Extends the RefName class with functionality for decomposing the
+        #  hierachical signals in the statements.
 
         # Flatten a reference to a list of reference to leaf signals
         # from signal +sig+ and add to result to +subrefs+

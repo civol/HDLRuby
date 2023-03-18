@@ -56,8 +56,8 @@ module HDLRuby::Low
 
 
 
-    ## Extends the SystemT class with generation of hdr text.
     class SystemT
+        ## Extends the SystemT class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -102,8 +102,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with generation of hdr text.
     class Scope
+        ## Extends the Scope class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object and
@@ -166,8 +166,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Type class with generation of hdr text.
     class Type
+        ## Extends the Type class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -176,8 +176,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeDef class with generation of hdr text.
+
     class TypeDef
+        ## Extends the TypeDef class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -187,8 +188,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeVector class with generation of hdr text.
+
     class TypeVector
+        ## Extends the TypeVector class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -205,8 +207,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeTuple class with generation of hdr text.
+
     class TypeTuple
+        ## Extends the TypeTuple class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -222,8 +225,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeStruct class with generation of hdr text.
+
     class TypeStruct
+        ## Extends the TypeStruct class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -242,8 +246,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with generation of hdr text.
     class Behavior
+        ## Extends the Behavior class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object and +timed+
@@ -274,8 +278,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBehavior class with generation of hdr text.
+
     class TimeBehavior
+        ## Extends the TimeBehavior class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -285,8 +290,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Event class with generation of hdr text.
     class Event
+        ## Extends the Event class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -296,8 +301,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SignalI class with generation of hdr text.
     class SignalI
+        ## Extends the SignalI class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -307,8 +312,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with generation of hdr text.
     class SystemI
+        ## Extends the SystemI class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -319,8 +324,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with generation of hdr text.
     class Statement
+        ## Extends the Statement class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -330,8 +335,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Transmit class with generation of hdr text.
+
     class Transmit
+        ## Extends the Transmit class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -341,9 +347,10 @@ module HDLRuby::Low
                    self.right.to_hdr(level) + "\n"
         end
     end
-    
-    ## Extends the If class with generation of hdr text.
+  
+
     class If
+        ## Extends the If class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -373,8 +380,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with generation of hdr text.
+
     class When
+        ## Extends the When class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -392,8 +400,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Case class with generation of hdr text.
+
     class Case
+        ## Extends the Case class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -420,8 +429,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Delay class with generation of hdr text.
     class Delay
+        ## Extends the Delay class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -431,8 +440,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with generation of hdr text.
     class TimeWait
+        ## Extends the TimeWait class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -446,8 +455,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with generation of hdr text.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -465,8 +475,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Block class with generation of hdr text.
+
     class Block
+        ## Extends the Block class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -507,8 +518,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBlock class with generation of hdr text.
+
     class TimeBlock
+        ## Extends the TimeBlock class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -518,8 +530,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Code class with generation of hdr text.
     class Code
+        ## Extends the Code class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -528,14 +540,15 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Connection class with generation of hdr text.
+
     class Connection
+        ## Extends the Connection class with generation of hdr text.
         # Nothing required, Transmit is generated identically.
     end
 
 
-    ## Extends the Expression class with generation of hdr text.
     class Expression
+        ## Extends the Expression class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -545,8 +558,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Value class with generation of hdr text.
+
     class Value
+        ## Extends the Value class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -559,8 +573,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Cast class with generation of hdr text.
+
     class Cast
+        ## Extends the Cast class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -570,8 +585,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Operation class with generation of hdr text.
+
     class Operation
+        ## Extends the Operation class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -581,8 +597,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Unary class with generation of hdr text.
+
     class Unary
+        ## Extends the Unary class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -591,8 +608,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Binary class with generation of hdr text.
+
     class Binary
+        ## Extends the Binary class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -602,8 +620,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Select class with generation of hdr text.
+
     class Select
+        ## Extends the Select class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -623,8 +642,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Concat class with generation of hdr text.
+
     class Concat
+        ## Extends the Concat class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -645,8 +665,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Ref class with generation of hdr text.
     class Ref
+        ## Extends the Ref class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -656,8 +676,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefConcat class with generation of hdr text.
+
     class RefConcat
+        ## Extends the RefConcat class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -677,8 +698,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefIndex class with generation of hdr text.
+
     class RefIndex
+        ## Extends the RefIndex class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -687,8 +709,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefRange class with generation of hdr text.
+
     class RefRange
+        ## Extends the RefRange class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -698,8 +721,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefName class with generation of hdr text.
+
     class RefName
+        ## Extends the RefName class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -715,8 +739,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the RefThis class with generation of hdr text.
+
     class RefThis 
+        ## Extends the RefThis class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.
@@ -725,8 +750,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Numeric class with generation of hdr text.
+
     class ::Numeric
+        ## Extends the Numeric class with generation of hdr text.
 
         # Generates the text of the equivalent hdr text.
         # +level+ is the hierachical level of the object.

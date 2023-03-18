@@ -165,8 +165,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemT class with generation of C text.
     class SystemT
+        ## Extends the SystemT class with generation of C text.
 
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and +hnames+
@@ -402,8 +402,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with generation of C text.
     class Scope
+        ## Extends the Scope class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -567,8 +567,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Type class with generation of C text.
     class Type
+        ## Extends the Type class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -587,8 +587,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeDef class with generation of C text.
+
     class TypeDef
+        ## Extends the TypeDef class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -601,8 +602,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeVector class with generation of C text.
+
     class TypeVector
+        ## Extends the TypeVector class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -618,8 +620,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeTuple class with generation of C text.
+
     class TypeTuple
+        ## Extends the TypeTuple class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -634,8 +637,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TypeStruct class with generation of C text.
     class TypeStruct
+        ## Extends the TypeStruct class with generation of C text.
 
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -650,8 +653,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with generation of C text.
     class Behavior
+        ## Extends the Behavior class with generation of C text.
 
         # Generates the text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
@@ -837,8 +840,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBehavior class with generation of C text.
+
     class TimeBehavior
+        ## Extends the TimeBehavior class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -850,8 +854,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Event class with generation of C text.
     class Event
+        ## Extends the Event class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -870,8 +874,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SignalI class with generation of C text.
     class SignalI
+        ## Extends the SignalI class with generation of C text.
 
         # The id of a signal in the simulator.
         @@signal_id = 0
@@ -1085,8 +1089,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with generation of C text.
     class SystemI
+        ## Extends the SystemI class with generation of C text.
 
         ## Generates the C text of the equivalent HDLRuby code.
         #  +level+ is the hierachical level of the object.
@@ -1166,8 +1170,8 @@ module HDLRuby::Low
     end
 
 
-    # Extend the Chunk cass with generation of text code.
     class HDLRuby::Low::Chunk
+        # Extend the Chunk cass with generation of text code.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1198,8 +1202,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with generation of C text.
     class Code
+        ## Extends the SystemI class with generation of C text.
+
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
         # def to_c(level = 0)
@@ -1320,8 +1325,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with generation of C text.
     class Statement
+        ## Extends the Statement class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1362,8 +1367,8 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Transmit class with generation of C text.
     class Transmit
+        ## Extends the Transmit class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -1464,8 +1469,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Print class with generation of C text.
     class Print
+        ## Extends the Print class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -1533,8 +1538,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeTerminate class with generation of C text.
+
     class TimeTerminate
+        ## Extends the TimeTerminate class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1544,8 +1550,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Configure class with generation of C text.
+
     class Configure
+        ## Extends the Configure class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1556,8 +1563,8 @@ module HDLRuby::Low
     end
 
     
-    ## Extends the If class with generation of C text.
     class If
+        ## Extends the If class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -1677,8 +1684,8 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with generation of C text.
     class When
+        ## Extends the When class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1721,8 +1728,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Case class with generation of C text.
+
     class Case
+        ## Extends the Case class with generation of C text.
 
         # # Generates the text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -1855,8 +1863,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Delay class with generation of C text.
     class Delay
+        ## Extends the Delay class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1871,8 +1879,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with generation of C text.
     class TimeWait
+        ## Extends the TimeWait class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -1892,8 +1900,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with generation of C text.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -1933,8 +1942,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Block class with generation of C text.
+
     class Block
+        ## Extends the Block class with generation of C text.
 
         # Adds the c code of the blocks to +res+ at +level+
         def add_blocks_code(res,level)
@@ -2086,20 +2096,22 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with generation of C text.
     class TimeBlock
+        ## Extends the Block class with generation of C text.
+
         # TimeBlock is identical to Block in C
     end
 
 
-    ## Extends the Connection class with generation of C text.
     class Connection
+        ## Extends the Connection class with generation of C text.
+
         # Nothing required, Transmit is generated identically.
     end
 
 
-    ## Extends the Expression class with generation of C text.
     class Expression
+        ## Extends the Expression class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -2121,8 +2133,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Value class with generation of C text.
     class Value
+        ## Extends the Value class with generation of C text.
 
         ## Generates the C text for an access to the value.
         #  +level+ is the hierachical level of the object.
@@ -2290,8 +2302,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Cast class with generation of C text.
     class Cast
+        ## Extends the Cast class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -2346,8 +2358,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Operation class with generation of C text.
     class Operation
+        ## Extends the Operation class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object.
@@ -2358,8 +2370,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Unary class with generation of C text.
+
     class Unary
+        ## Extends the Unary class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -2442,8 +2455,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Binary class with generation of C text.
     class Binary
+        ## Extends the Binary class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -2591,8 +2604,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Select class with generation of C text.
+
     class Select
+        ## Extends the Select class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -2669,9 +2683,9 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Concat class with generation of C text.
-    class Concat
 
+    class Concat
+        ## Extends the Concat class with generation of C text.
 
         # # Generates the C text for the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object.
@@ -2800,8 +2814,8 @@ module HDLRuby::Low
 
 
 
-    ## Extends the Ref class with generation of C text.
     class Ref
+        ## Extends the Ref class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
@@ -2814,8 +2828,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefConcat class with generation of C text.
     class RefConcat
+        ## Extends the RefConcat class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
@@ -2848,8 +2862,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefIndex class with generation of C text.
     class RefIndex
+        ## Extends the RefIndex class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is thehierachical level of the object and
@@ -2958,8 +2972,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefRange class with generation of C text.
     class RefRange
+        ## Extends the RefRange class with generation of C text.
 
         # # Generates the C text of the equivalent HDLRuby code.
         # # +level+ is the hierachical level of the object and
@@ -3071,8 +3085,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefName class with generation of C text.
     class RefName
+        ## Extends the RefName class with generation of C text.
 
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
@@ -3128,8 +3142,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefThis class with generation of C text.
     class RefThis 
+        ## Extends the RefThis class with generation of C text.
+
         # Generates the C text of the equivalent HDLRuby code.
         # +level+ is the hierachical level of the object and
         # +left+ tells if it is a left value or not.

@@ -1919,7 +1919,7 @@ module HDLRuby::Low
     end
 
     ##
-    # Describes a unsigned integer data type.
+    # Describes an unsigned integer data type.
     class TypeUnsigned < TypeVector
 
         # Creates a new vector type named +name+ from +base+ type and with
@@ -6117,7 +6117,7 @@ module HDLRuby::Low
 
 
     ## 
-    # Describe a this reference.
+    # Describes a this reference.
     #
     # This is the current system.
     class RefThis < Ref 

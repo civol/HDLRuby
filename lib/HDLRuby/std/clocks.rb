@@ -135,8 +135,8 @@ module HDLRuby::High::Std
 end
 
 
-# Enhnace the events with multiply operator.
 class HDLRuby::High::Event
+    # Enhance the events with multiply operator.
 
     # Creates a new event activated every +times+ occurences of the 
     # current event.

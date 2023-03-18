@@ -7,15 +7,15 @@ module HDLRuby::Low
 
 
 ##
-# Breaks the concat assigments.
+# Breaks the concat assignments.
 # Makes handling by some synthesis tools easier.
 #
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for breaking assingments
-    #  to concats.
     class SystemT
+        ## Extends the SystemT class with functionality for breaking assignments
+        #  to concats.
 
         # Breaks the assignments to concats.
         def break_concat_assigns!
@@ -34,9 +34,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with functionality for breaking assingments
-    #  to concats.
     class Scope
+        ## Extends the Scope class with functionality for breaking assignments
+        #  to concats.
+
         # Breaks the assignments to concats.
         def break_concat_assigns!
             # Recruse on the sub scopes.
@@ -102,9 +103,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Behavior class with functionality for breaking assingments
-    #  to concats.
+
     class Behavior
+        ## Extends the Behavior class with functionality for breaking assignments
+        #  to concats.
+
         # Breaks the assignments to concats.
         def break_concat_assigns!
             # Recruse on the block.
@@ -114,9 +117,10 @@ module HDLRuby::Low
 
 
 
-    ## Extends the Block class with functionality for breaking assingments
-    #  to concats.
     class Block
+        ## Extends the Block class with functionality for breaking assignments
+        #  to concats.
+
         # Breaks the assignments to concats.
         #
         # NOTE: work on the direct sub statement only, not deeply.
@@ -142,9 +146,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Transmit class with functionality for breaking assingments
-    #  to concats.
     class Transmit
+        ## Extends the Transmit class with functionality for breaking assignments
+        #  to concats.
+
         # Break the assignments to concats.
         #
         # NOTE: when breaking generates a new Block containing the broken
@@ -235,9 +240,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Connection class with functionality for breaking assingments
-    #  to concats.
     class Connection
+        ## Extends the Connection class with functionality for breaking
+        #  assignments to concats.
+
         # Break the assignments to concats.
         #
         # NOTE: when breaking generates a new Block containing the broken

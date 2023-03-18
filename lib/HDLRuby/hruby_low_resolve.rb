@@ -1,6 +1,8 @@
 require "HDLRuby/hruby_error"
 
 
+module HDLRuby::Low
+
 
 ##
 # Adds methods for finding objects through names.
@@ -8,12 +10,11 @@ require "HDLRuby/hruby_error"
 # NOTE: For now only resolve name reference.
 #
 ########################################################################
-module HDLRuby::Low
 
-    ##
-    #  Extends SystemT with the capability of finding one of its inner object
-    #  by name.
+
     class SystemT
+        ## Extends SystemT with the capability of finding one of its inner
+        #  object by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -31,10 +32,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends Scope with the capability of finding one of its inner object
-    #  by name.
     class Scope
+        ## Extends Scope with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -55,10 +55,10 @@ module HDLRuby::Low
         end
     end
 
-    ##
-    #  Extends Behavior with the capability of finding one of its inner object
-    #  by name.
+
     class Behavior
+        ## Extends Behavior with the capability of finding one of its inner
+        #  object by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -70,10 +70,10 @@ module HDLRuby::Low
         end
     end
 
-    ##
-    #  Extends SystemI with the capability of finding one of its inner object
-    #  by name.
+    
     class SystemI
+        ## Extends SystemI with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -84,10 +84,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends Block with the capability of finding one of its inner object
-    #  by name.
     class Block
+        ## Extends Block with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -109,10 +108,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends SignalI with the capability of finding one of its inner object
-    #  by name.
     class SignalI
+        ## Extends SignalI with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -123,10 +121,10 @@ module HDLRuby::Low
 
 
 
-    ##
-    #  Extends RefIndex with the capability of finding the object it
-    #  refered to.
     class Ref
+        ## Extends RefIndex with the capability of finding the object it
+        #  refered to.
+
         ## Resolves the name of the reference (if any) and return the
         #  corresponding object.
         #  NOTE: return nil if could not resolve.
@@ -137,10 +135,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends RefIndex with the capability of finding the object it
-    #  refered to.
     class RefIndex
+        ## Extends RefIndex with the capability of finding the object it
+        #  refered to.
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
@@ -156,10 +153,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends RefRange with the capability of finding the object it
-    #  refered to.
     class RefRange
+        ## Extends RefRange with the capability of finding the object it
+        #  refered to.
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
@@ -175,10 +171,9 @@ module HDLRuby::Low
     end
 
     
-    ##
-    #  Extends RefName with the capability of finding the object it
-    #  refered to.
     class RefName
+        ## Extends RefName with the capability of finding the object it
+        #  refered to.
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?

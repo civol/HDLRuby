@@ -3,16 +3,16 @@ require "HDLRuby/hruby_low_resolve"
 require "HDLRuby/backend/hruby_allocator"
 
 
+module HDLRuby::Low
 
 ##
 # Adds methods for allocating addresses to signals in Code objects and
 # integrate the result into C code.
 #
 ########################################################################
-module HDLRuby::Low
 
-    ## Extends the SystemT class with support for C allocation of signals.
     class SystemT
+        ## Extends the SystemT class with support for C allocation of signals.
 
         ## Allocates signals within C code using +allocator+.
         def c_code_allocate(allocator)
@@ -21,8 +21,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the scope class with support for C allocation of signals.
     class Scope
+        ## Extends the scope class with support for C allocation of signals.
 
         ## Allocates signals within C code using +allocator+.
         def c_code_allocate(allocator)
@@ -34,10 +34,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the chunk class with support for self modification with
-    #  allocation.
-    #  NOTE: only work if the chunk is in C language.
     class Chunk
+        ## Extends the chunk class with support for self modification with
+        #  allocation.
+        #  NOTE: only works if the chunk is in C language.
 
         ## Allocates signal within C code using +allocator+ and self-modify
         #  the code correspondingly.
@@ -61,8 +61,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the code class with support for C allocation of signals.
     class Code
+        ## Extends the code class with support for C allocation of signals.
 
         ## Allocates signals within C code using +allocator+.
         def c_code_allocate(allocator)

@@ -1,14 +1,14 @@
 require "HDLRuby/hruby_error"
 
+module HDLRuby::Low
 
 
 ##
 # Adds methods for allocating addresses to signals in Code objects.
 #
 ########################################################################
-module HDLRuby::Low
 
-    ## An allocator.
+    ## Describes an allocator.
     class Allocator
 
         # The space range for the allocation.

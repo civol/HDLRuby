@@ -40,9 +40,9 @@ module HDLRuby::High
         return idstr
     end
 
-    ##
-    # Enhance the system type class with VCD support.
+
     class SystemT
+        # Enhance the system type class with VCD support.
 
         ## Initializes the displayer for generating a vcd on +vcdout+
         def show_init(vcdout)
@@ -161,9 +161,9 @@ module HDLRuby::High
     end
 
 
-    ##
-    # Enhance the scope class with VCD support.
     class Scope
+        # Enhance the scope class with VCD support.
+
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # puts "show_hierarchy for scope=#{self}"
@@ -252,9 +252,10 @@ module HDLRuby::High
         end
     end
 
-    ##
-    # Enhance the signals class with VCD support.
+
     module SimSignal
+        # Enhance the signals class with VCD support.
+
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # puts "show_hierarcy for signal=#{self.name}"
@@ -300,9 +301,10 @@ module HDLRuby::High
         end
     end
 
-    ##
-    # Enhance the Transmit class with VCD support.
+
     class Transmit
+        # Enhance the Transmit class with VCD support.
+
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # By default: nothing to do.
@@ -319,9 +321,10 @@ module HDLRuby::High
         end
     end
 
-    ##
-    # Enhance the TimeRepeat class with VCD support.
+
     class TimeRepeat
+        # Enhance the TimeRepeat class with VCD support.
+        
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # Recurse on the statement.
@@ -339,9 +342,10 @@ module HDLRuby::High
         end
     end
 
-    ##
-    # Enhance the TimeWait class with VCD support.
+
     class TimeWait
+        # Enhance the TimeWait class with VCD support.
+
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # By default: nothing to do.
@@ -358,9 +362,10 @@ module HDLRuby::High
         end
     end
 
-    ##
-    # Enhance the Print class with VCD support.
+
     class Print
+        # Enhance the Print class with VCD support.
+
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # By default: nothing to do.
@@ -378,7 +383,7 @@ module HDLRuby::High
     end
 
 
-    ## Module adding show_hierarchyto block objects.
+    ## Module adding show_hierarchy to block objects.
     module BlockHierarchy
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
@@ -445,23 +450,20 @@ module HDLRuby::High
     end
 
 
-    ##
-    # Enhance the block class with VCD support.
     class Block
+        # Enhance the block class with VCD support.
         include HDLRuby::High::BlockHierarchy
     end
 
 
-    ##
-    # Enhance the block class with VCD support.
     class TimeBlock
+        # Enhance the block class with VCD support.
         include HDLRuby::High::BlockHierarchy
     end
 
 
-    ##
-    # Enhance the if class with VCD support.
     class If
+        # Enhance the if class with VCD support.
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # Recurse on the yes.
@@ -502,9 +504,9 @@ module HDLRuby::High
     end
 
 
-    ##
-    # Enhance the Case class with VCD support.
     class Case
+        # Enhance the Case class with VCD support.
+        
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # Recurse on each when.
@@ -538,9 +540,10 @@ module HDLRuby::High
         end
     end
 
-    ##
-    # Enhance the TimeRepeat class with VCD support.
+
     class TimeRepeat
+        # Enhance the TimeRepeat class with VCD support.
+        
         ## Shows the hierarchy of the variables.
         def show_hierarchy(vcdout)
             # Recurse on the statement.

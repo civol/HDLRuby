@@ -280,8 +280,8 @@ module HDLRuby
     end
 
 
-    # Extend the Code class with generation of file for the content.
     class HDLRuby::Low::Code
+        ## Extends the Code class with generation of file for the content.
 
         ## Creates a file in +path+ containing the content of the code.
         def to_file(path = "")

@@ -2044,7 +2044,7 @@ module HDLRuby::High
     end
 
     ##
-    # Describes a unsigned integer data type.
+    # Describes an unsigned integer data type.
     class TypeUnsigned < TypeVector
 
         # Creates a new vector type named +name+ from +base+ type and with
@@ -3194,7 +3194,7 @@ module HDLRuby::High
 
 
     ##
-    # Describes a section operation (generalization of the ternary operator).
+    # Describes a selection operation (generalization of the ternary operator).
     #
     # NOTE: choice is using the value of +select+ as an index.
     class Select < Low::Select

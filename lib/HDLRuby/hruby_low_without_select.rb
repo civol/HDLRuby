@@ -52,9 +52,9 @@ module HDLRuby::Low
     end
     
 
-    ## Extends the SystemT class with functionality for converting select
-    #  expressions to case statements.
     class SystemT
+        ## Extends the SystemT class with functionality for converting select
+        #  expressions to case statements.
 
         # Converts the Select expressions to Case statements.
         def select2case!
@@ -63,9 +63,10 @@ module HDLRuby::Low
 
     end
 
+
+    class Scope
     ## Extends the Scope class with functionality for converting select
     #  expressions to case statements.
-    class Scope
 
         # Converts the Select expressions to Case statements.
         def select2case!
@@ -98,9 +99,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with functionality for converting booleans
-    #  in assignments to select operators.
     class TimeWait
+        ## Extends the TimeWait class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extract the Select expressions.
         def extract_selects!
             # Nothing to extract.
@@ -109,9 +111,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeRepeat class with functionality for converting booleans
-    #  in assignments to select operators.
     class TimeRepeat
+        ## Extends the TimeRepeat class with functionality for converting
+        #  booleans in assignments to select operators.
+
         # Extract the Select expressions.
         def extract_selects!
             # Simply recruse on the statement.
@@ -124,9 +127,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for converting select
-    #  expressions to case statements.
     class Block
+        ## Extends the Block class with functionality for converting select
+        #  expressions to case statements.
 
         # Breaks the assignments to concats.
         #
@@ -151,9 +154,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Transmit class with functionality for converting select
-    #  expressions to case statements.
+
     class Transmit
+        ## Extends the Transmit class with functionality for converting select
+        #  expressions to case statements.
+
         # Extract the Select expressions.
         def extract_selects!
             selects = []
@@ -163,9 +168,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Print class with functionality for converting select
-    #  expressions to case statements.
+
     class Print
+        ## Extends the Print class with functionality for converting select
+        #  expressions to case statements.
+
         # Extract the Select expressions.
         def extract_selects!
             selects = []
@@ -176,19 +183,22 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeTerminate class with functionality for converting select
-    #  expressions to case statements.
+
     class TimeTerminate
+        ## Extends the TimeTerminate class with functionality for converting
+        #  select expressions to case statements.
+
         # Extract the Select expressions.
         def extract_selects!
             # Nothing to extract.
             return []
         end
     end
+
     
-    ## Extends the If class with functionality for converting select
-    #  expressions to case statements.
     class If
+        ## Extends the If class with functionality for converting select
+        #  expressions to case statements.
 
         # Extract the Select expressions.
         #
@@ -200,9 +210,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the If class with functionality for converting select
-    #  expressions to case statements.
+
     class When
+        ## Extends the If class with functionality for converting select
+        #  expressions to case statements.
 
         # Extract the Select expressions.
         #
@@ -214,9 +225,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Case class with functionality for converting select
-    #  expressions to case statements.
+
     class Case
+        ## Extends the Case class with functionality for converting select
+        #  expressions to case statements.
 
         # Extract the Select expressions.
         #
@@ -231,9 +243,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Expression class with functionality for converting select
-    #  expressions to ase statements.
+
     class Expression
+        ## Extends the Expression class with functionality for converting select
+        #  expressions to ase statements.
 
         # Extract the Select expressions and put them into +selects+
         def extract_selects_to!(selects)

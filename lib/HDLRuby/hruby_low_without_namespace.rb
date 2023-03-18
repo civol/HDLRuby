@@ -27,9 +27,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the SystemT class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class SystemT
+        ## Extends the SystemT class with functionality for moving the
+        #  declarations to the upper namespace.
 
         include ForceName
 
@@ -78,9 +79,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Scope class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class Scope
+        ## Extends the Scope class with functionality for moving the declarations
+        #  to the upper namespace.
 
         include ForceName
 
@@ -280,9 +282,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Type class with functionality for breaking hierarchical
-    #  types.
+
     class Type
+        ## Extends the Type class with functionality for breaking hierarchical
+        #  types.
 
         # Breaks the hierarchical types into sequences of type definitions.
         # Assumes to_upper_space! has been called before.
@@ -293,9 +296,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeVector class with functionality for breaking hierarchical
-    #  types.
+
     class TypeVector
+        ## Extends the TypeVector class with functionality for breaking hierarchical
+        #  types.
 
         # Breaks the hierarchical types into sequences of type definitions.
         # Assumes to_upper_space! has been called before.
@@ -333,9 +337,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeTuple class with functionality for breaking hierarchical
-    #  types.
+
     class TypeTuple
+        ## Extends the TypeTuple class with functionality for breaking
+        #  hierarchical types.
 
         # Breaks the hierarchical types into sequences of type definitions.
         # Assumes to_upper_space! has been called before.
@@ -365,9 +370,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TypeStruct class with functionality for breaking hierarchical
-    #  types.
+
     class TypeStruct
+        ## Extends the TypeStruct class with functionality for breaking
+        #  hierarchical types.
 
         # Breaks the hierarchical types into sequences of type definitions.
         # Assumes to_upper_space! has been called before.
@@ -397,9 +403,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the SignalI class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class SignalI
+        ## Extends the SignalI class with functionality for moving the
+        #  declarations to the upper namespace.
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared.
         def replace_names!(former,nname)
@@ -412,9 +419,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the SystemI class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class SystemI
+        ## Extends the SystemI class with functionality for moving the
+        #  declarations to the upper namespace.
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared.
         def replace_names!(former,nname)
@@ -429,9 +437,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with functionality for moving the declarations
-    #  to the upper namespace.
     class Behavior
+        ## Extends the Behavior class with functionality for moving the
+        #  declarations to the upper namespace.
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
@@ -454,9 +462,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Statement class with functionality for moving the
-    #  declarations to the upper namespace.
+
     class Statement
+        ## Extends the Statement class with functionality for moving the
+        #  declarations to the upper namespace.
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
@@ -491,9 +500,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Expression class with functionality for moving the
-    #  declarations  to the upper namespace.
+
     class Expression
+        ## Extends the Expression class with functionality for moving the
+        #  declarations to the upper namespace.
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared.
         def replace_names!(former,nname)
@@ -518,10 +528,11 @@ module HDLRuby::Low
             end
         end
     end
+
     
-    ## Extends the If class with functionality for moving the declarations
-    #  to the upper namespace.
     class If
+        ## Extends the If class with functionality for moving the declarations
+        #  to the upper namespace.
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
@@ -569,9 +580,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class When
+        ## Extends the When class with functionality for moving the declarations
+        #  to the upper namespace.
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
@@ -608,9 +620,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class Case
+        ## Extends the When class with functionality for moving the declarations
+        #  to the upper namespace.
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
@@ -644,9 +657,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class TimeRepeat
+        ## Extends the When class with functionality for moving the declarations
+        #  to the upper namespace.
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
@@ -669,9 +683,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for moving the declarations
-    #  to the upper namespace.
+
     class Block
+        ## Extends the When class with functionality for moving the declarations
+        #  to the upper namespace.
 
         include ForceName
 
