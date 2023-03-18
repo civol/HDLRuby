@@ -10,7 +10,7 @@ module HDLRuby::High::Std
     
 
 
-    # Defines a sequencer block.
+    # Describes a sequencer block.
     class SequencerT 
         @@current = nil # The current sequencer.
 
@@ -26,13 +26,20 @@ module HDLRuby::High::Std
         # on +start+
         def initialize(ev,start,&ruby_block)
             this = self
+            # Process the arguments.
+            ev = ev.posedge unless ev.is_a?(Event)
+            if start.is_a?(Event) then
+                start = start.type == :posedge ? start.ref : ~start.ref
+            end
             # Create the fsm from the block.
             @fsm = fsm(ev,start,:seq)
-            # On reset (start) go to the first state.
+            # On reset (start) tell to go to the first state.
+            run = HDLRuby::High.cur_system.inner(HDLRuby.uniq_name(:run) => 0)
             @fsm.reset do
-                HDLRuby::High.top_user.instance_exec do
-                    next_state_sig <= this.start_state_value
-                end
+                # HDLRuby::High.top_user.instance_exec do
+                #     next_state_sig <= this.start_state_value
+                # end
+                run <= 1
             end
 
             # The status stack of the sequencer.
@@ -43,17 +50,19 @@ module HDLRuby::High::Std
 
             # The end state is actually 0, allows to sequencer to be stable
             # by default.
-            @end_state = @fsm.state {}
+            @fsm.default { run <= 0 }
+            @end_state = @fsm.state { }
             @end_state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    # next_state_sig <= st.value
-                    next_state_sig <= this.end_state_value
+                    hif(run) { next_state_sig <= this.start_state_value }
+                    helse { next_state_sig <= this.end_state_value }
                 end
             end
             # Record the start and end state values.
             # For now, the start state is the one just following the end state.
             @end_state_value = @end_state.value
             @start_state_value = @end_state_value + 1
+            # puts "end_state_value=#{@end_state_value}"
 
             # Process the ruby_block.
             @@current = self
@@ -233,9 +242,11 @@ module HDLRuby::High::Std
                         # There is a condition, it is a real while loop.
                         hif(cond) { next_state_sig <= st.value + 1 }
                         helse { next_state_sig <= yes.value + 1 }
+                        # puts("Here st: st.value+1=#{st.value+1} yes.value+1=#{yes.value+1}\n")
                     else
                         # There is no ending condition, this is an infinite loop.
                         next_state_sig <= st.value + 1
+                        # puts("There st: st.value+1=#{st.value+1}\n")
                     end
                 end
             end
@@ -246,12 +257,15 @@ module HDLRuby::High::Std
                         # There is a condition, it is a real while loop
                         hif(cond) { next_state_sig <= st.value + 1 }
                         helse { next_state_sig <= yes.value + 1 }
+                        # puts("Here yes: st.value+1=#{st.value+1} yes.value+1=#{yes.value+1}\n")
                     else
                         # There is no ending condition, this is an infinite loop.
                         next_state_sig <= st.value + 1
+                        # puts("There yes: st.value+1=#{st.value+1}\n")
                     end
                 end
             end
+            # puts "st_value=#{st.value} yes_value=#{yes.value}"
 
             # Where there any break?
             if @status.last[:sbreaks] then
@@ -1470,7 +1484,7 @@ module HDLRuby::High::Std
     end
 
 
-    # Defines a sequencer enumerator class that allows to generate HW iteration
+    # Describes a sequencer enumerator class that allows to generate HW iteration
     # over HW or SW objects within sequencers.
     # This is the abstract Enumerator class.
     class SEnumerator
@@ -1558,7 +1572,7 @@ module HDLRuby::High::Std
     end
 
 
-    # Defines a sequencer enumerator class that allows to generate HW iterations
+    # Describes a sequencer enumerator class that allows to generate HW iterations
     # over HW or SW objects within sequencers.
     # This is the wrapper Enumerator over an other one for applying an other
     # interation method over the first one.
@@ -1628,8 +1642,8 @@ module HDLRuby::High::Std
     end
 
 
-    # Defines a sequencer enumerator class that allows to generate HW iterations
-    # over HW or SW objects within sequencers.
+    # Describes a sequencer enumerator class that allows to generate HW 
+    # iterations over HW or SW objects within sequencers.
     # This is the base Enumerator that directly iterates.
     class SEnumeratorBase < SEnumerator
 
@@ -1696,8 +1710,8 @@ module HDLRuby::High::Std
     end
 
 
-    # Enhance the HExpression module with sequencer iteration.
     module HDLRuby::High::HExpression
+        # Enhance the HExpression module with sequencer iteration.
 
         # HW iteration on each element.
         def seach(&ruby_block)
@@ -1723,8 +1737,8 @@ module HDLRuby::High::Std
     end
 
 
-    # Enhance the Enumerable module with sequencer iteration.
     module ::Enumerable
+        # Enhance the Enumerable module with sequencer iteration.
 
         # HW iteration on each element.
         def seach(&ruby_block)
@@ -1754,8 +1768,8 @@ module HDLRuby::High::Std
     end
 
 
-    # Enhance the Range class with sequencer iteration.
     class ::Range
+        # Enhance the Range class with sequencer iteration.
         include SEnumerable
 
         # HW iteration on each element.
@@ -1780,8 +1794,9 @@ module HDLRuby::High::Std
     end
 
 
-    # Enhance the Integer class with sequencer iterations.
     class ::Integer
+        # Enhance the Integer class with sequencer iterations.
+
         # HW times iteration.
         def stimes(&ruby_block)
             return (0...self).seach(&ruby_block)

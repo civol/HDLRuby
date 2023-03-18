@@ -10,7 +10,7 @@ module HDLRuby::High::Std
     
 
 
-    # Class defining a signal with shared write.
+    # Describes a signal with shared write.
     class SharedSignalI
 
         # Create a new shared signal of type +typ+.
@@ -121,7 +121,7 @@ module HDLRuby::High::Std
     end
 
 
-    # Class describing an arbiter for a shared signal.
+    # Describes an arbiter for a shared signal.
     class ArbiterT
 
         # Create a new arbitrer named +name+ for shared signals +sigs+.
@@ -189,7 +189,7 @@ module HDLRuby::High::Std
     end
 
 
-    # Class for priority-based arbiter.
+    # Describes a priority-based arbiter.
     class PriorityArbiterT < ArbiterT
 
         # Create a new priority-based arbiter named +name+ with priority table
@@ -202,9 +202,9 @@ module HDLRuby::High::Std
             @name_sub = HDLRuby.uniq_name(:"#{name}_sub")
         end
 
-        # Set the priority either using a priority table +tbl+ by directly
+        # Set the policy either using a priority table +tbl+ by directly
         # providing the priority algorithm through +ruby_block+
-        def priority(tbl = nil, &ruby_block)
+        def policy(tbl = nil, &ruby_block)
             # By default the priority table is the points declaration order.
             if !tbl && ruby_block == nil then
                 @priority = proc { |acquires,i| acquires[i] == 1 }
@@ -255,7 +255,7 @@ module HDLRuby::High::Std
     end
 
 
-    # Class for priority-based monitor.
+    # Describes priority-based monitor.
     class PriorityMonitorT < PriorityArbiterT
 
         # Create a new priority-based arbiter named +name+ with priority table
@@ -346,8 +346,9 @@ module HDLRuby::High::Std
     end
 
 
-    # Enhance the Array type for creating shared signals.
     class ::Array
+        # Enhance the Array type for creating shared signals.
+        
         # Create new shared signals from +args+.
         def shared(*names)
             return self.to_type.shared(*names)
@@ -355,8 +356,9 @@ module HDLRuby::High::Std
     end
 
 
-    # Enhance the Struct type for creating shared signals.
     class ::Hash
+        # Enhance the Struct type for creating shared signals.
+
         # Create new shared signals from +args+.
         def shared(*names)
             return self.to_type.shared(*names)
