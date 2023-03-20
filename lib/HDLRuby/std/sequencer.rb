@@ -902,6 +902,8 @@ module HDLRuby::High::Std
             return res
         end
 
+        alias_method :sreduce, :sinject
+
         # HW implementation of the Ruby lazy.
         # NOTE: to do, or may be not.
         def slazy(*args,&ruby_block)
@@ -1428,8 +1430,8 @@ module HDLRuby::High::Std
         # NOTE: for now szip is deactivated untile tuples are properly
         #       handled by HDLRuby.
         def szip(obj,&ruby_block)
-            raise "szip development is on hold for now, please be patient."
             res = nil
+            l0,r0,l1,r1 = nil,nil,nil,nil
             idx = nil
             enum0 = self.seach
             enum1 = obj.seach
@@ -1438,9 +1440,14 @@ module HDLRuby::High::Std
             size_min = [enum0.size,enum1.size].min
             size_max = [enum0.size,enum1.size].max
             HDLRuby::High.cur_system.open do
-                # If there is no ruby_block, szip generates a resulting vector.
+                # If there is no ruby_block, szip generates a resulting vector
+                # and its access indexes.
                 unless ruby_block then
-                    res = [enum0.type,enum1.type].to_type[-enum0.size].inner(HDLRuby.uniq_name(:"zip_res"))
+                    res = bit[enum0.type.width+enum1.type.width][-size_max].inner(HDLRuby.uniq_name(:"zip_res"))
+                    l0 = enum0.type.width+enum1.type.width - 1
+                    r0 = enum1.type.width
+                    l1 = r0-1
+                    r1 = 0
                 end
                 # Generate the index.
                 idx = [size_max.width].inner(HDLRuby.uniq_name(:"zip_idx"))
@@ -1459,8 +1466,9 @@ module HDLRuby::High::Std
                     ruby_block.call(elem0,elem1)
                 else
                     # No ruby block, put the access results into res.
-                    res[idx][0] <= elem0
-                    res[idx][1] <= elem1
+                    # res[idx][l0..r0] <= elem0
+                    # res[idx][l1..r1] <= elem1
+                    res[idx] <= [elem0,elem1]
                 end
                 idx <= idx + 1
             end
@@ -1474,10 +1482,14 @@ module HDLRuby::High::Std
                     ruby_block.call(elem0,elem1)
                 else
                     # No ruby block, put the access results into res.
-                    res[idx][0] <= elem
-                    res[idx][1] <= elem1
+                    # res[idx][l0..r0] <= elem0
+                    # res[idx][l1..r1] <= elem1
+                    res[idx] <= [elem0,elem1]
                 end
                 idx <= idx + 1
+            end
+            unless ruby_block then
+                return res
             end
         end
 

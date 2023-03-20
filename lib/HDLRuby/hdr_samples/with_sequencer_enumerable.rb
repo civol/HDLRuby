@@ -366,20 +366,19 @@ system :my_seqencer do
         hprint("\"1 res50=",res50," res51=",res51,"\n")
     end
 
-    # [8*4*2].inner :res52
-    # [8*4].inner :res53
-    # [3].inner :idx
+    [8*4*2].inner :res52
+    bit[8][-8].inner :res53
+    [3].inner :idx
 
-    # sequencer(clk.posedge,rst) do
-    #     hprint("}0\n")
-    #     res52 <= 0
-    #     res53 <= 0
-    #     idx   <= 0
-    #     step
-    #     res52 <= vals.szip(1..6)
-    #     vals.szip([1]*8) { |a,b| res53[idx] <= a+b; idx <= idx + 1 }
-    #     hprint("}1 res52=",res52," res53=",res53,"\n")
-    # end
+    sequencer(clk.posedge,rst) do
+        hprint("}0\n")
+        res52 <= 0
+        idx   <= 0
+        step
+        res52 <= vals.szip((1..6).to_a.map {|i| i.to_expr.as(bit[8]) })
+        vals.szip([_h12]*8) { |a,b| res53[idx] <= a+b; idx <= idx + 1 }
+        hprint("}1 res52=",res52," res53=",res53,"\n")
+    end
 
 
 
