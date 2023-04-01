@@ -255,9 +255,6 @@ module HDLRuby
                     # Maybe it is a parse error, look for it.
                     bind = TOPLEVEL_BINDING.clone
                     eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
-                    if $options[:std] then
-                        eval("require 'std/std.rb'\n\ninclude HDLRuby::High::Std\n\n",bind)
-                    end
                     eval(@texts[0],bind,@top_file_name,1)
                     # No parse error found.
                     raise "Cannot find a top system." unless @top_system
@@ -266,6 +263,9 @@ module HDLRuby
             # Initialize the environment for processing the hdr file.
             bind = TOPLEVEL_BINDING.clone
             eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
+            if $options[:std] then
+                eval("require 'std/std.rb'\n\ninclude HDLRuby::High::Std\n\n",bind)
+            end
             # Process it.
             eval(@texts[0],bind,@top_file_name,1)
             # Get the resulting instance
