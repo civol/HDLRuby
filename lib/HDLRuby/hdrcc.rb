@@ -255,6 +255,9 @@ module HDLRuby
                     # Maybe it is a parse error, look for it.
                     bind = TOPLEVEL_BINDING.clone
                     eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
+                    if $options[:std] then
+                        eval("require 'std/std.rb'\n\ninclude HDLRuby::High::Std\n\n",bind)
+                    end
                     eval(@texts[0],bind,@top_file_name,1)
                     # No parse error found.
                     raise "Cannot find a top system." unless @top_system
@@ -337,6 +340,9 @@ end
 require 'optparse'
 # Process the command line options
 $options = {}
+# By default the std libraries are loaded.
+$options[:std] = true
+# Parse the options
 $optparse = OptionParser.new do |opts|
     opts.banner = "Usage: hdrcc.rb [options] <input file> [<output directory or file>]"
 
@@ -434,6 +440,9 @@ $optparse = OptionParser.new do |opts|
     end
     opts.on("--testall","Compile all the available unit tests.") do |t|
         $options[:testall] = t
+    end
+    opts.on("--no-std", "Compile without the standard library.") do |t|
+        $options[:std] = false
     end
     opts.on("-t", "--top system", "Specify the top system to process") do|t|
         $options[:top] = t
