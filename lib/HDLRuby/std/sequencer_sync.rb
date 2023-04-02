@@ -196,8 +196,8 @@ module HDLRuby::High::Std
         # +tbl+ or priority algorithm +ruby_block+ for shared signals +sigs+.
         def initialize(name, tbl = nil, *sigs, &ruby_block)
             super(name,*sigs)
-            # Set the priority.
-            self.priority(tbl,&ruby_block)
+            # Set the priority policy.
+            self.policy(tbl,&ruby_block)
             # Create the name of the access procedure sub.
             @name_sub = HDLRuby.uniq_name(:"#{name}_sub")
         end
