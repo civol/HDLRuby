@@ -67,32 +67,32 @@ system :my_seqencer do
     end
 
     sequencer(clk.posedge,rst) do
-        monitor0 <= 1
         x2 <= 0
+        monitor0.lock
         4.stimes do |i|
             res20 <= res2
             x2 <= i + 1
         end
         res20 <= res2
-        monitor0 <= 0
+        monitor0.unlock
     end
 
     sequencer(clk.posedge,rst) do
         5.stimes do |i|
             x2 <= 16 + i
-            monitor0 <= 1
+            monitor0.lock
             res21 <= res2
-            monitor0 <= 0
+            monitor0.unlock
         end
     end
 
     sequencer(clk.posedge,rst) do
         5.stimes do |i|
             x2 <= 32 + i
-            monitor0 <= 1
+            monitor0.lock
             res22 <= res2
             step
-            monitor0 <= 0
+            monitor0.unlock
         end
     end
 

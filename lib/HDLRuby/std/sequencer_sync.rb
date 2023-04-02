@@ -286,22 +286,51 @@ module HDLRuby::High::Std
             @selected_point <= point
         end
 
+        # # Arbiter access code generation: 1 for acquire and 0 for release.
+        # def <=(val)
+        #     # Fully redefine to lock until selected if acquiring.
+        #     # Add an access point if required.
+        #     point = self.add_point
+        #     # Do the access.
+        #     res = (@acquires[point] <= val)
+        #     selected_point = @selected_point
+        #     # Lock until not selected.
+        #     if val.respond_to?(:to_i) then
+        #         if val.to_i == 1 then
+        #             SequencerT.current.swhile(selected_point != point)
+        #         end
+        #     else
+        #         SequencerT.current.swhile((val.to_expr == 1) & (selected_point != point))
+        #     end
+        #     return res
+        # end
+        
         # Arbiter access code generation: 1 for acquire and 0 for release.
         def <=(val)
+            raise "For monitors, you must use the methods lock and unlock."
+        end
+
+        # Monitor lock code generation
+        def lock
             # Fully redefine to lock until selected if acquiring.
             # Add an access point if required.
             point = self.add_point
             # Do the access.
-            res = (@acquires[point] <= val)
+            res = (@acquires[point] <= 1)
             selected_point = @selected_point
             # Lock until not selected.
-            if val.respond_to?(:to_i) then
-                if val.to_i == 1 then
-                    SequencerT.current.swhile(selected_point != point)
-                end
-            else
-                SequencerT.current.swhile((val.to_expr == 1) & (selected_point != point))
-            end
+            SequencerT.current.swhile(selected_point != point)
+            return res
+        end
+
+        # Monitor unlock code generation
+        def unlock
+            # Fully redefine to lock until selected if acquiring.
+            # Add an access point if required.
+            point = self.add_point
+            # Do the access.
+            res = (@acquires[point] <= 0)
+            selected_point = @selected_point
             return res
         end
     end
