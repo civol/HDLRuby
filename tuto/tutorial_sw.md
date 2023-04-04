@@ -2,17 +2,17 @@
 
 In this tutorial, you will learn the basics about the description of digital circuits using HDLRuby from the software point of view. In detail you will learn:
 
- 1. [What is HDLRuby and how to use its framework.](#hdlruby)
+ 1. [What is HDLRuby and how to use its framework.](#1-what-is-hdlruby-and-how-to-use-its-framework)
 
- 2. [How to represent a circuit.](#circuit)
+ 2. [How to represent a circuit.](#2-how-to-represent-a-circuit-in-hdlruby)
 
- 3. [How to describe an algorithm to be implemented by a circuit.](#algorithm)
+ 3. [How to describe an algorithm to be implemented by a circuit.](#3-how-to-describe-an-algorithm-to-be-implemented-by-a-circuit)
 
- 4. [How to add parallelism to your algorithms.](#parallelism)
+ 4. [How to add parallelism to your algorithms.](#4-how-to-add-parallelism-to-your-algorithms)
 
- 5. [Toward lower level hardware design: the processes.](#process)
+ 5. [Toward lower level hardware design: the processes.](#5-toward-lower-level-hardware-design-the-processes)
 
- 6. [Not enough? What about genericity, object orientation, and metaprogramming?](#advance)
+ 6. [Not enough? What about genericity, object orientation, metaprogramming, and reflection?](#6-not-enough-what-about-genericity-object-orientation-metaprogramming-and-reflection)
 
 Within these topics, you will also have an explanation of how the following high-level concepts can be used in HDLRuby:
 
@@ -42,15 +42,13 @@ The following software is also recommended:
 
  * A wave viewer supporting *vcd* files (e.g., [GTKWave](https://gtkwave.sourceforge.net/))
 
-
-
-## 1. What is HDLRuby and how to use its framework <a name="hdlruby"></a>
+## 1. What is HDLRuby and how to use its framework
 
 HDLRuby is a hardware description language (HDL) based on the Ruby programming language. It is implemented as a Ruby library so that, by construction, any Ruby code can be used and executed within the HDLRuby description.
 
-Before going further, let us briefly explain what is a [HDL](#hdl). Then, more details will be given about how to [install HDLRuby](#install-hdlruby) and how to [use it](#use-hdlruby).
+Before going further, let us briefly explain what is a [HDL](#11-what-is-a-hardware-description-language-hdl). Then, more details will be given about how to [install HDLRuby](#12-installing-hdlruby) and how to [use it](#13-using-hdlruby).
 
-### 1.1. What is a hardware description language (HDL) <a name="hdl"></a>
+### 1.1. What is a hardware description language (HDL)
 
 A hardware description language (HDL) is a formal language similar to programming languages that are used for describing electronic circuits. Such circuits can be divided into two categories: analog circuits and digital circuits. While there exists HDL for describing the first category of circuits, a large majority of them only support the second one so in practice, HDL means actual language for describing digital circuits only. Among the multiple HDL, two became de-facto standards: Verilog HDL and VHDL.
 
@@ -82,7 +80,7 @@ At first, the HDL have the same look and feel compared to classical programming 
 Well, HDLRuby is an HDL for describing digital circuits like Verilog HDL or VHDL but aiming at being more flexible and productive than them by relying on many concepts inherited from the Ruby programming language. So everything said earlier about HDL applies to HDLRuby, but we try to make it much easier for the designers.
 
 
-### 1.2. Installing HDLRuby <a name="install-hdlruby"></a>
+### 1.2. Installing HDLRuby
 
 HDLRuby is distributed as a RubyGems package. It can therefore be installed using the following command:
 
@@ -118,7 +116,7 @@ If the resulting `version` number does not match the install number, there may h
 
 
 
-### 1.3. Using HDLRuby <a name="use-hdlruby"></a>
+### 1.3. Using HDLRuby
 
 Up to now, we said that HDLRuby is a language, it is in truth a complete framework for designing and simulating digital circuits. It includes several compilers, simulators, and libraries that are all accessible through a single command: `hdrcc`.
 
@@ -157,15 +155,15 @@ __Note__: VHDL generation is also possible using the following command:
 And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.
 
 
-## 2. How to represent a circuit in HDLRuby <a name="circuit"></a>
+## 2. How to represent a circuit in HDLRuby
 
 In this section we will see:
 
- * [How to declare a circuit.](#circuit-declare)
+ * [How to declare a circuit.](#21-declaring-a-circuit)
 
- * [How to reuse a circuit already declared.](#circuit-use)
+ * [How to reuse a circuit already declared.](#22-how-to-reuse-a-circuit-already-declared)
 
-### 2.1. Declaring a circuit <a name="circuit-declare"></a>
+### 2.1. Declaring a circuit
 
 In HDLRuby as well as in other HDL, a circuit is viewed as a box that communicates with its environment with ports. The following charts illustrate such a view with a circuit including 6 ports:
 
@@ -307,7 +305,7 @@ endmodule
 Unfortunately, there is no more smiling face. This is because Verilog HDL only supports a subset of ASCII for names. But even without smiling, the code is valid because the HDLRuby framework did recreate Verilog HDL-friendly names.
 
 
-### 2.2. How to reuse a circuit already declared <a name="circuit-use"></a>
+### 2.2. How to reuse a circuit already declared
 
 Like with functions in software, a circuit is often used as part of one or several larger circuits. Contrary to the software, however, the circuit must be physically copied for being reused. This copy is called an *instance* and the act of copying an *instantiation*. In HDLRuby, an instantiation is done as follows:
 
@@ -581,15 +579,15 @@ But you still do not know: how to describe more complex computations, e.g., cont
 
 
 
-## 3. How to describe an algorithm to be implemented by a circuit. <a name="algorithm"></a>
+## 3. How to describe an algorithm to be implemented by a circuit
 
 In this section we will see:
 
- * [How to handle values in a circuit.](#signal)
+ * [How to handle values in a circuit.](#31-how-to-handle-values-in-a-circuit)
 
- * [How to describe an algorithm that a circuit can implement.](#algorithm)
+ * [How to describe an algorithm that a circuit can implement.](#32-how-to-describe-an-algorithm-that-a-circuit-can-implement)
 
-### 3.1. How to handle values in a circuit. <a name="signal"></a>
+### 3.1. How to handle values in a circuit
 
 In software, value handling looks straightforward enough: they are computed with expressions and are stored into variables. In hardware it is slightly different since two kinds of components handle values: the wires and the storage components: 
 
@@ -720,7 +718,7 @@ These explanations about data types may have been not so fun, be we should bette
 __Note__: "programming" is put between quotes because this is not programming since there is no program, but instead a description of a physical circuit.
 
 
-### 3.2. How to describe an algorithm that a circuit can implement. <a name="algorithm"></a>
+### 3.2. How to describe an algorithm that a circuit can implement
 
 So now you know how to declare a circuit, use it, connect it, and declare variable-like constructs that are called signals. We will see in a very short while that signals are definitive **not** software variables, but let us go on with the illusion for a little while and see how you can describe an algorithm in HDLRuby. As a side note, the features described in this section are unique to HDLRuby so do not expect to be able to do the same with Verilog HDL or VHDL.
 
@@ -735,16 +733,16 @@ With software languages, when you want to describe an algorithm you use assignme
 
 This section will explain the following about sequencers:
 
- * [How to declare and control a sequencer.](#sequencer-base)
+ * [How to declare and control a sequencer.](#321-how-to-declare-and-control-a-sequencer)
 
- * [How to write a structured programming algorithm in a sequencer.](#sequencer-structured)
+ * [How to write a structured programming algorithm in a sequencer.](#322-how-to-write-a-structured-programming-algorithm-in-a-sequencer)
 
- * [How to use enumerators in a sequencer.](#sequencer-enumerator)
+ * [How to use enumerators in a sequencer.](#323-how-to-use-enumerators-in-a-sequencer)
 
- * [What happens when there are several sequencers?](#sequencer-multiple)
+ * [What happens when there are several sequencers?](#324-what-happens-when-there-are-several-sequencers)
 
 
-#### 3.2.1 How to declare and control a sequencer. <a name="sequencer-base"></a>
+#### 3.2.1 How to declare and control a sequencer
 
 As said in the previous section, a sequencer advances execution according to a clock and starts execution according to a start signal. We discuss later [clocks](#behavior), but for now, you just need to know that it is a single-bit signal that alternates from 0 to 1, and it is the transition from 0 to 1, or from 1 to 0 of this signal that will make a sequencer progress execution. Let us see two examples of sequencers to understand better:
 
@@ -946,7 +944,7 @@ So now, you know:
 Hum, the *algorithm* part is quite limited, and the timed behaviors seem to be real pains to write. So let us see how to do better in the following section.
 
 
-#### 3.2.2. How to write a structured programming algorithm in a sequencer. <a name="sequencer-structured"></a>
+#### 3.2.2. How to write a structured programming algorithm in a sequencer
 
 Now, when we speak about algorithms, we often think about software constructs like `if` for conditional execution and `for` for loops. Unfortunately, in HW design this is usually not that simple at all... But for HDLRuby sequencers it is indeed that simple: all these control statements are supported without any limitation. The only thing you have to be careful about is their name: to avoid confusion with the Ruby language, their names are all prefixed with an `s` (for *sequencer*), e.g, you have to use `sif` for doing an *if*.
 
@@ -1226,7 +1224,7 @@ So now, you know:
 Also, if you are not familiar with languages like Ruby or Python, the `sfor` may look great compared to want C can provide. But this is just the beginning, HDLRuby can do even better than that.
 
 
-#### 3.2.3. How to use enumerators in a sequencer. <a name="sequencer-enumerator"></a>
+#### 3.2.3. How to use enumerators in a sequencer
 
 If you are familiar with Ruby, you may know about enumerators: there are objects used for processing iteratively several elements of objects. The HDLRuby's sequencer provides the same concept: it is possible to build hardware enumerators for any enumerable objects, that will run like Ruby's.
 
@@ -1362,7 +1360,7 @@ But this is not all: contrary to software, hardware is inherently parallel, a pr
 
 
 
-#### 3.2.3. What happens when there are several sequencers? <a name="sequencer-multiple"></a>
+#### 3.2.4. What happens when there are several sequencers?
 
 
 #### General considerations.
@@ -1700,9 +1698,15 @@ But in hardware, you can go much more into the details for even more performance
 
 
 
-## 4. How to add parallelism to your algorithms <a name="parallelism"></a>
+## 4. How to add parallelism to your algorithms
 
-### 4.1. The sequencer is a lie
+In software, when you what to do parallelism you usually need specific libraries because the underlining model of software is inherently sequential. But this is not the case with sequencer because:
+
+ * [A sequencer is not a program](#41-a-sequencer-is-not-a-program)
+
+ * [Adding parallelism is genuine](#42-parallel-control-statements-and-enumerators)
+
+### 4.1. A sequencer is not a program
 
 We said earlier that hardware is inherently parallel and we showed that multiple sequencers run concurrently by default. However, you may want to increase parallelism within an algorithm too: after all, it is what recent processors do, so why not hardware?
 
@@ -1855,9 +1859,21 @@ That was short this time because almost all have been already said in the previo
 
 
 
-## 5. Toward lower level hardware design: the processes <a name="process"></a>
+## 5. Toward lower level hardware design: the processes
 
-Why sequencers are easy to use with a software mindset, they are implemented on top of a control circuit that schedules their operations. While this circuit does not represent much overhead, you may want top-notch optimizations, or simply you may want more precise control over what hardware will be produced. It is therefore time to leave the comfort of the sequencer and study genuine hardware description constructs: the *processes*.
+Why sequencers are easy to use with a software mindset, they are implemented on top of a control circuit that schedules their operations. While this circuit does not represent much overhead, you may want top-notch optimizations, or simply you may want more precise control over what hardware will be produced. It is therefore time to leave the comfort of the sequencer and study genuine hardware description constructs: the *processes*. Things will become messy, but here is an attempt to do it progressively:
+
+ * [What are the processes?](#51-what-are-the-processes)
+
+ * [What are the connection processes?](#52-what-are-the-connection-processes)
+ 
+ * [What are the combinatorial processes?](#53-what-are-the-combinatorial-processes)
+
+ * [What are the clocked processes?](#54-what-are-the-clocked-processes)
+
+ * [What about the control statements in processes?](#55-what-about-the-control-statements-in-processes)
+
+ * [How to share signals in processes?](#56-how-to-share-signals-in-processes)
 
 
 ### 5.1. What are the processes?
@@ -1931,7 +1947,7 @@ end
 Now let us see the different kinds of processes in detail.
 
 
-### 5.2. The connection processes.
+### 5.2. What are the connection processes?
 
 We already mentioned the connections at the beginning of this tutorial about how to [reuse circuits](#circuit-use). Each connection is considered to be a standalone connection process. Such a process is continuously activated, and its left value is *always* equal to its right value.
 
@@ -1947,7 +1963,7 @@ system :a_system_with_cnx do
 end
 ```
 
-### 5.3. The combinatorial processes
+### 5.3. What are the combinatorial processes?
 
 These processes are declared with a `seq` or `par` keywords with a list of signals as activation conditions. They have activated each time one or more signals of their activation condition changed value. For example, the following process will only be activated when `x` or `y` changes value, but not when `z`, `u` or `v` does:
 
@@ -2029,7 +2045,7 @@ end
 > __WARNING__: while such processes are accepted in HDLRuby (as well as in other hardware description languages like Verilog HDL), it is strongly recommended **not** to use them because the behavior of the resulting circuit is hard to predict. If you want to use memory elements, you should use the clocked processes instead that will produce reliable circuits.
 
 
-### 5.4. The clocked processes
+### 5.4. What are the clocked processes?
 
 These processes are declared with the `par` or `seq` keyword with a list of signal edges as an activation condition. There are two kinds of signal edges:
 
@@ -2078,7 +2094,7 @@ Did you get what the `clock_counter` circuit does? Yes, it simply counts the num
 
 As seen in this code, a previously seen control statement has been used: the `hif`. I you remember well, that was for parallel computation in sequencers. But more generally, what can be used?
 
-### 5.5. What about the control statements?
+### 5.5. What about the control statements in processes?
 
 There is not much to say in this section... Because all have been said in the section about [parallelism in sequencer](#parallelism). The fact is all the constructs described in this previous section are designed for the processes, and by extension can be used in sequencers.
 
@@ -2305,12 +2321,17 @@ With that, you have all the constructs required for describing optimized hardwar
 However, there remains a few major features for more efficient coding inherited from the Ruby language.
 
 
-## 6. Not enough? What about genericity, object orientation, and metaprogramming? <a name="advance"></a>
+## 6. Not enough? What about genericity, object orientation, metaprogramming, and reflection?
 
 Let us imagine you spent hours designing a circuit processing 8-bit values for outputting a 16-bit result and you learn that the input should be 16-bit and the output 8-bit. Well, that's not so tough, you just need to modify the data types in your circuit description... **everywhere**. When you just finished, you learn that it would be great if there was also another version of the circuit that could output flags about the result. Ok, so let us make another version of the circuit, since not much is different, let us do some copy and paste and made the modifications for the flags... But whoop! You did not notice that with your modifications you unintentionally modified a few lines of code introducing new bugs... And of course, you realize it after hours of testing.
 
-Such situations happen all the time in software design... But it is much worse in hardware. Indeed, due to the variety of hardware circuits, it is very common to want to reuse a design with different bit widths. This is why, existing hardware description language support genericity to a certain degree. However, HDLRuby ruby goes far in term of genericity, and also add object-oriented programming and metaprogramming concepts to maximize the possibilities of code reuse.
+Such situations happen all the time in software design... But it is much worse in hardware. Indeed, due to the variety of hardware circuits, it is very common to want to reuse a design with different bit widths. This is why, existing hardware description language support genericity to a certain degree. However, HDLRuby ruby goes farther in term of genericity, and also add object-oriented programming, metaprogramming and reflection concepts to maximize the possibilities of code reuse. Form now on, let us detail:
 
+ * [Genericity in HDLRuby](#61-genericity-in-hdlruby)
+
+ * [Object-oriented programming in HDLRuby](#62-object-oriented-programming-in-hdlruby)
+
+ * [Metaprogramming and reflection in HDLRuby](#63-metaprogramming-and-reflection-in-hdlruby)
 
 ### 6.1. Genericity in HDLRuby
 
@@ -2412,7 +2433,8 @@ In this code, the syntax `proc <block>` is for creating a chunk of HDLRuby (or R
 
 ### 6.2. Object-oriented programming in HDLRuby
 
-Genericity allows using a single design for several different circuits but it does not allow modifying this design. This possibility is brought by object-oriented programming. With it, it is possible to modify afterward a circuit design without touching the original description, to define a new circuit based on an original one without redoing everything from scratch, and to change a single instance of a circuit without influencing the other ones.
+Genericity allows using a single design for several different circuits but it does not allow modifying this design. This possibility is brought by object-oriented programming and its key concept: [inheritance](#621-inheritance). With it, it is possible to modify afterward a circuit design without touching the original description, to define a new circuit based on an original one without redoing everything from scratch, and to change a single instance of a circuit without influencing the other ones, all that with a simple [construct](#622-modifying-a-module-or-an-instance). Finally, it is possible under certain conditions to [reimplement parts of the code](#623-overriding).
+
 
 #### 6.2.1 Inheritance
 

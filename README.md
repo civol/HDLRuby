@@ -5,9 +5,9 @@ systems.
 
 __Note__:
 
-If you are new to HDLRuby, it is recommended that you consult first the following tuturial (even if you are a hardware person):
+If you are new to HDLRuby, it is recommended that you consult first the following tutorial (even if you are a hardware person):
 
- * [HDLRuby tutorial for software people](tutorial_sw.md)
+ * [HDLRuby tutorial for software people](tuto/tutorial_sw.md)
 
 __Install__:
 
@@ -79,7 +79,7 @@ __Notes__:
   hdrcc --get-samples
   ```  
     
-  Then in your current directory (folder) the `hdr_samples` subdirectory will appear that contains several HDLRuby example files.
+  Then in your current directory (folder) the `hdr_samples` subdirectory will appear that contains several HDLRuby example files. For details about the samples can be found there: [samples](#sample-hdlruby-descriptions).
 
 
 __Examples__:
@@ -180,13 +180,13 @@ The second specificity of HDLRuby is that it supports natively all the features 
 
 __Notes__:
 
-- It is still possible to extend HDLRuby to support hardware descriptions of a higher level than RTL, please refer to section [Extending HDLRuby](#extend) for more details.
+- It is still possible to extend HDLRuby to support hardware descriptions of a higher level than RTL, please refer to section [Extending HDLRuby](#extending-hdlruby) for more details.
 - In this document, HDLRuby constructs will often be compared to their Verilog HDL or VHDL equivalents for simpler explanations.
 
 ## Introduction
 
 This introduction gives a glimpse of the possibilities of the language.
-However, we do recommend consulting the section about the [high-level programming features](#highfeat) to have a more complete view of the advanced possibilities of this language.
+However, we do recommend consulting the section about the [high-level programming features](#high-level-programming-features) to have a more complete view of the advanced possibilities of this language.
 
 At first glance, HDLRuby appears like any other HDL (like Verilog HDL or VHDL), for instance, the following code describes a simple D-FF:
 
@@ -1196,7 +1196,6 @@ These reconfiguration commands are treated as regular RTL statements in HDLRuby 
 
 
 ## Events
-<a name="events"></a>
 
 Each behavior of a system is associated with a list of events, called a sensitivity list, that specifies when the behavior is to be executed. An event is associated with a signal and represents the instant when the signal reaches a given state.
 
@@ -1224,7 +1223,6 @@ __Note:__
  - The `change` keyword can be omitted.
 
 ## Statements
-<a name="statements"></a>
 
 Statements are the basic elements of a behavioral description. They are regrouped in blocks that specify their execution mode (parallel or sequential).
 There are four kinds of statements: the transmit statement which computes expressions and sends the result to the target signals, the control statement
@@ -1429,11 +1427,10 @@ While the underlying structure of any HDLRuby type is the bit vector, complex ty
 <a name="expressions"></a>
 
 Expressions are any construct that represents a value associated with a type.
-They include [immediate values](#values), [reference to signals](#references) and operations among other expressions using [expression operators](#operators).
+They include [immediate values](#immediate-values), [reference to signals](#references) and operations among other expressions using [expression operators](#expression-operators).
 
 
 ### Immediate values
-<a name="values"></a>
 
 The immediate values of HDLRuby can represent vectors of `bit`, `unsigned`, and `signed`, and integer or floating-point numbers. They are prefixed by a `_` character and include a header that indicates the vector type and the base used for representing the value, followed by a numeral representing the value. The bit width of a value is obtained by default from the width of the numeral, but it is also possible to specify it in the header. In addition, the character `_` can be put anywhere in the number for increasing the readability, it will be ignored.
 
@@ -1488,7 +1485,6 @@ __Notes__:
 
 
 ### References
-<a name="references"></a>
 
 References are expressions used to designate signals or a part of signals.
 
@@ -1530,7 +1526,6 @@ end
 ```
 
 ### Expression operators
-<a name="operators"></a>
 
 The following table gives a summary of the operators available in HDLRuby.
 More details are given for each group of operators in the subsequent sections.
@@ -1607,10 +1602,9 @@ __Notes__:
  
  - The operator precedence is the one of Ruby.
 
- - Ruby does not allow to override the `&&`, the `||` and the `?:` operators so that they are not present in HDLRuby. Instead of the `?:` operator, HDLRuby provides the more general multiplex operator `mux`. However, HDLRuby does not provide any replacement for the `&&` and the `||` operators, please refer to section [Logic operators](#logic) for a justification about this issue.
+ - Ruby does not allow to override the `&&`, the `||` and the `?:` operators so that they are not present in HDLRuby. Instead of the `?:` operator, HDLRuby provides the more general multiplex operator `mux`. However, HDLRuby does not provide any replacement for the `&&` and the `||` operators, please refer to section [Logic operators](#logic-and-shift-operators) for a justification about this issue.
 
 #### Assignment operators
-<a name="assignment"></a>
 
 The assignment operators can be used with any type. They are the connection and the transmission operators both being represented by `<=`.
 
@@ -1638,7 +1632,6 @@ __Notes__:
 
 
 #### Logic and shift operators
-<a name="logic"></a>
 
 In HDLRuby, the logic operators are all bitwise.  For performing Boolean computations, it is necessary to use single-bit values.  The bitwise logic binary operators are `&`, `|`, and `^`, and the unary one is `~`.  They have the same meaning as their Ruby equivalents.
 
@@ -1664,11 +1657,10 @@ sig.rl(3)
 ```
 
 It is possible to perform other kinds of shifts or rotations using the selection and the concatenation operators. Please refer to section [Concatenation and
-selection operators](#concat) for more details about these operators. 
+selection operators](#concatenation-and-selection-operators) for more details about these operators. 
 
 
 #### Conversion operators
-<a name="conversion"></a>
 
 The conversion operators are used to change the type of an expression.
 There are two kinds of such operators: the type pun that does not change the raw value of the expression and the type cast that changes the raw value.
@@ -1680,7 +1672,7 @@ The type puns include `to_bit`, `to_unsigned` and `to_signed` that convert expre
 sig.to_bit <= _b01010011
 ```
 
-The type casts change both the type and the value and are used to adjust the width of the types.  They can only be applied to vectors of `bit`, `signed`, or `unsinged` and can only increase the bit width (bit width can be truncated using the selection operator, please refer to the [next section](#concat)).
+The type casts change both the type and the value and are used to adjust the width of the types.  They can only be applied to vectors of `bit`, `signed`, or `unsinged` and can only increase the bit width (bit width can be truncated using the selection operator, please refer to the next section).
 These operators comprise the bit width conversions: `ljust`, `rjust`, `zext` and `sext`.
 
 More precisely, the bit width conversions operate as follows:
@@ -1714,7 +1706,6 @@ More precisely, the bit width conversions operate as follows:
 
 
 #### Concatenation and selection operators
-<a name="concat"></a>
 
 Concatenation and selection are done using the `[]` operator as follows:
 
@@ -1925,7 +1916,6 @@ Ruby functions can be compared to the macros of the C languages: they are more f
 
 
 ## Time
-<a name="time"></a>
 
 ### Time values
 <a name="time_val"></a>
@@ -2000,7 +1990,6 @@ sequential blocks. The execution semantic is the following:
 
 
 ## High-level programming features
-<a name="highfeat"></a>
 
 ### Using Ruby in HDLRuby
 
@@ -2538,7 +2527,6 @@ When describing a system, it is possible to disconnect or completely undefine a 
 
 
 ## Extending HDLRuby
-<a name="extend"></a>
 
 Like any Ruby classes, the constructs of HDLRuby can be dynamically extended. If it is not recommended to change their internal structure, it is possible to add methods to them for an extension.
 
@@ -2683,9 +2671,23 @@ After the libraries are loaded, the module `Std` must be included as follows:
 include HDLRuby::High::Std
 ```
 
+> However, `hdrcc` does load the stable components of the standard library by default, so that you do not need to require nor include anything more to use them. In the current version, the stable components are the followings:  
+  
+  - `std/clocks.rb`  
+
+  - `std/fixpoint.rb`  
+
+  - `std/decoder.rb`  
+
+  - `std/fsm.rb`  
+
+  - `std/sequencer.rb`  
+
+  - `std/sequencer_sync.rb`
 
 
-## Clocks
+
+## Clocks: `std/clocks.rb`
 <a name="clocks"></a>
 
 The `clocks` library provides utilities for easier handling of clock synchronizations.
@@ -2707,7 +2709,7 @@ end
 
 __Note__: this library does generate all the RTL code for the circuit handling the division of the frequency. 
 
-## Counters
+## Counters: `std/counters.rb`
 <a name="counters"></a>
 
 This library provides two new constructs for implementing synthesizable wait statements.
@@ -2729,7 +2731,7 @@ This statement can be used either inside or outside a clocked behavior. When use
 The second construct is the `before` statement that activates a block until a given number of clock cycles is passed. Its syntax and usage are identical to the `after` statement.
 
 
-## Decoder
+## Decoder: `std/decoder.rb`
 <a name="decoder"></a>
 
 This library provides a new set of control statements for easily describing an instruction decoder.
@@ -2759,7 +2761,7 @@ end
 
 It can be noticed for field `z` in the example above that the bits are not required to be contiguous.
 
-## FSM
+## FSM: `std/fsm.rb`
 <a name="fsm"></a>
 
 This library provides a new set of control statements for easily describing a finite state machine (FSM).
@@ -2863,7 +2865,7 @@ fsm(clk.posedge,rst,:static)
 end
 ```
 
-## Sequencer (software-like hardware coding)
+## Sequencer (software-like hardware coding):: `std/sequencer.rb`
 <a name="sequencer"></a>
 
 This library provides a new set of control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description.
@@ -2871,14 +2873,18 @@ This library provides a new set of control statements for describing the behavio
 A sequencer can be declared anywhere in a system provided it is outside a behavior using the `sequencer` keyword as follows:
 
 ```ruby
-sequencer(<event>,<start>) <block>
+sequencer(<clock>,<start>) <block>
 ```
 
-Where `event` is the event (rising or falling edge of a signal) advancing the execution of the sequence, `start` is the signal starting the execution, and `block` is the description of the sequence to be executed. A sequence is a specific case of a `seq` block that includes the following software-like additional constructs:
+Where `clock` is the clock signal advancing the execution of the sequence, `start` is the signal starting the execution, and `block` is the description of the sequence to be executed. Both `clock` and `start` can also be events (i.e., `posedge` or `negedge`).
+
+A sequence is a specific case of a `seq` block that includes the following software-like additional constructs:
 
  - `step`: wait until the next event (given argument `event` of the sequencer).
 
  - `sif(<condition>) <block>`: executes `block` if `condition` is met.
+
+ - `selsif(<condition>) <block>`: executes `block` if previous `sif` or `selsif` condition is not met and if current `condition` is met.
 
  - `selse <block>`: executes `block` if the condition of the previous `sif` statement is not met.
 
@@ -2896,7 +2902,7 @@ Where `event` is the event (rising or falling edge of a signal) advancing the ex
 
 It is also possible to use enumerators (iterators) similar to the Ruby `each` using the following methods within sequences:
 
- - `<object>.seach`: `object` any enumerable Ruby object or any signal. If a block is given, it works like `sfor`, otherwise, it returns a HDLRuby enumerator (please see [enumerator](#enumerator) for details about them).
+ - `<object>.seach`: `object` any enumerable Ruby object or any signal. If a block is given, it works like `sfor`, otherwise, it returns a HDLRuby enumerator (please see [enumerator](#hdlruby-enumerators-and-enumerable-objects-stdsequencerrb) for details about them).
 
  - `<object>.stimes`: can be used on integers and is equivalent to `seach` on each integer from 0 up to `object-1`.
 
@@ -2910,15 +2916,20 @@ The objects that support these methods are called _enumerable_ objects. They inc
 Here are a few examples of sequencers synchronized in the positive edge of `clk` and starting when `start` becomes one. The first one computes the Fibonacci series until 100, producing a new term in signal `v` at each cycle:
 
 ```ruby
-inner :clk, :start
-[16].inner :a, :b
+require 'std/sequencer.rb'
+include HDLRuby::High::Std
 
-sequencer(clk.posedge,start) do
-   a <= 0
-   b <= 1
-   swhile(v < 100) do
-      b <= a + b
-      a <= b - a
+system :a_circuit do
+   inner :clk, :start
+   [16].inner :a, :b
+   
+   sequencer(clk.posedge,start) do
+      a <= 0
+      b <= 1
+      swhile(v < 100) do
+         b <= a + b
+         a <= b - a
+      end
    end
 end
 ```
@@ -2967,8 +2978,7 @@ end
 ```
 
 
-### HDLRuby enumerators and enumerable objects.
-<a name="enumerator"></a>
+### HDLRuby enumerators and enumerable objects: `std/sequencer.rb`
 
 HDLRuby enumerators are objects for generating iterations within sequencers. They are created using the method `seach` on enumerable objects as presented in the previous section.
 
@@ -3097,7 +3107,207 @@ With this basis, several algorithms have been implemented using enumerators and 
  - `suniq`: HW implementation the Ruby `uniq` method. Returns a vector signal containing the selected elements.
 
 
-## Fixed-point (fixpoint)
+
+### Shared signals, arbiters and monitors: `std/sequencer_sync.rb`
+<a name="shared"></a>
+
+#### Shared signals
+
+Like any other processes, It is not possible for several sequencers to write to the same signal. This is because there would be race competition that may destroy physically the device if such operations where authorized. In standard RTL design, this limitation is overcome by implementing three-state buses, multiplexers and arbiters. However, HDLRuby sequencers supports another kind of signals called the *shared signals* that abstract the implementation details for avoiding race competition.
+
+The shared signals are declared like the other kind of signals from their type. The syntax is the following:
+
+```ruby
+<type>.shared <list of names>
+```
+
+They can also have an initial (and default) value when declared as follows:
+
+```ruby
+<type>.shared <list of names with initialization>
+```
+
+For example the following code declare two 8-bit shared signals `x` and `y` and two signed 16-bit shared signals initialized to 0 `u` and `v`:
+
+```ruby
+[8].shared :x, :y
+signed[8].shared u: 0, v: 0
+```
+
+A shared signals can then be read and written to by any sequencer from anywhere in the subsequent code of the current scope. However, they cannot be written to outside a sequencer. For example, the following code is valid:
+
+```ruby
+input :clk, :start
+[8].inner :val0, :val1
+[8].shared :x, :y
+
+val0 <= x+y
+par(clk.posedge) { val1 <= x+y }
+
+sequencer(clk.posedge,start) do
+   10.stimes { |i| x <= i }
+end
+
+sequencer(clk.posedge,start) do
+   5.stimes { |i| x <= i*2 ; y <= i*2 }
+end
+```
+
+But the following code is not valid:
+
+```ruby
+[8].shared w: 0
+
+par(clk.posedge) { w <= w + 1 }
+```
+
+By default, a shared signal acknowledge writing from the first sequencer that access it in order of declaration, the others are ignored. In the first example given above, that means for signal `x` the value is always the one written by the first sequencer, i.e., from 0 to 9 changing once per clock cycle. However, the value of signal `y` is set by the second sequencer since it is this one only that writes to this signal.
+
+This default behavior of shared signal avoids race competition, but is not very useful in practice. For a better control, it is possible to select which sequencer is to be acknowledged for writing. This is done by setting the number of the sequencer which can write the signal that controls the sharing accessed as follows:
+
+```ruby
+<shared signal>.select
+```
+
+The select value starts from 0 for the first sequencer writing to the shared signal, and is increased by one per writing sequencer. For example, in the first example, for selecting the second sequencer for writing to `x` the follow code can be added after this signal is declared:
+
+```ruby
+   x.select <= 1
+```
+
+This value can be changed at runtime too. For example, instead of setting the second sequencer, it is possible to switch sequencer every clock cycle as follows:
+
+```ruby
+   par(clk.posedge) { x.select <= x.select + 1 }
+```
+
+__Note__: this select sub signal is a standard RTL signal that has the same properties and limitations as the other ones, i.e., this is not a shared signal itself.
+
+
+#### Arbiters
+
+Usually, it is not the signals that we want to share, but the resources they drives. For example, in a CPU, it is an ALU that is shared as a whole rather than each of its input separately. In order to support such cases and ease the handling of shared signals, the library also provides the *arbiter* components. This component is instantiated like a standard module as follows, where `name` is the name of the arbiter instance:
+
+```ruby
+arbiter(:<name>).(<list of shared signal>)
+```
+
+When instantiated, an arbiter will take control of the select sub signals of the shared signals (hence, you cannot control the selection yourself for them any longer). In returns, it provides the possibility of requiring or releasing access to the shared signals. Requiring access is done by sending the value 1 to the arbiter, and releasing is done by sending the value 0. If a sequencer writes to a shared signal under arbitration without requiring access first, the write will simply be ignored.
+
+The following is an example of arbiter that controls access to shared signals `x` and `y` and two sequencers acquiring and releasing accesses to them:
+
+```ruby
+input :clk, :start
+[8].shared x, y
+arbiter(:ctrl_xy).(x,y)
+
+sequencer(clk.posedge,start) do
+   ctrl_xy <= 1
+   x <= 0 ; y <= 0
+   5.stime do |i|
+      x <= x + 1
+      y <= y + 2
+   end
+   ctrl_xy <= 0
+end
+
+sequencer(clk.posedge,start) do
+   ctrl_xy <= 1
+   x <= 2; y <= 1
+   10.stime do |i|
+      x <= x + 2
+      y <= y + 1
+   end
+   ctrl_xy <= 0
+end
+```
+
+In the example, both sequencers require access to signals `x` and `y` before accessing them and then releasing the access. 
+
+Requiring access does not guaranties that the access will be granted by the arbiter though. In the access is not granted, the write access will be ignored.
+The default access granting policy of an arbiter is the priority in order of sequencer declaration. I.e., if several sequencer are requiring at the same time, then the one declared the earliest in the code gains write access. For example, with the code given about, the first sequencer have write access to `x` and `y`, and since after five write cycles it releases access, the second sequencer can then write to these signals. However, not obtaining write access does not block the execution of the sequencer, simply, its write access to the corresponding shared signals is simple ignored. In the example, the second sequencer will do its first five loop cycles without any effect, and have only its five last ones that change the shared signals. To avoid such a behavior, it is possible to check if the write access is granted using arbiter sub signal `acquired`: if this signal is one in current sequencer, that means the access is granted, otherwise its is 0. For example the following will increase signal `x` only if write access is granted:
+
+```ruby
+hif(ctrl_xy.acquired) { x <= x + 1 }
+```
+
+The policy of an arbiter can be changed using command policy. You can either provide a new priority table, containing the number of the sequencers in order of priority (the first one having higher priority. The number of a sequencer is assign in order of declaration provided it uses the arbiter. For example, in the previous code, the second sequencer can be given higher priority by adding the following code after having declared the arbiter:
+
+```ruby
+ctrl_xy.policy([1,0])
+```
+
+It is also possible to set a more complex policy by providing to the policy method a block of code whose argument is a vector indicating which sequencer is currently requiring write access to the shared signals and whose result will be the number of the sequencer to grant the access. This code will be executing each time an write access is actually performed. For example, in the previous code, a policy switch priorities at each access can be implemented as follows:
+
+```ruby
+inner priority_xy: 0
+inner grant_xy
+ctrl_xy.policy do |acq|
+   hcase(acq)
+   hwhen(_b01) do
+      grant_xy <= 0
+      priority_xy <= ~priority_xy
+   end
+   hwhen(_b10) do
+      grant_xy <= 1
+      priority_xy <= ~priority_xy
+   end
+   hwhen(_b11) do
+      grant_xy <= priority_xy
+      priority_xy <= ~priority_xy
+   end
+   grant_xy
+end
+```
+
+As seen in the code above, each bit of the `acq` vector is one when the corresponding sequencer required an access or 0 otherwise, bit 0 corresponding to sequencer 0, bit 1 to sequencer 1 and so one.
+
+
+#### Monitors
+
+Arbiters a especially useful when we can ensure that the sequencers accessing the same resource do not overlap or when the do not need to synchronize with each other. If such synchronizations are required, instead of arbiters, it is possible to use the *monitor* components.
+
+The monitor component are instantiated like the arbiters as follows:
+
+```ruby
+monitor(:<name>).(<list of shared signals>)
+```
+
+Monitors are used exactly the same ways as arbiters (including the write access granting policies), but blocks the execution of the sequencers that require a write access until the access is granted. If we take the example of code with two sequencers given as illustration of arbiter usage, replacing the arbiter by a monitor as follows will lock the second sequencer until it can write to shared variables `x` and `y` ensuring that all its loop cycles have the specified result:
+
+```ruby
+monitor(:ctrl_xy).(x,y)
+```
+
+Since monitors locks processes, it automatically insert a step, hence to avoid confusion, aquiring access to a monitor is done by using method `lock` instead of assigning 1, and releasing is done by using method `unlock` instead of assigning 0. Hence, when using a monitor, the previous arbiter-based code should be rewriten as follows:
+
+```ruby
+input :clk, :start
+[8].shared x, y
+monitor(:ctrl_xy).(x,y)
+
+sequencer(clk.posedge,start) do
+   ctrl_xy.lock
+   x <= 0 ; y <= 0
+   5.stime do |i|
+      x <= x + 1
+      y <= y + 2
+   end
+   ctrl_xy.unlock
+end
+
+sequencer(clk.posedge,start) do
+   ctrl_xy.lock
+   x <= 2; y <= 1
+   10.stime do |i|
+      x <= x + 2
+      y <= y + 1
+   end
+   ctrl_xy.unlock
+end
+```
+
+## Fixed-point (fixpoint): `std/fixpoint.rb`
 <a name="fixpoint"></a>
 
 This library provides a new fixed point set of data types. These new data types can be bit vectors, unsigned or signed values and are declared respectively as follows:
@@ -3129,7 +3339,7 @@ For example, the following code converts a floating-point value to a fixed-point
 ```
 
 
-## Channel
+## Channel: `std/channel.rb`
 <a name="channel"></a>
 
 This library provides a unified interface to complex communication protocols through a new kind of component called the channels that abstract the details of communication protocols. The channels can be used similarly to the ports of a system and are used through a unified interface so that changing the kind of channel, i.e., the communication protocol, does not require any modification of the code.
@@ -3307,17 +3517,18 @@ end
 
 __Note__:
 
- * The code of the circuits, in the examples `producer8`, `consumer8`, and `producer_consummer8` is independent of the content of the channel. For example, the sample `with_channel.rb` (please see [sample](#sample)) uses the same circuits with a channel implementing handshaking.
+ * The code of the circuits, in the examples `producer8`, `consumer8`, and `producer_consummer8` is independent of the content of the channel. For example, the sample `with_channel.rb` (please see [samples](#sample-hdlruby-descriptions)) uses the same circuits with a channel implementing handshaking.
 
+<!---
 
 ## Pipeline
 <a name="pipeline"></a>
 
 This library provides a construct for an easy description of pipeline architectures.
 
+-->
 
 # Sample HDLRuby descriptions
-<a name="sample"></a>
 
 Several samples HDLRuby descriptions are available in the following directory:
 
@@ -3325,8 +3536,14 @@ path/to/HDLRuby/lib/HDLRuby/hdr\_samples
 
 For the gem install, the path to HDLRuby can be found using the following:
 
-```
+```bash
 gem which HDLRuby
+```
+
+But you can also import the samples to your local directory with the following command (recommended):
+
+```bash
+hdrcc --get-samples
 ```
 
 The naming convention of the samples is the following:
@@ -3334,6 +3551,7 @@ The naming convention of the samples is the following:
 * `<name>.rb`:       default type of sample.
 * `<name>_gen.rb`:   generic parameters are required for processing the sample.
 * `<name>_bench.rb`: sample including a simulation benchmark, these are the only samples that can be simulated using `hdrcc -S`. Please notice that such a sample cannot be converted to VHDL or Verilog HDL yet.
+* `with_<name>.rb`: sample illustrating a single aspect of HDLRuby or one of its library, usually includes a benchmark.
 
 
 # Contributing
