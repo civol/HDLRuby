@@ -711,7 +711,8 @@ This is because it conflicts with other constructs in the language.</p>
 <p>The first line of the body of the counter looks like the connection of ports we described <a href="#circuit-use">previously</a>. However it is inside the body of a sequencer and will therefore be <em>executed</em> by it, that is to say, before this statement is executed, <code>count</code> may not be 0, and after, it may have another value. More generally:</p>
 <ul>
 <li>
-<p>Every assignment statement outside sequencers (and later behavior) are connections: the signal will <em>always</em> and <em>continuously</em> have the value that is assigned to them.</p>
+<p>Every assignment statement outside sequencers (and later behavior) are connections: the signal will <em>always</em> and <em>continuously</em> have the value that is assigned to them. The reciprocal is also true: the assigned values will <em>always</em> and <em>con
+continuously</em> have the value of the signal.</p>
 </li>
 <li>
 <p>The other assignment statements, e.g., the ones inside a sequencer, are called <em>transmission</em> in HDLRuby and happen only when <em>executed</em>.</p>
@@ -1001,7 +1002,7 @@ __:T:0:::2: 000
 !<span class="pl-c1">10</span><span class="pl-kos">.</span><span class="pl-en">ns</span></pre></div>
 <blockquote>
 <p><strong>IMPORTANT</strong>: indeed, as said when presenting HDLRuby, this language is implemented on top of the Ruby language, and is fully compatible with it: you can write any Ruby code within HDLRuby constructs (e.g., <code>def</code>), and you can write HDLRuby code within Ruby constructs. However, there is an important difference: Ruby code is executed at compile time (i.e., when hdrcc runs) and does not produce any hardware, whereas HDLRuby code is the description of the hardware that will be produced and will be then executed either through simulation or after production physically.
-Then, what calling <code>clk!</code> do is paste place the HDLRuby code in its body. Here it is used to shorten the code: instead of setting each time the clock to 0, advance time than setting it to 1, writing <code>clk!</code> is enough to obtain the same result.<br>
+Then, what calling <code>clk!</code> do is paste the HDLRuby code in its body. Here it is used to shorten the code: instead of setting each time the clock to 0, advance time than setting it to 1, writing <code>clk!</code> is enough to obtain the same result.<br>
 It is from this capability to mix Ruby and HDLRuby that comes to the <em>metaprogrammabilty</em> of HDLRuby.</p>
 </blockquote>
 <p>Finally, when you simulate with the following command:</p>

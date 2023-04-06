@@ -792,7 +792,8 @@ end
 
 The first line of the body of the counter looks like the connection of ports we described [previously](#circuit-use). However it is inside the body of a sequencer and will therefore be *executed* by it, that is to say, before this statement is executed, `count` may not be 0, and after, it may have another value. More generally:
 
- * Every assignment statement outside sequencers (and later behavior) are connections: the signal will *always* and *continuously* have the value that is assigned to them.
+ * Every assignment statement outside sequencers (and later behavior) are connections: the signal will *always* and *continuously* have the value that is assigned to them. The reciprocal is also true: the assigned values will *always* and *con
+continuously* have the value of the signal.
 
  * The other assignment statements, e.g., the ones inside a sequencer, are called *transmission* in HDLRuby and happen only when *executed*.
 
@@ -1096,7 +1097,7 @@ clk <= 1
 ```
 
 > __IMPORTANT__: indeed, as said when presenting HDLRuby, this language is implemented on top of the Ruby language, and is fully compatible with it: you can write any Ruby code within HDLRuby constructs (e.g., `def`), and you can write HDLRuby code within Ruby constructs. However, there is an important difference: Ruby code is executed at compile time (i.e., when hdrcc runs) and does not produce any hardware, whereas HDLRuby code is the description of the hardware that will be produced and will be then executed either through simulation or after production physically.
-  Then, what calling `clk!` do is paste place the HDLRuby code in its body. Here it is used to shorten the code: instead of setting each time the clock to 0, advance time than setting it to 1, writing `clk!` is enough to obtain the same result.  
+  Then, what calling `clk!` do is paste the HDLRuby code in its body. Here it is used to shorten the code: instead of setting each time the clock to 0, advance time than setting it to 1, writing `clk!` is enough to obtain the same result.  
   It is from this capability to mix Ruby and HDLRuby that comes to the *metaprogrammabilty* of HDLRuby.
 
 Finally, when you simulate with the following command:
