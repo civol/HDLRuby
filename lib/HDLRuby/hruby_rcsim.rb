@@ -185,25 +185,26 @@ module HDLRuby::High
                 end)
             end
 
-            # # Create and add the behaviors.
-            # if self.each_behavior.any? then
-            #     RCSim.rcsim_add_scope_behaviors(@rcscope,
-            #                                     self.each_behavior.map do |beh|
-            #         # beh.to_rcsim(@rcscope)
-            #         beh.to_rcsim(subowner)
-            #     end)
-            # end
-
-            # # Create and add the connections.
-            # if self.each_connection.any? then
-            #     RCSim.rcsim_add_scope_behaviors(@rcscope, 
-            #                                     self.each_connection.map do |cxt|
-            #         # cxt.to_rcsim(@rcscope)
-            #         cxt.to_rcsim(subowner)
-            #     end)
-            # end
-            rcbehs = self.each_behavior.map {|beh| beh.to_rcsim(subowner)} +
-                self.each_connection.map {|cxt| cxt.to_rcsim(subowner) }
+            # Create and add the behaviors and connections.
+            rcbehs = self.each_behavior.map {|beh| beh.to_rcsim(subowner)} # +
+                # self.each_connection.map {|cxt| cxt.to_rcsim(subowner) }
+            self.each_connection do |cnx|
+                # ICIICI
+                if !cnx.right.is_a?(RefObject) then
+                    rcbehs << cnx.to_rcsim(subowner)
+                else
+                    # puts "cnx.left.object=#{cnx.left.object.fullname} cnx.right.object=#{cnx.right.object.fullname}"
+                    rcbehs << cnx.to_rcsim(subowner)
+                    if cnx.left.is_a?(RefObject) then
+                        sigL = cnx.left.object
+                        prtL = sigL.parent
+                        if prtL.is_a?(SystemT) and prtL.each_inout.any?{|e| e.object_id == sigL.object_id} then
+                            # puts "write to right with sigL=#{sigL.fullname}."
+                            rcbehs << Connection.new(cnx.right.clone,cnx.left.clone).to_rcsim(subowner)
+                        end
+                    end
+                end
+            end
             if rcbehs.any? then
                 RCSim.rcsim_add_scope_behaviors(@rcscope,rcbehs)
             end
@@ -335,6 +336,18 @@ module HDLRuby::High
                 # Remove the inner signals from the list.
                 self.block.each_inner do |inner|
                     refs.delete_if {|r| r.name == inner.name }
+                end
+                # The get the left references: the will be removed from the
+                # events.
+                left_refs = self.block.each_node_deep.select do |node|
+                    node.is_a?(RefObject) && node.leftvalue? && 
+                        !node.parent.is_a?(RefObject) 
+                end.to_a
+                # Keep only one left ref per signal.
+                left_refs.uniq! { |node| node.fullname }
+                # Remove the left refs.
+                left_refs.each do |l| 
+                    refs.delete_if {|r| r.fullname == l.fullname }
                 end
                 # Generate the event.
                 events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
@@ -720,6 +733,7 @@ module HDLRuby::High
         # Add recursively any event to +rcevs+ for activativing the 
         # connection from signal +sig+ attached to +rcbehavior+
         def self.add_rcevents(sig,rcevs,rcbehavior)
+            # puts "add_rcevents for sig=#{sig.fullname}"
             # Recurse on sub signals if any.
             sig.each_signal do |sub|
                 Connection.add_rcevents(sub,rcevs,rcbehavior)

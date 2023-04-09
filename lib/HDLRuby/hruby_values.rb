@@ -56,7 +56,7 @@ module HDLRuby
                 else
                     # Generate the resulting content.
                     res_content = self.content.send(op,val.content)
-                    # puts "op=#{op} self.content=#{self.content} (#{self.content.to_i}) val.content=#{val.content} (#{val.content.to_i}) res_content=#{res_content} (#{res_content.class})" if op == :^
+                    # puts "op=#{op} self.content=#{self.content} (#{self.content.to_i}) val.content=#{val.content} (#{val.content.to_i}) res_content=#{res_content} (#{res_content.class})"
                 end
                 res_type = self.type.resolve(val.type)
                 # # Adjust the result content size.
@@ -148,9 +148,11 @@ module HDLRuby
                 if self.content.is_a?(BitString) then
                     res_content = self.content[index*width..(index+1)*width-1]
                 else
+                    # puts "self.content=#{self.content} index=#{index}"
                     sh = index*width
                     mask = (-1 << sh) & ~(-1 << (index+1)*width)
                     res_content = (self.content & mask) >> sh
+                    # puts "res_content=#{res_content}"
                 end
                 # Return the resulting value.
                 return self.class.new(res_type,res_content)
@@ -240,7 +242,7 @@ module HDLRuby
                 # Generate the resulting type.
                 res_type = self.type
                 # Generate the resulting content.
-                # puts "op=#{op} content=#{content.to_s}"
+                # puts "op=#{op} content=#{content.to_s} width=#{res_type.width}"
                 res_content = self.content.send(op)
                 # puts "res_content=#{res_content}"
                 # Return the resulting value.
@@ -278,6 +280,9 @@ module HDLRuby
                 else
                     res_content.positive!
                 end
+            end
+            if type.signed && res_content.is_a?(Numeric) && res_content >= (1 << (type.width-1)) then
+                res_content = (-1 << type.width) + res_content
             end
             # # truncs to the right size if necessary.
             # if res_content.is_a?(BitString) then
@@ -403,6 +408,12 @@ module HDLRuby
             else
                 return !@content.raw_content[0..self.type.width-1].any?{|b| b!=0}
             end
+        end
+
+        # Tell if the value is high impedance.
+        def impedence?
+            return false unless @content.is_a?(BitString)
+            return @content.raw_content.include?(2)
         end
 
         ## Converts the value to a string of the right size.

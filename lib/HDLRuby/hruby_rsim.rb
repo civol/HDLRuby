@@ -20,6 +20,9 @@ module HDLRuby::High
         # Tell if the simulation is in multithread mode or not.
         attr_reader :multithread
 
+        # The current global time.
+        attr_reader :time
+
         ## Add untimed objet +obj+
         def add_untimed(obj)
             @untimeds << obj
@@ -67,6 +70,7 @@ module HDLRuby::High
                 @sig_active.each do |sig|
                     next if (sig.c_value.eql?(sig.f_value))
                     # next if (sig.c_value.to_vstr == sig.f_value.to_vstr)
+                    # puts "for sig=#{sig.fullname}"
                     sig.each_anyedge { |beh| @sig_exec << beh }
                     if (sig.c_value.zero?) then
                         # puts "sig.c_value=#{sig.c_value.content}"
@@ -79,6 +83,7 @@ module HDLRuby::High
                 @sig_active.each { |sig| sig.c_value = sig.f_value }
                 # puts "first @sig_exec.size=#{@sig_exec.size}"
                 @sig_exec.uniq! {|beh| beh.object_id }
+                # puts "now @sig_exec.size=#{@sig_exec.size}"
                 # Display the activated signals.
                 @sig_active.each do |sig|
                     if !shown_values[sig].eql?(sig.f_value) then
@@ -94,9 +99,10 @@ module HDLRuby::High
                 @sig_exec.clear
                 @sig_active.uniq! {|sig| sig.object_id }
                 # puts "@sig_active.size=#{@sig_active.size}"
-                # Advance time.
+                # Compute the nearest next time stamp.
                 @time = (@timed_behaviors.min {|b0,b1|  b0.time <=> b1.time }).time
             end
+            # puts "@time=#{@time}"
             # Display the time
             self.show_time
         end
@@ -335,7 +341,26 @@ module HDLRuby::High
             # Recurse on the systemI.
             self.each_systemI { |sys| sys.init_sim(systemT) }
             # Recurse on the connections.
-            self.each_connection { |cnx| cnx.init_sim(systemT) }
+            # self.each_connection { |cnx| cnx.init_sim(systemT) }
+            self.each_connection do |cnx|
+                # Connection to a real expression?
+                if !cnx.right.is_a?(RefObject) then
+                    # Yes.
+                    cnx.init_sim(systemT)
+                else
+                    # No, maybe the reverse connection is also required.
+                    # puts "cnx.left.object=#{cnx.left.object.fullname} cnx.right.object=#{cnx.right.object.fullname}"
+                    cnx.init_sim(systemT)
+                    if cnx.left.is_a?(RefObject) then
+                        sigL = cnx.left.object
+                        prtL = sigL.parent
+                        if prtL.is_a?(SystemT) and prtL.each_inout.any?{|e| e.object_id == sigL.object_id} then
+                            # puts "write to right with sigL=#{sigL.fullname}."
+                            Connection.new(cnx.right.clone,cnx.left.clone).init_sim(systemT)
+                        end
+                    end
+                end
+            end
             # Recurse on the sub scopes.
             self.each_scope { |sco| sco.init_sim(systemT) }
         end
@@ -393,9 +418,21 @@ module HDLRuby::High
                 # Keep only one ref per signal.
                 refs.uniq! { |node| node.fullname }
                 # puts "refs=#{refs.map {|node| node.fullname}}"
+                # The get the left references: the will be removed from the
+                # events.
+                left_refs = self.block.each_node_deep.select do |node|
+                    node.is_a?(RefObject) && node.leftvalue? && 
+                        !node.parent.is_a?(RefObject) 
+                end.to_a
+                # Keep only one left ref per signal.
+                left_refs.uniq! { |node| node.fullname }
                 # Remove the inner signals from the list.
                 self.block.each_inner do |inner|
-                    refs.delete_if {|r| r.name == inner.name }
+                    refs.delete_if {|r| r.fullname == inner.fullname }
+                end
+                # Remove the left refs.
+                left_refs.each do |l| 
+                    refs.delete_if {|r| r.fullname == l.fullname }
                 end
                 # Generate the event.
                 events = refs.map {|ref| Event.new(:anyedge,ref.clone) }
@@ -494,6 +531,9 @@ module HDLRuby::High
 
         ## Initialize the simulation for +systemT+
         def init_sim(systemT)
+            # Initialize the local time to -1
+            @time = -1
+            @sim = systemT
             # Recurse on the sub signals if any.
             if self.each_signal.any? then
                 self.each_signal {|sig| sig.init_sim(systemT) }
@@ -569,12 +609,16 @@ module HDLRuby::High
 
         ## Assigns +value+ the the reference.
         def assign(mode,value)
-            # Set the next value.
-            @f_value = value
+            # # Set the next value.
+            # @f_value = value
             # Set the mode.
             @mode = mode
-            # puts "assign #{value.content} (#{value.content.class}) with self.type.width=#{self.type.width} while value.type.width=#{value.type.width}" if self.name.to_s.include?("xnor")
-            @f_value = value.cast(self.type) # Cast not always inserted by HDLRuby normally
+            # @f_value = value.cast(self.type) # Cast not always inserted by HDLRuby normally
+            if @sim.time > @time or !value.impedence? then
+                # puts "assign #{value.content} to #{self.fullname}"
+                @f_value = value.cast(self.type) # Cast not always inserted by HDLRuby normally
+                @time = @sim.time
+            end
         end
 
         ## Assigns +value+ at +index+ (integer or range).
@@ -673,7 +717,7 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
-            # puts "execute Transmit in mode=#{mode} for left=#{self.left.object.name}"
+            # puts "execute Transmit in mode=#{mode} for left=#{self.left.object.fullname}" if left.is_a?(RefObject)
             self.left.assign(mode,self.right.execute(mode))
         end
     end
@@ -685,7 +729,11 @@ module HDLRuby::High
         ## Initialize the simulation for system +systemT+.
         def init_sim(systemT)
             self.yes.init_sim(systemT)
-            self.each_noif { |cond,stmnt| stmnt.init_sim(systemT) } 
+            # self.each_noif { |cond,stmnt| stmnt.init_sim(systemT) } 
+            self.each_noif do |cond,stmnt| 
+                cond.init_sim(systemT)
+                stmnt.init_sim(systemT)
+            end
             self.no.init_sim(systemT) if self.no
         end
 
@@ -959,8 +1007,9 @@ module HDLRuby::High
 
         ## Executes the statement.
         def execute(mode)
-            # puts "connection left=#{left} right=#{right}"
-            self.left.assign(mode,self.right.execute(mode))
+            # puts "connection left=#{left.object.fullname}"
+            # self.left.assign(mode,self.right.execute(mode))
+            self.left.assign(:seq,self.right.execute(mode))
         end
     end
 
