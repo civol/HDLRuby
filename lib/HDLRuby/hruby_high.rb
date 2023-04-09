@@ -3350,6 +3350,12 @@ module HDLRuby::High
             end
         end
 
+        # Get the refered objects.
+        def objects
+            return [ self.object] if self.is_a?(RefObject)
+            return self.each.map { |ref| ref.objects }.flatten
+        end
+
         # Reference can be used like enumerator
         include Enumerable
     end
