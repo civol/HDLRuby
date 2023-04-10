@@ -10,6 +10,8 @@ In this tutorial, you will learn the basics about the description of digital cir
 
  4. [How to add parallelism to your algorithms.](#4-how-to-add-parallelism-to-your-algorithms)
 
+Then, the following section will introduce advanced concepts about hardware design and HDLruby:
+
  5. [Toward lower level hardware design: the processes.](#5-toward-lower-level-hardware-design-the-processes)
 
  6. [Not enough? What about genericity, object orientation, metaprogramming, and reflection?](#6-not-enough-what-about-genericity-object-orientation-metaprogramming-and-reflection)
@@ -36,11 +38,11 @@ To use HDLRuby the following software is required:
 
  * A text editor. If you like syntax highlighting or other fancy features, please choose one supporting Ruby. 
 
- * A command line interface (e.g., command prompt, terminal emulator).
+ * A command line interface (e.g., command prompt, terminal emulator.)
 
 The following software is also recommended:
 
- * A wave viewer supporting *vcd* files (e.g., [GTKWave](https://gtkwave.sourceforge.net/))
+ * A wave viewer supporting *vcd* files (e.g., [GTKWave](https://gtkwave.sourceforge.net/).)
 
 ## 1. What is HDLRuby and how to use its framework
 
@@ -50,9 +52,9 @@ Before going further, let us briefly explain what is a [HDL](#11-what-is-a-hardw
 
 ### 1.1. What is a hardware description language (HDL)
 
-A hardware description language (HDL) is a formal language similar to programming languages that are used for describing electronic circuits. Such circuits can be divided into two categories: analog circuits and digital circuits. While there exists HDL for describing the first category of circuits, a large majority of them only support the second one so in practice, HDL means actual language for describing digital circuits only. Among the multiple HDL, two became de-facto standards: Verilog HDL and VHDL.
+A hardware description language (HDL) is a formal language that is used for describing electronic circuits. Such circuits can be divided into two categories: analog circuits and digital circuits. While there exists HDL for describing the first category of circuits, a large majority of them only support the second one. Hence, in practice, HDL usually means language for describing digital circuits only. Among the multiple HDL, two became de-facto standards: Verilog HDL and VHDL.
 
-HDL are there to helping producing circuits. Nowadays, there exist powerful software tools that can automatically produce circuits from HDL descriptions. However, like in software, there may be errors in the descriptions, or they may be sub-optimal, so that the final circuit does not work, or does not meet some constraints. Unfortunately, in hardware, producing a circuit is very time-consuming and expensive so contrary to software, errors or low-performance results must be avoided as early as possible. This is why it is common in hardware to **simulate** your circuit description before starting to produce it. In other words, while in software it is common to perform the following loop:
+Nowadays, there exist powerful software tools that can automatically produce circuits from HDL descriptions. However, like in software, there may be errors in the descriptions, or they may be sub-optimal, so that the final circuit does not work, or does not meet some constraints. Unfortunately, in hardware, producing a circuit is very time-consuming and expensive so contrary to software, errors or low-performance results must be avoided as early as possible. This is why it is common in hardware to **simulate** your circuit description before starting to produce it. In other words, while in software it is common to perform the following loop:
 
 <p align="center">
 <img src="sw_flow.png"  width="50%">
@@ -66,13 +68,13 @@ In hardware, the design loop is more like as follows:
 </p>
 
 
-At first, the HDL have the same look and feel compared to classical programming languages like C or Java: they include expressions, control statements, and kind of variables. However, the underlining model of computation is quite different, especially because circuits are inherently parallel devices, but this will be explained progressively during this tutorial. For now, it is enough to remember the following:
+At first, an HDL has the same look and feel compared to classical programming languages like C or Java: it includes expressions, control statements, and kinds of variables. However, the underlining model of computation is quite different, especially because circuits are inherently parallel devices. This will be explained progressively during this tutorial, but for now, it is enough to remember the following:
 
  * HDL are used for describing digital circuits and the most common ones are Verilog HDL and VHDL.
 
  * Using software tools called synthesis tools, you can produce real digital circuits from HDL description. But before that, you will need to simulate your description.
 
- * HDL looks like a common programming language but does not work the same.
+ * An HDL looks like a common programming language but does not work the same.
 
 
 #### And what about HDLRuby?
@@ -88,7 +90,7 @@ HDLRuby is distributed as a RubyGems package. It can therefore be installed usin
 gem install HDLRuby
 ```
 
-If everything is OK the following should be displayed:
+If everything is OK, the following should be displayed:
 
 ```
 Fetching HDLRuby-<version>.gem
@@ -144,13 +146,11 @@ Several actions are possible using `hdrcc`, the main ones being the followings:
 
  This second action is necessary if you want to produce a real circuit since HDLRuby is not yet supported by synthesis tools.
 
-__Note__: VHDL generation is also possible using the following command:  
+__Note__: VHDL generation is also possible using the following command.  
 
  ```bash
  hdrcc --vhdl <input file> <output directory>
  ```
-
- However, the Verilog HDL output is tested more often than the VHDL one (for practical reasons) and is therefore more reliable.
 
 And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.
 
@@ -165,16 +165,16 @@ In this section we will see:
 
 ### 2.1. Declaring a circuit
 
-In HDLRuby as well as in other HDL, a circuit is viewed as a box that communicates with its environment with ports. The following charts illustrate such a view with a circuit including 6 ports:
+In HDLRuby as well as in other HDL, a circuit is viewed as a box that communicates with its environment with ports. The following charts illustrate such a view with a circuit including 5 ports:
 
 <p align="center">
 <img src="circuit_view.png"  width="35%">
 </p>
 
 
-However, ports are not simple entry points since they have a data type and a direction that can be one of the following:
+Ports are not simple entry points though, because they also have a data type and a direction that can be one of the following:
 
- * `input`: such a port can only be used for transmitting data from the outside of the circuit to its inside.
+ * `input`: such a port can be used for transmitting data from the outside of the circuit to its inside.
 
  * `output`: such a port can only be used for transmitting data from the inside of the circuit to its outside.
 
@@ -260,7 +260,7 @@ system :"__:T:0:1" do
 end
 ```
 
-It looks somewhat similar to the code you have just written. This is because it is the internal representation (IR) of your circuit in HDLRuby. You can see that the name of the circuit changed to some weird character string and that the data types also changed. The name is for avoiding name clashes, so you do not need to be concerned about it. The data types are low-level representations of the same data types that were used in the initial file. Still, this low-level representation is very close to the original one, but that will be less and less the case as the features are added to the circuit.
+It looks somewhat similar to the code you have just written. This is because it is the internal representation (IR) of your circuit in HDLRuby. You can see that the name of the circuit changed to some weird character string and that the data types also changed. The weird string is for avoiding name clashes, so you do not need to be concerned about it. The data types are low-level representations of the same data types that were used in the initial file. Still, this low-level representation is very close to the original one, but that will be less and less the case as the features are added to the circuit.
 
 Now, out of curiosity, how will look the equivalent Verilog HDL code? For checking that just type the following command:
 
@@ -285,7 +285,7 @@ module _v0_1( _v1_clk, _v2_rst, _v3_addr, _v4_data_in, _v5_data_out );
 endmodule
 ```
 
-The syntax looks indeed a little bit different from HDLRuby, but you should be able to recognize the description of the circuit. The name of the ports is different though, this is because HDLRuby supports any UNICODE character for names and to avoid compatibility problems, recreates the names when generating Verilog. Still, an effort is made to keep the original name, e.g., `clk` became `_v1_clk`. But, just for the fun, please replace `:addr` in the HDLRuby file with `:☺` and regenerate Verilog HDL from it... It works! And the result is:
+The syntax looks indeed a little bit different from HDLRuby, but you should be able to recognize the description of the circuit. The name of the ports is different though, this is because HDLRuby supports any Unicode character for names and to avoid compatibility problems, it recreates the names when generating Verilog. Still, an effort is made to keep the original name, e.g., `clk` became `_v1_clk`. But, just for the fun, please replace `:addr` in the HDLRuby file with `:☺` and regenerate Verilog HDL from it... It works! And the result is:
 
 ```verilog
 `timescale 1ps/1ps
@@ -377,7 +377,7 @@ Again, we can see similarities between the resulting Verilog HDL code and the or
 > __But why two of them?__ I would like to answer that this is because of a limitation of Verilog HDL, but this is not the case. It is because HDLRuby's instantiation mechanism is very different from the Verilog HDL (and the VHDL) one, so for the moment, and only for easing the coding work of the HDLRuby compiler, one description of `my_circuit` is generated per instance.
 
 
-Copying a circuit is easy, but it achieves no purpose if the copied circuit is not in a relationship with its environment. It is where the ports become useful: they are the communication points between a circuit and its outside world. Concretely, to interact with a circuit, its ports must be connected to something that will interact with them. How this interaction work is a story for other sections, e.g., the one about [algorithms](#algorithm), about the [environement](#environment), and the one about [behaviors](#behavior). For now, let us focus on connection: in HDLRuby this is done using the assignment operator `<=` as follows:
+Copying a circuit is easy, but it achieves no purpose if the copied circuit is not in a relationship with its environment. It is where the ports become useful: they are the communication points between a circuit and its outside world. Concretely, to interact with a circuit, its ports must be connected to something that will interact with them. How this interaction work is a story for the other sections of this tutorial. For now, let us focus on connections: in HDLRuby this is done using the assignment operator `<=` as follows:
 
  * For an input port of the current circuit:  
  ```ruby
@@ -556,7 +556,7 @@ my_circuit(:my_circuit1).(clk: clk, rst: rst, addr: addr, ce: ce1,
                           data_in: data_in, data_out: data_out)
 ```
 
-The instantiation for `my_circuit0` does the connection by position, that is to say, that each port given between the second parenthesis is connected in the order of declaration of in ports of `my_circuit.rb`. For `my_circuit1P the connection is done by name: then syntax `<name>: <something>` connects ports named `name` of the instance of `my_circuit` to `something`. For example `clk: clk` connects port `clk` of `my_circuit0` to port `clk` of `another_circuit`.
+The instantiation for `my_circuit0` does the connection by position, that is to say, that each port given between the second parenthesis is connected in the order of declaration of in ports of `my_circuit.rb`. For `my_circuit1P` the connection is done by name: then syntax `<name>: <something>` connects ports named `name` of the instance of `my_circuit` to `something`. For example `clk: clk` connects port `clk` of `my_circuit0` to port `clk` of `another_circuit`.
 
 
 #### That's all for this section!
@@ -589,17 +589,17 @@ In this section we will see:
 
 ### 3.1. How to handle values in a circuit
 
-In software, value handling looks straightforward enough: they are computed with expressions and are stored into variables. In hardware it is slightly different since two kinds of components handle values: the wires and the storage components: 
+In software, handling values looks straightforward enough: they are computed with expressions and stored in variables. In hardware it is slightly different since two kinds of components handle values: the wires and the storage components: 
 
  * The wires are abstractions of physical wires or sets of wires that transmit data to the hardware component they are connected to. A wire cannot hold a value: if a component drives a value to a wire, this wire takes this value, and it will last as soon as this drive stops.
 
- * The storage components are abstractions of registers or memories that can hold values. Depending on how they are described, the value they hold can be changed on specific events like the rising edge of a clock. Hence, the storages component are closer to the software variable than the wires.
+ * The storage components are abstractions of registers or memories that can hold values. Depending on how they are described, the value they hold can be changed on specific events like the rising edge of a clock. Hence, the storages component are closer to the software variable than the wires are.
 
 With HDL like Verilog HDL, there is a real distinction between wires and storage components. However, with other HDL like VHDL, or here with HDLRuby, both are abstracted by a single concept: the signal. Specifically, when a signal is only driven on a given event, it becomes a storage element, otherwise, it will remain a wire.
 
-__Note__: one may ask what about the `variable` construct in VHDL: those are syntactic intermediates used for simplifying the descriptions. HDLRuby also supports such a `variable` construct, but extended to hold anything and not only values as explained in the section about [mixing Ruby and HDLRuby](#ruby).
+__Note__: one may ask what about the `variable` construct in VHDL: those are syntactic intermediates used for simplifying the descriptions. HDLRuby also supports such a `variable` construct, but those are simply the variables of the Ruby language. Therefore, these variables can hold not only values but any Ruby or HDLRuby constructs.
 
-In HDLRuby, there are three kinds of signals: the input ports, the output ports, the inout ports, and the inner signals. The first three kinds of signals have already been described in the section about declaring a [circuit](#circuit-declare). The inner signals can be used inside a circuit and are usually used as an intermediate for internal computations. They are declared like the ports, but using `inner` instead of `input`, `output`, or `inout`. For example, the following code declares a module named `a_circuit` with two 1-bit inputs, one 8-bit output, and one 4-bit inner signal.
+In HDLRuby, there are three kinds of signals: the input ports, the output ports, the inout ports, and the inner signals. The first three kinds of signals have already been described in the section about declaring a [circuit](#circuit-declare). At that time they were called ports because it is what such constructs are called in common HDL. However, in HDLRuby there is no distinction at all between ports and signals, hence from now on, we will use the term `signal` in general, and the term `port` when we only want to refer to the interface of a circuit. The inner signals can be used inside a circuit and are usually used as an intermediate for internal computations. They are declared like the ports, but using `inner` instead of `input`, `output`, or `inout`. For example, the following code declares a module named `a_circuit` with two 1-bit inputs, one 8-bit output, and one 4-bit inner signal.
 
 ```ruby
 system(:a_circuit) do
@@ -610,7 +610,7 @@ system(:a_circuit) do
 end
 ```
 
-__Note__: the inner signals as well as the ports can be declared anywhere within the body of a module. It is however recommended to declare the ports at the beginning, and the inner signal when relevant, e.g., it may not be a good idea to declare a signal at the beginning of a circuit description if it is only used at the end.
+__Note__: the inner signals as well as the ports can be declared anywhere within the body of a module. It is however recommended to declare the ports at the beginning, and the inner signal when relevant, e.g., it may not be a good idea to declare an inner signal at the beginning of a circuit description if it is only used at the end.
 
 #### What about the data types?
 
@@ -628,7 +628,7 @@ Where `base` is another data type and `range` describes the range of indexes use
 
  * `float`: for 1-bit floating point values, but, __WARNING__: this data type is not supported yet!
 
-For example, a 32-bit input signed integer signal and an inner array of eight 24-bit using integers are declared as follows respectively:
+For example, a 32-bit input signed integer signal and an inner array of eight 24-bit integers are declared respectively as follows:
 
 ```ruby
 signed[32].input :sig
@@ -641,17 +641,17 @@ bit[24][8].inner :ar
 
 When the code above is declared, you can access one element of array `ar` using the brackets like before, e.g., its first element is `ar[0]`, its second one `ar[1]`, and so on. But you can also access its last element as follows: `ar[-1]`, its element before the last one as follows `ar[-2]`, and so on. Moreover, since an integer is just an array of bits, it is possible to access its bits individually in the same way. For example, accessing the first bit of the last element of ar can be done as follows: `ar[-1][0]`.
 
-But compared to the software you can do even more than that: you can also access to sub-range of elements of a signal. For example, assigning bits from index 4 to 27 of signal `sig` to element 1 of are can be written as follows using *range*:
+But compared to the software you can do even more than that: you can also access to sub-range of elements of a signal. For example, assigning bits from index 4 to 27 of signal `sig` to element 1 of array `ar` can be written as follows using *range*:
 
 ```ruby
-sig <= ar[1][27..4]
+ar[1] <= sig[27..4]
 ```
 
 A range is noted as follows: `<start value>..<end value>`, and indicates respectively the value of the first and the last indexes. Convenient, is not it? But wait... Why `27..4` and not `4..27`?
 
 #### Let us talk about endianness.
 
-If you are familiar with hardware or with low-level software, you may be aware of this topic. There is two possible way for reading a value or the content of an array: from the most significant bit or index to the least significant one (big-endian) and the opposite (little-endian). Since big-endian is more natural for reading numbers it is the default mode in HDL, including HDLRuby. However, for an array, software programming usually does the opposite. In HDLRuby, using little-endian instead of big-endian is declared by using a negative number for the size instead of a positive one.
+If you are familiar with hardware or with low-level software, you may be aware of this topic. There are two possible ways for reading a value or the content of an array: from the most significant bit or index to the least significant one (big-endian) and the opposite (little-endian). Since big-endian is more natural for reading numbers it is the default mode in HDL, including HDLRuby. However, for an array, software programming usually does the opposite. In HDLRuby, using little-endian instead of big-endian is declared by using a negative number for the size instead of a positive one.
 
 As a general rule, code will be much easier to understand if integer values are big-endian and the array accesses little-endian. That is to say that the following declaration is the best for `ar`:
 
@@ -663,11 +663,11 @@ bit[24][-8].inner :ar
   `[7..0].inner :a`  
   `[1..9].inner :b`
 
-But what happens when we make operations between signals of different types?
+So now you know about basic types in HDLRuby, but what happens when we make operations between signals of different types?
 
 #### About casting and auto-casting
 
-First, like in software, you can convert the type of a signal using the cast operator `as`. For example, in the following code, the result of a 16-bit unsigned addition is performed between the 8-bit signal `x` converted to 16-bit and the 16-bit signal `y`:
+First, you can convert the type of a signal using the cast operator `as`. For example, in the following code, the result of a 16-bit unsigned addition is performed between the 8-bit signal `x` converted to 16-bit and the 16-bit signal `y`:
 
 ```ruby
 [8].inner :x
@@ -678,7 +678,7 @@ First, like in software, you can convert the type of a signal using the cast ope
 z <= x.as(bit[16]) + y
 ```
 
-However, if you do not use the cast operator, HDLRuby will do it automatically for you and cast the operands the largest of their types. That is to say that for the following code the result is identical to the previous one:
+However, if you do not use the cast operator, HDLRuby will do it automatically for you and cast the operands to the largest of their types. That is to say that for the following code the result is identical to the previous one:
 
 ```ruby
 [8].inner :x
@@ -700,7 +700,7 @@ This rule means that for the following code, `z` will have the result of an 8-bi
 z <= x + y
 ```
 
-If you want a 16-bit addition, you must add a cast to at least of the operands, e.g.:
+If you want a 16-bit addition, you must add a cast to at least one of the operands, e.g.:
 
 ```ruby
 [8].inner :x, :y
@@ -715,20 +715,20 @@ z <= x.as(bit[16]) + y
 
 These explanations about data types may have been not so fun, be we should better get over with them first so that now we can start the real fun with actual "programming"...
 
-__Note__: "programming" is put between quotes because this is not programming since there is no program, but instead a description of a physical circuit.
+__Note__: "Programming" is put between quotes because this is not programming since there is no program, but instead, a description of a physical circuit.
 
 
 ### 3.2. How to describe an algorithm that a circuit can implement
 
-So now you know how to declare a circuit, use it, connect it, and declare variable-like constructs that are called signals. We will see in a very short while that signals are definitive **not** software variables, but let us go on with the illusion for a little while and see how you can describe an algorithm in HDLRuby. As a side note, the features described in this section are unique to HDLRuby so do not expect to be able to do the same with Verilog HDL or VHDL.
+So now you know how to declare a circuit, use it, connect it, and declare variable-like constructs that are called signals. We will see later that signals are definitive **not** software variables, but let us go on with the illusion for a little while and see how you can describe an algorithm in HDLRuby. As a side note, the features described in this section are unique to HDLRuby so do not expect to be able to do the same with Verilog HDL or VHDL.
 
-With software languages, when you want to describe an algorithm you use assignment statements and control constructs like `if`, `for`, or `while`. If you know higher-level languages like `Java` or `Ruby` you may also use design patterns like `iterators` (or `enumerators`). You can do the same in HDLRuby with constructs called *sequencers*. At first glance, a sequencer can be seen as the description of a hardware component implementing a software algorithm. Hence, a sequencer may look like a processor, but there are differences:
+With software languages, when you want to describe an algorithm you use assignments but also control statements like `if`, `for`, or `while`. If you know higher-level languages like `Java` or `Ruby` you may also use design patterns like `iterators` (or `enumerators`). You can do the same in HDLRuby with constructs called *sequencers*. At first glance, a sequencer can be seen as the description of a hardware component implementing a software algorithm. Hence, a sequencer may look like a processor, but there are differences:
 
  * It is not possible to change the algorithm implemented by a sequencer (you cannot "load" a new program).
 
- * A sequencer starts execution according to a given start signal, and from there advances execution of each cycle of a given clock.
+ * A sequencer starts execution according to a given start signal, and from there advances execution at each cycle of a given clock.
 
- * You have control at the clock cycle level of the algorithm, and incidentally, a sequencer is much more efficient than a processor executing a program.
+ * You have control of the algorithm at the clock cycle level, and incidentally, a sequencer is much more efficient than a processor executing a program.
 
 
 This section will explain the following about sequencers:
@@ -744,7 +744,7 @@ This section will explain the following about sequencers:
 
 #### 3.2.1 How to declare and control a sequencer
 
-As said in the previous section, a sequencer advances execution according to a clock and starts execution according to a start signal. We discuss later [clocks](#behavior), but for now, you just need to know that it is a single-bit signal that alternates from 0 to 1, and it is the transition from 0 to 1, or from 1 to 0 of this signal that will make a sequencer progress execution. Let us see two examples of sequencers to understand better:
+As said in the previous section, a sequencer advances execution according to a clock and starts execution according to a start signal. A clock is a single-bit signal that alternates from 0 to 1, and it is the transition from 0 to 1, or from 1 to 0 of this signal that will make a sequencer progress execution. Let us see two examples of sequencers to understand better:
 
 ```ruby
 system :the_counter do
@@ -755,11 +755,11 @@ system :the_counter do
 end
 ```
 
-In the code above, a system containing one sequencer is described. The sequencer will be controlled by the start signal `start` and clock signal `clk`, which means that:
+In the code above, a module containing one sequencer is described. The sequencer is controlled by the start signal `start` and clock signal `clk`, which means that:
 
- * it will advance execution every time `clk` switches from 0 to 1, we call such an event a *positive edge* of `clk`;
+ * it will advance execution every time `clk` switches from 0 to 1 - we call such an event a *positive edge* of `clk`;
  
- * it will start when signal `start` switches from 1 to 0, we call such an event a *negative edge* of `start`.
+ * it will start when signal `start` switches from 1 to 0 - we call such an event a *negative edge* of `start`.
 
 Why a positive edge for `clk` and a negative one for `start`? It does not matter much, and you can specify the edges you want using the `posedge` and `negedge` methods. For example, the following sequencer advances execution on a negative edge of `clk` and starts on a positive edge of `start`:
 
@@ -769,9 +769,9 @@ sequencer(clk.negedge,start.posedge) { }
 
 __Note__: the curly brackets used here are equivalent to the `do` and `end` keywords we used until now.
 
-> __WARNING__: there is a caveat though, since a sequencer advances execution according to a clock signal, it will not be able to start properly unless the start signal is strictly slower than the clock. In practice, the start signal should stay at 0 in case of posedge or at 1 in case of negedge longer than one clock cycle.
+> __WARNING__: there is a caveat though, since a sequencer advances execution according to a clock signal, it will not be able to start properly unless the start signal is strictly slower than the clock.
 
-But now, what will this sequencer do? Nothing right now since its body is empty. So let us start small and make it count the number of a few clock cycles:
+But now, what will this sequencer do? ... Nothing right now since its body is empty. So let us start small and make it count the number of a few clock cycles:
 
 ```ruby
 system :the_counter do
@@ -790,14 +790,13 @@ system :the_counter do
 end
 ```
 
-The first line of the body of the counter looks like the connection of ports we described [previously](#circuit-use). However it is inside the body of a sequencer and will therefore be *executed* by it, that is to say, before this statement is executed, `count` may not be 0, and after, it may have another value. More generally:
+The first line of the body of the counter looks like the connection of ports we described [previously](#circuit-use). However it is inside the body of a sequencer and will therefore be *executed* by it, that is to say, before this statement is executed, `count` may not be 0. More generally:
 
- * Every assignment statement outside sequencers (and later behavior) are connections: the signal will *always* and *continuously* have the value that is assigned to them. The reciprocal is also true: the assigned values will *always* and *con
-continuously* have the value of the signal.
+ * Every assignment statement outside sequencers (and later processes) is a connection: the signal will *always* and *continuously* have the value that is assigned to them.
 
- * The other assignment statements, e.g., the ones inside a sequencer, are called *transmission* in HDLRuby and happen only when *executed*.
+ * The other assignment statements, e.g., the ones inside a sequencer, are called *transmission* in HDLRuby and happen only when "executed."
 
-In our example, the count is there for set to 0 when the sequencer starts execution. But before that... no one knows the value of count, it is said to be *undefined*.
+In our example, the count is set to 0 when the sequencer starts execution. But before that, no one knows the value of count: it is said to be *undefined*.
 
 Just after this initial line, there is the `step` keyword. There we go from the software world to the hardware one: this keyword indicates that the sequencer ends execution here until the next clock cycle. Looking at the subsequent line you may understand why we waited: this line increases the value of `count` by one, i.e., the sequencer counted one clock cycle. Again, a `step` is inserted, and `count` is increased, and so on, so that this is indeed the code of a sequencer that counts the clock cycles. However the code ends after 3 clock cycles, and like with software, when the code of a sequencer is over, it stops execution.
 
@@ -813,7 +812,7 @@ If everything was all right the following text will appear:
 __:T:0:::2: 000
 ```
 
-It indicates that a signal named `__: T:0:::2` has been initialized to 0 (000), and that's all... Why is that, and why *only* that? First, this signal with a strange name has been generated by HDLRuby for the internal processing of the sequencer and is required to be initialized to 0. So, ok, the simulation did some initializations but did not seem to do any execution. This is because we did not give any description of the physical environment of the circuit, and especially, we did not say that the clock and the start signal need to change value. For describing the behavior of the environment of a circuit, we use a construct called in HDLRuby the *timed behavior*. They are somewhat close to sequencers but are not controlled by a clock signal but by physical time. So let us add the following code just after the sequencer (but still inside the module `the_counter`:
+It indicates that a signal named `__: T:0:::2` has been initialized to 0 (000), and that's all... Why is that, and why only that? First, this signal with a strange name has been generated by HDLRuby for the internal processing of the sequencer and is required to be initialized to 0. So, ok, the simulation did some initialization, but it did not seem to do any execution. This is because we did not give any description of the physical environment of the circuit, and especially, we did not say that the clock and the start signal need to change value. For describing the behavior of the environment of a circuit, we use a construct called in HDLRuby the *timed process*. They are somewhat close to sequencers but are not controlled by a clock signal but by physical time. So let us add the following code just after the sequencer (but still inside the module `the_counter`:
 
 ```ruby
    timed do
@@ -910,21 +909,21 @@ __:T:0:::2: 000
 # 140000ps
 ```
 
-If you look at the last line of the simulation result you should have `# 140000ps`, which means that final the simulation time was 140000 pico seconds (140 nanoseconds). If you look at the result in totality, you will see an alternation of signal names followed by a value in binary (e.g., `__:T:0::clk: 1` for the `clk` signal is 1) and an indication of the time of the simulation. The names look indeed messy, but please only focus on the last part of the name: that will be the name of the signal you defined in your HDLRuby file. You will also notice some signals that you did not declare (e.g., `__:T:0:::1` and `__:T:0:::2`, but those are only signals generated by HDLRuby.
+If you look at the last line of the simulation result you should have `# 140000ps`, which means that final the simulation time was 140000 picoseconds (140 nanoseconds). If you look at the result in totality, you will see an alternation of signal names followed by a value in binary (e.g., `__:T:0::clk: 1` means that the `clk` signal is 1) and an indication of the time of the simulation. The names look indeed messy, but please only focus on their last parts: that will be the names of the signals you defined in your HDLRuby file. You will also notice some signals that you did not declare (e.g., `__:T:0:::1` and `__:T:0:::2`, but those are only signals generated by HDLRuby.
 
-Now, let us see what happened, and what was the meaning of the `timed` construct we added. As explained before, `timed` constructs are like sequencers, but controlled by physical time instead of a clock signal. Inside, you can put assignments but also statements that will advance the time. For instance: `!10.ns` is a statement that will advance time by 10 nanoseconds (i.e., 10000 picoseconds). Hence, with such a construct you can tell that some signal will take a given value at a given time. For this example, it is enough to tell how the `clk` and `start` signal change over time to make the sequencer run by itself. Hence, the `clk` signal is made to switch from 0 to 1 then from 1 to 0 every 10 nanoseconds, which simulates a 50 MHz clock, and the start signal is set to 1 and then to 0 so that the sequencer starts execution. The first thing it does is set `counter` to 0, and then the following cycles this counter is increased until its execution completes. Even when the sequencer completes execution, the simulation goes on though, until the timed behavior also completes.
+Now, let us see what happened, and what was the meaning of the `timed` construct we added. As explained before, `timed` constructs are like sequencers, but controlled by physical time instead of a clock signal. Inside, you can put assignments but also statements that advance the time. For instance: `!10.ns` is a statement that advances time by 10 nanoseconds (i.e., 10000 picoseconds). Hence, with such a construct you can declare that a signal will take a given value at a given time. For this example, it is enough to tell how the `clk` and `start` signal change over time to make the sequencer run by itself. Hence, the `clk` signal is made to switch from 0 to 1 then from 1 to 0 every 10 nanoseconds, which simulates a 50 MHz clock, and the start signal is set to 1 and then to 0 so that the sequencer starts execution. The first thing it does is set `counter` to 0, and then the following cycles this counter is increased until its execution completes. Even when the sequencer completes execution, the simulation goes on though, until the timed process also completes.
 
-> __WARNING__: in HDLRuby, everything is synthesizable, i.e., can be turned into a real circuit, apart from the timed behaviors. These constructs are there for simulating the physical environment of a circuit for testing it.
+> __WARNING__: in HDLRuby, everything is synthesizable, i.e., it can be turned into a real circuit, **apart** from the timed processes. These constructs are only there for simulating the physical environment of a circuit.
 
 #### Ugh! The simulation result is ugly!
 
-Indeed, the text output of the simulator quickly becomes hard to read, and therefore we highly recommend generating a graphical one using the following command:
+Indeed, the text output of the simulator is hard to read, and therefore we highly recommend generating a graphical one using the following command:
 
 ```bash
 hdrcc --sim --vcd the_counter.rb the_counter
 ```
 
-The new option `--vcd` make the simulator produce a *Value Change Dump* file (VCD) that can be visualized graphically by many HW design tools. If you do not have any such you can get [GTKWave](https://gtkwave.sourceforge.net/) which is under GNU General Public License v2.0.
+The new option `--vcd` makes the simulator produce a *Value Change Dump* file (VCD) that can be visualized graphically by many HW design tools. If you do not have any such tool you can get [GTKWave](https://gtkwave.sourceforge.net/) which is under GNU General Public License v2.0.
 
 The resulting vcd file can be found in the `the_counter` directory with the name `hruby_simulator.vcd`. If you open it and select the `clk`, `start`, and `counter` signals you will see something like the following picture:
 
@@ -942,28 +941,28 @@ So now, you know:
 
  * How to display a cool graph showing the simulation results (maybe?)
 
-Hum, the *algorithm* part is quite limited, and the timed behaviors seem to be real pains to write. So let us see how to do better in the following section.
+Hum, the algorithm part is quite limited, and the timed processes seem to be real pains to write. So let us see how to do better in the following section.
 
 
 #### 3.2.2. How to write a structured programming algorithm in a sequencer
 
-Now, when we speak about algorithms, we often think about software constructs like `if` for conditional execution and `for` for loops. Unfortunately, in HW design this is usually not that simple at all... But for HDLRuby sequencers it is indeed that simple: all these control statements are supported without any limitation. The only thing you have to be careful about is their name: to avoid confusion with the Ruby language, their names are all prefixed with an `s` (for *sequencer*), e.g, you have to use `sif` for doing an *if*.
+Now, when we speak about algorithms, we often think about software constructs like `if` for conditional executions and `for` for loops. Unfortunately, in HW design this is usually not that simple at all... But for the HDLRuby sequencers, it is indeed that simple: all these control statements are supported without any limitation. The only thing you have to be careful about is their name: to avoid confusion with the Ruby language, their names are all prefixed with an `s` (for *sequencer*), e.g, you have to use `sif` for doing an *if*.
 
 In detail here is a list of the control statements you can use within a sequencer:
 
  * `sif(<condition>) <block>`: executes `block` if `condition` is true (i.e., different from 0).
 
- - `selsif(<condition>) <block>`: executes `block` if the previous `sif` or `selsif` condition is not met and if the current `condition` is met.
+ - `selsif(<condition>) <block>`: executes `block` if the previous `sif` and `selsif` conditions are false and if the current `condition` is true.
 
- * `selse <block>`: executes `block` if the condition of the previous `sif` is false (i.e., equals 0). It is also used for giving the default block for the `scase` statement (see below).
+ * `selse <block>`: executes `block` if the conditions of the previous `sif` and `selsif` are false (i.e., equals 0). It is also used for giving the default block for the `scase` statements (see below).
 
- * `scase(<choice>)`: initialize a multiple case statement.
+ * `scase(<choice>)`: initializes a multiple case statement.
 
- * `swhen(<value>) <block>`: executes block if `value` is equal to `choice` in the previous `scase` statement.
+ * `swhen(<value>) <block>`: executes block if `value` is equal to the `choice` of the previous `scase` statement.
 
- * `sloop <block>`: loop infinitely repeating the execution of `block` (yes, like Ruby, if you want to do an infinite loop, do it explicitly, no semantically absurd `while(TRUE)` even if you can).
+ * `sloop <block>`: loops infinitely repeating the execution of `block` (yes, like Ruby, if you want to do an infinite loop, do it explicitly, not with constructs like `while(true)`... even if you can).
 
- * `swhile(<condition>) <block>`: repeat the execution of `block` as long as `condition` is true.
+ * `swhile(<condition>) <block>`: repeats the execution of `block` as long as `condition` is true.
 
  * `sfor(<enumerable>) <block>`: executes `block` on each element of `enumerable `.
 
@@ -1016,7 +1015,7 @@ The code is more complex that what we have seen up to now, so let us study it pr
 
    - `clk` and `start`: the signals that controls the execution of the sequencer (nothing new here).
 
-   - `req`: the signal that will ask for a factorial computation (*req* for require).
+   - `req`: the signal that will ask for a factorial computation (*req* stands for require).
 
    - `data_in`: the signal that will provide the input value. It is a 4-bit unsigned integer.
 
@@ -1024,7 +1023,7 @@ The code is more complex that what we have seen up to now, so let us study it pr
 
    - `ack`: the signal that will tell that the current computation of factorial is over. Such a signal is necessary for the environment to know if the output result is valid or not since the computation time of a factorial depends on the input value.
 
-   - `data_out`: the signal that will hold the computation result. It is a 24-bit unsigned integer, much larger than the input, but we are computing factorials here! (this is not enough yet: 15! = 1307674368000 which requires 41 bits... But 24-bit was the largest that could fit in the picture of the time chart that is shown after.)
+   - `data_out`: the signal that will hold the computation result. It is a 24-bit unsigned integer, much larger than the input, but we are computing factorials here! (This is not enough yet: 15! equals 1307674368000 which requires 41 bits... But 24-bit was the largest that could fit in the picture of the time chart that is shown after.)
 
  * The sequencer includes an infinite loop (`sloop`) so that it does not stop after one computation. Within this loop:
 
@@ -1038,7 +1037,7 @@ The code is more complex that what we have seen up to now, so let us study it pr
 
 #### Does it work?
 
-Now let us simulate this circuit. For that, you now know that we must describe the environment using a `timed` behavior. But this time, let us do this properly  by putting the description of the environment in a different module to separate the circuit description from the simulation: please write in a file named `direction.rb` the code of module `direction` then the following code:
+Now let us simulate this circuit. For that, you now know that we must describe the environment using a timed process. But this time, let us do this properly  by putting the description of the environment in a different module to separate the circuit description from the simulation: please write in a file named `fact.rb` the code of module `fact`, and then the following code:
 
 ```ruby
 system :fact_bench do
@@ -1077,7 +1076,7 @@ system :fact_bench do
 end
 ```
 
-This module introduces the `repeat` construct. It can be used within timed behavior only and have the following syntax: 
+This module introduces the `repeat` construct. It can be used within a timed process only and have the following syntax: 
 
 ```ruby
 repeat(<number>) <block>
@@ -1085,9 +1084,9 @@ repeat(<number>) <block>
 
 It executes the `block` `number` times with the number of iterations as an argument.
 
-__WARNING__: the repeat construct cannot be used outside a timed behavior. Inside a sequencer, you can use instead `swhile` or `sfor`.
+__WARNING__: the repeat construct cannot be used outside a timed process. Inside a sequencer, you can use instead `swhile` or `sfor`.
 
-> There is also a new kind of command in the timed behavior: `clk!`. This is not a command, but a Ruby function defined just before with the `def` block. If you are not familiar with Ruby, `def` is used for defining a new function (actually a method), also, it is not necessary to put parenthesis when calling a function. Hence, `clk!` is simply the call of this previously defined function (un Ruby, function names can terminate with characters like `!` or `?`). If you look at the body of this function, you will see not plain Ruby code, but again HDLRuby code:
+> There seems to be another new kind of command in the timed process: `clk!`. This is not a command though, but it is a Ruby function defined just before with the `def` block. If you are not familiar with Ruby, `def` is used for defining a new function (actually a method), also, it is not necessary to put parenthesis when calling a function. Hence, `clk!` is simply the call of this previously defined function (in Ruby, function names can terminate with characters like `!` or `?`). If you look at the body of this function, you will see not plain Ruby code, but again HDLRuby code:
 
 ```Ruby
 clk <= 0
@@ -1096,27 +1095,20 @@ clk <= 1
 !10.ns
 ```
 
-> __IMPORTANT__: indeed, as said when presenting HDLRuby, this language is implemented on top of the Ruby language, and is fully compatible with it: you can write any Ruby code within HDLRuby constructs (e.g., `def`), and you can write HDLRuby code within Ruby constructs. However, there is an important difference: Ruby code is executed at compile time (i.e., when hdrcc runs) and does not produce any hardware, whereas HDLRuby code is the description of the hardware that will be produced and will be then executed either through simulation or after production physically.
-  Then, what calling `clk!` do is paste the HDLRuby code in its body. Here it is used to shorten the code: instead of setting each time the clock to 0, advance time than setting it to 1, writing `clk!` is enough to obtain the same result.  
-  It is from this capability to mix Ruby and HDLRuby that comes to the *metaprogrammabilty* of HDLRuby.
+> __IMPORTANT__: as said when presenting HDLRuby, this language is implemented on top of the Ruby language, and is fully compatible with it. For instance, you can write any Ruby code within HDLRuby constructs (e.g., `def`), and you can write HDLRuby code within Ruby constructs. However, there is an important difference: Ruby code is executed at compile time (i.e., when hdrcc runs) and does not produce any hardware, whereas HDLRuby code is the description of the hardware that will be produced and will be then executed either through simulation or after production physically.
+  Then, what calling `clk!` do is paste the HDLRuby code in place. Here it is used to shorten the code: instead of setting each time the clock to 0, advancing time, then setting it to 1, writing `clk!` is enough to obtain the same result.  
+  It is from this capability to mix Ruby and HDLRuby that comes the *meta programmability* of HDLRuby.
 
 Finally, when you simulate with the following command:
 
 ```bash
-hdrcc --sim --vcd direction.rb direction
+hdrcc --sim --vcd fact.rb fact
 ```
 
 You should obtain the following kind of resulting VCD file:
 
   ![hruby_simulator.vcd](fact_vcd.png)
 
----
-
-If you are familiar with the software, the index access `previous[1]` looks like array accesses. And it is indeed the same meaning in hardware, however, contrary to software, integer values are seen as an array of bits. This is also the reason why since the beginning of this tutorial, values are declared somewhat like arrays, e.g., an 8-bit signal named `x` is declared as follows: `[8].inner :x`. And what if one wants to declare an array of four 8-bit values? Then, use again the brackets, e.g.:
-
-```ruby
-bit[8][4].inner :ar
-```
 
 
 
@@ -1151,9 +1143,9 @@ This circuit takes as input `data_in` and sends its content bit by bit to `data_
 
  * By default both `tx` and `data_out` are set to 0, this is done at the beginning of the sequencer but also just after the `sfor`.
 
- * `tx` is st to 1 just before the `sfor` loop, i.e., one cycle before the actual transmission. As said in the description of the [control statements](#sequencer-structured), each of them requires one clock cycle before branching.
+ * `tx` is set to 1 just before the `sfor` loop, i.e., one cycle before the actual transmission. As said in the description of the [control statements](#sequencer-structured), each of them requires one clock cycle before branching.
 
-> Even if for this case, it is not the clearer way, the for loop could also have been implemented using an index as follows:
+> This for loop could also have been implemented using an index as follows:
 
 ```ruby
    sfor(0..31) do |i|
@@ -1222,18 +1214,18 @@ So now, you know:
  
  * How to describe fully fledged algorithms with sequencers.
 
-Also, if you are not familiar with languages like Ruby or Python, the `sfor` may look great compared to want C can provide. But this is just the beginning, HDLRuby can do even better than that.
+Also, if you are not familiar with languages like Ruby or Python, the `sfor` may look great compared to what C can provide. But this is just the beginning, HDLRuby can do better than that.
 
 
 #### 3.2.3. How to use enumerators in a sequencer
 
-If you are familiar with Ruby, you may know about enumerators: there are objects used for processing iteratively several elements of objects. The HDLRuby's sequencer provides the same concept: it is possible to build hardware enumerators for any enumerable objects, that will run like Ruby's.
+If sometimes you program with Ruby, you may know about enumerators: they are objects used for processing iteratively several elements of objects. The HDLRuby's sequencer provides the same concept: it is possible to build hardware enumerators for any enumerable objects and they will run like Ruby's.
 
-> We strongly recommend before going on with this tutorial study the Ruby enumerable and enumerators. Indeed, HDLRuby enumerators and enumerable objects reproduce the functionalities of Ruby, we will only point out what is specific to hardware.
+> We recommend before going on with this tutorial you study the Ruby enumerable and enumerators. Indeed, since the HDLRuby enumerators and enumerable objects do reproduce the functionalities of the Ruby ones, we will only point out what is specific to the hardware.
 
 #### First, what is an enumerable?
 
-So, enumerators iterate over enumerable, but what is it? In HDLRuby, an enumerable is either a Ruby enumerable object, an enumerator (Ruby or HDLRuby), or a signal of any type. If the signal is an array, the iteration will be over its elements, if it is a number, it will be done over its bits. For example, `0..2` is an enumerable including 0, 1, and 2 as elements, `[3,6,7]` is one including 3, 6, and 7, and the following signal `sig` include 0, 1, 1, 0, 1, 1, 1, 0:
+So, enumerators iterate over enumerable, but what is it? In HDLRuby, an enumerable is either a Ruby enumerable object, an enumerator (Ruby or HDLRuby), or a signal of any type. If the signal is an array, the iteration will be over its elements, if it is a number, it will be done over its bits. For example, `0..2` is an enumerable including 0, 1, and 2 as elements, `[3,6,7]` is one including 3, 6, and 7, and the following signal `sig` includes 0, 1, 1, 0, 1, 1, 1, 0:
 
 ```ruby
 [8].inner sig: _b01110110
@@ -1241,7 +1233,7 @@ So, enumerators iterate over enumerable, but what is it? In HDLRuby, an enumerab
 
 #### Let us build HDLRuby enumerators.
 
-Like Ruby builds enumerators using the `each` method and its derivates (`each_with_index` and so on,) HDLRuby uses the `seach` method to build its enumerator. For example, an enumerator over the bits of signal `sig` will be built as follows: `sig.seach`, and if you want an enumerator with index, just like Ruby: `sig.seach_with_index`, and so on. Then, an enumerator can be executed when create by providing the block that will be applied on each element like in ruby, or executed later using the `seach` method again. E.g., the following sequencer code first sums the bits of signal sig at once, then do it again later with another enumerator:
+Like Ruby builds enumerators using the `each` method and its derivates (`each_with_index` and so on,) HDLRuby uses the `seach` method to build its enumerator. For example, an enumerator over the bits of signal `sig` will be built as follows: `sig.seach`, and if you want an enumerator with index, just like Ruby: `sig.seach_with_index`, and so on. Then, an enumerator can be executed when create by providing the block that will be applied on each element like in ruby, or executed later using the `seach` method again. E.g., the following sequencer code first sums the bits of signal sig at once, then do it again later with another enumerator previously stored in the Ruby variable `another_enumerator`:
 
 ```ruby
 input :clk, :start
@@ -1261,62 +1253,63 @@ end
 
 That's all that we will explain here, the remaining is exactly like Ruby. Moreover, almost all the methods related to enumerable and enumerator have been reimplemented in HDLRuby using the prefix `s`, so please refer to the main documentation of HDLRuby about [enumerators](README.md#enumerator) for details. Let us just see a few examples: 
 
- * Count the number of 1 bit of a signal -- again -- but within an infinite loop, and with a much shorter code using the HDLRuby version of the Ruby enumerator method `reduce`:
-  
-```ruby
-input :clk,:start
-[8].input :sin
-[4].output :sout
+ * Count the number of 1 bit of a signal - again - but within an infinite loop, and with a much shorter code using the HDLRuby version of the Ruby enumerator method `reduce`:  
 
-sequencer(clk,start) do
-   sloop do
-      sout <= sin.sreduce(_h0,&:+)
-   end
-end
-```  
+    ```ruby
+    input :clk,:start
+    [8].input :sin
+    [4].output :sout
+    
+    sequencer(clk,start) do
+       sloop do
+          sout <= sin.sreduce(_h0,&:+)
+       end
+    end
+    ```
+    
    Here are a couple of remarks about this code:
    
    - You may have noticed that the initial value of reduce is set to a 4-bit 0 (`_h0`, since a hexadecimal digit is 4-bit). If this value is not set, the data type of the elements will be used for the additions, in this case, 1-bit (and a 1-bit addition is actually an exclusive or).
 
    - While the count of the bits is a single-line statement, it is executed like a usual sequencer loop and therefore requires 8 clock cycles for completing.
 
- * Fills array `ar` from input `sin` one byte per cycle then sort it and outputs its content one byte per cycle.
+ * Fill array `ar` from input `sin` one byte per cycle then sort it and outputs its content one byte per cycle.
 
-```ruby
-input :clk,:start
-[8].input :sin
-[8].output :sout
-
-bit[8][-16].inner :ar
-
-sequencer(clk,start) do
-   16.stimes {|i| ar[i] <= sin }
-   ar.ssort
-   16.stimes {|i| sout <= ar[i] }
-end
-```
-
-  In this example, `8.stimes` generate an enumerator over the `0..7` range, and is a way to build an enumerator from an integer value.
+    ```ruby
+    input :clk,:start
+    [8].input :sin
+    [8].output :sout
+    
+    bit[8][-16].inner :ar
+    
+    sequencer(clk,start) do
+       16.stimes {|i| ar[i] <= sin }
+       ar.ssort
+       16.stimes {|i| sout <= ar[i] }
+    end
+    ```
+   
+   In this example, `16.stimes` generates an enumerator over the `0..7` range, and is a way to build an enumerator from an integer value.
 
   * Apply a 4-point FIR filter over an array obtained from input signal `sin` with 0-padding at the beginning and output the result to `sout`
 
-```ruby
-input :clk,:start
-[8].input :sin
-[8].output :sout
-
-bit[8][-4].inner coefs: [_h01,_h05,_h0A,_hFE]
-bit[8][-16].inner : ar
-
-sequencer(clk,start) do
-   16.stime {|i| ar[i] <= sin }
-   sout <= ([_h00]*3).seach + ar.seach).seach_slice(4).sreduce(_h00) do |a,b,c,d|
-      a*coefs[0] + b * coefs[1] + c * coefs[2] + d * coefs[3]
-   end
-end
-```
-
-   In this example, `[_h00]*3` builds an array of three 8-bit zeros for the padding, `seach` creates the iterators over the padding, and the array and their sum create a global iterator over them all. `seach_slice` and `sreduce` work the same way their Ruby equivalent `each_slice` and `reduce` work.
+    ```ruby
+    input :clk,:start
+    [8].input :sin
+    [8].output :sout
+    
+    bit[8][-4].inner coefs: [_h01,_h05,_h0A,_hFE]
+    bit[8][-16].inner : ar
+    
+    sequencer(clk,start) do
+       16.stime {|i| ar[i] <= sin }
+       sout <= ([_h00]*3).seach + ar.seach).seach_slice(4).sreduce(_h00) do |a,b,c,d|
+          a*coefs[0] + b * coefs[1] + c * coefs[2] + d * coefs[3]
+       end
+    end
+    ```
+   
+    In this example, `[_h00]*3` builds an array of three 8-bit zeros for the padding, `seach` creates the iterators over this padding. This iterator is added to one over `ar` which creates a global iterator over them all. `seach_slice` and `sreduce` work the same way their Ruby equivalent `each_slice` and `reduce` do.
 
 
 
@@ -1355,7 +1348,7 @@ Now you know:
 
  * How to create your enumerators.
 
-And with that, you can build sequential hardware almost as easily as software. But why bother? Simply because the performance of the resulting hardware is much better than that of software, at least in terms of energy and/or power consumption.
+And with that, you may be able to build sequential hardware almost as easily as software. But why bother? Simply because the performance of the resulting hardware is much better than that of software, at least in terms of energy and/or power consumption.
 
 But this is not all: contrary to software, hardware is inherently parallel, a property that has not been considered at all yet. From now on, that will be the main topic of this tutorial. We will start slowly by studying what happens when there are several sequencers.
 
@@ -1364,21 +1357,21 @@ But this is not all: contrary to software, hardware is inherently parallel, a pr
 #### 3.2.4. What happens when there are several sequencers?
 
 
-#### General considerations.
+#### General considerations
 
-You can have as many sequencers as you want in a module, and of course, you can have as many modules as you want in a circuit description. In total, all these sequencers will run independently of each other and in parallel. Furthermore, these parallel sequencers can be controlled by the same clock and start signals or by different ones.
+You can have as many sequencers as you want in a module, and of course, you can have as many modules as you want in a circuit description. In total, all these sequencers will run independently of one another and in parallel. Furthermore, these parallel sequencers can be controlled by the same clock and start signals or by different ones.
 
-As long as the sequencers do not access the same signals, they will not interfere with each other and what has been explained up to now is enough. However, it is common that the various parts of a circuit cooperate, and therefore exchange information, i.e., access common signals. There are two ways to handle access to the same signal from several sequencers...
+As long as the sequencers do not access the same signals, they will not interfere with one another and what has been explained up to now is enough. However, it is common that the various parts of a circuit cooperate, and therefore exchange information, i.e., access common signals. There are two ways to handle access to the same signal from several sequencers...
 
-#### The easy way: stick to simple rules
+#### The easy way: stick to a simple rule
 
-The is a simple rule in hardware design to avoid any trouble when accessing a signal:
+There is a simple rule to follow in hardware design to avoid any trouble when accessing a signal:
 
 > A signal can be read from anywhere at any time, but only one component (e.g., a port connection or a sequencer) can write to a given signal.
 
-This rule is not absolute as you will see in the **hard way** to access signals, but it has the advantage of not requiring any additional hardware construct to be implementable. Hence, we do recommend following this rule as much as possible.
+This rule is not absolute as you will see in the [hard way](#the-hard-way-arbitrating-between-writes-to-signals) to access signals, but it has the advantage of not requiring any additional hardware construct to be implemented. Hence, we do recommend following this rule as much as possible.
 
-Let us see an example for understanding how several sequencers can interact the **easy way**. First, lets us consider a sequencer that increases periodically a value and sends it to another sequencer that will count the number of bits of this value and tells the first one to proceed with the increase:
+Let us see an example for understanding how several sequencers can interact while following this rule. First, lets us consider a sequencer that increases periodically a value and sends it to another sequencer that will count the number of bits of this value and tells the first one to proceed with the increase:
 
 ```ruby
 system :bit_pong do
@@ -1443,12 +1436,12 @@ You may notice a detail that is crucial in hardware: the increase of `value` by 
 
 > When a signal is read in a clock-synchronized component (e.g., a sequencer), the real value is not the value of the signal at this exact instant, but the one it has a little while before. This is because hardware implementation of signals takes physical time to propagate.
 
-With these simple rules, one can easily and efficiently implement a large range of applications. But a few cases do require several components (e.g., sequencers) to write to the same signal. For example, when a resource must be shared among several components. Let us see what can be done in such kinds of cases.
+With this simple rule and enough training, one can easily and efficiently implement a large range of applications. But a few cases do require several components (e.g., sequencers) to write to the same signal. For example, when a resource must be shared among several components. Let us see what can be done in such cases.
 
 
 #### The hard way: arbitrating between writes to signals
 
-The problem when several components write to the same signal is handling the cases where different values are assigned at the *same* time. This requires extra arbitration circuitry that must be described by the designer or generated by the synthesis tool. Since there is no *good* way of arbitrating, the first option is the most common, but with HDLRuby's sequencer, there is an intermediate solution that does not require designing a new circuit but still lets the designer control the arbitration. It is this approach that is explained here, for the design from scratch of an arbitration please consult tutorials about advanced RTL design.
+The problem when several components write to the same signal is handling the cases where different values are assigned at the *same* time. This requires extra arbitration circuitry that must be described by the designer or generated by the synthesis tool. Since there is no general good way of arbitrating, the first option is the most common, but with HDLRuby's sequencer, there is an intermediate solution that does not require designing a new circuit but still lets the designer control the arbitration. It is this approach that is explained here, for the design from scratch of an arbitration please consult tutorials about advanced RTL design.
 
 #### The hard way but not so much: shared signals
 
@@ -1476,7 +1469,7 @@ sequencer(clk,start) do
 end
 ```
 
-This is not so useful that way, but you can control that by setting which sequencer has exclusive using the `select` method of a shared signal. For example, in the following code, the first sequencer first writes 55 to `sh` but then gives access to the second one:
+This is not so useful that way, but you can control that by setting which sequencer has exclusive access using the `select` method of a shared signal. For example, in the following code, the first sequencer first writes 55 to `sh` but then gives access to the second one:
 
 ```ruby
 signal[8].shared :sh
@@ -1497,13 +1490,13 @@ This is simple enough, right? However, there is a limitation: only one sequencer
 
 #### Enter the global arbiters
 
-So, you have multiple sequencers fighting with each other for accessing several shared signals, what to do? You need a global arbiter that will decide for everyone. The sequencer library provides such a module, named `arbiter` that is instantiated like any module. However, it does not have any specific port, instead, it must be connected to the shared signals it will arbitrate. For example, an arbiter named `arb01` controlling shared signals `sh0` and `sh1` can be declared as follows:
+So, you have multiple sequencers fighting with one another for accessing several shared signals, what to do? You need a global arbiter that will decide for everyone. The sequencer library provides such a module, named `arbiter` that is instantiated like any module. However, it does not have any specific port, instead, it must be connected to the shared signals it will arbitrate. For example, an arbiter named `arb01` controlling shared signals `sh0` and `sh1` can be declared as follows:
 
 ```ruby
 arbiter(:arb01).(sh0,sh1)
 ```
 
-Then, when a sequencer wants to write to either `sh0` or `sh1` it must ask the acquire the right by sending 1 to the arbiter, and when the access is done, it must release the right by sending 0 so that it does not monopolize the signal. For example, the following sequencers write in turn to the 2-bit shared signal `pingpong`:
+Then, when a sequencer wants to write to either `sh0` or `sh1` it must ask the right by sending 1 to the arbiter, and when the access is done, it must release that right by sending 0 so that it does not monopolize the signal. For example, the following sequencers write in turn to the 2-bit shared signal `pingpong`:
 
 ```ruby
 system :pingpong do
@@ -1554,7 +1547,7 @@ Well, this is not an interesting result: `pingpong` is always 1, what about the 
 
  * When a sequencer is denied access, its write access is ignored and that's all.
 
-Here, the first sequencer has higher priority and it happens that both always write to `pingpong` at the exact *same* time. For instance, if the second sequencer were delayed a bit compared to the first one, it would obtain access too:
+Here, it happens that both sequencers always write to `pingpong` at the exact *same* time and the first one has higher priority. For instance, if the second sequencer were delayed a bit compared to the first one, it would obtain access too:
 
 ```ruby
 system :pingpong do
@@ -1600,7 +1593,7 @@ And the simulation result should be:
 
 ![hruby_simulator.vcd](pingpong1_vcd.png)
 
-Still, it may be annoying that some writes of a sequencer can be ignored. In such a case, you can use a blocking version of the arbiter called the `monitor`. This module is used like the arbiter, but when write access is required, the sequencer will be blocked until the access is granted. Hence to avoid confusion, requiring access with a monitor is done by the `lock` method, and releasing it is done by the `unlock` one  For example, with the following code that only replaces `arbiter` with `monitor` in the initial one the expected pingpong exchange will happen:
+Still, it may be annoying that some writes of a sequencer can be ignored. In such a case, you can use a blocking version of the arbiter called the `monitor`. This module is used like the arbiter, but when write access is required, the sequencer will be blocked until the access is granted. Hence to avoid confusion with the arbiters' syntax, requiring access to a monitor is done by the `lock` method, and releasing it is done by the `unlock` one. For example, with the following code, the expected pingpong exchange will happen even when both sequencers try to write at the same time:
 
 ```ruby
 system :pingpong do
@@ -1643,9 +1636,9 @@ As seen in the example, since the monitors locks processes, no `step` is require
 
 ![hruby_simulator.vcd](pingpong2_vcd.png)
 
-> __WARNING__: while with arbiter it was of no importance, with monitor the lock must be made *after* the shared signal is written, otherwise this value will be taken into account one cycle later.
+> __WARNING__: while with an arbiter it was of no importance, with a monitor the lock must be made *after* the shared signal is written, otherwise this value will be taken into account one cycle later.
 
-By the way, why is there the `arbiter` module if the `monitor` does a better job? For performance reasons first: using an `arbiter` produces a small and faster circuit. It can be seen in the previous result: a monitor always waits for a cycle before granting access to one sequencer while the arbiter does it immediately. also, it is sometimes better not to block a sequencer: for example, maybe you want to write to a shared signal if possible, and if not do something else. this can be done as follows:
+By the way, why does HDLRuby provide the arbiters if the monitors do a better job? For performance reasons first: using an arbiter produces a smaller and faster circuit. Also, it is sometimes better not to block a sequencer: for example, maybe you want to write to a shared signal if possible, and if not do something else. this can be done as follows:
 
 ```ruby
 sequencer(clk,start) do
@@ -1658,7 +1651,7 @@ end
 
 In the code above, the sequencer checks if it has access by comparing the shared signal selection with its priority (obtained by `arb.cur_priority`).
 
-#### I do not like the priority rule of the arbiter/monitor
+#### I do not like the priority rule of the arbiter / monitor
 
 Indeed, sometimes we need to define our priority rules. This can be done when instantiating an arbiter or a monitor in two possible fashions:
 
@@ -1668,7 +1661,7 @@ Indeed, sometimes we need to define our priority rules. This can be done when in
 arbiter(:arb,[1,0]).(pingpong)
 ```
 
- * You can provide your policy as a chunk of HDLRuby code whose argument is in the declaration order of a sequencer and that returns true if the sequencer is granted priority, e.g, for switching priority at each acquirement:
+ * You can provide your policy as a chunk of HDLRuby code whose argument is the declaration order of a sequencer and that returns true if the sequencer is granted priority. Here is an example that switches priority at each acquirement:
 
 ```ruby
 inner switch: 1
@@ -1701,7 +1694,7 @@ But in hardware, you can go much more into the details for even more performance
 
 ## 4. How to add parallelism to your algorithms
 
-In software, when you what to do parallelism you usually need specific libraries because the underlining model of software is inherently sequential. But this is not the case with sequencer because:
+In software, when you want to do parallelism you usually need specific libraries because the model of computation of software is inherently sequential. But this is not the case with the HDLRuby sequencers because:
 
  * [A sequencer is not a program](#41-a-sequencer-is-not-a-program)
 
@@ -1711,7 +1704,7 @@ In software, when you what to do parallelism you usually need specific libraries
 
 We said earlier that hardware is inherently parallel and we showed that multiple sequencers run concurrently by default. However, you may want to increase parallelism within an algorithm too: after all, it is what recent processors do, so why not hardware?
 
-To tell the truth, we lied a little when we said that the sequencers were "executing" statements in order. They do not execute anything and statements are not *instructions*, rather, they are *instantiations* of circuits performing basic computations, and the sequencer only schedules when each circuit is to be used. For example, the following code describes two 3-value addition circuits selected respectively at the first and second clock cycles:
+To tell the truth, we lied a little when we said that the sequencers were "executing" statements in order. They do not execute anything and statements are not *instructions*. Rather, they are *instantiations* of circuits performing basic computations, and the sequencer only schedules when each circuit is to be used. For example, the following code describes two 3-value addition circuits selected respectively at the first and second clock cycles:
 
 ```ruby
 sequencer(clk,start) do
@@ -1721,7 +1714,7 @@ sequencer(clk,start) do
 end
 ```
 
-And what about the followings:
+Now, what about the following:
 
 ```ruby
 sequencer(clk,start) do
@@ -1740,7 +1733,7 @@ sequencer(clk,start) do
 
 ... This time, `z` requires the value of `d`, but both circuits will again be selected at the same time. However, the output of the first one is connected to the third input of the second one: since they are combinatorial, waiting a little bit is enough for obtaining the right `d` input for computing `z`.
 
-> __WARNING__: in hardware design with HDLRuby (actually common with all similar languages like Verilog VHDL or VHDL) is assumed that a clock is slow enough for the relevant combinatorial circuits to complete computation before the next cycle. If this is not the case, the resulting circuits will not function properly. Fortunately, the synthesis frameworks usually provide tools for verifying these timings.
+> __WARNING__: in hardware design with HDLRuby (and with all similar languages like Verilog VHDL or VHDL,) it is assumed that a clock is slow enough for the relevant combinatorial circuits to complete computation before the next cycle. If this is not the case, the resulting circuits will not function properly. Fortunately, the synthesis frameworks usually provide tools for verifying these timings.
 
 
 ### 4.2. Parallel control statements and enumerators
@@ -1755,15 +1748,15 @@ With that being said, even without loops you can do a lot of things. First, let 
 
  * `hif(<condition>) <block>`: executes `block` if `condition` is true (i.e., different from 0).
 
- - `helsif(<condition>) <block>`: executes `block` if the previous `hif` or `helsif` condition is not met and if the current `condition` is met.
+ - `helsif(<condition>) <block>`: executes `block` if the conditions of the previous `hif` and `helsif` are false and if the current `condition` is true.
 
- * `helse <block>`: executes `block` if the condition of the previous `sif` is false (i.e., equals 0). It is also used for giving the default block for the `hcase` statement (see below).
+ * `helse <block>`: executes `block` if the conditions of the previous `hif` and `helsif` are false (i.e., equals 0). It is also used for giving the default block for the `hcase` statement (see below).
 
- * `hcase(<choice>)`: initialize a multiple case statement.
+ * `hcase(<choice>)`: initializes a multiple case statement.
 
 > __WARNING__: these are parallel statements, hence their blocks **CANNOT** contain any sequential statement like `step`, `sif`, `sloop`, or even `sbreak`.
 
-However, they have the advantage of not waiting for the next clock cycle, hence high-speed algorithms can be devised when using them. For example, the following assigns to d the max of signals `u`, `v`, and `w` in less than one cycle:
+However, they have the advantage of not waiting for the next clock cycle, hence high-speed algorithms can be devised when using them. For example, the following assigns to `d` the max of signals `u`, `v`, and `w` in less than one cycle:
 
 ```ruby
    sequencer(clk,start) do
@@ -1779,9 +1772,9 @@ However, they have the advantage of not waiting for the next clock cycle, hence 
 
 #### 4.2.2. Yes, but without loops, we are quite limited no?
 
-There is a whole range of computations that do not require any loop: the **dataflow** computations. Indeed, more often than not, in software programs, the `for` loops and others are only there for ease of design or conciseness of code, and *do not* have any algorithmic purpose. For example, if you want to pick up the max value of a fixed-sized array, you do not need a loop for that... Heh, we just did that in the previous section (just replace `u`, `v`, and `w` with `ar[0]`, `ar[1]`, and `ar[2]`).
+There is a whole range of computations that do not require any loop: the *dataflow* computations. Indeed, more often than not, in software programs, the loops like `for` or `while` are only there for ease of design or conciseness of code, and do not have any algorithmic purpose. For example, if you want to pick up the max value of a fixed-sized array, you do not need a loop for that... Heh, we just did that in the previous section (just replace `u`, `v`, and `w` with `ar[0]`, `ar[1]`, and `ar[2]`).
 
-Still, the code of the previous section was only for three variables, and the code was already a bit messy. Indeed, it would be better to have clear code. Fortunately, you can use Ruby for this purpose... Do you remember? In HDLRuby, Ruby code is executed at compile time, so Ruby loops or iterators can be used to produce complex hardware descriptions cleanly. However...
+Still, the code of the previous section was only for three variables, and the code was already a bit messy. Fortunately, you can use Ruby for this purpose... Do you remember? In HDLRuby, Ruby code is executed at compile time, so Ruby loops or iterators can be used to produce complex hardware descriptions cleanly. However...
 
 > __WARNING__: Ruby code itself does not generate nor interact with hardware, for obtaining real hardware description you **must** put HDLRuby code within the Ruby loops.
 
@@ -1789,7 +1782,7 @@ Also:
 
 > __WARNING__: Ruby iterators **do not** apply on HDLRuby construct. But, you can convert an HDLRuby signal to a Ruby array for applying Ruby iterators on it. For that purpose, please use the `to_a` method.
 
-Let us wrap everything we said with a sequencer selecting in parallel the largest element of an array signal of 16 8-bit elements:
+Let us wrap everything we said with a sequencer selecting in parallel the largest element of an array signal of sixteen 8-bit elements:
 
 ```ruby
 system :maxxer do
@@ -1825,7 +1818,7 @@ The simulation result should be:
 
 As promised, the max is obtained at the first cycle of the sequencer execution!
 
-However, the following code will not produce anything other than setting `ar_max` to 0, because the Ruby `max` method does not use any HDLRuby code:
+However, the code given below will not produce anything other than setting `ar_max` to 0, because the Ruby `max` method does not use any HDLRuby code:
 
 ```ruby
    sequencer(clk,start) do
@@ -1834,11 +1827,11 @@ However, the following code will not produce anything other than setting `ar_max
    end
 ```
 
-So, you can use `each` but not `max`. More generally:
+So, you can use `each` but not `max`... Why? Because the `max` method does the comparison between elements at HDLRuby compile time and does not generate any hardware. More generally:
 
 > If the method iterates without any **implicit** computation, then it can be used for parallel HDLRuby description.
 
-Yes, this is becoming confusing because it is hard to know what Ruby does when executing its methods. Unfortunately, for now, there is nothing to help more, but we hope to clarify things in future versions of HDLRuby. For now, if unsure, it is recommended to stick to the following Ruby methods:
+Yes, this is becoming confusing because it is hard to know what Ruby does when executing its methods. Unfortunately, there is nothing to help with that yet, but we hope to clarify things in future versions of HDLRuby. For now, if unsure, it is recommended to stick to the following Ruby methods:
 
  * `each`, `each_cons`, `each_slice`
 
@@ -1854,6 +1847,28 @@ Now you know:
  * How to use Ruby code for concisely describing parallel HDLRuby code.
 
 
+#### 4.2.3. Parallel is faster, so why do sequential computations?
+
+Why parallel dataflow computations are indeed faster than sequential ones, in theory, they also have some drawbacks.
+
+* First, not every algorithm can be implemented by a dataflow computation. For example, the initial sequencer example that counts the clock cycles is necessarily sequential. More generally, any algorithm that has as input or output a sequence of values must be sequential. But that is not all:
+
+    > Any algorithm that processes data of arbitrary size requires at least partly some sequential computation.
+
+  For example, how can you process a text whose size is unknown without any sequential computation... You can say, OK, let us first look for the end of the text and then we can process it in parallel but wait... Looking for this end will require some sequential processing, e.g., looking at one character after the other if it is the end (EOF).
+
+ * Second, parallel implementation of algorithms requires much more chip area than sequential ones. This is expensive, and there are some physical limitations with the size of a chip.
+
+ * Third, while faster in theory, parallel implementations may end slower than sequential ones in practice. This is because, the large a combinatorial circuit is, the longer its delays are.
+
+
+Now, the big question is: how do we know which part of our circuit would better be parallel?
+
+> Unfortunately, the best answer is the designer's experience.
+
+Indeed, some design tools can choose for yourself, but the solution they give may not match your expectations. For HDLRuby, the idea is to let the designer decide but help him with as easy to use as possible sequential and parallel constructs.
+
+
 #### That's all for this section!
 
 That was short this time because almost all have been already said in the previous sessions. But now it is time to go past the sequencers and dive into real RTL design.
@@ -1862,7 +1877,7 @@ That was short this time because almost all have been already said in the previo
 
 ## 5. Toward lower level hardware design: the processes
 
-Why sequencers are easy to use with a software mindset, they are implemented on top of a control circuit that schedules their operations. While this circuit does not represent much overhead, you may want top-notch optimizations, or simply you may want more precise control over what hardware will be produced. It is therefore time to leave the comfort of the sequencer and study genuine hardware description constructs: the *processes*. Things will become messy, but here is an attempt to do it progressively:
+Why sequencers are easy to use with a software mindset, they are implemented on top of a control circuit that schedules their operations. While this circuit does not represent much overhead, you may want top-notch optimizations, or simply you may want more precise control over what hardware will be produced. It is therefore time to leave the comfort of the sequencer and study genuine hardware description constructs: the *processes*. Things will become more difficult, but here is an attempt to do it progressively:
 
  * [What are the processes?](#51-what-are-the-processes)
 
@@ -1881,9 +1896,9 @@ Why sequencers are easy to use with a software mindset, they are implemented on 
 
 First, we must make things clear: 
 
-> Process in hardware has very little (nothing?) to do with any kind of software process.
+> Processes in hardware has very little (nothing?) to do with any kind of software process.
 
-In hardware, a process is a list of data flow statements that are activated (we would say **executed** if they were software instructions) on a common condition. Depending on the activation condition, there are three kinds of processes:
+In hardware, a process is a list of data flow statements that are activated (we would say *executed* if they were software instructions) on a common condition. Depending on the activation condition, there are three kinds of processes:
 
  * The connection processes (in HDLRuby they are considered to be processes)
 
@@ -1891,9 +1906,11 @@ In hardware, a process is a list of data flow statements that are activated (we 
 
  * The clocked processes
 
-We will detail them in further sections, but there is another property of processes to discuss before: that is the way the data flow statements are scheduled within a process. Like with the sequencer between clock cycles, everything is parallel, but unlike it, there are two possible ways for handling dependencies:
+We also saw earlier the timed processes, they are indeed kinds of processes, but they do not represent hardware and are therefore not considered in this section.
 
- * Blocking assignments scheduling where like with a sequencer, the result of a statement can be used directly as input of the following statements. Such processes are declared with the `seq` keyword.
+We will detail these three kinds of hardware processes in further sections, but there is another property to discuss before: that is the way the data flow statements are scheduled within a process. Like with the sequencer between clock cycles, everything is parallel, but unlike it, there are two possible ways for handling dependencies:
+
+ * Blocking assignments scheduling where the result of a statement can be used directly as input of the following statements. Such processes are declared with the `seq` keyword.
 
  * Non-blocking assignments where all the statements are independent of each other. Such processes are declared with the `par` keyword.
 
@@ -1906,7 +1923,7 @@ seq(<activation condition>) do
 end
 ```
 
-Whereas, with the following process, `z` will become 2, i.e., it will be the result of the addition of the initial value of `y` which is 0 to `2`:
+Whereas, with the following process, `z` will become 2, i.e., it will be the result of the addition of the initial value of `y` which is still 0:
 
 ```ruby
 par(<activation condition>) do
@@ -1915,7 +1932,7 @@ par(<activation condition>) do
 end
 ```
 
-> There is a couple of caveats with the non-blocking process. First, a signal is assigned twice, and only the last assignment prevails. For example, with the following process, assuming the same initial values for x and y as before, z will become 3 and not 2:
+> There is a couple of caveats with the non-blocking processes. First, only the last assignment prevails when a signal is assigned multiple times. For example, with the following process, assuming the same initial values for x and y as before, z will become 3 and not 2:
 
 ```ruby
 par(<activation condition>) do
@@ -1950,7 +1967,7 @@ Now let us see the different kinds of processes in detail.
 
 ### 5.2. What are the connection processes?
 
-We already mentioned the connections at the beginning of this tutorial about how to [reuse circuits](#circuit-use). Each connection is considered to be a standalone connection process. Such a process is continuously activated, and its left value is *always* equal to its right value.
+We already mentioned the connections at the beginning of this tutorial about how to [reuse circuits](#circuit-use). Each connection is considered to be a standalone process. Such a process is continuously activated, and its left value is *always* equal to its right value.
 
 Since the connection processes are one-statements only, they do not require a `seq` or `par` keyword. For example, the following module includes two connections to its output ports:
 
@@ -1975,7 +1992,7 @@ par(x,y) do
 end
 ```
 
-There is another kind of combinatorial process that is activated each time a signal depends on changes in value. They are declared with the `seq` or `par` keywords without any activation condition. For example, the following process will be activated when `x`, `y`, or `z` change value:
+Another kind of combinatorial process is activated each time a signal its computations depend on changes in value. They are declared with the `seq` or `par` keywords without any activation condition. For example, the following process will be activated when `x`, `y`, or `z` change value:
 
 ```ruby
 par do
@@ -2028,9 +2045,9 @@ The simulation result should be:
 
 That is to say that the checksum of `x` is `04` appended at the end of `z`.
 
-#### Combinatorial processes that are not a combinatorial circuit.
+#### Combinatorial processes that cannot become combinatorial circuits.
 
-In the final hardware, a circuit whose output signals are also used as inputs are **not** a combinatorial circuit, and may not be a viable circuit at all. Such non-combinatorial circuits are used for making memory points (e.g., registers), or local synchronization (e.g., C elements). It is possible to describe such an element with a combinatorial process: it is enough to make a signal being dependent on itself in process. For example, for both combinatorial processes, signals `x` and `u` depend on themselves, and are therefore not describing combinatorial circuit:
+In the final hardware, a circuit whose output signals are also used as inputs is **not** a combinatorial circuit, and may not be a viable circuit at all. Such non-combinatorial circuits are used for making memory points (e.g., registers), or local synchronization (e.g., C elements). It is possible to describe such an element with a combinatorial process: it is enough to make a signal dependent on itself in a process. For example, for both combinatorial processes, signals `x` and `u` depend on themselves, and are therefore not describing combinatorial circuit:
 
 ```ruby
 par do
@@ -2043,7 +2060,7 @@ seq do
 end
 ```
 
-> __WARNING__: while such processes are accepted in HDLRuby (as well as in other hardware description languages like Verilog HDL), it is strongly recommended **not** to use them because the behavior of the resulting circuit is hard to predict. If you want to use memory elements, you should use the clocked processes instead that will produce reliable circuits.
+> __WARNING__: while such processes are accepted in HDLRuby (as well as in other hardware description languages like Verilog HDL), it is strongly recommended **not** to use them because the behavior of the resulting circuit is hard to predict. If you want to use memory elements, you should use the clocked processes instead.
 
 
 ### 5.4. What are the clocked processes?
@@ -2091,15 +2108,15 @@ The result should be:
 
 ![hruby_simulator.vcd](clock_counter_vcd.png)
 
-Did you get what the `clock_counter` circuit does? Yes, it simply counts the number of the positive edge of the signal `clk` when `run` is 1: signal `count` is initialized at 0 when declared, then the process which is activated on each positive edge of `clk` increases this signal by one. If you remember the sequencer, such kinds of processes look alike. Indeed, sequencers are built upon such processes. However, within processes, the fancy control statements like `sif`, `sloop`, or the enumerators **cannot** be used.
+Did you get what the `clock_counter` circuit does? Yes, it simply counts the number of the positive edge of the signal `clk` when `run` is 1: signal `count` is initialized at 0 when declared, then the process which is activated on each positive edge of `clk` increases this signal by one. If you remember the sequencers, these clocked processes should look somewhat similar. Indeed, sequencers are built upon such processes. However, within processes, the fancy control statements like `sif`, `sloop`, or the enumerators **cannot** be used.
 
-As seen in this code, a previously seen control statement has been used: the `hif`. I you remember well, that was for parallel computation in sequencers. But more generally, what can be used?
+As seen in this code, a previously seen control statement has been used: the `hif`. Yes, this statement was used for parallel computation in sequencers... But more generally, are there any other control statements that can be used in processes?
 
 ### 5.5. What about the control statements in processes?
 
-There is not much to say in this section... Because all have been said in the section about [parallelism in sequencer](#parallelism). The fact is all the constructs described in this previous section are designed for the processes, and by extension can be used in sequencers.
+There is not much to say in this section... Because all have been said in the section about [parallelism in sequencer](#parallelism). The fact is all the constructs described in this previous section were initially designed for the processes, and by extension could also be used in sequencers.
 
-These statements can be used for both clocked processes and combinatorial processes. For example, the following is a combinatorial circuit that implements a simple ALU (Arithmetic and Logic Unit), able to perform the addition, the subtraction, the bitwise AND, and the bitwise OR of the two input values, the operation is selected by a third input signal.
+These statements can be used for both clocked processes and combinatorial processes. For example, the following is a combinatorial circuit that implements a simple ALU (Arithmetic and Logic Unit), able to perform the addition, the subtraction, the bitwise AND, and the bitwise OR of the two input values, while the operation is selected by a third input signal.
 
 ```ruby
 system :alu do
@@ -2148,12 +2165,12 @@ The result should be:
 
 ![hruby_simulator.vcd](alu_vcd.png)
 
-> ...So we can do controls with processes, but what about sharing signals?
+...So we can do controls with processes, but what about sharing signals?
 
 
 ### 5.6. How to share signals in processes?
 
-This is the last feature of the sequencer: signals that can be written to by multiple sequencers. But can we do the same with processes?
+This was the last feature of the sequencer: signals that can be written to by multiple sequencers. But can we do the same with processes?
 
  - The short answer is no: the shared signals and the arbiter or monitor constructs can only be used in sequencers.
 
@@ -2164,46 +2181,46 @@ This is the last feature of the sequencer: signals that can be written to by mul
 
 A multiplexer is a circuit that selects one input among several ones to be output. Usually, this is done according to an additional input that indicates the number of the selected input. In HDLRuby, there are two simple ways to describe multiplexers:
 
- - The use of the `hcase` statements. We had an example previously with the ALU:  
-```ruby
-system :alu do
-   [8].input :x,:y
-   [2].input :opr
-   [8].output :z
-
-   par do
-      hcase(opr)
-      hwhen(0) { z <= x + y }
-      hwhen(1) { z <= x - y }
-      hwhen(2) { z <= x & y }
-      hwhen(3) { z <= x | y }
-   end
-end
-```  
+ - The use of the `hcase` statements. We had an example previously with the ALU: 
+    
+    ```ruby
+    system :alu do
+       [8].input :x,:y
+       [2].input :opr
+       [8].output :z
+    
+       par do
+          hcase(opr)
+          hwhen(0) { z <= x + y }
+          hwhen(1) { z <= x - y }
+          hwhen(2) { z <= x & y }
+          hwhen(3) { z <= x | y }
+       end
+    end
+    ```  
   
-  With this example, all the operations are performed in parallel, and the `hcase` statement selects which result is to be sent to `z` according to the selection signal `opr`.
+    With this example, all the operations are performed in parallel, and the `hcase` statement selects which result is to be sent to `z` according to the selection signal `opr`.
 
-  - The use of the `mux` operator that has the following syntax:
-  `mux(<selection>,<input 0>,<input 1>, ...)` where `selection` is the selection signal, and the other arguments are the possible inputs. The same ALU circuit can therefore be described as follows:
+  - The use of the `mux` operator that has the following syntax: `mux(<selection>,<input 0>,<input 1>, ...)` where `selection` is the selection signal, and the other arguments are the possible inputs. The same ALU circuit can therefore be described as follows:
 
-```ruby
-system :alu do
-   [8].input :x,:y
-   [2].input :opr
-   [8].output :z
-
-   z <= mux(opr, x+y, x-y, x & y, x & z)
-end
-```  
+    ```ruby
+    system :alu do
+       [8].input :x,:y
+       [2].input :opr
+       [8].output :z
+    
+       z <= mux(opr, x+y, x-y, x & y, x | y)
+    end
+    ```  
  
-  For this second example, a connection is used instead of a combinatorial process since there is a single statement.
+    A connection is used instead of a combinatorial process for this second example since there is a single statement.
 
 
 #### 5.6.2. The second way: use of tri-state bus <a name="tri-state"></a>
 
-Multiplexers are easy to describe and use but their size grows exponentially with the number of inputs and linearly with their bit width. Moreover, the number of inputs of a chip is usually more strongly limited than their size. For all these reasons, an alternative is sometimes used: the tri-state buses. They are signals where several processes or circuits can write a value provided that only one does it at a time and that when not writing the accesses are set in high impedance.
+Multiplexers are easy to describe and use, but their size grows exponentially with the number of inputs and linearly with their bit width. Moreover, the number of inputs of a chip is often strongly limited. For all these reasons, an alternative is sometimes used: the tri-state buses. They are signals where several processes or circuits can write a value provided that only one does it at a time and that when not writing the accesses are set in high impedance.
 
-> Before explaining further the tri-state buses, we need to clarify a possible misconception about hardware values: we often spoke about bits, and it was probably assumed that their possible values were 0 or 1 for standard boolean logic. However, in hardware design it is common to use a 4-valued logic that represents the relevant states of a wire in a circuit:
+> Before explaining further the tri-state buses, we need to clarify a possible misconception about hardware values: we often spoke about bits, and you may have assumed that their possible values were 0 or 1 for standard boolean logic. However, in hardware design it is common to use a 4-valued logic that represents the relevant states of a wire in a circuit:
 
  - `0` for ground level, used for representing `false` or the digit `0`;
 
@@ -2211,11 +2228,11 @@ Multiplexers are easy to describe and use but their size grows exponentially wit
 
  - `Z` for high impedance, used in tri-state buses;
 
- - `X` for undefined level, usually indicates a problem in the circuit or an uninitialized state.
+ - `X` for undefined level, usually indicating a problem in the circuit or an uninitialized state.
 
 Physically, when a signal is set to the `Z` state, it is possible to safely write another value on it, its state becoming this written value. Such a signal is then called a tri-state signal or bus.
 
-Three state signals can be `inner`, `inout`, and `output`, and in theory, as long as there are no simultaneous `0` or `1` writes on them, they can be used freely. However, in practice, synthesis tools prioritize safety over flexibility and will reject several descriptions that should work. This is highly dependent on the tool you are using, hence we cannot give precise guidelines for the proper use of such signals. Instead, here is an example of tri-state bus usage that is guaranteed to work with a majority of the design tools, please feel free to adapt it to your needs:
+Tri-state signals can be `inner` or `inout`, and as long as there are no simultaneous `0` or `1` writes on them, they can be used freely... In theory. However, in practice, synthesis tools prioritize safety over flexibility and will reject several descriptions that should work. This is highly dependent on the tool you are using, hence we cannot give precise guidelines for the proper use of such signals. Instead, here is an example of tri-state bus usage that should work with a majority of the design tools, please feel free to adapt it to your needs:
 
 ```ruby
 system :ram8 do
@@ -2301,7 +2318,7 @@ The first module is an 8-bit address 8-bit data RAM with a single data bus for b
 
 
 
-#### This section was quite a leap from the software mindset that represents processes...
+#### This section may have been quite a leap from the software mindset...
 
 ---
 
@@ -2315,18 +2332,18 @@ But, now you may understand:
 
  * How to write several values to a single signal without the comfort brought by the sequencers and their shared signals.
 
- * What is a tri-state bus and how to use it?
+ * What is a tri-state bus and how to use it.
 
-With that, you have all the constructs required for describing optimized hardware. Of course, mastering them requires a lot of know-how, but this is out of the scope of this tutorial, To go further, please follow lessons about hardware design using popular hardware description languages like Verilog HDL or VHDL since what you can do with them, you can do it with HDLRuby.
+With that, you have all the constructs required for describing optimized hardware. Of course, mastering them requires a lot of know-how, but this is out of the scope of this tutorial. To go further, please follow lessons about hardware design using popular hardware description languages like Verilog HDL or VHDL since what you can do with them, you can do it with HDLRuby.
 
 However, there remains a few major features for more efficient coding inherited from the Ruby language.
 
 
 ## 6. Not enough? What about genericity, object orientation, metaprogramming, and reflection?
 
-Let us imagine you spent hours designing a circuit processing 8-bit values for outputting a 16-bit result and you learn that the input should be 16-bit and the output 8-bit. Well, that's not so tough, you just need to modify the data types in your circuit description... **everywhere**. When you just finished, you learn that it would be great if there was also another version of the circuit that could output flags about the result. Ok, so let us make another version of the circuit, since not much is different, let us do some copy and paste and made the modifications for the flags... But whoop! You did not notice that with your modifications you unintentionally modified a few lines of code introducing new bugs... And of course, you realize it after hours of testing.
+Let us imagine you spent hours designing a circuit processing 8-bit values for outputting a 16-bit result and you learn that the input should be 16-bit and the output 8-bit. Well, that's not so tough, you just need to modify the data types in your circuit description... **everywhere**. When you just finished, you learn that it would be great if there was also another version of the circuit that could output flags about the result. Ok, so let us make another version of the circuit, and since it is not so different, let us do some copy and paste, and then make modifications for the flags... But whoop! You did not notice that with your modifications you unintentionally modified a few lines of code introducing new bugs... And of course, you realize it after hours of testing.
 
-Such situations happen all the time in software design... But it is much worse in hardware. Indeed, due to the variety of hardware circuits, it is very common to want to reuse a design with different bit widths. This is why, existing hardware description language support genericity to a certain degree. However, HDLRuby ruby goes farther in term of genericity, and also add object-oriented programming, metaprogramming and reflection concepts to maximize the possibilities of code reuse. Form now on, let us detail:
+Such situations happen all the time in software design... But it is much worse in hardware. Indeed, due to the variety of hardware circuits, it is very common to want to reuse a design with different bit widths. This is why, existing hardware description language support genericity to a certain degree. However, HDLRuby ruby goes further in term of genericity, and also add object-oriented programming, metaprogramming, and reflection concepts to maximize the possibilities of code reuse. From now on, let us detail:
 
  * [Genericity in HDLRuby](#61-genericity-in-hdlruby)
 
@@ -2375,7 +2392,7 @@ counter(8).(:counterI8)
 counter(16).(:counterI16)
 ```
 
-The second example is again a counter of clock cycle but whose full data type of the output is a generic parameter (not only its size), and whose has a given value that when reached triggers some hardware code also provided as a generic parameter:
+The second example is again a counter of clock cycles but whose full data type of the output is a generic parameter (not only its size), and which has a given value that when reached triggers some hardware code also provided as a generic parameter:
 
 ```ruby
 system :counter_ext do |typ,trig,code|
@@ -2398,9 +2415,9 @@ There is more to unwrap here:
 
  * `trig` is the value that will activate the hardware provided as a generic parameter.
 
- * `code` is a chunk of HDLRuby code. To paste this code chunk in HDLRuby, the `call` method is used. For giving access to the `count` signal to this code chunk, it is passed as an argument of the method.
+ * `code` is a chunk of HDLRuby code. To paste this code chunk, the `call` method is used, and for giving access to the `count` signal to this code chunk, it is passed as an argument of the method.
 
-And here is one instance of this module called `counter_extI`, with a 16-bit signed output, a trigger at value 5, and a trigger code that sets the count to -4:
+And here is one instance of this module called `counter_extI`, with a 16-bit signed output, a trigger at value 5, and a triggered code that sets the count to -4:
 
 ```ruby
 system :counter_ext_sim do
@@ -2439,7 +2456,7 @@ Genericity allows using a single design for several different circuits but it do
 
 #### 6.2.1 Inheritance
 
-In HDLRuby, inheritance can be applied to modules. When a module inherits from another module, the latter is called its superclass module. By default, a module contains all the ports and all the content of its superclass modules. Then, new ports or content can be added to the later at will. Inheritance is declared as follows:
+In HDLRuby, inheritance can be applied to modules. When a module inherits from another one, the latter is called its *superclass module*. By default, a module contains all the ports and all the content of its superclass modules. Then, new ports or content can be added to the later at will. Inheritance is declared as follows:
 
 ```ruby
 system :<name>, <list of superclass modules> <block>
@@ -2519,7 +2536,7 @@ end
 
 After that, all the instances that are created from `addsub` will include the `zf` flag computation and output.
 
-In contrast, you may want that only one instance has the flag. In such a case, it may not be necessary to define a new module for that but just modify this instance only. This is possible using again the `open` method but on the instance. For example with instance used in the following simulation environment:
+In contrast, you may want that only one instance has the flag. In such a case, it may not be necessary to define a new module for that but just modify this instance only. This is possible using again the `open` method but on the instance. For example with the instance used in the following simulation environment:
 
 ```ruby
 system :addsub_sim do
@@ -2568,17 +2585,17 @@ system :adder_flags do |width|
 
    zf <= (z == 0)
    sf <= z[-1]
-   of <= (~(x[-1]^y[-1])) - z[-1]
+   of <= (x[-1] & y[-1] & ~z[-1]) | (~x[-1] & ~y[-1] & z[-1])
 end
 ```
 
-And let us assume we want to make a circuit that does the same but saturates the addition result between -300 and +300. For that purpose, the computation of `z` must be replaced. This is called `overriding` and for sake of code readability overriding is only permitted for the *named sub-section* of a module. A named subsection is declared as follows:
+And let us assume we want to make a circuit that does the same but saturates the addition result between -300 and +300. For that purpose, the computation of `z` must be replaced. This is called `overriding` and for sake of code readability overriding is only permitted for *named sub-sections* of a module. A named subsection is declared as follows:
 
 ```ruby
 sub(:<name>) <block>
 ```
 
-Where `block` can contain any HDLRuby code apart from the port definition. A subsection can be overridden anywhere in the code, and also in subclass modules by redefining it. In our previous example, if `adder_flags` is rewritten as follows:
+Where `block` can contain any HDLRuby code apart from the port definition. A named subsection can be overridden anywhere in the code, and also in subclass modules by redefining it. In our previous example, if `adder_flags` is rewritten as follows:
 
 ```ruby
 system :adder_flags do |width|
@@ -2603,7 +2620,7 @@ system :adder_sat_flags do |width|
    include adder_flags(width)
 
    sub(:add) do
-      seq(x,y) do
+      seq do
          [cf,z] <= x.as(signed[width+1]) + y
          hif(z<-300) { z <= -300 }
          hif(z>300)  { z <= 300 }
@@ -2655,4 +2672,13 @@ There is not much to say about metaprogramming and reflection because both have 
 
  * Reflection has been used in several cases, e.g., the `width` method for knowing the bit width of a type or the `open` method. For generally, HDLRuby provides a large number of methods for inspecting and modifying directly the objects of the internal representation. Please consult the documentation of the HDLRuby classes for details about them (good luck, this is low-level coding documentation).
 
-> __Note__: the sequencers, shared signals, arbiter, and monitor are not native HDLRuby constructs, they have all been implemented with metaprogramming and reflection.
+> __Note__: the sequencers, the shared signals, the arbiter, and the monitor are not native HDLRuby constructs, they have all been implemented with metaprogramming and reflection.
+
+
+## 7. What next?
+
+There are still many aspects of HDLRuby that have not been addressed in this tutorial. For example, finite state machines (FSM) and decoders are crucial hardware components that you should learn about, and which HDLRuby provides specific constructs for easier design. So from now on, please consult the main documentation of HDLRuby, and have a look at the code samples provided in the HDLRuby distribution. They can be copied to your working directory using the following command:
+
+```bash
+hdrcc --get-samples
+```

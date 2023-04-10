@@ -9,6 +9,19 @@ If you are new to HDLRuby, it is recommended that you consult first the followin
 
  * [HDLRuby tutorial for software people](tuto/tutorial_sw.md)
 
+__What's new__
+
+For HDLRuby version 3.0.0:
+
+ * This section;
+
+ * [The sequencers](#sequencer-software-like-hardware-coding-stdsequencerrb) for software-like hardware design;
+
+ * A [tutorial](tuto/tutorial_sw.md) for software people;
+
+ * The stable [standard libraries](#standard-libraries) are loaded by default.
+
+
 __Install__:
 
 The recommended installation method is from rubygem as follows:
@@ -2654,8 +2667,7 @@ This way, calling directly `to_low` will automatically use `my_generation`.
 
 
 
-# Standard library
-<a name="library"></a>
+# Standard libraries
 
 The standard libraries are included in the module `Std`.
 They can be loaded as follows, where `<library name>` is the name of the
