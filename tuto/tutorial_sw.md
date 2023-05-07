@@ -1096,7 +1096,7 @@ clk <= 1
 ```
 
 > __IMPORTANT__: as said when presenting HDLRuby, this language is implemented on top of the Ruby language, and is fully compatible with it. For instance, you can write any Ruby code within HDLRuby constructs (e.g., `def`), and you can write HDLRuby code within Ruby constructs. However, there is an important difference: Ruby code is executed at compile time (i.e., when hdrcc runs) and does not produce any hardware, whereas HDLRuby code is the description of the hardware that will be produced and will be then executed either through simulation or after production physically.
-  Then, what calling `clk!` do is paste the HDLRuby code in place. Here it is used to shorten the code: instead of setting each time the clock to 0, advancing time, then setting it to 1, writing `clk!` is enough to obtain the same result.  
+  Then, what calling `clk!` do is paste the HDLRuby code in place. Here it is used to shorten the code: instead of each time setting the clock to 0, advancing time, then setting it to 1 again, writing `clk!` is enough to obtain the same result.  
   It is from this capability to mix Ruby and HDLRuby that comes the *meta programmability* of HDLRuby.
 
 Finally, when you simulate with the following command:
@@ -1110,6 +1110,38 @@ You should obtain the following kind of resulting VCD file:
   ![hruby_simulator.vcd](fact_vcd.png)
 
 
+#### But in structured programming, it is better to use local variables!
+
+Indeed, in the factorial program, signals `val` and `res` are only used within the sequencer, so why declare them outside it? The code would be more clear if they were declared more locally, i.e., *inside* it, and even better, inside its main loop. So let us modify it as follows:
+
+```ruby
+system :fact do
+   input :clk, :start, :req
+   [5].input :data_in
+   output :ack
+   [32].output :data_out
+
+   sequencer(clk,start) do
+      sloop do
+         [4].inner :val
+         [24].inner :res
+
+         ack <= 0
+         swhile(req != 1)
+         val <= data_in
+         res <= 1
+         swhile(val>1) do
+             res <= res*val
+             val <= val - 1
+         end
+         data_out <= res
+         ack <= 1
+      end
+   end
+end
+```
+
+You can simulate it again, and you should obtain exactly the same result. However, if you try to access `res` or `val` outside the main loop, then an error will be raised.
 
 
 #### Now about `sfor`
