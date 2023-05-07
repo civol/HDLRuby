@@ -345,6 +345,11 @@ module HDLRuby::High::Std
 
 
         ## The interface for building the fsm
+        
+        # Gets the current number of states.
+        def size
+            @states.size
+        end
 
         # Sets the event synchronizing the fsm.
         def for_event(event = nil,&ruby_block)

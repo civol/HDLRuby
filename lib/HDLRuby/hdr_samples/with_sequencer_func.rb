@@ -3,7 +3,8 @@ require 'std/sequencer_func.rb'
 include HDLRuby::High::Std
 
 
-sdef(:fact,16) do |n|
+# sdef(:fact,16) do |n|
+sdef(:fact) do |n|
     hprint("n=",n,"\n")
     sif(n > 1) { sreturn(n*fact(n-1)) }
     selse      { sreturn(1) }
@@ -23,14 +24,6 @@ system :my_seqencer do
             res <= fact(val)
         end
     end
-
-    # sequencer(clk.posedge,rst) do
-    #     5.stimes do |i|
-    #         val <= i
-    #         sif(val < 2) { res <= 0 ; step ; res <= 1 }
-    #         selse { res <= 3 ; step ; res <= 4 }
-    #     end
-    # end
 
     timed do
         clk <= 0

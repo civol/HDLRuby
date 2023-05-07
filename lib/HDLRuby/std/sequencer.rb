@@ -77,20 +77,17 @@ module HDLRuby::High::Std
                     this.fill_top_user(blk)
                 end
             end
-            # # Ends the fsm with an infinite loop state.
-            # st = @fsm.state {}
-            # st.gotos << proc do
-            #     HDLRuby::High.top_user.instance_exec do
-            #         # next_state_sig <= st.value
-            #         next_state_sig <= EndStateValue
-            #     end
-            # end
 
             # Build the fsm.
             @fsm.build
         end
 
-        # Get the closest loop status in the status stack.
+        # Gets the number of states of the underlining fsm.
+        def size
+            return @fsm.size
+        end
+
+        # Gets the closest loop status in the status stack.
         # NOTE: raises an exception if there are not swhile state.
         def loop_status
             i = @status.size-1
@@ -309,6 +306,28 @@ module HDLRuby::High::Std
             end
         end
     end
+
+
+    ## Remplement make_inners of block to support declaration within sequencers.
+
+
+    class HDLRuby::High::Block
+        alias_method :old_make_inners, :make_inners
+
+        def make_inners(typ,*names)
+            if SequencerT.current then
+                unames = names.map {|name| HDLRuby.uniq_name(name) }
+                HDLRuby::High.cur_scope.make_inners(typ, *unames)
+                names.zip(unames).each do |name,uname|
+                    HDLRuby::High.space_reg(name) { send(uname) }
+                end
+            else
+                self.old_make_inners(typ,*names)
+            end
+        end
+    end
+
+
 
 
     # Module adding functionalities to object including the +seach+ method.

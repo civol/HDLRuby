@@ -2198,29 +2198,48 @@ module HDLRuby::High
     #
     # NOTE: a function is a short-cut for a method that creates a scope.
     def function(name, &ruby_block)
+        warn("Construct 'function' is deprecated, use 'hdef' instead.")
         # Ensure there is a block.
         ruby_block = proc {} unless block_given?
         if HDLRuby::High.in_system? then
             define_singleton_method(name.to_sym) do |*args,&other_block|
-                # sub do
                 sub(HDLRuby.uniq_name(name)) do
                     HDLRuby::High.top_user.instance_exec(*args,*other_block,
                                                          &ruby_block)
-                    # ruby_block.call(*args)
                 end
             end
         else
             define_method(name.to_sym) do |*args,&other_block|
-                # sub do
                 sub(HDLRuby.uniq_name(name)) do
                     HDLRuby::High.top_user.instance_exec(*args,*other_block,
                                                          &ruby_block)
-                    # ruby_block.call(*args,*other_block)
                 end
             end
         end
     end
 
+    # Declares a function named +name+ using +ruby_block+ as body.
+    #
+    # NOTE: a function is a short-cut for a method that creates a scope.
+    def hdef(name, &ruby_block)
+        # Ensure there is a block.
+        ruby_block = proc {} unless block_given?
+        if HDLRuby::High.in_system? then
+            define_singleton_method(name.to_sym) do |*args,&other_block|
+                sub(HDLRuby.uniq_name(name)) do
+                    HDLRuby::High.top_user.instance_exec(*args,*other_block,
+                                                         &ruby_block)
+                end
+            end
+        else
+            define_method(name.to_sym) do |*args,&other_block|
+                sub(HDLRuby.uniq_name(name)) do
+                    HDLRuby::High.top_user.instance_exec(*args,*other_block,
+                                                         &ruby_block)
+                end
+            end
+        end
+    end
 
 
 

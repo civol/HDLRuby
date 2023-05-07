@@ -19,6 +19,9 @@ module HDLRuby::High::Std
         # The name of the function.
         attr_reader :name
 
+        # The body of the function.
+        attr_reader :body
+
         # Creates a new sequencer function named +name+, with stack size +depth+
         # executing code given by +ruby_block+.
         #
@@ -37,21 +40,45 @@ module HDLRuby::High::Std
             # Check if it is a recursion.
             funcI = SequencerFunctionI.recursion(funcE)
             if funcI then
+                # puts "Recursive call"
                 # Recursion, set the size of the stack.
                 funcI.make_depth(@depth)
                 # Call the function.
-                funcI.call(*args)
+                st_call = funcI.recurse_call(*args)
+                # adds the return value
+                st_call.gotos << proc do
+                    HDLRuby::High.top_user.instance_exec do
+                        # hprint("poking recursive return value at idx=",funcI.returnIdx," with value=",st_call.value+1,"\n")
+                        funcI.poke(funcI.returnIdx,st_call.value + 1)
+                    end
+                end
             else
+                # puts "First call"
                 # No recursion, create an instance of the function
                 funcI = SequencerFunctionI.new(funcE)
                 # Call the function.
-                funcI.call(*args)
+                st_call = funcI.first_call(*args)
                 # Build the function... Indeed after the call, that
                 # allows to avoid one state.
-                funcI.build
+                st_func = funcI.build
+                # adds the return value.
+                st_call.gotos << proc do
+                    HDLRuby::High.top_user.instance_exec do
+                        # hprint("poking return value at idx=",funcI.returnIdx," with value=",st_func.value+1,"\n")
+                        funcI.poke(funcI.returnIdx,st_func.value + 1)
+                    end
+                end
+                # old_code = st_call.code
+                # st_call.code = proc do
+                #     old_code.call
+                #     HDLRuby::High.top_user.instance_exec do
+                #         hprint("poking return value at idx=",funcI.returnIdx," with value=",st_func.value+1,"\n")
+                #         funcI.poke(funcI.returnIdx,st_func.value + 1)
+                #     end
+                # end
             end
-            # Return the created funcI
-            return funcI
+            # Return the created funcI return value.
+            return funcI.return_value
         end
     end
 
@@ -59,6 +86,8 @@ module HDLRuby::High::Std
     # Here, an eigen function is a function definition specilized with
     # arguments types.
     class SequencerFunctionE
+
+        attr_reader :funcT
 
         ## Creates a new eigen function with function type +funcT+ and arguments
         #  types +argTs+.
@@ -101,15 +130,18 @@ module HDLRuby::High::Std
 
     # Describes a sequencer function instance.
     class SequencerFunctionI
-        @@current = [] # The stack of current function instance.
+        @@current_stack = [] # The stack of current function instance.
 
         # Get the function instance currently processing.
         def self.current
-            @@current[-1]
+            @@current_stack[-1]
         end
 
         # The eigen function.
         attr_reader :funcE
+
+        # The return index in the stacks.
+        attr_reader :returnIdx
 
         # Creates a new instance of function from +funcE+ eigen function,
         # and possible default stack depth +depth+.
@@ -123,17 +155,32 @@ module HDLRuby::High::Std
             # For further updating.
             @stack_sigs = [] # Signal stacks
             # Signal stacks pointer.
-            @stack_ptr  =  HDLRuby::High.cur_system.make_inners(
-                bit[@depth].width, HDLRuby.uniq_name(:stack_ptr) => 0)
+            stack_ptr = nil
+            depth = @depth
+            HDLRuby::High.cur_system.open do
+                stack_ptr  = bit[depth.width].inner(HDLRuby.uniq_name(:stack_ptr) => 0)
+            end
+            @stack_ptr = stack_ptr
             # Create the stack for the returns.
-            @returnIdx = self.make_stack(bit[SequencerT.current.size.width])
-            # And the return values, however, at first their type is unknown
-            # to set it as a simple bit.
-            # The type of the return value is built when calling make_return.
-            @returnValIdx = self.make_stack(bit)
+            # @returnIdx = self.make_stack(bit[SequencerT.current.size.width])
+            @returnIdx = self.make_stack(bit[8])
             # Create the stacks for the arguments.
             @funcE.each_argT { |argT| self.make_stack(argT) }
-            @argsIdx = @returnIdx + 2
+            # @argsIdx = @returnIdx + 2
+            @argsIdx = @returnIdx + 1
+
+            # Create the return value, however, at first their type is unknown
+            # to set it as a simple bit.
+            # The type of the return value is built when calling make_return.
+            # @returnValIdx = self.make_stack(bit[1])
+            # puts "@returnValIdx=#{@returnValIdx}"
+            returnValue = nil
+            name = @funcE.name
+            HDLRuby::High.cur_system.open do
+                returnValue = bit[1].inner(
+                                      HDLRuby.uniq_name("#{name}_return"))
+            end
+            @returnValue = returnValue
             
             # Initialize the state where the initial function call will be.
             @state = nil
@@ -159,7 +206,7 @@ module HDLRuby::High::Std
                 # There is no default depth, use the heuristic that the
                 # depth is more or less equal to the bit width of the
                 # largest argument type.
-                @depth = @argTs.max { |t0,t1| t0.width <=> t1.width }
+                @depth = @funcE.each_argT.map {|t| t.width }.max
             end
             # Resize the stackes according to the depth.
             @stack_sigs.each do |sig|
@@ -171,9 +218,11 @@ module HDLRuby::High::Std
 
 
         # Builds the code of the function.
+        # Returns the last state of the buit function, will serve
+        # for computing the return state of the first call.
         def build
             # Saves the current function to detect recursion.
-            @@current.push(self)
+            @@current_stack.push(self)
 
             # Get the body.
             body = @funcE.body
@@ -182,36 +231,45 @@ module HDLRuby::High::Std
             SequencerT.current.step
 
             # Get the arguments.
-            args = (@argsIdx...(argsIdx+body.arity)).map {|idx| self.peek(idx) }
+            args = (@argsIdx...(@argsIdx+body.arity)).map {|idx| self.peek(idx) }
             # Place the body.
-            self.return_value <= body.call(*args)
-            # Get the return state.
-            ret_state_value = self.peek(@returnIdx)
-            # Free the stack of current frame.
-            self.pop_all
+            # SequencerT.current.instance_exec(*args,&body)
+            HDLRuby::High.top_user.instance_exec(*args,&body)
+            # # Free the stack of current frame.
+            # Moved to return...
+            # self.pop_all
 
             # Create a state for returning.
-            self.make_return
+            st = self.make_return
 
             # The function is built, remove it from recursion detection..
-            @@current.pop
+            @@current_stack.pop
+
+            return st
         end
 
-        # Call the function with arguments +args+.
-        def call(*args)
-            # Crate a state for the call.
-            call_state = step
+        # Call the function with arguments +args+ for the first time.
+        def first_call(*args)
+            # # Create a state for the call.
+            # call_state = SequencerT.current.step
 
             # Push a new frame.
             self.push_all
 
             # Adds the arguments and the return state to the current stack frame.
             args.each_with_index { |arg,i| self.poke(@argsIdx + i,arg) }
-            self.poke(@returnIdx,call_state.value + 1)
+            # The return is set afterward when the end of the function is
+            # known, since the return position for the first call is just
+            # after it.
+            # self.poke(@returnIdx,call_state.value + 1)
+
+            # Create a state for the call.
+            call_state = SequencerT.current.step
+
 
             # Get the state value of the function: it is the state
             # following the first function call.
-            func_state_value = @state ? @state.value + 1 : call_state + 1
+            func_state_value = call_state.value + 1
             # Do the call.
             call_state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
@@ -219,75 +277,130 @@ module HDLRuby::High::Std
                 end
             end
 
-            # Sets the state of the first function call if not set.
-            @state = call_state unless @state
+            # Sets the state of the first function call.
+            @state = call_state
 
-            # Returns.
-            return self.return_value
+            # Return the state for inserting the push of the return state.
+            return call_state
         end
 
+        # Call the function with arguments +args+ for recursion.
+        def recurse_call(*args)
+            # # create a state for the call.
+            # call_state = SequencerT.current.step
+
+            # Adds the arguments and the return state to the current stack frame.
+            # Since not pushed the stack yet for not loosing the previous
+            # arguments, add +1 to the offset when poking the new arguments.
+            args.each_with_index { |arg,i| self.poke(@argsIdx + i,arg,1) }
+            # self.poke(@returnIdx,call_state.value + 1)
+
+            # Push a new frame.
+            self.push_all
+
+            # create a state for the call.
+            call_state = SequencerT.current.step
+
+            # Get the state value of the function: it is the state
+            # following the first function call.
+            func_state_value = @state.value + 1
+            # Do the call.
+            call_state.gotos << proc do
+                HDLRuby::High.top_user.instance_exec do
+                    next_state_sig <= func_state_value
+                end
+            end
+
+            return call_state
+        end
 
         # Methods for handling the recursions and stacks.
 
 
         ## Check if the current function call with eigen +funcE+ would be
         #  recursive or not.
-        def recursion(funcE)
-            return @@current.find {|funcI| funcI.funcE == funcE }
+        def self.recursion(funcE)
+            # puts "recursion with funcE=#{funcE}"
+            return @@current_stack.find {|funcI| funcI.funcE == funcE }
         end
 
         ## Create a stack for elements of types +typ+.
         def make_stack(typ)
             # Create the signal array representing the stack.
-            stack_sig = HDLRuby::High.cur_system.make_inners(typ[-depth],
-                                      HDLRuby.uniq_name("#{@funcE.name}_stack")
+            depth = @depth
+            # puts "make stack with @depth=#{@depth}"
+            stack_sig = nil
+            name = @funcE.name
+            HDLRuby::High.cur_system.open do
+                stack_sig = typ[-depth].inner(
+                                      HDLRuby.uniq_name("#{name}_stack"))
+            end
             # Add it to the list of stacks to handle.
-            @stack_sigs = [stack_sig]
+            @stack_sigs << stack_sig
+
+            # Returns the index of the newly created stack.
+            return @stack_sigs.size-1
         end
 
         ## Pushes a new frame to the top of the stacks.
         def push_all
+            # HDLRuby::High.cur_system.hprint("push_all\n")
             @stack_ptr <= @stack_ptr + 1
         end
 
         ## Remove the top frame from the stacks.
         def pop_all
+            # HDLRuby::High.cur_system.hprint("pop_all\n")
             @stack_ptr <= @stack_ptr -1
         end
 
         ## Get a value from the top of stack number +idx+
         def peek(idx)
-            return @stack_sigs[idx][@stack_ptr]
+            return @stack_sigs[idx][@stack_ptr-1]
         end
 
         ## Sets value +val+ to the top of stack number +idx+.
-        def poke(idx,val)
-            @stack_sigs[idx][@stack_ptr] <= val
+        #  If +off+ is the offeset in the stack.
+        def poke(idx,val, off = 0)
+            # puts "idx=#{idx} val=#{val} sig=#{@stack_sigs[idx].name}"
+            @stack_sigs[idx][@stack_ptr-1+off] <= val
         end
 
         ## Access the return value signal.
         def return_value
-            return @stack_sigs[@returnValIdx][@stack_ptr]
+            # return @stack_sigs[@returnValIdx][@stack_ptr-1]
+            @returnValue
         end
 
         ## Creates a return point with value +val+.
+        #  Returns the created state.
         #
         #  NOTE: when val is nil, no return value is provided.
         def make_return(val = nil)
+            SequencerT.current.step
+            # puts "make_return with val=#{val}"
             # Update the type of the return value.
-            self.return_value.instance_variable_set(:@type,
-                                    self.return_value.type.resolve(val.type))
-            # Sets the return value if any.
-            self.return_value <= val if val
-            # Create the state for returning.
-            state = SequencerT.current.state
+            if val then
+                # Update the type.
+                @returnValue.instance_variable_set(:@type, @returnValue.type.resolve(val.to_expr.type))
+                # Sets the return value if any.
+                self.return_value <= val
+            end
+            # Create the state for the return command.
+            state = SequencerT.current.step
+            # Get the return state value.
+            ret_state_value = self.peek(@returnIdx)
             # Return.
+            this = self
             state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
+                    # Set the next state.
                     next_state_sig <= ret_state_value
+                    # Pop must be place after setting the return state.
+                    this.pop_all
                 end
             end
-            return self.return_value
+            return state
         end
     end
 
@@ -301,7 +414,7 @@ module HDLRuby::High::Std
         alias_method :old_make_inners, :make_inners
 
         def make_inners(typ,*names)
-            if SequencerFunctionI.current.any? then
+            if SequencerFunctionI.current then
                 unames = names.map {|name| HDLRuby.uniq_name(name) }
                 HDLRuby::High.cur_scope.make_inners(typ, *unames)
                 names.zip(unames).each do |name,uname|
@@ -322,8 +435,14 @@ module HDLRuby::High::Std
         # Create the function.
         funcT = SequencerFunctionT.new(name,depth,&ruby_block)
         # Register it for calling.
-        HDLRuby::High.space_reg(name) do |*args| 
-            funcT.call(*arg)
+        if HDLRuby::High.in_system? then
+            define_singleton_method(name.to_sym) do |*args|
+                funcT.call(*args)
+            end
+        else
+            define_method(name.to_sym) do |*args|
+                funcT.call(*args)
+            end
         end
         # Return the create function.
         funcT
@@ -331,8 +450,9 @@ module HDLRuby::High::Std
 
     # Returns value +val+ from a sequencer function.
     def sreturn(val)
+        # HDLRuby::High.top_user.hprint("sreturn\n")
         # Get the top function.
-        funcI = SequencerFunctionI.current[-1]
+        funcI = SequencerFunctionI.current
         unless funcI then
             raise "Cannot return since outside a function."
         end
