@@ -3,10 +3,17 @@ require 'std/sequencer_func.rb'
 include HDLRuby::High::Std
 
 
-# sdef(:fact,16) do |n|
+# A factorial with default stack depth.
 sdef(:fact) do |n|
     hprint("n=",n,"\n")
     sif(n > 1) { sreturn(n*fact(n-1)) }
+    selse      { sreturn(1) }
+end
+
+# A factiorial with very low stack depth for checking overflow.
+sdef(:fact_over,2,proc { stack_overflow_error <= 1 }) do |n|
+    hprint("n2=",n,"\n")
+    sif(n > 1) { sreturn(n*fact_over(n-1)) }
     selse      { sreturn(1) }
 end
 
@@ -18,11 +25,19 @@ system :my_seqencer do
     [16].inner :val
     [16].inner :res
 
+    inner stack_overflow_error: 0
+
     sequencer(clk.posedge,rst) do
         5.stimes do |i|
             val <= i
             res <= fact(val)
         end
+        hprint("Going to overflow...\n")
+        4.stimes do |i|
+            val <= i
+            res <= fact_over(val)
+        end
+        hprint("stack_overflow_error=",stack_overflow_error,"\n")
     end
 
     timed do
@@ -40,7 +55,7 @@ system :my_seqencer do
         rst <= 0
         !10.ns
         clk <= 1
-        repeat(200) do
+        repeat(500) do
             !10.ns
             clk <= ~clk
         end

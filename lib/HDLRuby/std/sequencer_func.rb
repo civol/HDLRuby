@@ -22,14 +22,19 @@ module HDLRuby::High::Std
         # The body of the function.
         attr_reader :body
 
+        # The stack overflow code of the function if any.
+        attr_reader :overflow
+
         # Creates a new sequencer function named +name+, with stack size +depth+
-        # executing code given by +ruby_block+.
+        # executing code given by +ruby_block+. Additionaly a HDLRuby block
+        # +overflow+ can be added to be executed when a stack overflow occured.
         #
         # NOTE: if +depth+ is nil it will be automatically computed at call time.
-        def initialize(name, depth = nil, &ruby_block)
+        def initialize(name, depth = nil, overflow = nil, &ruby_block)
             @name = name.to_sym
             @body = ruby_block
             @depth = depth ? depth.to_i : nil
+            @overflow = overflow ? overflow.to_proc : nil
         end
 
         # Call the function with arguments +args+.
@@ -45,11 +50,16 @@ module HDLRuby::High::Std
                 funcI.make_depth(@depth)
                 # Call the function.
                 st_call = funcI.recurse_call(*args)
-                # adds the return value
+                # adds the return address.
+                depth = funcI.depth
+                stack_ptr = funcI.stack_ptr
                 st_call.gotos << proc do
                     HDLRuby::High.top_user.instance_exec do
-                        # hprint("poking recursive return value at idx=",funcI.returnIdx," with value=",st_call.value+1,"\n")
-                        funcI.poke(funcI.returnIdx,st_call.value + 1)
+                        # hprint("returning with stack_ptr=",stack_ptr,"\n")
+                        hif(stack_ptr <= depth) do
+                            # hprint("poking recursive return value at idx=",funcI.returnIdx," with value=",st_call.value+1,"\n")
+                            funcI.poke(funcI.returnIdx,st_call.value + 1)
+                        end
                     end
                 end
             else
@@ -106,6 +116,11 @@ module HDLRuby::High::Std
             @funcT.body
         end
 
+        ## Gets the stack overflow code of the function.
+        def overflow
+            @funcT.overflow
+        end
+
         # Iterates over the argument types.
         #
         # Returns an enumerator if no ruby block is given.
@@ -142,6 +157,12 @@ module HDLRuby::High::Std
 
         # The return index in the stacks.
         attr_reader :returnIdx
+
+        # The stack pointer register.
+        attr_reader :stack_ptr
+
+        # The depth of the stack.
+        attr_reader :depth
 
         # Creates a new instance of function from +funcE+ eigen function,
         # and possible default stack depth +depth+.
@@ -212,7 +233,7 @@ module HDLRuby::High::Std
             @stack_sigs.each do |sig|
                 sig.type.instance_variable_set(:@range,0..@depth-1)
             end
-            @stack_ptr.type.instance_variable_set(:@range,@depth.width-1..0)
+            @stack_ptr.type.instance_variable_set(:@range,(@depth+1).width-1..0)
         end
 
 
@@ -289,11 +310,21 @@ module HDLRuby::High::Std
             # # create a state for the call.
             # call_state = SequencerT.current.step
 
-            # Adds the arguments and the return state to the current stack frame.
-            # Since not pushed the stack yet for not loosing the previous
-            # arguments, add +1 to the offset when poking the new arguments.
-            args.each_with_index { |arg,i| self.poke(@argsIdx + i,arg,1) }
-            # self.poke(@returnIdx,call_state.value + 1)
+            # Get the variables for handling the stack overflow.
+            stack_ptr = @stack_ptr
+            depth = @depth 
+            argsIdx = @argsIdx
+            this = self
+
+            # Adds the argument to the stack if no overflow.
+            HDLRuby::High.top_user.hif(stack_ptr < depth) do
+                # hprint("stack_ptr=",stack_ptr," depth=",depth,"\n")
+                # Adds the arguments and the return state to the current stack frame.
+                # Since not pushed the stack yet for not loosing the previous
+                # arguments, add +1 to the offset when poking the new arguments.
+                # args.each_with_index { |arg,i| self.poke(@argsIdx + i,arg,1) }
+                args.each_with_index { |arg,i| this.poke(argsIdx + i,arg,1) }
+            end
 
             # Push a new frame.
             self.push_all
@@ -301,13 +332,27 @@ module HDLRuby::High::Std
             # create a state for the call.
             call_state = SequencerT.current.step
 
+            # Prepare the handling of overflow
+            call_state_value = call_state.value
+            overflow = @funcE.overflow
+
             # Get the state value of the function: it is the state
             # following the first function call.
             func_state_value = @state.value + 1
             # Do the call.
             call_state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
-                    next_state_sig <= func_state_value
+                    hif(stack_ptr <= depth) do
+                        next_state_sig <= func_state_value
+                    end
+                    helse do
+                        # Overflow! Skip the call.
+                        next_state_sig <= call_state_value + 1
+                        if overflow then
+                            # There is some overflow code to execute.
+                            HDLRuby::High.top_user.instance_exec(&overflow)
+                        end
+                    end
                 end
             end
 
@@ -355,8 +400,9 @@ module HDLRuby::High::Std
         end
 
         ## Get a value from the top of stack number +idx+
-        def peek(idx)
-            return @stack_sigs[idx][@stack_ptr-1]
+        #  If +off+ is the offeset in the stack.
+        def peek(idx, off = 0)
+            return @stack_sigs[idx][@stack_ptr-1+off]
         end
 
         ## Sets value +val+ to the top of stack number +idx+.
@@ -389,7 +435,7 @@ module HDLRuby::High::Std
             # Create the state for the return command.
             state = SequencerT.current.step
             # Get the return state value.
-            ret_state_value = self.peek(@returnIdx)
+            ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,-1,0))
             # Return.
             this = self
             state.gotos << proc do
@@ -430,10 +476,11 @@ module HDLRuby::High::Std
 
 
     # Declares a sequencer function named +name+ using +ruby_block+ as body.
-    # You can specify a stack depth with +depth+ argument.
-    def sdef(name, depth=nil, &ruby_block)
+    # You can specify a stack depth with +depth+ argument and a HDLRuby
+    # block to execute in case of stack overflow with the +overflow+ argument.
+    def sdef(name, depth=nil, overflow = nil, &ruby_block)
         # Create the function.
-        funcT = SequencerFunctionT.new(name,depth,&ruby_block)
+        funcT = SequencerFunctionT.new(name,depth,overflow,&ruby_block)
         # Register it for calling.
         if HDLRuby::High.in_system? then
             define_singleton_method(name.to_sym) do |*args|
