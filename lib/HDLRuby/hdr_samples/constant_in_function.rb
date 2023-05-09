@@ -1,7 +1,8 @@
 # Sample for testing constant declaration in function.
 
 
-function :func do |addr|
+# function :func do |addr|
+hdef :func do |addr|
     bit[4][-4].constant tbl: [ _b1000, _b1001, _b1010, _b1011 ]
     
     tbl[addr]
