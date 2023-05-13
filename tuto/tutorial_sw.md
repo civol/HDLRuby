@@ -737,9 +737,11 @@ This section will explain the following about sequencers:
 
  * [How to write a structured programming algorithm in a sequencer.](#322-how-to-write-a-structured-programming-algorithm-in-a-sequencer)
 
- * [How to use enumerators in a sequencer.](#323-how-to-use-enumerators-in-a-sequencer)
+ * [How to write and use a sequencer function.](#323-how-to-write-and-use-a-sequencer-function)
 
- * [What happens when there are several sequencers?](#324-what-happens-when-there-are-several-sequencers)
+ * [How to use enumerators in a sequencer.](#324-how-to-use-enumerators-in-a-sequencer)
+
+ * [What happens when there are several sequencers?](#325-what-happens-when-there-are-several-sequencers)
 
 
 #### 3.2.1 How to declare and control a sequencer
@@ -1240,16 +1242,128 @@ You should obtain the following time chart:
 
 
 
+#### 3.2.3. How to write and use a sequencer function.
+
+Why not necessarily associated with algorithmic, it is common in software to define functions for code reuse and implementation of recursive algorithms. HDLRuby also provided such kinds of functions, with all the software features, including recursion, using the construct `sdef`. Such a function is defined as follows:
+
+```ruby
+sdef :<name> do |<arguments>|
+   <body>
+end
+```
+
+In the code above, `name` is the name of the function, `arguments` is a list of arguments and `body` is the code of the function that can be any kind of HDLRuby sequencer code. For returning a value from a function, the `sreturn(<value>)` command is used. For example, the following describes a function computing the factorial of its argument `n`:
+
+```ruby
+sdef :fact do |n|
+   sif(n>1) { sreturn(n*fact(n-1) }
+   selse    { sreturn(1) }
+end
+```
+
+There is a lot to unpack from this small example:
+
+ 1. Such a function can be defined outside or inside a module, but can only be called within a sequencer.
+
+ 2. The arguments of a function, here `n`, do not have any defined type: their type, and consequently the final implementation of the function, is determined by the data type of the actual arguments when the function is called. For example, in the following code, the data type of the actual argument `val` is 16-bit unsigned, hence that will be the data type of `n`.
+
+    ```ruby
+    [16].inner :val, :res
+
+    sequencer do
+       val <= 5
+       res <= fact(val)
+    end
+    ```
+
+ 3. When a function is recursive, a stack is created to store the arguments and the sequencer states for returning at each recursion. The size of this stack is by default set to the bit width of the largest argument, e.g., for `fact` it is set for supporting 16 recursions. In case of stack overflow, i.e., there were too many recursive calls, the recursion is stopped, and the execution of the sequencer proceeds from just after the last call.
+
+ 4. The behavior of the stack can be controlled in two ways when defining a function as follows:
+
+    ```ruby
+    sdef(:<name>,<size>, proc <error_handler>) do |<arguments>|
+       <body>
+    end
+    ```
+
+    In the code above, `size` is the forced size of the stack, and `error_handler` is a block of code that will be executed when a stack overflow occurs. Both arguments are optional, but if the error handler is provided, then the size must also be provided. For example, the code of the factorial can be rewritten as follows for forcing the stack to support 64 recursions:
+
+    ```ruby
+    sdef(:fact,64) do |n|
+       sif(n>1) { sreturn(n*fact(n-1) }
+       selse    { sreturn(1) }
+    end
+    ```
+
+    It can also be defined as follows to support only 8 recursions but to set a signal named `stack_overflow` to 1 when a stack overflow happens:
+
+    ```ruby
+    sdef(:fact, 8, proc { stack_overflow <= 1 }) do |n|
+       sif(n>1) { sreturn(n*fact(n-1) }
+       selse    { sreturn(1) }
+    end
+    ```
+
+Here is a full example using the factorial:
+
+```ruby
+sdef(:fact,8,proc { stack_overflow_error <= 1 }) do |n|
+    sif(n > 1) { sreturn(n*fact(n-1)) }
+    selse      { sreturn(1) }
+end
+
+
+# Checking the fact function.
+system :module_with_fact do
+
+    inner :clk,:rst
+
+    [16].inner :val
+    [16].inner :res
+    inner stack_overflow_error: 0
+
+    sequencer(clk.posedge,rst) do
+        5.stimes do |i|
+            val <= i
+            res <= fact(val)
+        end
+        hprint("stack_overflow_error=",stack_overflow_error,"\n")
+    end
+
+    timed do
+        clk <= 0
+        rst <= 0
+        !10.ns
+        clk <= 1
+        !10.ns
+        clk <= 0
+        rst <= 1
+        !10.ns
+        clk <= 1
+        !10.ns
+        clk <= 0
+        rst <= 0
+        !10.ns
+        clk <= 1
+        repeat(500) do
+            !10.ns
+            clk <= ~clk
+        end
+    end
+end
+```
+
+
 ---
 
 So now, you know:
  
- * How to describe fully fledged algorithms with sequencers.
+ * How to describe fully-fledged algorithms with sequencers using conditional and control statements as well as functions, including recursive ones.
 
 Also, if you are not familiar with languages like Ruby or Python, the `sfor` may look great compared to what C can provide. But this is just the beginning, HDLRuby can do better than that.
 
 
-#### 3.2.3. How to use enumerators in a sequencer
+#### 3.2.4. How to use enumerators in a sequencer
 
 If sometimes you program with Ruby, you may know about enumerators: they are objects used for processing iteratively several elements of objects. The HDLRuby's sequencer provides the same concept: it is possible to build hardware enumerators for any enumerable objects and they will run like Ruby's.
 
@@ -1386,7 +1500,7 @@ But this is not all: contrary to software, hardware is inherently parallel, a pr
 
 
 
-#### 3.2.4. What happens when there are several sequencers?
+#### 3.2.5. What happens when there are several sequencers?
 
 
 #### General considerations
@@ -1730,7 +1844,7 @@ In software, when you want to do parallelism you usually need specific libraries
 
  * [A sequencer is not a program](#41-a-sequencer-is-not-a-program)
 
- * [Adding parallelism is genuine](#42-parallel-control-statements-and-enumerators)
+ * [Adding parallelism is genuine](#42-parallel-control-statements-functions-and-enumerators)
 
 ### 4.1. A sequencer is not a program
 
@@ -1768,7 +1882,7 @@ sequencer(clk,start) do
 > __WARNING__: in hardware design with HDLRuby (and with all similar languages like Verilog VHDL or VHDL,) it is assumed that a clock is slow enough for the relevant combinatorial circuits to complete computation before the next cycle. If this is not the case, the resulting circuits will not function properly. Fortunately, the synthesis frameworks usually provide tools for verifying these timings.
 
 
-### 4.2. Parallel control statements and enumerators
+### 4.2. Parallel control statements, functions, and enumerators
 
 Sequencers provide many constructs for easy control and enumeration. However, those constructs are sequential by construction. What if you would like to do the same in parallel? This is possible, but there is an important restriction:
 
@@ -1872,14 +1986,46 @@ Yes, this is becoming confusing because it is hard to know what Ruby does when e
  * `zip`
 
 
+#### 4.2.3. Can functions be parallel too?
+
+As explained before, the body of a `sdef` function can contain any kind of sequencer code, hence parallel code is also possible. Yet, calling and returning from such a function are themselves sequential procedures that require several cycles to be performed. Hence, there exists a parallel version of `sdef` whose call and return as well as its body execution is fully combinatorial. It is declared as follows:
+
+```ruby
+hdef :<name> do |<arguments>|
+   <body>
+end
+```
+
+As you can see, the declaration is identical to the `sdef` one. However the behavior is different, and this new kind of function has the following limitations:
+
+ 1. It cannot contain any sequential code, i.e., constructs like `step`, `sif` or `sloop`.
+
+ 2. It does not support the `sreturn` constructs either, instead, it is the last value computed by the function that is returned.
+
+ 3. It cannot be recursive.
+
+Here is an example of a parallel-compatible function counting the number of ones in the input argument:
+
+```ruby
+hdef :popcount do |n|
+   n.each.reduce(_b0.as(n.type),&:+)
+end
+```
+
+In the code above, it can be seen that no return is provided but instead, it will be the result of the parallel sum result that will be returned since it is the last computation of the function. Also, the data type of the sum is obtained from the argument `n` (`as(n.type)`).
+
 ---
 
 Now you know:
 
- * How to use Ruby code for concisely describing parallel HDLRuby code.
+ * How to introduce parallelism within a sequencer.
+
+ * How to define a parallel-compatible function using `hdef`
+
+But, by the way, why bother with sequential code if parallel one is faster?
 
 
-#### 4.2.3. Parallel is faster, so why do sequential computations?
+#### 4.2.4. Parallel is faster, so why do sequential computations?
 
 Why parallel dataflow computations are indeed faster than sequential ones, in theory, they also have some drawbacks.
 
@@ -1930,7 +2076,11 @@ First, we must make things clear:
 
 > Processes in hardware has very little (nothing?) to do with any kind of software process.
 
-In hardware, a process is a list of data flow statements that are activated (we would say *executed* if they were software instructions) on a common condition. Depending on the activation condition, there are three kinds of processes:
+In hardware, a process is a list of data flow statements that are activated (we would say *executed* if they were software instructions) on a common condition. 
+
+> By data flow statements, we mean all the assignment statements, the `hif`, `helse`, `hcase` and `hwhen` statements, and the calls to `hdef` functions.
+
+Depending on the activation condition, there are three kinds of processes:
 
  * The connection processes (in HDLRuby they are considered to be processes)
 
