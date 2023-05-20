@@ -821,7 +821,7 @@ elsif $options[:verilog] then
     $top_system.each_systemT_deep do |systemT|
         HDLRuby.show? "signal2subs step..."
         # Ensure there is not implicit assign to sub signals.
-        systemT.signal2subs!
+        systemT.signal2subs!(true)
         # HDLRuby.show "casts_without_expression! step..."
         # systemT.casts_without_expression!
         # HDLRuby.show Time.now

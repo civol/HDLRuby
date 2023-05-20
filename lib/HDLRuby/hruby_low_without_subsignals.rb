@@ -18,9 +18,23 @@ module HDLRuby::Low
         ## Extends the SystemT class with functionality for decomposing the
         #  hierachical signals in the statements.
 
+        # # Decompose the hierarchical signals in the statements.
+        # def signal2subs!
+        #     self.scope.signal2subs!
+        # end
+
         # Decompose the hierarchical signals in the statements.
-        def signal2subs!
+        # If +decompose_vec2d+ is true then also decompose 2 dimension vectors
+        # (e.g., for Verilog HDL that does not support handling such signals
+        #  as usual expressions).
+        def signal2subs!(decompose_vec2d = false)
+            @@decompose_vec2d = decompose_vec2d == true
             self.scope.signal2subs!
+        end
+
+        ## Tell if 2d vector signals must be decomposed too.
+        def self.decompose_vec2d?
+            @@decompose_vec2d
         end
     end
 
@@ -230,16 +244,41 @@ module HDLRuby::Low
         # from signal +sig+ and add to result to +subrefs+
         def flatten_to(sig,subrefs)
             # puts "flatten_to with sig name=#{sig.name}"
-            # Work on the sub signals if any.
-            sig.each_signal do |sub|
-                # Create a reference for the sub.
-                subref = RefName.new(sub.type,self.clone,sub.name)
-                # Recruse on it.
-                subref.flatten_to(sub,subrefs)
-                # Was it a leaf?
-                unless sub.each_signal.any? then
-                    # Yes, add its new ref to the list of subs.
-                    subrefs << subref
+            # Shall we decompose 2d vectors, and is the current signal
+            # for one of them?
+            if SystemT.decompose_vec2d? and sig.type.is_a?(TypeVector) and
+                    sig.type.base.is_a?(TypeVector) then
+                # Is the reference used other than for a memory access?
+                unless self.parent.is_a?(RefIndex) then
+                    # Yes, do the decomposition.
+                    # Selects the direction.
+                    rng = sig.type.range
+                    if rng.first > rng.last then
+                        itr = (rng.last..rng.first).each
+                    else
+                        itr = rng.reverse_each
+                    end
+                    # Iterate on each element.
+                    itr.each do |i|
+                        # Create a reference fo the sub.
+                        subref = RefIndex.new(sig.type.base,self.clone,
+                                                  Value.new(TypeUnsigned.new(:""),i))
+                        # Add it.
+                        subrefs << subref
+                    end
+                end
+            else
+                # Work on the sub signals if any.
+                sig.each_signal do |sub|
+                    # Create a reference for the sub.
+                    subref = RefName.new(sub.type,self.clone,sub.name)
+                    # Recurse on it.
+                    subref.flatten_to(sub,subrefs)
+                    # Was it a leaf?
+                    unless sub.each_signal.any? then
+                        # Yes, add its new ref to the list of subs.
+                        subrefs << subref
+                    end
                 end
             end
         end

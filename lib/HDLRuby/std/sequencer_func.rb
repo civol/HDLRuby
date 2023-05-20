@@ -53,7 +53,10 @@ module HDLRuby::High::Std
                 # adds the return address.
                 depth = funcI.depth
                 stack_ptr = funcI.stack_ptr
-                st_call.gotos << proc do
+                # st_call.gotos << proc do
+                old_code = st_call.code
+                st_call.code = proc do
+                    old_code.call
                     HDLRuby::High.top_user.instance_exec do
                         # hprint("returning with stack_ptr=",stack_ptr,"\n")
                         hif(stack_ptr <= depth) do
@@ -72,20 +75,15 @@ module HDLRuby::High::Std
                 # allows to avoid one state.
                 st_func = funcI.build
                 # adds the return value.
-                st_call.gotos << proc do
+                # st_call.gotos << proc do
+                old_code = st_call.code
+                st_call.code = proc do
+                    old_code.call
                     HDLRuby::High.top_user.instance_exec do
                         # hprint("poking return value at idx=",funcI.returnIdx," with value=",st_func.value+1,"\n")
                         funcI.poke(funcI.returnIdx,st_func.value + 1)
                     end
                 end
-                # old_code = st_call.code
-                # st_call.code = proc do
-                #     old_code.call
-                #     HDLRuby::High.top_user.instance_exec do
-                #         hprint("poking return value at idx=",funcI.returnIdx," with value=",st_func.value+1,"\n")
-                #         funcI.poke(funcI.returnIdx,st_func.value + 1)
-                #     end
-                # end
             end
             # Return the created funcI return value.
             return funcI.return_value
@@ -435,17 +433,29 @@ module HDLRuby::High::Std
             # Create the state for the return command.
             state = SequencerT.current.step
             # Get the return state value.
-            ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,-1,0))
+            # ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,-1,0))
+            # Peek before the stack pointer value to account from the fact that
+            # the pop is performed beforehand.
+            ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,0,+1))
             # Return.
             this = self
             state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
                     # Set the next state.
                     next_state_sig <= ret_state_value
-                    # Pop must be place after setting the return state.
+                    # # Pop must be place after setting the return state.
+                    # this.pop_all
+                end
+            end
+            # Pop (done at clock edge, hence before the update of the state).
+            old_code = state.code
+            state.code = proc do
+                old_code.call
+                HDLRuby::High.top_user.instance_exec do
                     this.pop_all
                 end
             end
+
             return state
         end
     end

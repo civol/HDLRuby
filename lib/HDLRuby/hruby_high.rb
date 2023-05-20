@@ -3153,7 +3153,6 @@ module HDLRuby::High
 
         # Converts the unary expression to HDLRuby::Low.
         def to_low
-            # return HDLRuby::Low::Cast.new(self.type.to_low,self.child.to_low)
             castL =HDLRuby::Low::Cast.new(self.type.to_low,self.child.to_low)
             # # For debugging: set the source high object 
             # castL.properties[:low2high] = self.hdr_id

@@ -16,34 +16,34 @@ system :my_seqencer do
     [8].inner :res0, :res1
 
     sequencer(clk.posedge,rst) do
-        hprint("#0\n")
+        # hprint("#0\n")
         res0 <= 0
         res1 <= 0
         res0 <= vals.ssum
         res1 <= res0.ssum(_h00)
-        hprint("#1 res0=",res0," res1=",res1,"\n")
+        # hprint("#1 res0=",res0," res1=",res1,"\n")
     end
 
     [8].inner :res2, :res3
 
     sequencer(clk.posedge,rst) do
-        hprint("$0\n")
+        # hprint("$0\n")
         res2 <= 0
         res3 <= 0
         res2 <= (1..5).sum
         res3 <= (res3..res2).ssum
-        hprint("$1 res2=",res2," res3=",res3,"\n")
+        # hprint("$1 res2=",res2," res3=",res3,"\n")
     end
 
     [8].inner :res4, :res5
 
     sequencer(clk.posedge,rst) do
-        hprint("!0\n")
+        # hprint("!0\n")
         res4 <= 0
         res5 <= 0
         res4 <= [_h01,_h02,_h03,_h04].ssum
         res5 <= [1,2,3,4,5].ssum
-        hprint("!1 res4=",res4," res5=",res5,"\n")
+        # hprint("!1 res4=",res4," res5=",res5,"\n")
     end
 
     bit[8][-8].inner mem: [ _h01, _h02, _h03, _h04, _h30, _h30, _h30, _h30 ]
@@ -59,10 +59,10 @@ system :my_seqencer do
     end
 
     sequencer(clk.posedge,rst) do
-        hprint("~0\n")
+        # hprint("~0\n")
         res6 <= 0
         res6 <= mem_enum.ssum
-        hprint("~1 res6=",res6,"\n")
+        # hprint("~1 res6=",res6,"\n")
     end
 
 

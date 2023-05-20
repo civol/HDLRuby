@@ -89,10 +89,10 @@ module HDLRuby::Low
             # Convert the ranges to arrays.
             rngI,rngS = self.r2a(rngI), self.r2a(rngS)
             # Generate the name.
-            return "trunc_#{rngI[0]}_#{rngI[1]}_#{rngS[0]}_#{rngS[1]}"
+            return "truncer_#{rngI[0]}_#{rngI[1]}_#{rngS[0]}_#{rngS[1]}"
         end
 
-        # Generate the truncating functionds.
+        # Generate the truncating functions.
         def dump
             # Ensure there is only one truncating function per range.
             @truncers.sort!.uniq!
@@ -115,6 +115,53 @@ module HDLRuby::Low
 
     # Declaration of the truncating function generator.
     TruncersI = Truncers.new
+
+
+    # Class for generating the truncating functions in verilog.
+    # Such function are necessary as expression cannot be truncated directly.
+    class Indexers
+        def initialize
+            @indexers = []
+        end
+
+        # Add an indexer to of expression of verilog type +typI+ returning 
+        # verilog type +typR+.
+        def add(typI,typR)
+            # Add them
+            @indexers << [typI,typR]
+        end
+        alias_method :<<, :add
+
+
+        # Generate an indexer function name for expression of verilog type
+        # +typI+ returning verilog type +typR+.
+        def indexer_name(typI,typR)
+            # Generate the name.
+            return "indexer_#{name_to_verilog(typI)}_#{name_to_verilog(typR)}"
+        end
+
+        # Generate the indexing functions.
+        def dump
+            # Ensure there is only one indexing function per range.
+            @indexers.sort!.uniq!
+            # Generate the resulting code.
+            codeT = ""
+            @indexers.each do |(typI,typR)|
+                codeT << "     function #{typR} "
+                codeT << self.indexer_name(typI,typR) 
+                codeT << "(input #{typI} val, input integer idx);\n"
+                codeT << "         " << self.indexer_name(typI,typR) << " = "
+                codeT << "val[idx];\n"
+                codeT << "      endfunction\n\n"
+            end
+            # Clears the indexers.
+            @indexers = []
+            return codeT
+        end
+    end
+
+    # Declaration of the truncating function generator.
+    IndexersI = Indexers.new
 
 
     class Binary
@@ -1479,7 +1526,16 @@ module HDLRuby::Low
 
         # Converts the system to Verilog code.
         def to_verilog
-            return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
+            # return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
+            if self.ref.is_a?(RefName) then
+                return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
+            else
+                # No a pure signal, need to use a function for accessing.
+                at = self.ref.type.to_verilog
+                rt = self.type.to_verilog
+                IndexersI.add(at,rt)
+                return "#{IndexersI.indexer_name(at,rt)}(#{self.ref.to_verilog},#{self.index.to_verilog})"
+            end
         end
     end
 
@@ -1505,7 +1561,15 @@ module HDLRuby::Low
 
         # Converts the system to Verilog code.
         def to_verilog(unknown = false)
-            return "#{self.ref.to_verilog}[#{self.range.first.to_getrange}:#{self.range.last.to_getrange}]"
+            if self.ref.is_a?(RefName) then
+                return "#{self.ref.to_verilog}[#{self.range.first.to_getrange}:#{self.range.last.to_getrange}]"
+            else
+                # No a pure signal, need to use a function for accessing.
+                sr = self.range.first.to_i..self.range.last.to_i
+                cr = (self.type.width-1)..0
+                TruncersI.add(cr,sr)
+                return "#{TruncersI.truncer_name(cr,sr)}(#{self.ref.to_verilog})"
+            end
         end
     end
 
@@ -1580,16 +1644,20 @@ module HDLRuby::Low
                     # str = (2**self.type.width + self.content).to_s(2)
                     str = self.content.to_s(2)
                     str = "0" * (self.type.width-str.length+1) + str[1..-1]
-                    return "-#{self.type.width}'b#{str}"
+                    return "-#{self.type.width}'sb#{str}"
                 else
                     str = self.content.to_s(2)
                     str = "0" * (self.type.width-str.length) + str
-                    return "#{self.type.width}'b#{str}"
+                    return "#{self.type.width}'sb#{str}"
                 end
                 # return "#{self.type.width}'b#{str}"
             else
                 str = self.content.to_verilog
-                return "#{str.length}'b#{str}"
+                if self.content.negative? then
+                    return "#{str.length}'sb#{str}"
+                else
+                    return "#{str.length}'b#{str}"
+                end
             end
         end
         # How to use when simply obtaining the width
@@ -1770,10 +1838,20 @@ module HDLRuby::Low
             cw = self.child.type.width
             sw = self.type.width
             if self.type.signed? then
-                if (sw>cw) then
-                    # Need to sign extend.
-                    return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," +
-                        "#{self.child.to_verilog}})"
+                # Need to sign extend.
+                if cw == 1 then
+                    return "$signed({#{sw}{#{self.child.to_verilog}}})"
+                elsif (sw>cw) then
+                    # return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," + "#{self.child.to_verilog}})"
+                    if self.child.is_a?(RefName) then
+                        return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," + "#{self.child.to_verilog}})"
+                    else
+                        # No a pure signal, need to use a function for accessing.
+                        at = self.child.type.to_verilog
+                        rt = bit.to_verilog
+                        IndexersI.add(at,rt)
+                        return "$signed({{#{sw-cw}{#{IndexersI.indexer_name(at,rt)}(#{self.child.to_verilog},#{cw-1})}}," + "#{self.child.to_verilog}})"
+                    end
                 elsif (sw<cw) then
                     # Need to truncate
                     # return "$signed(#{self.child.to_verilog}[#{sw-1}:0])"
@@ -2288,6 +2366,8 @@ module HDLRuby::Low
 
             # Adds the truncing functions.
             code << TruncersI.dump
+            # Adds the indexing functions.
+            code << IndexersI.dump
             # Adds the content code.
             code << codeC
             return code
