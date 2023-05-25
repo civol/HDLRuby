@@ -119,6 +119,17 @@ module HDLRuby::High::Std
             return st
         end
 
+        # Mark several steps.
+        def steps(num)
+            # Create a counter. 
+            count = nil
+            HDLRuby::High.cur_system.open do
+                count = num.to_expr.type.inner(HDLRuby.uniq_name(:"steps_count"))
+            end
+            count <= num
+            swhile(count > 0) { count <= count - 1 }
+        end
+
         # Breaks current iteration.
         def sbreak
             # Mark a step.

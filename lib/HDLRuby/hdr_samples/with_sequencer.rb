@@ -57,12 +57,12 @@ system :my_seqencer do
     sequencer(clk.posedge,rst) do
         # hprint("###0\n")
         res00 <= 0
+        steps(3) # Checks 3 steps
         uuu <= 0
         vvv <= 1
         swhile(vvv<10000) do
             vvv <= uuu + vvv
             uuu <= vvv - uuu
-            step
             # hprint("##1 vvv=",vvv,"\n")
             sif(vvv >= 100) { sbreak }
             selse { res00 <= res00 + 1 }
