@@ -333,6 +333,11 @@ module HDLRuby::High::Std
             # Prepare the handling of overflow
             call_state_value = call_state.value
             overflow = @funcE.overflow
+            if overflow then
+                HDLRuby::High.top_user.hif(stack_ptr > depth) do
+                    HDLRuby::High.top_user.instance_exec(&overflow)
+                end
+            end
 
             # Get the state value of the function: it is the state
             # following the first function call.
@@ -346,10 +351,10 @@ module HDLRuby::High::Std
                     helse do
                         # Overflow! Skip the call.
                         next_state_sig <= call_state_value + 1
-                        if overflow then
-                            # There is some overflow code to execute.
-                            HDLRuby::High.top_user.instance_exec(&overflow)
-                        end
+                        # if overflow then
+                        #     # There is some overflow code to execute.
+                        #     HDLRuby::High.top_user.instance_exec(&overflow)
+                        # end
                     end
                 end
             end
