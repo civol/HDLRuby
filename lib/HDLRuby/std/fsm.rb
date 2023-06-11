@@ -219,7 +219,11 @@ module HDLRuby::High::Std
                             # The default code.
                             default_codes.each(&:call)
                             # Depending on the state.
-                            hcase(this.cur_state_sig)
+                            if (type == :sync) then
+                                hcase(this.next_state_sig)
+                            else
+                                hcase(this.cur_state_sig)
+                            end
                             states.each do |st|
                                 # Register the working state (for the gotos)
                                 this.work_state = st
