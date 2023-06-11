@@ -599,7 +599,7 @@ With HDL like Verilog HDL, there is a real distinction between wires and storage
 
 __Note__: one may ask what about the `variable` construct in VHDL: those are syntactic intermediates used for simplifying the descriptions. HDLRuby also supports such a `variable` construct, but those are simply the variables of the Ruby language. Therefore, these variables can hold not only values but any Ruby or HDLRuby constructs.
 
-In HDLRuby, there are three kinds of signals: the input ports, the output ports, the inout ports, and the inner signals. The first three kinds of signals have already been described in the section about declaring a [circuit](#circuit-declare). At that time they were called ports because it is what such constructs are called in common HDL. However, in HDLRuby there is no distinction at all between ports and signals, hence from now on, we will use the term `signal` in general, and the term `port` when we only want to refer to the interface of a circuit. The inner signals can be used inside a circuit and are usually used as an intermediate for internal computations. They are declared like the ports, but using `inner` instead of `input`, `output`, or `inout`. For example, the following code declares a module named `a_circuit` with two 1-bit inputs, one 8-bit output, and one 4-bit inner signal.
+In HDLRuby, there are four kinds of signals: the input ports, the output ports, the inout ports, and the inner signals. The first three kinds of signals have already been described in the section about declaring a [circuit](#circuit-declare). At that time they were called ports because it is what such constructs are called in common HDL. However, in HDLRuby there is no distinction at all between ports and signals, hence from now on, we will use the term `signal` in general, and the term `port` when we only want to refer to the interface of a circuit. The inner signals can be used inside a circuit and are usually used as an intermediate for internal computations. They are declared like the ports, but using `inner` instead of `input`, `output`, or `inout`. For example, the following code declares a module named `a_circuit` with two 1-bit inputs, one 8-bit output, and one 4-bit inner signal.
 
 ```ruby
 system(:a_circuit) do
@@ -954,7 +954,7 @@ In detail here is a list of the control statements you can use within a sequence
 
  * `sif(<condition>) <block>`: executes `block` if `condition` is true (i.e., different from 0).
 
- - `selsif(<condition>) <block>`: executes `block` if the previous `sif` and `selsif` conditions are false and if the current `condition` is true.
+ * `selsif(<condition>) <block>`: executes `block` if the previous `sif` and `selsif` conditions are false and if the current `condition` is true.
 
  * `selse <block>`: executes `block` if the conditions of the previous `sif` and `selsif` are false (i.e., equals 0). It is also used for giving the default block for the `scase` statements (see below).
 
@@ -971,6 +971,8 @@ In detail here is a list of the control statements you can use within a sequence
  * `sbreak`: ends the current loop (even if it is a `sloop`).
 
  * `scontinue`: ends the current iteration.
+
+ * `steps(<num>)`: performs `num` times `step` (`num` can be any expression). Useful for waiting a certain number of cycles.
 
 > __IMPORTANT__: each control statement requires one clock cycle for each branch they perform, independently of what their block contains. For example, in the following code, the value of `y` will be set one cycle after `x` is set to 0, and one cycle before `z` is set to 1.
 
@@ -1430,7 +1432,7 @@ That's all that we will explain here, the remaining is exactly like Ruby. Moreov
     
     sequencer(clk,start) do
        16.stimes {|i| ar[i] <= sin }
-       ar.ssort
+       ar <= ar.ssort
        16.stimes {|i| sout <= ar[i] }
     end
     ```

@@ -2880,6 +2880,8 @@ A sequence is a specific case of a `seq` block that includes the following softw
 
  - `step`: wait until the next event (given argument `event` of the sequencer).
 
+ - `steps(<num>)`: perform `num` times `step` (`num` can be any expression).
+
  - `sif(<condition>) <block>`: executes `block` if `condition` is met.
 
  - `selsif(<condition>) <block>`: executes `block` if the previous `sif` or `selsif` condition is not met and if the current `condition` is met.
