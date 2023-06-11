@@ -1247,54 +1247,173 @@ module HDLRuby::High::Std
             raise "sslice_before is not supported yet."
         end
 
+        # # HW implementation of the Ruby sort.
+        # def ssort(&ruby_block)
+        #     enum = self.seach
+        #     n = enum.size
+        #     # Declare the result signal the flag and the result array size index
+        #     # used for implementing the algorithm (shift-based sorting).
+        #     res = nil
+        #     flg = nil
+        #     idx = nil
+        #     HDLRuby::High.cur_system.open do
+        #         res = enum.type[-n].inner(HDLRuby.uniq_name(:"sort_res"))
+        #         flg = bit.inner(HDLRuby.uniq_name(:"sort_flg"))
+        #         idx = bit[n.width].inner(HDLRuby.uniq_name(:"sort_idx"))
+        #     end
+        #     # Performs the sort using a shift-based algorithm (also used in 
+        #     # smin).
+        #     enum.srewind
+        #     # Do the iteration.
+        #     idx <= 0
+        #     SequencerT.current.swhile(enum.snext?) do
+        #         # Multiple min case.
+        #         SequencerT.current.sif(enum.snext?) do
+        #             elem = enum.snext
+        #             flg <= 1
+        #             n.times do |i|
+        #                 # Compute the comparison between the result element at i
+        #                 # and the enum element.
+        #                 if ruby_block then
+        #                     cond = ruby_block.call(res[i],elem) > 0
+        #                 else
+        #                     cond = res[i] > elem
+        #                 end
+        #                 # If flg is 0, elem is already set as min, skip.
+        #                 # If the result array size index is equal to i, then
+        #                 # put the element whatever the comparison is since the
+        #                 # place is still empty.
+        #                 hif(flg & (cond | (idx == i))) do
+        #                     # A new min is found, shift res from i.
+        #                     ((i+1)..(n-1)).reverse_each { |j| res[j] <= res[j-1] }
+        #                     # An set the new min in current position.
+        #                     res[i] <= elem
+        #                     # For now skip.
+        #                     flg <= 0
+        #                 end
+        #             end
+        #             idx <= idx + 1
+        #         end
+        #     end
+        #     return res
+        # end
+        
+        # Merge two arrays in order, for ssort only.
+        def ssort_merge(arI, arO, first, middle, last, &ruby_block)
+            # puts "first=#{first} middle=#{middle} last=#{last}"
+            # Declare and initialize the indexes and
+            # the ending flag.
+            idF = nil; idM = nil; idO = nil
+            flg = nil
+            HDLRuby::High.cur_system.open do
+                typ = [(last+1).width]
+                idF = typ.inner(HDLRuby.uniq_name(:"sort_idF"))
+                idM = typ.inner(HDLRuby.uniq_name(:"sort_idM"))
+                idO = typ.inner(HDLRuby.uniq_name(:"sort_idO"))
+                flg = inner(HDLRuby.uniq_name(:"sort_flg"))
+            end
+            idF <= first; idM <= middle; idO <= first
+            flg <= 0
+            SequencerT.current.swhile((flg == 0) & (idO < middle*2)) do
+                if ruby_block then
+                    cond = ruby_block.call(arI[idF],arI[idM]) < 0
+                else
+                    cond = arI[idF] < arI[idM]
+                end
+                hif((idF >= middle) & (idM > last)) { flg <= 1 }
+                helsif (idF >= middle) do
+                    arO[idO] <= arI[idM]
+                    idM <= idM + 1
+                end
+                helsif(idM > last) do
+                    arO[idO] <= arI[idF]
+                    idF <= idF + 1
+                end
+                helsif(cond) do
+                    arO[idO] <= arI[idF]
+                    idF <= idF + 1
+                end
+                helse do
+                    arO[idO] <= arI[idM]
+                    idM <= idM + 1
+                end
+                idO <= idO + 1
+            end
+        end
+
         # HW implementation of the Ruby sort.
         def ssort(&ruby_block)
             enum = self.seach
             n = enum.size
-            # Declare the result signal the flag and the result array size index
-            # used for implementing the algorithm (shift-based sorting).
+            # Declare the result signal.
             res = nil
             flg = nil
-            idx = nil
+            siz = nil
             HDLRuby::High.cur_system.open do
                 res = enum.type[-n].inner(HDLRuby.uniq_name(:"sort_res"))
-                flg = bit.inner(HDLRuby.uniq_name(:"sort_flg"))
-                idx = bit[n.width].inner(HDLRuby.uniq_name(:"sort_idx"))
             end
-            # Performs the sort using a shift-based algorithm (also used in 
-            # smin).
-            enum.srewind
-            # Do the iteration.
-            idx <= 0
-            SequencerT.current.swhile(enum.snext?) do
-                # Multiple min case.
-                SequencerT.current.sif(enum.snext?) do
-                    elem = enum.snext
-                    flg <= 1
-                    n.times do |i|
-                        # Compute the comparison between the result element at i
-                        # and the enum element.
-                        if ruby_block then
-                            cond = ruby_block.call(res[i],elem) > 0
-                        else
-                            cond = res[i] > elem
-                        end
-                        # If flg is 0, elem is already set as min, skip.
-                        # If the result array size index is equal to i, then
-                        # put the element whatever the comparison is since the
-                        # place is still empty.
-                        hif(flg & (cond | (idx == i))) do
-                            # A new min is found, shift res from i.
-                            ((i+1)..(n-1)).reverse_each { |j| res[j] <= res[j-1] }
-                            # An set the new min in current position.
-                            res[i] <= elem
-                            # For now skip.
-                            flg <= 0
-                        end
-                    end
-                    idx <= idx + 1
+            # Only one element?
+            if n == 1 then
+                # Just copy to the result and end here.
+                res[0] <= enum.snext
+                return res
+            end
+            tmp = []
+            idxF = nil; idxM = nil; idxO = nil
+            HDLRuby::High.cur_system.open do
+                # More elements, need to declare intermediate arrays.
+                ((n-1).width).times do
+                    tmp << enum.type[-n].inner(HDLRuby.uniq_name(:"sort_tmp"))
                 end
+                # The result will be the last of the intermediate arrays.
+                tmp << res
             end
+            # Fills the first temporary array.
+            enum.seach_with_index { |e,i| tmp[0][i] <= e }
+            # Is there only 2 elements?
+            if n == 2 then
+                if ruby_block then
+                    cond = ruby_block.call(tmp[0][0],tmp[0][1]) < 0
+                else
+                    cond = tmp[0][0] < tmp[0][1]
+                end
+                # Just look for the min and the max.
+                hif(cond) do
+                    res[0] <= tmp[0][0]
+                    res[1] <= tmp[0][1]
+                end
+                helse do
+                    res[1] <= tmp[0][0]
+                    res[0] <= tmp[0][1]
+                end
+                return res
+            end
+            # Performs the sort using a merge-based algorithm.
+            breadth = 1; i = 0
+            # while(breadth*2 < n)
+            while(breadth < n)
+                pos = 0; last = 0
+                while(pos+breadth < n)
+                    last = [n-1,pos+breadth*2-1].min
+                    ssort_merge(tmp[i], tmp[i+1], pos, pos+breadth,last,&ruby_block)
+                    pos = pos + breadth * 2
+                end
+                # Copy the remaining elements if any
+                if last < n-1 then
+                    (n-last-1).stimes do |j|
+                        tmp[i+1][j+last+1] <= tmp[i][j+last+1]
+                    end
+                end
+                # Next step
+                # SequencerT.current.step
+                breadth = breadth * 2
+                i += 1
+            end
+            # # Last merge if the array size was not a power of 2.
+            # if (breadth*2 != n) then
+            #     ssort_merge(tmp[-2],tmp[-1],0,breadth,n-1,&ruby_block)
+            #     # SequencerT.current.step
+            # end
             return res
         end
 
@@ -1332,7 +1451,7 @@ module HDLRuby::High::Std
                     # There is a ruby block, use it to process the element first.
                     res <= res + ruby_block.call(enum.snext)
                 else
-                    # No ruby block, just do the su,
+                    # No ruby block, just do the sum
                     res <= res + enum.snext
                 end
             end

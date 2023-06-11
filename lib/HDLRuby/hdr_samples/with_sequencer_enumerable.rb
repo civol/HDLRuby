@@ -315,15 +315,21 @@ system :my_seqencer do
         # hprint("_1 res43=",res43,"\n")
     end
 
+    [8*10].inner :res44X, :res45X
     [8*8].inner :res44, :res45
+    bit[8][-10].inner valsX: [ _h00, _h10, _hA5, _h0B, _hFE, _h34, _h5C, _h44, _h01, _h82 ]
 
     sequencer(clk.posedge,rst) do
         # hprint("@0\n")
-        res44 <= 0
-        res45 <= 0
+        res44  <= 0
+        res45  <= 0
+        res44X <= 0
+        res45X <= 0
         step
-        res44 <= vals.ssort
-        res45 <= vals.ssort_by { |val| val.to_signed }
+        res44  <= vals.ssort
+        res45  <= vals.ssort_by { |val| val.to_signed }
+        res44X <= valsX.ssort
+        res45X <= valsX.ssort_by { |val| val.to_signed }
         # hprint("@1 res44=",res44," res45=",res45,"\n")
     end
 
@@ -397,7 +403,7 @@ system :my_seqencer do
         rst <= 0
         !10.ns
         clk <= 1
-        repeat(100) do
+        repeat(500) do
             !10.ns
             clk <= ~clk
         end
