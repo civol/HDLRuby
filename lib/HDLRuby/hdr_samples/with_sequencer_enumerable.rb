@@ -34,6 +34,34 @@ include HDLRuby::High::Std
 # - The twenty nineth sequencer checks stake and stake_while
 # - The thirtieth sequencer checks suniq
 # - The thirty first sequencer checks szip
+#
+# __WARNING__: All the operations on enumerators generate their own result
+#              signal. Therefore, in a real circuit, there is no need to
+#              declare your own signal for it, as demonstrated in this sample. 
+#              In other words, the res<num> signals are unnecessary, and 
+#              assigning the result to them only slows down the circuit without 
+#              any benefit. Instead, they can be replaced with Ruby variables
+#              as shown below:
+#                 from: res<num> <= <enumerator operation> 
+#                 to:   <ruby variable> = <enumerator operation>
+#              In this sample it is done this way for an easy vizualization of
+#              the multiple results.
+#              
+#              For instance the first example should be rewritten from:
+#                 [16].inner :res0, :res1
+#                 sequencer(clk.posedge,rst) do
+#                    res0 <= 0; res1 <= 1
+#                    step
+#                    res0 <= vals.sall? { |val| val!= _h11 }
+#                    res1 <= vals.sall? { |val| val!= _h5C }
+#                 end
+#              to:
+#                 res0 = nil; res1 = nil
+#                 sequencer(clk.posedge,rst) do
+#                    res0 = vals.sall? { |val| val!= _h11 }
+#                    res1 = vals.sall? { |val| val!= _h5C }
+#                 end
+#
 system :my_seqencer do
 
     inner :clk,:rst

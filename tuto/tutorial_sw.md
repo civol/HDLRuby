@@ -1432,12 +1432,12 @@ That's all that we will explain here, the remaining is exactly like Ruby. Moreov
     
     sequencer(clk,start) do
        16.stimes {|i| ar[i] <= sin }
-       ar <= ar.ssort
-       16.stimes {|i| sout <= ar[i] }
+       res = ar.ssort
+       16.stimes {|i| sout <= res[i] }
     end
     ```
    
-   In this example, `16.stimes` generates an enumerator over the `0..7` range, and is a way to build an enumerator from an integer value.
+   In this example, `16.stimes` generates an enumerator over the `0..7` range, and is a way to build an enumerator from an integer value. In addition, please notice the use of the Ruby variable `res` for accessign the signal containing the sort result.
 
   * Apply a 4-point FIR filter over an array obtained from input signal `sin` with 0-padding at the beginning and output the result to `sout`
 
@@ -1457,7 +1457,29 @@ That's all that we will explain here, the remaining is exactly like Ruby. Moreov
     end
     ```
    
-    In this example, `[_h00]*3` builds an array of three 8-bit zeros for the padding, `seach` creates the iterators over this padding. This iterator is added to one over `ar` which creates a global iterator over them all. `seach_slice` and `sreduce` work the same way their Ruby equivalent `each_slice` and `reduce` do.
+    In this example, `[_h00]*3` builds an array of three 8-bit zeros for the padding, `seach` creates the iterators over this padding. This iterator is added to one over `ar` which creates a global iterator over them all. `seach_slice` and `sreduce` work the same way their Ruby equivalent `each_slice` and `reduce` do. Here, since the result is a single byte, it is directly assigned to the output `sout`, but the following could also have been possible:
+
+    ```ruby
+    input :clk,:start
+    [8].input :sin
+    [8].output :sout
+    
+    bit[8][-4].inner coefs: [_h01,_h05,_h0A,_hFE]
+    bit[8][-16].inner : ar
+   
+    res = nil
+
+    sequencer(clk,start) do
+       16.stime {|i| ar[i] <= sin }
+       res = ([_h00]*3).seach + ar.seach).seach_slice(4).sreduce(_h00) do |a,b,c,d|
+          a*coefs[0] + b * coefs[1] + c * coefs[2] + d * coefs[3]
+       end
+    end
+
+    sout <= res
+    ```
+
+    Please notice that since the Ruby variable `res` is used outside the sequencer, it must also be declared outside (`res = nil`).
 
 
 
