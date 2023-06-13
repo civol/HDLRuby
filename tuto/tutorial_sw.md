@@ -273,30 +273,30 @@ If everything was OK, a file named `my_circuit.v` should have appeared in the `w
 ```verilog
 `timescale 1ps/1ps
 
-module _v0_1( _v1_clk, _v2_rst, _v3_addr, _v4_data_in, _v5_data_out );
-   input _v1_clk;
-   input _v2_rst;
-   input [15:0] _v3_addr;
-   input _v4_ce;
-   input [7:0] _v5_data_in;
-   output [7:0] _v6_data_out;
+module _v0_1( clk, rst, addr, data_in, data_out );
+   input clk;
+   input rst;
+   input [15:0] addr;
+   input ce;
+   input [7:0] data_in;
+   output [7:0] data_out;
 
 
 endmodule
 ```
 
-The syntax looks indeed a little bit different from HDLRuby, but you should be able to recognize the description of the circuit. The name of the ports is different though, this is because HDLRuby supports any Unicode character for names and to avoid compatibility problems, it recreates the names when generating Verilog. Still, an effort is made to keep the original name, e.g., `clk` became `_v1_clk`. But, just for the fun, please replace `:addr` in the HDLRuby file with `:☺` and regenerate Verilog HDL from it... It works! And the result is:
+The syntax looks indeed a little bit different from HDLRuby, but you should be able to recognize the description of the circuit. The name of the module is different though, this is because HDLRuby supports any Unicode character for names and to avoid compatibility problems, it recreates the names when generating Verilog. But, just for the fun, please replace `:addr` in the HDLRuby file with `:☺` and regenerate Verilog HDL from it... It works! And the result is:
 
 ```verilog
 `timescale 1ps/1ps
 
-module _v0_1( _v1_clk, _v2_rst, _v3_, _v4_data_in, _v5_data_out );
-   input _v1_clk;
-   input _v2_rst;
-   input [15:0] _v3_;
-   input _v4_ce;
-   input [7:0] _v5_data_in;
-   output [7:0] _v6_data_out;
+module _v0_1( clk, rst, _v1_, data_in, data_out );
+   input clk;
+   input rst;
+   input [15:0] _v1_;
+   input ce;
+   input [7:0] data_in;
+   output [7:0] data_out;
 
 
 endmodule
@@ -357,17 +357,17 @@ Three new files should have appeared in the `work` directory: `_v10_5.v`, `_v8_4
 ```verilog
 `timescale 1ps/1ps
 
-module _v0_3( _v1_clk, _v2_rst, _v3_addr, _v4_ce0, _v5_ce1, _v6_data_in, _v7_data_out );
-   input _v1_clk;
-   input _v2_rst;
-   input [15:0] _v3_addr;
-   input _v4_ce0;
-   input _v5_ce1;
-   input [7:0] _v6_data_in;
-   output [7:0] _v7_data_out;
+module _v0_3( clk, rst, addr, ce0, ce1, data_in, data_out );
+   input clk;
+   input rst;
+   input [15:0] addr;
+   input ce0;
+   input ce1;
+   input [7:0] data_in;
+   output [7:0] data_out;
 
-   _v8_4 _v9_my_circuit0();
-   _v10_5 _v11_my_circuit1();
+   _v8_4 my_circuit0();
+   _v10_5 my_circuit1();
 
 endmodule
 ```
@@ -497,14 +497,14 @@ When the compile succeeds (no error message), two new files appear in `work`, na
 ```verilog
 `timescale 1ps/1ps
 
-module _v0_3( _v1_clk, _v2_rst, _v3_addr, _v4_ce0, _v5_ce1, _v6_data_in, _v7_data_out );
+module _v0_3( clk, rst, addr, ce0, ce1, data_in, data_out );
    input _v1_clk;
    input _v2_rst;
-   input [15:0] _v3_addr;
-   input _v4_ce0;
-   input _v5_ce1;
-   input [7:0] _v6_data_in;
-   output [7:0] _v7_data_out;
+   input [15:0] addr;
+   input ce0;
+   input ce1;
+   input [7:0] data_in;
+   output [7:0] data_out;
    wire _v8_0;
    wire _v9_1;
    wire [15:0] _v10_2;
@@ -518,29 +518,29 @@ module _v0_3( _v1_clk, _v2_rst, _v3_addr, _v4_ce0, _v5_ce1, _v6_data_in, _v7_dat
    wire [7:0] _v18_10;
    wire [7:0] _v19_11;
 
-      _v20_4 _v21_my_circuit0(._v1_clk(_v8_0),._v2_rst(_v9_1),._v3_addr(_v10_2),._v22_ce(_v11_3),._v6_data_in(_v12_4),._v7_data_out(_v18_10));
-   _v23_5 _v24_my_circuit1(._v1_clk(_v13_5),._v2_rst(_v14_6),._v3_addr(_v15_7),._v22_ce(_v16_8),._v6_data_in(_v17_9),._v7_data_out(_v19_11));
-   assign _v8_0 = _v1_clk;
+      _v20_4 my_circuit0(.clk(_v8_0),.rst(_v9_1),.addr(_v10_2),.ce(_v11_3),.data_in(_v12_4),.data_out(_v18_10));
+   _v23_5 my_circuit1(.clk(_v13_5),.rst(_v14_6),.addr(_v15_7),.ce(_v16_8),.data_in(_v17_9),.data_out(_v19_11));
+   assign _v8_0 = clk;
 
-   assign _v9_1 = _v2_rst;
+   assign _v9_1 = rst;
 
-   assign _v10_2 = _v3_addr;
+   assign _v10_2 = addr;
 
-   assign _v11_3 = _v4_ce0;
+   assign _v11_3 = ce0;
 
-   assign _v12_4 = _v6_data_in;
+   assign _v12_4 = data_in;
 
-   assign _v13_5 = _v1_clk;
+   assign _v13_5 = clk;
 
-   assign _v14_6 = _v2_rst;
+   assign _v14_6 = rst;
 
-   assign _v15_7 = _v3_addr;
+   assign _v15_7 = addr;
 
-   assign _v16_8 = _v5_ce1;
+   assign _v16_8 = ce1;
 
-   assign _v17_9 = _v6_data_in;
+   assign _v17_9 = data_in;
 
-   assign _v7_data_out = (_v18_10 + _v19_11);
+   assign data_out = (_v18_10 + _v19_11);
 
 
 endmodule

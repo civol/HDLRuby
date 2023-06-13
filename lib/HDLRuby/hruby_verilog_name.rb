@@ -31,8 +31,15 @@ module HDLRuby::Verilog
       name = name.to_s
       vname = @@hdr2verilog[name]
       unless vname then
-          vname = "_v#{@@hdr2verilog.size}_#{name.split(/[^a-zA-Z_0-9]/)[-1]}"
-            @@hdr2verilog[name] = vname
+          # Shall we change the string?
+          if name.match?(/^[_a-zA-Z][_a-zA-Z0-9]*$/) then
+              # No, just clone
+              vname = name.clone
+          else
+              # Yes, ensure it is a verilog-compatible name.
+              vname = "_v#{@@hdr2verilog.size}_#{name.split(/[^a-zA-Z_0-9]/)[-1]}"
+          end
+          @@hdr2verilog[name] = vname
       end
       return vname
   end
