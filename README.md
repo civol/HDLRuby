@@ -11,6 +11,18 @@ If you are new to HDLRuby, it is recommended that you consult first the followin
 
 __What's new__
 
+For HDLRuby version 3.1.0:
+
+ * [Functions for sequencers](#sequencer-specific-function-std-sequencer_func-rb) supporting recursion;
+
+ * The `function` keyword was replaced with `hdef` for better consistency with the new functions for sequencers;
+
+ * The `steps` command was added for waiting several steps in a sequencer;
+
+ * Verilog HDL code generation was improved to preserve as much as possible the original names of the signals;
+
+ * Several bug fixes for the sequencers.
+
 For HDLRuby version 3.0.0:
 
  * This section;
