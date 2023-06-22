@@ -123,11 +123,19 @@ module HDLRuby::High::Std
         def steps(num)
             # Create a counter. 
             count = nil
+            zero = nil
+            one = nil
             HDLRuby::High.cur_system.open do
-                count = num.to_expr.type.inner(HDLRuby.uniq_name(:"steps_count"))
+                if num.respond_to?(:width) then
+                    count = [num.width].inner(HDLRuby.uniq_name(:"steps_count"))
+                else
+                    count = num.to_expr.type.inner(HDLRuby.uniq_name(:"steps_count"))
+                end
+                zero = _b0
+                one  = _b1
             end
             count <= num
-            swhile(count > 0) { count <= count - 1 }
+            swhile(count > zero) { count <= count - one }
         end
 
         # Breaks current iteration.
@@ -1936,12 +1944,20 @@ module HDLRuby::High::Std
         # HW iteration on each element.
         def seach(&ruby_block)
             # Create the iteration type.
-            typ = bit[[self.first.width,self.last.width].max]
+            # typ = [[self.first.width,self.last.width].max]
+            if self.first < 0 || self.last < 0 then
+                typ = signed[[self.first.abs.width,self.last.abs.width].max]
+            else
+                typ = bit[[self.first.width,self.last.width].max]
+            end
             # Create the hardware iterator.
             this = self
             size = this.size ? this.size : this.last - this.first + 1
-            hw_enum = SEnumeratorBase.new(signed[32],size) do |idx|
-                idx.as(typ) + this.first
+            # puts "size=#{size}"
+            # hw_enum = SEnumeratorBase.new(signed[32],size) do |idx|
+            hw_enum = SEnumeratorBase.new(typ,size) do |idx|
+                # idx.as(typ) + this.first
+                idx.as(typ) + this.first.to_expr.as(typ)
             end
             # Is there a ruby block?
             if(ruby_block) then
