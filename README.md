@@ -84,7 +84,7 @@ Where:
 | `-S, --sim`       | Perform the simulation with the default engine       |
 | `--csim`          | Perform the simulation with the standalone engine    |
 | `--rsim`          | Perform the simulation with the Ruby engine          |
-| `--rcsim`         | Perform the simulation with the Hybris engine        |
+| `--rcsim`         | Perform the simulation with the Hybrid engine        |
 | `--vcd`           | Make the simulator generate a VCD file               |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
 | `-D, --debug`     | Set the HDLRuby debug mode |
