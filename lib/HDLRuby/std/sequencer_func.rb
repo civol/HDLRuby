@@ -39,6 +39,14 @@ module HDLRuby::High::Std
 
         # Call the function with arguments +args+.
         def call(*args)
+            # Check if there are extra arguments, they are used for configuring
+            # the stack.
+            if args.size > @body.arity then
+                # The first extra argument is the depth of the stack for this
+                # specific call.
+                @depth = args.delete_at(@body.arity)
+            end
+
             # Specialize the function with the types of the arguments.
             # (the result is the eigen function of funcI).
             funcE = SequencerFunctionE.new(self, args.map {|arg| arg.type })

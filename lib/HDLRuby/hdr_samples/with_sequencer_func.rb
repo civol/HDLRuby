@@ -6,7 +6,7 @@ include HDLRuby::High::Std
 # A factorial with default stack depth.
 sdef(:fact) do |n|
     hprint("n=",n,"\n")
-    sif(n > 1) { sreturn(n*fact(n-1)) }
+    sif(n > 1) { sreturn(n*fact(n-1,20)) } #Recurse setting the stack depth to 20
     selse      { sreturn(1) }
 end
 
