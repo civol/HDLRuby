@@ -331,7 +331,11 @@ module HDLRuby::High::Std
 
 
     class HDLRuby::High::Block
-        alias_method :old_make_inners, :make_inners
+        # Save module method (unbounded) for further call since going to
+        # override make_inners.
+        # alias_method does not seem to work in such a context, so use
+        # this approach.
+        @@old_make_inners_proc = self.instance_method(:make_inners)
 
         def make_inners(typ,*names)
             if SequencerT.current then
@@ -341,7 +345,9 @@ module HDLRuby::High::Std
                     HDLRuby::High.space_reg(name) { send(uname) }
                 end
             else
-                self.old_make_inners(typ,*names)
+                # self.old_make_inners(typ,*names)
+                # Call the old make_inners.
+                @@old_make_inners_proc.bind(self).call(typ,*names)
             end
         end
     end
@@ -1407,9 +1413,10 @@ module HDLRuby::High::Std
                     pos = pos + breadth * 2
                 end
                 # Copy the remaining elements if any
+                # puts "n=#{n} breadth=#{breadth} last=#{last} n-last-1=#{n-last-1}"
                 if last < n-1 then
                     (n-last-1).stimes do |j|
-                        tmp[i+1][j+last+1] <= tmp[i][j+last+1]
+                        tmp[i+1][last+1+j] <= tmp[i][last+1+j]
                     end
                 end
                 # Next step
@@ -1946,7 +1953,11 @@ module HDLRuby::High::Std
             # Create the iteration type.
             # typ = [[self.first.width,self.last.width].max]
             if self.first < 0 || self.last < 0 then
-                typ = signed[[self.first.abs.width,self.last.abs.width].max]
+                fw = self.first.is_a?(Numeric) ? self.first.abs.width :
+                     self.first.width
+                lw = self.last.is_a?(Numeric) ? self.last.abs.width :
+                     self.last.width
+                typ = signed[[fw,lw].max]
             else
                 typ = bit[[self.first.width,self.last.width].max]
             end
