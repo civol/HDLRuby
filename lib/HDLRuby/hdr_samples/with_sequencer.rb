@@ -106,7 +106,7 @@ system :my_seqencer do
     sequencer(clk.posedge,rst) do
         res2 <= 0
         # hprint("%0 res2=",res2,"\n")
-        (0..7).seach do |elem|
+        (_h00000000.._h00000007).seach do |elem|
             res2 <= elem * elem
             # hprint("%1 elem=",elem," res2=",res2,"\n")
         end

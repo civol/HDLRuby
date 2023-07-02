@@ -202,7 +202,7 @@ system :my_seqencer do
     sequencer(clk.posedge,rst) do
         # hprint("~0\n")
         res19 <= 0
-        res19 <= (1..4).seach.sto_a
+        res19 <= (_h00000001.._h00000004).seach.sto_a
         # hprint("~1 res19=",res19,"\n")
     end
 
@@ -243,7 +243,7 @@ system :my_seqencer do
         # hprint(":0\n")
         res26 <= 0
         res27 <= 0
-        res26 <= vals.sinject(1) { |a,b| a+b }
+        res26 <= vals.sinject(_h01) { |a,b| a+b }
         res27 <= vals.sinject(:+)
         # hprint(":1 res26=",res26," res27=",res27,"\n")
     end

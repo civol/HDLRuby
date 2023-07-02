@@ -30,7 +30,7 @@ system :my_seqencer do
         # hprint("$0\n")
         res2 <= 0
         res3 <= 0
-        res2 <= (1..5).sum
+        res2 <= (1..5).ssum(_h00)
         res3 <= (res3..res2).ssum
         # hprint("$1 res2=",res2," res3=",res3,"\n")
     end
@@ -42,7 +42,7 @@ system :my_seqencer do
         res4 <= 0
         res5 <= 0
         res4 <= [_h01,_h02,_h03,_h04].ssum
-        res5 <= [1,2,3,4,5].ssum
+        res5 <= [1,2,3,4,5].ssum(_h00)
         # hprint("!1 res4=",res4," res5=",res5,"\n")
     end
 
