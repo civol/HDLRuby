@@ -1951,15 +1951,25 @@ module HDLRuby::High::Std
         # HW iteration on each element.
         def seach(&ruby_block)
             # Create the iteration type.
-            # typ = [[self.first.width,self.last.width].max]
-            if self.first < 0 || self.last < 0 then
-                fw = self.first.is_a?(Numeric) ? self.first.abs.width :
-                     self.first.width
-                lw = self.last.is_a?(Numeric) ? self.last.abs.width :
-                     self.last.width
-                typ = signed[[fw,lw].max]
+            # if self.first < 0 || self.last < 0 then
+            #     fw = self.first.is_a?(Numeric) ? self.first.abs.width :
+            #          self.first.width
+            #     lw = self.last.is_a?(Numeric) ? self.last.abs.width :
+            #          self.last.width
+            #     typ = signed[[fw,lw].max]
+            # else
+            #     typ = bit[[self.first.width,self.last.width].max]
+            # end
+            # Create the iteration type: selection of the larger HDLRuby type
+            # between first and last. If one of first and last is a Numeric,
+            # priority to the non Numeric one.
+            if (self.last.is_a?(Numeric)) then
+                typ = self.first.to_expr.type
+            elsif (self.first.is_a?(Numeric)) then
+                typ = self.last.to_expr.type
             else
-                typ = bit[[self.first.width,self.last.width].max]
+                typ = self.first.type.width > self.last.type.width ? 
+                    self.first.type : self.last.type
             end
             # Create the hardware iterator.
             this = self
