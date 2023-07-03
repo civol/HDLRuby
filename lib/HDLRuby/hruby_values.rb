@@ -253,6 +253,7 @@ module HDLRuby
         # Cast to +type+.
         # NOTE: nodir tells if the direction is to be ignored.
         def cast(type,nodir = false)
+            # puts "cast with content=#{self.content} type.signed=#{type.signed?} type.width=#{type.width}"
             # Handle the direction.
             if !nodir && type.direction != self.type.direction then
                 if self.content.is_a?(Numeric) then
@@ -281,17 +282,16 @@ module HDLRuby
                     res_content.positive!
                 end
             end
-            if type.signed && res_content.is_a?(Numeric) && res_content >= (1 << (type.width-1)) then
+            if type.signed? && res_content.is_a?(Numeric) && res_content >= (1 << (type.width-1)) then
                 res_content = (-1 << type.width) + res_content
             end
-            # # truncs to the right size if necessary.
-            # if res_content.is_a?(BitString) then
-            #     res_content.trunc!(type.width)
-            # else 
-            #     res_content = self.trunc(res_content,type.width)
-            # end
             # Generate the resulting value.
+            # puts "res_content=#{res_content}"
             return self.class.new(type,res_content)
+        end
+
+        def as(typ)
+            return self.cast(typ)
         end
 
         # Concat the content of +vals+.

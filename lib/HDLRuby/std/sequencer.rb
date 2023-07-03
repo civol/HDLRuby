@@ -757,8 +757,10 @@ module HDLRuby::High::Std
             # Declares the resulting vector.
             enum = self.seach
             res  = nil
+            # size = enum.size.to_value
             HDLRuby::High.cur_system.open do
-                res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"to_a_res"))
+                # res = enum.type[-enum.size].inner(HDLRuby.uniq_name(:"to_a_res"))
+                res = enum.type[-enum.size.to_i].inner(HDLRuby.uniq_name(:"to_a_res"))
             end
             # Fills it.
             self.seach_with_index do |elem,i|
@@ -1838,7 +1840,9 @@ module HDLRuby::High::Std
             # Sets the accesser.
             @access = access
             # Compute the index width (default: safe 32 bits).
-            width = @size.respond_to?(:width) ? @size.width : 32
+            width = @size.respond_to?(:width) ? @size.width : 
+                    @size.respond_to?(:type) ? size.type.width : 32
+            # puts "width=#{width}"
             # Create the index and the iteration result.
             idx = nil
             result = nil
@@ -1913,6 +1917,38 @@ module HDLRuby::High::Std
     end
 
 
+    class HDLRuby::High::Value
+        # Enhance the Value class with sequencer iterations.
+
+        # HW times iteration.
+        def stimes(&ruby_block)
+            return (0..self).seach(&ruby_block)
+        end
+
+        # HW upto iteration.
+        def supto(val,&ruby_block)
+            return (self..val).seach(&ruby_block)
+        end
+
+        # HW downto iteration.
+        def sdownto(val,&ruby_block)
+            # Create the hardware iterator.
+            range = val..(self.to_i)
+            hw_enum = SEnumeratorBase.new(signed[32],range.size) do |idx|
+                range.last - idx
+            end
+            # Is there a ruby block?
+            if(ruby_block) then
+                # Yes, apply it.
+                return hw_enum.seach(&ruby_block)
+            else
+                # No, return the resulting enumerator.
+                return hw_enum
+            end
+        end
+    end
+
+
     module ::Enumerable
         # Enhance the Enumerable module with sequencer iteration.
 
@@ -1974,7 +2010,13 @@ module HDLRuby::High::Std
             # Create the hardware iterator.
             this = self
             size = this.size ? this.size : this.last - this.first + 1
-            # puts "size=#{size}"
+            # size = size.to_expr
+            # if size.respond_to?(:cast) then
+            #     size = size.cast(typ)
+            # else
+            #     size = size.as(typ)
+            # end
+            size = size.to_expr.as(typ)
             # hw_enum = SEnumeratorBase.new(signed[32],size) do |idx|
             hw_enum = SEnumeratorBase.new(typ,size) do |idx|
                 # idx.as(typ) + this.first
@@ -1997,7 +2039,7 @@ module HDLRuby::High::Std
 
         # HW times iteration.
         def stimes(&ruby_block)
-            return (0...self).seach(&ruby_block)
+            return (0..self).seach(&ruby_block)
         end
 
         # HW upto iteration.
