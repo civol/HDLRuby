@@ -1922,7 +1922,7 @@ module HDLRuby::High::Std
 
         # HW times iteration.
         def stimes(&ruby_block)
-            return (0..self).seach(&ruby_block)
+            return (0..self-1).seach(&ruby_block)
         end
 
         # HW upto iteration.
@@ -2039,7 +2039,7 @@ module HDLRuby::High::Std
 
         # HW times iteration.
         def stimes(&ruby_block)
-            return (0..self).seach(&ruby_block)
+            return (0..self-1).seach(&ruby_block)
         end
 
         # HW upto iteration.
