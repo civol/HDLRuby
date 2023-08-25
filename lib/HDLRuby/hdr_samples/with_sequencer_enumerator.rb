@@ -52,16 +52,30 @@ system :my_seqencer do
 
     data <= mem[addr]
 
-    mem_enum = senumerator(bit[8],8) do |i|
-        addr <= i
-        step
-        data
+    mem_enum = senumerator(bit[8],8) do |i,val|
+        if val then
+            # Write
+            mem[i] <= val
+            step
+            val
+        else 
+            # Read
+            addr <= i
+            step
+            data
+        end
     end
 
     sequencer(clk.posedge,rst) do
         # hprint("~0\n")
         res6 <= 0
         res6 <= mem_enum.ssum
+        mem_enum.srewind
+        mem_enum.snext!(_hAA)
+        mem_enum.snext!(_hBB)
+        mem_enum.srewind
+        res6 <= mem_enum.snext
+        res6 <= mem_enum.snext
         # hprint("~1 res6=",res6,"\n")
     end
 

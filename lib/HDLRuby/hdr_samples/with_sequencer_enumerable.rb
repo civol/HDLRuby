@@ -34,6 +34,7 @@ include HDLRuby::High::Std
 # - The twenty nineth sequencer checks stake and stake_while
 # - The thirtieth sequencer checks suniq
 # - The thirty first sequencer checks szip
+# - The thirty second sequnecer checks seach_nexts (HDLRuby special)
 #
 # __WARNING__: All the operations on enumerators generate their own result
 #              signal. Therefore, in a real circuit, there is no need to
@@ -412,6 +413,15 @@ system :my_seqencer do
         res52 <= vals.szip((1..6).to_a.map {|i| i.to_expr.as(bit[8]) })
         vals.szip([_h12]*8) { |a,b| res53[idx] <= a+b; idx <= idx + 1 }
         # hprint("}1 res52=",res52," res53=",res53,"\n")
+    end
+
+    [8].inner :res54,:res55
+
+    sequencer(clk.posedge,rst) do
+        res54 <= 0
+        res55 <= 0
+        vals.seach_nexts(6) { |i| res54 <= i }
+        res55 <= vals.seach_nexts(4).ssum
     end
 
 

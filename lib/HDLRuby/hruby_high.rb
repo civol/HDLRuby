@@ -3442,7 +3442,7 @@ module HDLRuby::High
                     (@object.parent != High.cur_system) &&
                     (!@object.parent.name.empty?) then
                 # Need to have a hierachical access.
-                # puts "Indirect access for #{self.object.name}: #{self.object.parent.name}(#{self.object.parent.class}) != #{High.cur_system.name}(#{High.top_user.class})"
+                puts "Indirect access with parent=#{parent}"
                 refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                                      @object.parent.to_ref.to_low,@object.name)
             else

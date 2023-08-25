@@ -357,7 +357,17 @@ module HDLRuby::High::Std
 
     # Module adding functionalities to object including the +seach+ method.
     module SEnumerable
-        
+
+        # Iterator on each of the elements in range +rng+.
+        # *NOTE*: 
+        #   - Stop iteration when the end of the range is reached or when there
+        #     are no elements left
+        #   - This is not a method from Ruby but one specific for hardware where
+        #     creating a array is very expensive.
+        def seach_range(rng,&ruby_block)
+            return self.seach.seach_range(rng,&ruby_block)
+        end
+
         # Tell if all the elements respect a given criterion given either
         # as +arg+ or as block.
         def sall?(arg = nil,&ruby_block)
@@ -1659,6 +1669,55 @@ module HDLRuby::High::Std
             end
         end
 
+        # Iterator on the +num+ next elements.
+        # *NOTE*:
+        #   - Stop iteration when the end of the range is reached or when there
+        #     are no elements left
+        #   - This is not a method from Ruby but one specific for hardware where
+        #     creating a array is very expensive.
+        def seach_nexts(num,&ruby_block)
+            # # No block given, returns a new enumerator.
+            # unless ruby_block then
+            #     res = SEnumeratorWrapper.new(self,:seach_nexts,num)
+            #     res.size = num
+            #     return res
+            # end
+            # # A block is given, iterate.
+            # enum = self.seach
+            # # Create a counter. 
+            # count = nil
+            # zero = nil
+            # one = nil
+            # HDLRuby::High.cur_system.open do
+            #     if num.respond_to?(:width) then
+            #         count = [num.width].inner(HDLRuby.uniq_name(:"snexts_count"))
+            #     else
+            #         count = num.to_expr.type.inner(HDLRuby.uniq_name(:"snexts_count"))
+            #     end
+            #     zero = _b0
+            #     one  = _b1
+            # end
+            # count <= num
+            # SequencerT.current.swhile(count > zero) do
+            #     ruby_block.call(enum.snext)
+            #     count <= count - one
+            # end
+            zero = nil
+            one = nil
+            HDLRuby::High.cur_system.open do
+                zero = _b0.as(num.to_expr.type)
+                one = _b1.as(num.to_expr.type)
+            end
+            subE = SEnumeratorSub.new(self,zero..num-one)
+            if ruby_block then
+                # A block is given, iterate immediatly.
+                subE.seach(&ruby_block)
+            else
+                # No block given, return the new sub iterator.
+                return subE
+            end
+        end
+
     end
 
 
@@ -1682,10 +1741,29 @@ module HDLRuby::High::Std
             return self unless ruby_block
             # A block is given, iterate.
             this = self
-            # Reitialize the iteration.
+            # Reinitialize the iteration.
             this.srewind
-            # Performs the iteration.
+            # Perform the iteration.
             SequencerT.current.swhile(self.index < self.size) do
+                ruby_block.call(this.snext)
+            end
+        end
+
+        # Iterator on each of the elements in range +rng+.
+        # *NOTE*: 
+        #   - Stop iteration when the end of the range is reached or when there
+        #     are no elements left
+        #   - This is not a method from Ruby but one specific for hardware where
+        #     creating a array is very expensive.
+        def seach_range(rng,&ruby_block)
+            # No block given, returns a new enumerator.
+            return SEnumeratorWrapper.new(self,:seach_range) unless ruby_block
+            # A block is given, iterate.
+            this = self
+            # Perform the iteration.
+            self.index <= rng.first
+            SequencerT.current.swhile((self.index < self.size) & 
+                                      (self.index <= rng.last) ) do
                 ruby_block.call(this.snext)
             end
         end
@@ -1766,11 +1844,22 @@ module HDLRuby::High::Std
             end
             @iterator  = iter.to_sym
             @arguments = args
+            # @size = 0
         end
+
+        # # Sets the size of the wrapper.
+        # def size=(siz)
+        #     @size = siz
+        # end
 
         # The directly delegate methods.
         def size
-            return @enumerator.size
+            # if @size then
+            #     return @size
+            # else
+            #     return @enumerator.size
+            # end
+            return @enumertor.size
         end
 
         def type
@@ -1798,11 +1887,30 @@ module HDLRuby::High::Std
         end
 
         def snext?
+            # if @size then
+            #     return @enumerator.index < @size
+            # else
+            #     return @enumerator.snext?
+            # end
             return @enumerator.snext?
+        end
+
+        def snext!(val)
+            return @enumerator.snext!(val)
         end
 
         def srewind
             return @enumerator.srewind
+        end
+
+        # Iterator on each of the elements in range +rng+.
+        # *NOTE*: 
+        #   - Stop iteration when the end of the range is reached or when there
+        #     are no elements left
+        #   - This is not a method from Ruby but one specific for hardware where
+        #     creating a array is very expensive.
+        def seach_range(rng,&ruby_block)
+            return @enumerator.seach_range(rng,&ruby_block)
         end
 
         # Clones the enumerator.
@@ -1818,6 +1926,92 @@ module HDLRuby::High::Std
             return @enumerator.send(@iterator,*@arguments,&ruby_block)
         end
     end
+
+
+    # Describes a sequencer enumerator class that allows to generate HW iterations
+    # over HW or SW objects within sequencers.
+    # This is the sub Enumerator over an other one for interating inside the
+    # enumerator.
+    # This is specific the HDLRuby for avoiding creation of array which are
+    # expensive in HW. Used by seach_next for example.
+    # Will change the index position of the initial iterator without reseting
+    # it.
+    class SEnumeratorSub < SEnumerator
+
+        # Create a new SEnumerator wrapper over +enum+ among +rng+ indexes.
+        def initialize(enum,rng,*args)
+            @enumerator = enum.seach
+            @range = rng.first..rng.last
+            # Declare the sub index.
+            idx = nil
+            siz = @range.last-@range.first+1
+            HDLRuby::High.cur_system.open do
+                idx = [siz.width].inner({
+                    HDLRuby.uniq_name("sub_idx") => 0 })
+            end
+            @index = idx
+            @size = siz
+        end
+
+        # The directly delegate methods.
+        def size
+            return @size
+        end
+
+        def type
+            return @enumerator.type
+        end
+
+        def result
+            return @enumerator.result
+        end
+
+        def index
+            return @index
+        end
+
+        def access(idx)
+            return @enumerator.access(@index+@range.first)
+        end
+
+        def speek
+            return @enumerator.speek
+        end
+
+        def snext
+            @index <= @index + 1
+            return @enumerator.snext
+        end
+
+        def snext?
+            return @index < self.size
+        end
+
+        def snext!(val)
+            return @enumerator.snext!(val)
+        end
+
+        def srewind
+            @index <= 0
+        end
+
+        # Clones the enumerator.
+        def clone
+            return SEnumeratorSub.new(@enumerator,@range)
+        end
+
+        # Iterate over each element.
+        def seach(&ruby_block)
+            # No block given, returns self.
+            return self unless ruby_block
+            # A block is given, iterate.
+            this = self
+            SequencerT.current.swhile(this.snext?) do
+                ruby_block.call(this.snext)
+            end
+        end
+    end
+
 
 
     # Describes a sequencer enumerator class that allows to generate HW 
@@ -1883,6 +2077,13 @@ module HDLRuby::High::Std
             return @index < @size
         end
 
+        # Set the next element.
+        def snext!(val)
+            @access.call(@index,val)
+            @index <= @index + 1
+            return val
+        end
+
         # Restart the iteration.
         def srewind
             @index <= 0
@@ -1897,8 +2098,14 @@ module HDLRuby::High::Std
         def seach(&ruby_block)
             # Create the hardware iterator.
             this = self
-            hw_enum = SEnumeratorBase.new(this.type.base,this.type.size) do |idx|
-                this[idx]
+            hw_enum = SEnumeratorBase.new(this.type.base,this.type.size) do |idx,val = nil|
+                if val then
+                    # Write access
+                    this[idx] <= val
+                else
+                    # Read access
+                    this[idx]
+                end
             end
             # Is there a ruby block?
             if(ruby_block) then

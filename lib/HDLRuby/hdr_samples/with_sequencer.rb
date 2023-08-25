@@ -16,6 +16,7 @@ include HDLRuby::High::Std
 # - One sequencer puts the sum of two arrays in a third one.
 # - One sequencer iterates over two arrays.
 # - One sequencer iterates downward.
+# - One sequencer checks sub iterators (HDLRuby special).
 system :my_seqencer do
 
     inner :clk,:rst
@@ -159,6 +160,22 @@ system :my_seqencer do
             # hprint(")1 res6=",res6,"\n")
         end
         # hprint(")2 res6=",res6,"\n")
+    end
+
+    [8].inner :res7,:res8
+
+    sequencer(clk.posedge,rst) do
+        res7 <= 0
+        res8 <= 0
+        ar0.seach_range(0..3) do |elem|
+            res7 <= elem
+        end
+        ar0.seach_range(4..9) do |elem|
+            res7 <= elem
+        end
+        (_h00.._h07).seach_range(1..4) do |elem|
+            res8 <= elem
+        end
     end
 
 
