@@ -8,26 +8,11 @@ module HDLRuby::Verilog
   # puts n            
   # name = n.split("")
 
-  @@hdr2verilog = {}
+  @@hdr2verilog = { "buf" => "_v0_buf" }
 
   # Since it is possible to use $ and numbers other than the beginning of the character string, it is divided.
   def name_to_verilog(name)
-      # name = name.to_s
-      # # Convert special characters.
-      # name = name.each_char.map do |c|
-      #     if c=~ /[a-z0-9]/ then
-      #         c
-      #     elsif c == "_" then
-      #         "__"
-      #     else
-      #         "_" + c.ord.to_s
-      #     end
-      # end.join
-      # # First character: only letter is possible.
-      # unless name[0] =~ /[a-z_]/ then
-      #     name = "_" + name
-      # end
-      # return name
+      # puts "name_to_verilog with name=#{name}"
       name = name.to_s
       vname = @@hdr2verilog[name]
       unless vname then
@@ -41,6 +26,7 @@ module HDLRuby::Verilog
           end
           @@hdr2verilog[name] = vname
       end
+      # puts "result vname=#{vname}"
       return vname
   end
 

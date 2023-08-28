@@ -880,9 +880,11 @@ module HDLRuby::High
                       "Cannot convert a system without a name to HDLRuby::Low."
             end
             # Create the resulting low system type.
-            # systemTL = HDLRuby::Low::SystemT.new(High.names_create(name),
-            systemTL = HDLRuby::Low::SystemT.new(HDLRuby.uniq_name(name),
-                                                   self.scope.to_low)
+            # systemTL = HDLRuby::Low::SystemT.new(HDLRuby.uniq_name(name),
+            #                                        self.scope.to_low)
+            systemTLN = HDLRuby.uniq_name(name)
+            systemTL = HDLRuby::Low::SystemT.new(systemTLN,
+                                                   self.scope.to_low(systemTLN))
             # puts "New low from system #{self.name}: #{systemTL.name}"
             # # For debugging: set the source high object 
             # systemTL.properties[:low2high] = self.hdr_id
@@ -1526,10 +1528,15 @@ module HDLRuby::High
         end
 
         # Converts the scope to HDLRuby::Low.
-        def to_low()
+        # +name+ is the name of the system containing the new low scope in case
+        # of top scope, should be used as name for it.
+        # NOTE: by convention, the name of the top scope is the name of the
+        # system.
+        def to_low(low_name = nil)
             # Create the resulting low scope.
             # scopeL = HDLRuby::Low::Scope.new()
-            scopeL = HDLRuby::Low::Scope.new(self.name)
+            low_name = self.name unless low_name
+            scopeL = HDLRuby::Low::Scope.new(low_name)
             # # For debugging: set the source high object 
             # scopeL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = scopeL
@@ -3436,15 +3443,22 @@ module HDLRuby::High
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
             # puts "to_low with base=#{@base} @object=#{@object}"
-            # puts "@object.name=#{@object.name}"
+            # puts "@object.name=#{@object.name} @object.parent=#{@object.parent}"
             if @base.is_a?(RefThis) && 
                     (@object.parent != High.top_user) &&
                     (@object.parent != High.cur_system) &&
+                    (@object.parent != High.cur_system.scope) &&
                     (!@object.parent.name.empty?) then
                 # Need to have a hierachical access.
-                puts "Indirect access with parent=#{parent}"
-                refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
+                if @object.respond_to?(:low_object) && @object.low_object then
+                    # There where already a low object, create the ref from it.
+                    # puts "absolute ref!"
+                    refNameL = @object.low_object.absolute_ref
+                else
+                    # No create the indirect reference.
+                    refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
                                                      @object.parent.to_ref.to_low,@object.name)
+                end
             else
                 # Direct access is enough.
                 refNameL = HDLRuby::Low::RefName.new(self.type.to_low,
@@ -3972,11 +3986,19 @@ module HDLRuby::High
             return [obj,self.to_expr]
         end
 
+        # Get the low version off the object.
+        # NOTE: only useful for Signals and SystemIs since they can be accessed
+        # from outside the module they have been defined in.
+        def low_object
+            return @low_object
+        end
+
         # Converts the system to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
             # return HDLRuby::Low::SignalI.new(name,self.type.to_low)
             valueL = self.value ? self.value.to_low : nil
             signalIL = HDLRuby::Low::SignalI.new(name,self.type.to_low,valueL)
+            @low_object = signalIL
             # Recurse on the sub signals if any.
             self.each_signal do |sig|
                 signalIL.add_signal(sig.to_low)

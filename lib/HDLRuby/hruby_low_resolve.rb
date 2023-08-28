@@ -233,6 +233,7 @@ module HDLRuby::Low
             if self.ref.is_a?(RefName) then
                 obj = self.ref.resolve
                 # puts "obj=#{obj}"
+                return obj if obj.name == self.name
                 # Look into the object for the name.
                 return obj.get_by_name(self.name)
             else
@@ -242,9 +243,9 @@ module HDLRuby::Low
                 while parent
                     # puts "parent=#{parent}"
                     if parent.respond_to?(:get_by_name) then
-                        # puts "get_by_name"
+                        # puts "Going get_by_name with name=#{self.name}"
                         found = parent.get_by_name(self.name)
-                        # puts "found" if found
+                        # puts "found=#{found}" if found
                         return found if found
                     end
                     parent = parent.parent

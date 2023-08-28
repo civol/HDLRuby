@@ -243,7 +243,6 @@ module HDLRuby::Low
         # Flatten a reference to a list of reference to leaf signals
         # from signal +sig+ and add to result to +subrefs+
         def flatten_to(sig,subrefs)
-            # puts "flatten_to with sig name=#{sig.name}"
             # Shall we decompose 2d vectors, and is the current signal
             # for one of them?
             if SystemT.decompose_vec2d? and sig.type.is_a?(TypeVector) and
@@ -294,6 +293,7 @@ module HDLRuby::Low
         # Decompose the hierarchical signals in the statements.
         def signal2subs!
             # puts "signal2subs! for RefName: #{self.name}"
+            return self if self.type == void # Not a singal anyway.
             # Decompose it to a list of reference to each leaf sub signal.
             subrefs = []
             self.flatten_to(self.resolve,subrefs)

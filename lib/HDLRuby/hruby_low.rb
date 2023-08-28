@@ -79,6 +79,23 @@ module HDLRuby::Low
             end
             return res
         end
+
+        # Get an absolute reference to the object.
+        def absolute_ref
+            # Get the full hierarchy up to the object.
+            path = self.hierarchy
+            # Create the reference.
+            return path.reduce(RefThis.new) do |ref,node|
+                # puts "node=#{node}"
+                # puts "name=#{node.name}" if node.respond_to?(:name)
+                if node.respond_to?(:name) then
+                    typ = node.respond_to?(:type) ? node.type : void
+                    RefName.new(typ,ref,node.name)
+                else
+                    ref
+                end
+            end
+        end
     end
 
 
@@ -98,7 +115,8 @@ module HDLRuby::Low
         attr_reader :scope
 
         # Creates a new system type named +name+ with +scope+.
-        def initialize(name,scope)
+        # def initialize(name,scope)
+        def initialize(name,scope = nil)
             # Set the name as a symbol.
             @name = name.to_sym
 
@@ -109,6 +127,13 @@ module HDLRuby::Low
             @interface = []         # The interface signals in order of
                                     # declaration
 
+        #     self.set_scope(scope) if scope
+        # end
+
+        # # Set the scope of the systemT to +scope+.
+        # # Note: cannot override an existing scope.
+        # def set_scope(scope)
+        #     raise(AnyError,"Scope already present") if @scope
             # Check the scope
             unless scope.is_a?(Scope)
                 raise AnyError,

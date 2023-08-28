@@ -1501,7 +1501,13 @@ module HDLRuby::Low
 
         # Converts the system to Verilog code using +renamer+ for producing Verilog-compatible names.
         def to_verilog
-            vname = name_to_verilog(self.name)
+            if (self.ref.is_a?(RefThis)) then
+                # End reference.
+                vname = name_to_verilog(self.name)
+            else
+                # Not end reference, recurse.
+                vname = name_to_verilog(self.name) + "." + self.ref.to_verilog 
+            end
             # self.properties[:verilog_name] = vname
             return "#{vname}"
         end
