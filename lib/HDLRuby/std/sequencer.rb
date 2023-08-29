@@ -1745,7 +1745,8 @@ module HDLRuby::High::Std
             this.srewind
             # Perform the iteration.
             SequencerT.current.swhile(self.index < self.size) do
-                ruby_block.call(this.snext)
+                # ruby_block.call(this.snext)
+                HDLRuby::High.top_user.instance_exec(this.snext,&ruby_block)
             end
         end
 
