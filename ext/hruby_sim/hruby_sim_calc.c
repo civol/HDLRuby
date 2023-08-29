@@ -900,6 +900,7 @@ static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value
     /* Converts the values to integers. */
     unsigned long long src0i = value2integer(src0);
     unsigned long long src1i = value2integer(src1);
+    // printf("src0i=%lld src1i=%lld, src0i.sign=%d src0i.width=%d, src1i.sign=%d src1i.width=%d\n",src0i,src1i,src0->type->flags.sign,type_width(src0->type),src1->type->flags.sign,type_width(src1->type));
     /* Perform the comparison. */
     if (src0->type->flags.sign) {
         if (src1->type->flags.sign)
@@ -3347,13 +3348,20 @@ RefRangeS make_ref_rangeS(SignalI signal, Type typ,
  *  @param value the value to convert
  *  @return the resulting int. */
 unsigned long long value2integer(Value value) {
+    // printf("value2integer\n");
     unsigned long long width = type_width(value->type);
-    /* If the value is numeric, just return its data as is. */
+    /* If the value is numeric, return it with its sign propoerly extended*/
     if (value->numeric) {
         // printf("width=%llu\n",width);
         if (width == 64)
+            /* Nothing to do. */
             return value->data_int;
+        else if (value->type->flags.sign &&
+                ((value->data_int >> (width-1))&1))
+            /* Sign extension. */
+            return value->data_int | (0xFFFFFFFFFFFFFFFFULL << width);
         else
+            /* Zero extension. */
             return value->data_int & ~(0xFFFFFFFFFFFFFFFFULL << width);
     }
     /* Otherwise convert the bitstring to an integer if possible,
@@ -3377,11 +3385,10 @@ unsigned long long value2integer(Value value) {
         res = (res << 1) | bit;
     }
     // printf("first res=%llx\n",res);
-    unsigned long long bit0 = (data_str[width-1]-'0') << i;
     /* Perform the sign extension if required. */
-    if (i>=width && value->type->flags.sign) {
+    if (value->type->flags.sign) {
+        unsigned long long bit0 = (data_str[width-1]-'0') << i;
         for(; i<LONG_LONG_BIT; ++i) {
-            // res = (res << 1) | bit;
             res |= bit0;
             bit0 <<= 1;
         }
