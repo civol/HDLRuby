@@ -11,6 +11,12 @@ system :fix_test do
     bit[3..0,3..0].inner :x,:y,:z
     # Declare three 8-bit integer part 8-bit fractional part
     signed[3..0,3..0].inner :a,:b,:c,:d
+    # Declare the comparison results.
+    bit.inner :cmpU, :cmpS
+
+    cmpU <= (x >= y)
+    cmpS <= (a >= b)
+
 
     # Performs calculation between then
     timed do
