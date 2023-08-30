@@ -1276,7 +1276,7 @@ static Value shift_left_value_bitstring_numeric(Value src0, Value src1, Value ds
         char d0 = src0_data[count];
         /* Set it to the destination at the right place. */
         unsigned long long pos = count + sh;
-        if ((pos>0) && (pos<width0)) {
+        if ((pos>=0) && (pos<width0)) {
             dst_data[pos] = d0;
         }
     }
@@ -1291,6 +1291,7 @@ static Value shift_left_value_bitstring_numeric(Value src0, Value src1, Value ds
  *  @param dst the destination
  *  @return dst */
 static Value shift_right_value_bitstring_numeric(Value src0, Value src1, Value dst) {
+    // printf("shift_right_value_bitstring_numeric with src0=%s src1=%lld\n",src0->data_str,src1->data_int);
     unsigned long long count;
     /* Get the widths of the first source. */
     unsigned long long width0 = type_width(src0->type);
@@ -1320,10 +1321,11 @@ static Value shift_right_value_bitstring_numeric(Value src0, Value src1, Value d
         char d0 = src0_data[count];
         /* Set it to the destination at the right place. */
         unsigned long long pos = count + sh;
-        if ((pos>0) && (pos<width0)) {
+        if ((pos>=0) && (pos<width0)) {
             dst_data[pos] = d0;
         }
     }
+    // printf("result=%s\n",dst_data);
     /* Return the destination value. */
     return dst;
 }
@@ -1684,6 +1686,7 @@ Value read_range_bitstring(Value src,
         unsigned long long first, unsigned long long last,
         Type base, Value dst) {
     // printf("read_range_bitstring with first=%lld last=%lld src=%s\n",first,last,src->data_str);
+    // printf("read_range_bitstring with first=%lld last=%lld\n",first,last);
     /* Ensure first is the smaller. */
     if (first > last) {
         long long tmp = last;
@@ -1706,6 +1709,7 @@ Value read_range_bitstring(Value src,
 
     /* Performs the read. */
     memcpy(dst->data_str,src->data_str + first, length);
+    // printf("result: %s\n",dst->data_str);
 
     /* Return the destination. */
     return dst;
