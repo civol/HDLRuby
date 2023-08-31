@@ -50,6 +50,12 @@
 //     ({ __typeof__ (v) _v = (v); \
 //        _v->type->flags.sign ? (_v->data[_v->size-1] >> (INT_BIT-1)) ?  UINT_MAX : 0 : 0; })
 
+/** Fix the sign of a numeric value. */
+#define fix_numeric_sign(v) \
+    ({if ((v)->type->flags.sign && (type_width((v)->type) < 64) && ((v)->data_int & (1ULL << (type_width((v)->type)-1)))) {\
+        (v)->data_int |= (-1LL) << type_width((v)->type);\
+    }})
+
 /* The type engine: each type is simplified to a vector of X elements
  * of Y bits. */
 
@@ -1893,9 +1899,15 @@ static Value mul_value_numeric(Value src0, Value src1, Value dst) {
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
+    /* Fix the numeric signs since multiply is sensitive to it. */
+    // printf("src0 type_width=%d src1 type_width=%d (%d)\n",type_width(src0->type),type_width(src1->type),src1->type->flags.sign);
+    fix_numeric_sign(src0);
+    fix_numeric_sign(src1);
+    // printf("Then src0->data_int=%llx src1->data_int=%llx\n",src0->data_int,src1->data_int);
 
     /* Perform the multiplication. */
     dst->data_int = fix_numeric_type(dst->type, src0->data_int * src1->data_int);
+    // printf("result=%llx\n",dst->data_int);
     return dst;
 }
 
@@ -1909,6 +1921,10 @@ static Value div_value_numeric(Value src0, Value src1, Value dst) {
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
+
+    /* Fix the numeric signs since multiply is sensitive to it. */
+    fix_numeric_sign(src0);
+    fix_numeric_sign(src1);
 
     /* Perform the division. */
     dst->data_int = fix_numeric_type(dst->type, src0->data_int / src1->data_int);

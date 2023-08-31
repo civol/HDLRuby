@@ -121,6 +121,9 @@ Value calc_expression(Expression expr, Value res) {
                 free_value();
                 /* Performs the access. */
                 res = read_range(value,index,index,rexpr->type,res);
+                /* Set the type to the one of the reference since it is
+                 * an index access and not a range one. */
+                res->type = rexpr->type;
                 free_value();
                 break;
             }
