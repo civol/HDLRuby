@@ -1845,21 +1845,10 @@ module HDLRuby::High::Std
             end
             @iterator  = iter.to_sym
             @arguments = args
-            # @size = 0
         end
-
-        # # Sets the size of the wrapper.
-        # def size=(siz)
-        #     @size = siz
-        # end
 
         # The directly delegate methods.
         def size
-            # if @size then
-            #     return @size
-            # else
-            #     return @enumerator.size
-            # end
             return @enumertor.size
         end
 
@@ -2075,6 +2064,7 @@ module HDLRuby::High::Std
 
         # Tell if there is a next element.
         def snext?
+            # puts "@index=#{index}, @size=#{@size}"
             return @index < @size
         end
 
