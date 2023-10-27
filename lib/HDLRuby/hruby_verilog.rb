@@ -262,7 +262,6 @@ module HDLRuby::Low
             # Declaration of "inner" part within "always".
             block.each_inner do |inner|
                 if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
-                    # code << "      reg"
                     code << "#{" " * (spc+3)}reg"
                 else
                     code << "#{" " * (spc+3)}wire"
@@ -1571,8 +1570,11 @@ module HDLRuby::Low
                 return "#{self.ref.to_verilog}[#{self.range.first.to_getrange}:#{self.range.last.to_getrange}]"
             else
                 # No a pure signal, need to use a function for accessing.
-                sr = self.range.first.to_i..self.range.last.to_i
-                cr = (self.type.width-1)..0
+                # sr = self.range.first.to_i..self.range.last.to_i
+                # cr = (self.type.width-1)..0
+                sr = (self.range.first.to_i+1)*self.ref.type.base.width-1..
+                    self.range.last.to_i*self.ref.type.base.width
+                cr = (self.ref.type.width-1)..0
                 TruncersI.add(cr,sr)
                 return "#{TruncersI.truncer_name(cr,sr)}(#{self.ref.to_verilog})"
             end
@@ -2033,11 +2035,60 @@ module HDLRuby::Low
         end
 
 
+        # Get the signals that can be declared as reg.
+        # If +vname+ is given, use as base for reference name.
+        def self.get_regs(expr,vname = nil)
+            if expr.is_a?(RefConcat) then
+                return expr.each_ref.map {|ref| self.get_regs(ref,vname) }.flatten
+            elsif expr.is_a?(RefName) then
+                if vname then
+                    puts "vname=#{vname} expr.name=#{expr.name}"
+                    if expr.ref && name_to_verilog(expr.name) == vname then
+                        return get_regs(expr.ref)
+                    else
+                        return []
+                    end
+                else
+                    return [expr]
+                end
+            else
+                return get_regs(expr.ref,vname)
+            end
+        end
+
+        # Get signals indirectly refered that have to become reg in
+        # a sub system. +vname+ is the name of the system whose signals
+        # are to be processed.
+        def self.get_indirect_verilog_regs(systemI,vname)
+            # Get the sub systemT.
+            sub_systemT = systemI.systemT
+            # Get the indirect reg inside it.
+            sub_systemT.each_behavior do |behavior|
+                behavior.each_block_deep do |block|
+                    block.each_statement do |statement|
+                        if statement.is_a?(Transmit) &&
+                                statement.left.to_verilog.include?(vname + ".")
+                            puts "hierachical=#{statement.left.to_verilog}"
+                            # HDLRuby::Low::VERILOG_REGS << SystemT.get_regs(statement.left.ref).to_verilog
+                            HDLRuby::Low::VERILOG_REGS.concat( SystemT.get_regs(statement.left,vname).map(&:to_verilog))
+                        end
+                    end
+                end
+            end
+            # And recurse on its systemIs.
+            sub_systemT.each_systemI do |sub_systemI|
+                SystemT.get_indirect_verilog_regs(sub_systemI,vname)
+            end
+        end
+
 
         # Converts the system to Verilog code.
         # NOTE: if +vcd+ is true, generate verilog code whose simulation
         #       produces a vcd file.
         def to_verilog(vcd = false)
+            # Create the name of the module.
+            vname = name_to_verilog(self.name)
+            # puts "Processing systemT named=#{vname}"
             # Detect the registers
             HDLRuby::Low::VERILOG_REGS.clear
             # The left values.
@@ -2045,10 +2096,14 @@ module HDLRuby::Low
                 behavior.each_block_deep do |block|
                     block.each_statement do |statement|
                         if statement.is_a?(Transmit)
-                            HDLRuby::Low::VERILOG_REGS << statement.left.to_verilog
+                            # HDLRuby::Low::VERILOG_REGS << SystemT.get_regs(statement.left).to_verilog
+                            HDLRuby::Low::VERILOG_REGS.concat(SystemT.get_regs(statement.left).map(&:to_verilog))
                         end
                     end
                 end
+            end
+            self.each_systemI do |systemI|
+                SystemT.get_indirect_verilog_regs(systemI,vname)
             end
             # And the initialized signals.
             self.each_output do |output|
@@ -2059,17 +2114,18 @@ module HDLRuby::Low
                 # regs << inner.to_verilog if inner.value
                 HDLRuby::Low::VERILOG_REGS << inner.to_verilog if inner.value
             end
-            # And the array types signals.
-            self.each_signal do |sig|
-                if sig.type.vector? && sig.type.base.vector? then
-                    HDLRuby::Low::VERILOG_REGS << sig.to_verilog
-                end
-            end
-            self.each_inner do |sig|
-                if sig.type.vector? && sig.type.base.vector? then
-                    HDLRuby::Low::VERILOG_REGS << sig.to_verilog
-                end
-            end
+            # Actual NOT...
+            # # And the array types signals.
+            # self.each_signal do |sig|
+            #     if sig.type.vector? && sig.type.base.vector? then
+            #         HDLRuby::Low::VERILOG_REGS << sig.to_verilog
+            #     end
+            # end
+            # self.each_inner do |sig|
+            #     if sig.type.vector? && sig.type.base.vector? then
+            #         HDLRuby::Low::VERILOG_REGS << sig.to_verilog
+            #     end
+            # end
 
             # Code generation
             inputs = 0
@@ -2083,7 +2139,6 @@ module HDLRuby::Low
             # Spelling necessary for simulation.
             code = "`timescale 1ps/1ps\n\n"
 
-            vname = name_to_verilog(self.name)
             # self.properties[:verilog_name] = vname
             # Output the module name.
             code << "module #{vname}("
