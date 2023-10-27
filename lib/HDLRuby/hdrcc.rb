@@ -84,6 +84,10 @@ require 'HDLRuby/backend/hruby_c_allocator'
 
 require 'HDLRuby/version.rb'
 
+# Global flags
+$sim = false     # Tells if hdrcc is in simulation mode
+$gen = false     # Tells if hdrcc is in hardware generation mode
+
 
 ##
 # HDLRuby compiler interface program
@@ -373,19 +377,23 @@ $optparse = OptionParser.new do |opts|
     opts.on("-S","--sim","Default simulator (hybrid C-Ruby)") do |v|
         $options[:rcsim] = v
         $options[:multiple] = v
+        $sim = true
     end
     opts.on("--csim","Standalone C-based simulator") do |v|
         $options[:clang] = v
         $options[:multiple] = v
         $options[:csim] = v
+        $sim = true
     end
     opts.on("--rsim","Ruby-based simulator") do |v|
         $options[:rsim] = v
         $options[:multiple] = v
+        $sim = true
     end
     opts.on("--rcsim","Hybrid C-Ruby-based simulator") do |v|
         $options[:rcsim] = v
         $options[:multiple] = v
+        $sim = true
     end
     opts.on("--mute", "The simulator will not generate any output") do |v|
         $options[:mute] = v
@@ -396,12 +404,14 @@ $optparse = OptionParser.new do |opts|
     opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
         $options[:verilog] = v
         $options[:multiple] = v
+        $gen = true
     end
     opts.on("-V", "--vhdl","Output in VHDL format") do |v|
         HDLRuby::Low::Low2VHDL.vhdl08 = false
         $options[:vhdl] = v
         $options[:multiple] = v
         $options[:vhdl08] = false
+        $gen = true
     end
     opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
         HDLRuby::Low::Low2VHDL.vhdl08 = false
@@ -410,12 +420,14 @@ $optparse = OptionParser.new do |opts|
         $options[:alliance] = v
         $options[:multiple] = v
         $options[:vhdl08] = false
+        $gen = true
     end
     opts.on("-U", "--vhdl08","Output in VHDL'08 format") do |v|
         HDLRuby::Low::Low2VHDL.vhdl08 = true
         $options[:vhdl] = v
         $options[:multiple] = v
         $options[:vhdl08] = true
+        $gen = true
     end
     opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
         $options[:syntax] = s
