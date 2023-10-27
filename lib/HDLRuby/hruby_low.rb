@@ -338,7 +338,7 @@ module HDLRuby::Low
         # Returns an enumerator if no ruby block is given.
         def each_signal_all(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_signal) unless ruby_block
+            return to_enum(:each_signal_all) unless ruby_block
             # A ruby block? Apply it on each signal instance.
             @inputs.each(&ruby_block)
             @outputs.each(&ruby_block)
@@ -551,6 +551,8 @@ module HDLRuby::Low
             @inners  = HashName.new
             # Initialize the system instances list.
             @systemIs = HashName.new
+            # Initialize the programs list.
+            @programs = []
             # Initialize the non-HDLRuby code chunks list.
             @codes = []
             # Initialize the connections list.
@@ -829,7 +831,40 @@ module HDLRuby::Low
         #     end
         #     systemI
         # end
+        
+
+        # Handling the programs.
+
+        # Adds program +prog+.
+        def add_program(prog)
+            # Check and add the program.
+            unless prog.is_a?(Program)
+                raise AnyError,
+                      "Invalid class for a program: #{prog.class}"
+            end
+            # Set the parent of the program.
+            program.parent = self
+            # Add the program.
+            @programs << program
+            program
+        end
+
+        # Iterates over the programs.
         #
+        # Returns an enumerator if no ruby block is given.
+        def each_program(&ruby_block)
+            # puts "each_program from scope=#{self}"
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_program) unless ruby_block
+            # A ruby block? Apply it on each program.
+            @programs.each(&ruby_block)
+        end
+
+        # Tells if there is any program.
+        def has_program?
+            return !@programs.empty?
+        end
+
         # Handling the non-HDLRuby code chunks.
 
         # Adds code chunk +code+.
@@ -857,7 +892,7 @@ module HDLRuby::Low
             # puts "each_code from scope=#{self}"
             # No ruby block? Return an enumerator.
             return to_enum(:each_code) unless ruby_block
-            # A ruby block? Apply it on each system instance.
+            # A ruby block? Apply it on each code.
             @codes.each(&ruby_block)
         end
 
@@ -2957,6 +2992,69 @@ module HDLRuby::Low
             return to_enum(:each_deep) unless ruby_block
             # A ruby block? First apply it to current.
             ruby_block.call(self)
+        end
+    end
+
+
+    ##
+    # Describes a program.
+    class Program
+
+        include Hparent
+
+        attr_reader :language, :function
+
+        # Creates a new program in language +lang+ with start function
+        # named +func+ accessed expressions, events and code files given in
+        # +args+.
+        def initialize(lang,func,*args)
+            # Sets the language.
+            @language = lang.to_sym
+            # Sets the start function.
+            @function = func.to_s
+            # Process the expressions and code files arguments.
+            @exprs = []
+            @events = []
+            @codes = []
+            args.each do |arg|
+                if arg.is_a?(String) then
+                    @codes << arg
+                elsif arg.is_a?(Event) then
+                    @events << arg
+                else
+                    @exprs << arg.to_expr
+                end
+            end
+        end
+
+        # Iterates over each accessed expression.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_expression(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_expression) unless ruby_block
+            # A block is given, apply it.
+            @exprs.each(&ruby_block)
+        end
+
+        # Iterates over each accessed event.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_event(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_event) unless ruby_block
+            # A block is given, apply it.
+            @events.each(&ruby_block)
+        end
+
+        # Iterates over each code files.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_code(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_code) unless ruby_block
+            # A block is given, apply it.
+            @codes.each(&ruby_block)
         end
     end
 

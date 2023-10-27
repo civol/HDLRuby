@@ -1170,6 +1170,17 @@ module HDLRuby::High
             self.parent.inout(*names)
         end
 
+        # Declares a program in language +lang+ with start function named +func+
+        # and accessed expressions an code given in +args+.
+        def program(lang, func, *args)
+            # Create the program.
+            prog = Program.new(lang, func, *args)
+            # Adds the resulting program to the current scope.
+            HDLRuby::High.top_user.add_program(prog)
+            # Return the resulting program
+            return prog
+        end
+
         # Declares a non-HDLRuby set of code chunks described by +content+ and
         # completed from +ruby_block+ execution result.
         # NOTE: content includes the events to activate the code on and
@@ -1514,6 +1525,8 @@ module HDLRuby::High
                     scopeL.add_systemT(systemI_low.systemT)
                 }
             end
+            # Adds the programs.
+            self.each_program { |prog| scopeL.add_program(prog.to_low) }
             # Adds the code chunks.
             self.each_code { |code| scopeL.add_code(code.to_low) }
             # Adds the connections.
@@ -1981,7 +1994,7 @@ module HDLRuby::High
                 raise AnyError, "Generic type #{self.name} did not produce a valid type: #{gtype.class}"
             end
             # Create a new type definition from it.
-            gtype = TypeDef.new(self.name.to_s + "_#{args.join(":")}",
+            gtype = TypeDef.new(self.name.to_s + "_#{args.join(':')}",
                                    gtype)
             # Adds the possible overloaded operators.
             self.each_overload do |op,ruby_block|
@@ -2175,6 +2188,7 @@ module HDLRuby::High
 
     # Methods for declaring systems
 
+
     # Declares a high-level system type named +name+, with +includes+ mixins
     # system types and using +ruby_block+ for instantiating.
     def system(name = :"", *includes, &ruby_block)
@@ -2301,24 +2315,8 @@ module HDLRuby::High
                 # Performs the connections.
                 connects.each do |key,value|
                     # Gets the signal corresponding to connect.
-                    # signal = self.get_signal(key)
-                    # unless signal then
-                    #     # Look into the included systems.
-                    #     self.systemT.scope.each_included do |included|
-                    #         signal = included.get_signal(key)
-                    #         break if signal
-                    #     end
-                    # end
                     signal = self.systemT.get_signal_with_included(key)
                     # Check if it is an output.
-                    # isout = self.get_output(key)
-                    # unless isout then
-                    #     # Look into the inlucded systems.
-                    #     self.systemT.scope.each_included do |included|
-                    #         isout = included.get_output(key)
-                    #         break if isout
-                    #     end
-                    # end
                     isout = self.systemT.get_output_with_included(key)
                     # Convert it to a reference.
                     # puts "key=#{key} value=#{value} signal=#{signal}"
@@ -2448,7 +2446,6 @@ module HDLRuby::High
 
         # Gets the private namespace.
         def namespace
-            # self.systemT.scope.namespace
             self.systemT.namespace
         end
 
@@ -2498,6 +2495,25 @@ module HDLRuby::High
             return chunkL
         end
     end
+
+
+
+
+    ##
+    # Describes a program.
+    class Program < HDLRuby::Low::Program
+        # Converts the if to HDLRuby::Low.
+        def to_low
+            # Create the resulting program.
+            progL = HDLRuby::Low::Program.new(self.lang,self.function,
+                                            *self.each_expression.map(&:to_low),
+                                            *self.each_event.map(&:to_low),
+                                            *self.each_code)
+            # Return the resulting program.
+            return progL
+        end
+    end
+
 
     ##
     # Decribes a set of non-HDLRuby code chunks.
