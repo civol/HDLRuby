@@ -2082,6 +2082,8 @@ module HDLRuby::High::Std
     end
 
 
+
+
     module HDLRuby::High::HExpression
         # Enhance the HExpression module with sequencer iteration.
 
@@ -2115,23 +2117,27 @@ module HDLRuby::High::Std
     end
 
 
-    class HDLRuby::High::Value
+    # class HDLRuby::High::Value
+    module HDLRuby::High::HExpression
         # Enhance the Value class with sequencer iterations.
 
         # HW times iteration.
         def stimes(&ruby_block)
-            return (0..self-1).seach(&ruby_block)
+            # return (0..self-1).seach(&ruby_block)
+            return AnyRange.new(0,self-1).seach(&ruby_block)
         end
 
         # HW upto iteration.
         def supto(val,&ruby_block)
-            return (self..val).seach(&ruby_block)
+            # return (self..val).seach(&ruby_block)
+            return AnyRange.new(self,val).seach(&ruby_block)
         end
 
         # HW downto iteration.
         def sdownto(val,&ruby_block)
             # Create the hardware iterator.
-            range = val..(self.to_i)
+            # range = val..(self.to_i)
+            range = AnyRange.new(val,self)
             hw_enum = SEnumeratorBase.new(signed[32],range.size) do |idx|
                 range.last - idx
             end
@@ -2232,6 +2238,51 @@ module HDLRuby::High::Std
     end
 
 
+    # Range substitute class for sequencers that supports any kind of bounds.
+    class AnyRange
+        # Enhance the AnyRange class with sequencer iteration.
+        include SEnumerable
+
+        attr_reader :first, :last
+
+        def initialize(first,last)
+            @first = first
+            @last = last
+        end
+
+        # HW iteration on each element.
+        def seach(&ruby_block)
+            # Create the iteration type: selection of the larger HDLRuby type
+            # between first and last. If one of first and last is a Numeric,
+            # priority to the non Numeric one.
+            if (self.last.is_a?(Numeric)) then
+                typ = self.first.to_expr.type
+            elsif (self.first.is_a?(Numeric)) then
+                typ = self.last.to_expr.type
+            else
+                typ = self.first.type.width > self.last.type.width ? 
+                    self.first.type : self.last.type
+            end
+            # Create the hardware iterator.
+            this = self
+            # size = this.size ? this.size : this.last - this.first + 1
+            size = this.last - this.first + 1
+            size = size.to_expr.as(typ)
+            hw_enum = SEnumeratorBase.new(typ,size) do |idx|
+                idx.as(typ) + this.first.to_expr.as(typ)
+            end
+            # Is there a ruby block?
+            if(ruby_block) then
+                # Yes, apply it.
+                return hw_enum.seach(&ruby_block)
+            else
+                # No, return the resulting enumerator.
+                return hw_enum
+            end
+        end
+    end
+
+
     class ::Integer
         # Enhance the Integer class with sequencer iterations.
 
@@ -2277,7 +2328,6 @@ module HDLRuby::High::Std
     def senumerator(typ,size,&access)
         return SEnumeratorBase.new(typ,size,&access)
     end
-
 
 
 end
