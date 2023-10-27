@@ -8,7 +8,7 @@ module HDLRuby::Verilog
   # puts n            
   # name = n.split("")
 
-  @@hdr2verilog = { "buf" => "_v0_buf" }
+  @@hdr2verilog = { "buf" => "_v0_buf", "table" => "_v1_table" }
 
   # Since it is possible to use $ and numbers other than the beginning of the character string, it is divided.
   def name_to_verilog(name)
