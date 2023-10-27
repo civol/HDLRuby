@@ -39,7 +39,7 @@ module HDLRuby::High::Std
             enum = @enums[SequencerT.current]
             unless enum then
                 enum = @enums[SequencerT.current] =
-                    senumerator(@type,@size,&@access)
+                    SEnumeratorBase.new(@type,@size,&@access)
             end
             return enum
         end
@@ -59,13 +59,17 @@ module HDLRuby::High::Std
             return @access.call(addr,val)
         end
 
+        # The access to the already defined elements.
+        attr_reader :type
+        attr_reader :size
+
         # Delegate the enumeration methods to the enumerator of the current
         # system.
         
-        [:size,:type,:result,:index,:access,:speek,
+        [:result,:index,:access,:speek,
          :snext,:snext?,:snext!,:srewind].each do |sym|
             define_method(sym) do |*args,&ruby_block|
-                self.senumerator.send(sym,*args,&ruby_block)
+                senumerator.send(sym,*args,&ruby_block)
             end
         end
     end
@@ -79,7 +83,7 @@ module HDLRuby::High::Std
     # - +typ+ is the data type of the elements.
     # - +size+ is the number of elements.
     # - +access+ is the block implementing the access method.
-    def channel(typ,size,&access)
+    def schannel(typ,size,&access)
         return SequencerChannel.new(typ,size,&access)
     end
 
