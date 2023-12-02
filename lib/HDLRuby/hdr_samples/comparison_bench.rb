@@ -1,7 +1,7 @@
 # Test the comparison operators.
 
-# A benchmark for the adder.
-system :adder_bench do
+# A benchmark for the comparators.
+system :comparison_bench do
     [8].inner :x, :y
     signed[8].inner :u,:v
     inner :ue, :ult, :ule, :ugt, :uge
