@@ -1000,7 +1000,30 @@ module HDLRuby::High
 
     class RefName
         ## Extends the RefName class for hybrid Ruby-C simulation.
-        # Should not be used with rcsim.
+        # Converted to RefRange.
+
+        # Generate the C description of the reference range (not ref name!).
+        def to_rcsim
+            # Convert the base to a bit vector.
+            type_base = Bit[self.ref.type.width]
+            # self.ref.parent = nil
+            # bit_base = Cast.new(type_base,self.ref)
+            bit_base = RCSim.rcsim_make_cast(type_base.to_rcsim,self.ref.to_rcsim)
+            # Compute range in bits of the field.
+            last = 0
+            self.ref.type.each.detect do |name,typ|
+                last += typ.width
+                name == self.name
+            end
+            first = last-self.type.width
+            last -= 1
+            # puts "name=#{self.name} first=#{first} last=#{last}"
+            type_int = Bit[type_base.width.width]
+            return RCSim.rcsim_make_refRange(self.type.to_rcsim,
+                                             Value.new(type_int,last).to_rcsim,
+                                             Value.new(type_int,first).to_rcsim,
+                                             bit_base)
+        end
     end
 
 
