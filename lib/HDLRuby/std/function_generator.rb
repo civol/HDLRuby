@@ -75,7 +75,7 @@ module HDLRuby::High::Std
         base <= lut[address]
 
         # Assign the next_data discrete value.
-        next_data <= lut[address+_b1.as(address.type)]
+        next_data <= mux(address < lut_size-1,lut[address],lut[address+_b1.as(address.type)])
     end
 
 
