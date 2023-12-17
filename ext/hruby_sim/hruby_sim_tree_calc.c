@@ -177,6 +177,82 @@ Value calc_expression(Expression expr, Value res) {
 }
 
 
+/** Calculates a range access from a reference.
+ *  Recurse over the multiple references.
+ *  @param ref the reference to work on.
+ *  @param first the first index of the access.
+ *  @param last the last index of the access.
+ *  @param sig the target signal. */
+void calc_ref_rangeS(Reference ref, long long* first, long long *last, 
+        SignalI* sig) {
+    // printf("calc_ref_rangeS with kind=%d\n",ref->kind);
+    if (ref->kind == CAST) {
+        /* Create a new reference for the computation that changes the type. */
+        Cast refc = (Cast)ref;
+        /* Compute the range for the child. */
+        long long cfirst, clast;
+        calc_ref_rangeS(refc->child,&cfirst,&clast,sig);
+        /* Update first and last using the cast. */
+        /* Both first and last should be equal since the type of the cast sets
+         * the width */
+        // printf("cfirst=%d clast=%d\n",cfirst,clast);
+        *first = *last = cfirst;
+    }
+    else if (ref->kind == REF_INDEX) {
+        RefIndex refi = (RefIndex)ref;
+        /* Compute the index of refi. */
+        Value indexV = get_value();
+        indexV = calc_expression(refi->index,indexV);
+        long long index = value2integer(indexV);
+        // printf("index=%d\n",index);
+        free_value();
+        /* Is the reference a signal? */
+        if (refi->ref->kind == SIGNALI) {
+            /* Yes, end here. */
+            *first = index;
+            *last  = index;
+            *sig   = (SignalI)(refi->ref);
+        } else {
+            /* No, need to recurse. */
+            long long pfirst, plast;
+            calc_ref_rangeS(refi->ref,&pfirst,&plast,sig);
+            // printf("pfirst=%d plast=%d\n",pfirst,plast);
+            /* Calculate the final first and last. */
+            *first = *last = pfirst + index;
+        }
+    } else if (ref->kind == REF_RANGE) {
+        RefRangeE refr = (RefRangeE)ref;
+        /* Compute the range of refr */
+        Value firstV = get_value();
+        firstV = calc_expression(refr->first,firstV);
+        long long firstR = value2integer(firstV);
+        free_value();
+        Value lastV = get_value();
+        lastV = calc_expression(refr->last,lastV);
+        long long lastR = value2integer(lastV);
+        free_value();
+        // printf("firstR=%d lastR=%d\n",firstR,lastR);
+        /* Is the reference a signal? */
+        if (refr->ref->kind == SIGNALI) {
+            /* Yes, end here. */
+            *first = firstR;
+            *last  = lastR;
+            *sig   = (SignalI)(refr->ref);
+        } else {
+            /* No, need to recurse. */
+            long long pfirst, plast;
+            calc_ref_rangeS(refr->ref,&pfirst,&plast,sig);
+            /* Calculate the final first and last. */
+            *first = pfirst + firstR;
+            *last = plast + lastR;
+        }
+    } else {
+        perror("Invalid reference for converting to range access.");
+        exit(1);
+    }
+}
+
+
 
 /** Executes a statement.
  *  @param stmnt the statement to execute.
@@ -208,15 +284,22 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                         {
                             /* Transmission to sub element. */
                             RefIndex refi = (RefIndex)(trans->left);
-                            /* Compute the index. */
-                            Value indexV = get_value();
-                            indexV = calc_expression(refi->index,indexV);
-                            long long index = value2integer(indexV);
-                            free_value();
-                            /* Generate the reference inside the left value. */
+                            // /* Compute the index. */
+                            // Value indexV = get_value();
+                            // indexV = calc_expression(refi->index,indexV);
+                            // long long index = value2integer(indexV);
+                            // free_value();
+                            // /* Generate the reference inside the left value. */
+                            // RefRangeS ref = 
+                            //     make_ref_rangeS((SignalI)(refi->ref),refi->type,
+                            //         index,index);
+                            /* Compute the range. */
+                            long long first,last;
+                            SignalI sig;
+                            calc_ref_rangeS((Reference)refi,&first,&last,&sig);
+                            /* Now can create the range. */
                             RefRangeS ref = 
-                                make_ref_rangeS((SignalI)(refi->ref),refi->type,
-                                    index,index);
+                                make_ref_rangeS(sig,refi->type,first,last);
                             /* Perform the transmit. */
                             if(mode)
                                 transmit_to_signal_range_seq(right,ref);
@@ -229,21 +312,24 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                             /* Transmission to range of sub elements. */
                             RefRangeE refr = (RefRangeE)(trans->left);
                             /* Compute the range. */
-                            // Value firstV = calc_expression(refr->first);
-                            Value firstV = get_value();
-                            firstV = calc_expression(refr->first,firstV);
-                            long long first = value2integer(firstV);
-                            free_value();
-                            // Value lastV = calc_expression(refr->last);
-                            Value lastV = get_value();
-                            lastV = calc_expression(refr->last,lastV);
-                            long long last = value2integer(lastV);
-                            free_value();
-                            // printf("firstV=%lld lastV=%lld right=%lld mode=%d\n",firstV->data_int,lastV->data_int,right->data_int,mode);
-                            /* Generate the reference inside the left value. */
+                            // Value firstV = get_value();
+                            // firstV = calc_expression(refr->first,firstV);
+                            // long long first = value2integer(firstV);
+                            // free_value();
+                            // Value lastV = get_value();
+                            // lastV = calc_expression(refr->last,lastV);
+                            // long long last = value2integer(lastV);
+                            // free_value();
+                            // /* Generate the reference inside the left value. */
+                            // RefRangeS ref = 
+                            //     make_ref_rangeS((SignalI)(refr->ref),refr->type,
+                            //         first,last);
+                            long long first,last;
+                            SignalI sig;
+                            calc_ref_rangeS((Reference)refr,&first,&last,&sig);
+                            /* Now can create the range. */
                             RefRangeS ref = 
-                                make_ref_rangeS((SignalI)(refr->ref),refr->type,
-                                    first,last);
+                                make_ref_rangeS(sig,refr->type,first,last);
                             /* Perform the transmit. */
                             if(mode)
                                 transmit_to_signal_range_seq(right,ref);
