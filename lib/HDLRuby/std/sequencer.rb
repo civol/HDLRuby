@@ -338,17 +338,19 @@ module HDLRuby::High::Std
         @@old_make_inners_proc = self.instance_method(:make_inners)
 
         def make_inners(typ,*names)
+            res = nil
             if SequencerT.current then
                 unames = names.map {|name| HDLRuby.uniq_name(name) }
-                HDLRuby::High.cur_scope.make_inners(typ, *unames)
+                res = HDLRuby::High.cur_scope.make_inners(typ, *unames)
                 names.zip(unames).each do |name,uname|
                     HDLRuby::High.space_reg(name) { send(uname) }
                 end
             else
                 # self.old_make_inners(typ,*names)
                 # Call the old make_inners.
-                @@old_make_inners_proc.bind(self).call(typ,*names)
+                res = @@old_make_inners_proc.bind(self).call(typ,*names)
             end
+            return res
         end
     end
 
