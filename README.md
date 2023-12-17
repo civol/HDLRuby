@@ -11,6 +11,16 @@ If you are new to HDLRuby, it is recommended that you consult first the followin
 
 __What's new__
 
+For HDLRuby version 3.2.0:
+
+ * Added component for declaring BRAM and BRAM-based stacks.
+   The goal is to efficiently allocate memories inside FPGAs.
+
+ * Inner code overhaul for preparing version 4.0.0
+
+ * Multiple bug fixes
+
+
 For HDLRuby version 3.1.0:
 
  * [Functions for sequencers](#sequencer-specific-function-std-sequencer_func-rb) supporting recursion;
