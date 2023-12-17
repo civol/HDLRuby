@@ -16,6 +16,12 @@ module HDLRuby::High::Std
     #       their are set when the function is called.
     #       This is handle by the eigen functions (see SequencerFunctionE).
     class SequencerFunctionT
+
+        ZERO = :_b0.to_value
+        ONE = :_sb01.to_value
+        # ZERO = 0
+        # ONE = 1
+
         # The name of the function.
         attr_reader :name
 
@@ -69,7 +75,7 @@ module HDLRuby::High::Std
                         # hprint("returning with stack_ptr=",stack_ptr,"\n")
                         hif(stack_ptr <= depth) do
                             # hprint("poking recursive return value at idx=",funcI.returnIdx," with value=",st_call.value+1,"\n")
-                            funcI.poke(funcI.returnIdx,st_call.value + 1)
+                            funcI.poke(funcI.returnIdx,st_call.value + ONE)
                         end
                     end
                 end
@@ -89,7 +95,7 @@ module HDLRuby::High::Std
                     old_code.call
                     HDLRuby::High.top_user.instance_exec do
                         # hprint("poking return value at idx=",funcI.returnIdx," with value=",st_func.value+1,"\n")
-                        funcI.poke(funcI.returnIdx,st_func.value + 1)
+                        funcI.poke(funcI.returnIdx,st_func.value + ONE)
                     end
                 end
             end
@@ -151,6 +157,11 @@ module HDLRuby::High::Std
 
     # Describes a sequencer function instance.
     class SequencerFunctionI
+
+        ZERO = SequencerFunctionT::ZERO
+        ONE = SequencerFunctionT::ONE
+
+
         @@current_stack = [] # The stack of current function instance.
 
         # Get the function instance currently processing.
@@ -194,7 +205,7 @@ module HDLRuby::High::Std
             # Create the stacks for the arguments.
             @funcE.each_argT { |argT| self.make_stack(argT) }
             # @argsIdx = @returnIdx + 2
-            @argsIdx = @returnIdx + 1
+            @argsIdx = @returnIdx + ONE
 
             # Create the return value, however, at first their type is unknown
             # to set it as a simple bit.
@@ -296,7 +307,7 @@ module HDLRuby::High::Std
 
             # Get the state value of the function: it is the state
             # following the first function call.
-            func_state_value = call_state.value + 1
+            func_state_value = call_state.value + ONE
             # Do the call.
             call_state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
@@ -329,7 +340,7 @@ module HDLRuby::High::Std
                 # Since not pushed the stack yet for not loosing the previous
                 # arguments, add +1 to the offset when poking the new arguments.
                 # args.each_with_index { |arg,i| self.poke(@argsIdx + i,arg,1) }
-                args.each_with_index { |arg,i| this.poke(argsIdx + i,arg,1) }
+                args.each_with_index { |arg,i| this.poke(argsIdx + i,arg,ONE) }
             end
 
             # Push a new frame.
@@ -349,7 +360,7 @@ module HDLRuby::High::Std
 
             # Get the state value of the function: it is the state
             # following the first function call.
-            func_state_value = @state.value + 1
+            func_state_value = @state.value + ONE
             # Do the call.
             call_state.gotos << proc do
                 HDLRuby::High.top_user.instance_exec do
@@ -358,7 +369,7 @@ module HDLRuby::High::Std
                     end
                     helse do
                         # Overflow! Skip the call.
-                        next_state_sig <= call_state_value + 1
+                        next_state_sig <= call_state_value + ONE
                         # if overflow then
                         #     # There is some overflow code to execute.
                         #     HDLRuby::High.top_user.instance_exec(&overflow)
@@ -395,32 +406,32 @@ module HDLRuby::High::Std
             @stack_sigs << stack_sig
 
             # Returns the index of the newly created stack.
-            return @stack_sigs.size-1
+            return @stack_sigs.size - ONE
         end
 
         ## Pushes a new frame to the top of the stacks.
         def push_all
             # HDLRuby::High.cur_system.hprint("push_all\n")
-            @stack_ptr <= @stack_ptr + 1
+            @stack_ptr <= @stack_ptr + ONE
         end
 
         ## Remove the top frame from the stacks.
         def pop_all
             # HDLRuby::High.cur_system.hprint("pop_all\n")
-            @stack_ptr <= @stack_ptr -1
+            @stack_ptr <= @stack_ptr - ONE
         end
 
         ## Get a value from the top of stack number +idx+
         #  If +off+ is the offeset in the stack.
         def peek(idx, off = 0)
-            return @stack_sigs[idx][@stack_ptr-1+off]
+            return @stack_sigs[idx][(@stack_ptr-ONE)+off]
         end
 
         ## Sets value +val+ to the top of stack number +idx+.
         #  If +off+ is the offeset in the stack.
         def poke(idx,val, off = 0)
             # puts "idx=#{idx} val=#{val} sig=#{@stack_sigs[idx].name}"
-            @stack_sigs[idx][@stack_ptr-1+off] <= val
+            @stack_sigs[idx][@stack_ptr-ONE+off] <= val
         end
 
         ## Access the return value signal.
@@ -449,7 +460,7 @@ module HDLRuby::High::Std
             # ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,-1,0))
             # Peek before the stack pointer value to account from the fact that
             # the pop is performed beforehand.
-            ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,0,+1))
+            ret_state_value = self.peek(@returnIdx, HDLRuby::High.top_user.mux(@stack_ptr < @depth,ZERO,ONE))
             # Return.
             this = self
             state.gotos << proc do
@@ -483,15 +494,17 @@ module HDLRuby::High::Std
         alias_method :old_make_inners, :make_inners
 
         def make_inners(typ,*names)
+            res = nil
             if SequencerFunctionI.current then
                 unames = names.map {|name| HDLRuby.uniq_name(name) }
-                HDLRuby::High.cur_scope.make_inners(typ, *unames)
+                res = HDLRuby::High.cur_scope.make_inners(typ, *unames)
                 names.zip(unames).each do |name,uname|
                     HDLRuby::High.space_reg(name) { send(uname) }
                 end
             else
-                self.old_make_inners(typ,*names)
+                res = self.old_make_inners(typ,*names)
             end
+            return res
         end
     end
 
