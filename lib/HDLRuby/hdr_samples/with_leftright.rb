@@ -3,7 +3,7 @@
 system :leftright_bench do
     [8].inner :l,:r0,:r1,:lr
 
-    par do
+    seq do
         lr <= r0*2
         l <= [lr[7],lr[6..0]].to_expr + r1
     end

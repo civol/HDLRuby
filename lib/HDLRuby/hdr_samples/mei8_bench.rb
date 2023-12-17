@@ -56,7 +56,7 @@ system :mei8 do |prog_file = "./prog.obj"|
         end
 
         # The control part for choosing between 0, add, sub and neg.
-        par do
+        par(opr,x,y) do
             # Default computations
             cf <= 0; vf <= 0; zf <= (z == 0); sf <= z[7]
             add.(0,0,0)
@@ -150,14 +150,14 @@ system :mei8 do |prog_file = "./prog.obj"|
         end
     end
 
+    # Handling of the 3-state data bus
+    dbus <= mux(io_rwb,io_out,_bzzzzzzzz)
+    io_in <= dbus
+
     # The io unit.
     fsm(clk.posedge,rst,:async) do
         default       { io_done <= 0; req <= 0; rwb <= 0; addr <= 0
-                        io_r_done <= 0
-                        # Default handling of the 3-state data bus
-                        hif(io_rwb) { dbus <= _zzzzzzzz }
-                        helse       { dbus <= io_out }
-                        io_in <= dbus }
+                        io_r_done <= 0 }
         reset(:sync)  { data <= 0; }
         state(:wait)  { goto(io_req,:start,:wait) }        # Waiting for an IO
         state(:start) { req <= 1; rwb <= io_rwb; addr <= g # Start an IO

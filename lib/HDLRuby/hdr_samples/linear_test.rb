@@ -1,6 +1,8 @@
 require 'std/memory.rb'
 require 'std/linear.rb'
 
+raise "std/memory.rb is deprecated."
+
 include HDLRuby::High::Std
 
 # Tries for matrix-vector product.

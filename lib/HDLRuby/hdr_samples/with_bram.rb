@@ -10,7 +10,7 @@ system :bram_test do
     widthD = 8
 
 
-    input :clk,:rwb
+    inner :clk,:rwb
     [widthA].inner :addr
     [widthD].inner  :din,:dout
 

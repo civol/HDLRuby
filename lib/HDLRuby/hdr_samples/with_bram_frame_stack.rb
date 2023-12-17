@@ -11,7 +11,7 @@ system :bram_stach_test do
     depth = 16
 
 
-    input :clk, :rst, :ce
+    inner :clk, :rst, :ce
     [2].inner :cmd
     { frame: bit[depth.width], offset: bit[size.width] }.inner :loc
     [size.width].inner :frame_size

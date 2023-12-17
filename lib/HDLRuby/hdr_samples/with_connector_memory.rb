@@ -3,6 +3,8 @@ require "std/fixpoint.rb"
 require 'std/channel.rb'
 require 'std/connector.rb'
 
+raise "std/channel.rb is deprecated."
+
 include HDLRuby::High::Std
 
 system :channel_connector do

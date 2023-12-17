@@ -4,9 +4,9 @@
 
 
 # A simple circuit with named sub
-system :named_sub do
-    input  :x, :y
-    output :s
+system :named_sub do |x|
+    input  :y
+    output :s, :z
 
     sub :somesub do
         inner :sig
@@ -17,13 +17,17 @@ system :named_sub do
         s <= ~somesub.sig
     end
 
+    z <= s
+
 end
 
 # A benchmark for the circuit.
 system :named_sub_bench do
-    inner :x, :y, :s
+    inner :x, :y, :s, :z
 
-    named_sub(:my_named_sub).(x,y,s)
+    named_sub(x).(:my_named_sub).(y,s)
+
+    z <= my_named_sub.z
 
     timed do
         x <= 0

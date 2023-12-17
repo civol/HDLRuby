@@ -2,6 +2,8 @@ require 'std/memory.rb'
 require 'std/linear.rb'
 # require 'std/timing.rb'
 
+raise "std/memory.rb is deprecated."
+
 include HDLRuby::High::Std
 
 

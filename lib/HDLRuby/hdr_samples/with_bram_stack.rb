@@ -10,7 +10,7 @@ system :bram_stach_test do
     widthD = 8
 
 
-    input :clk, :rst, :ce
+    inner :clk, :rst, :ce
     inner :cmd
     [widthD].inner  :din,:dout
     inner :empty, :full

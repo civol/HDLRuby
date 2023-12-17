@@ -1,6 +1,8 @@
 require 'std/channel.rb'
 require 'std/connector.rb'
 
+raise "std/channel.rb is deprecated."
+
 include HDLRuby::High::Std
 
 # Sample for testing the connectors of channels.

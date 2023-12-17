@@ -13,7 +13,8 @@ system :my_seqencer do
     arbiter(:arbiter0).(x1)
 
     par(clk.posedge) do
-        x0.select <= x0.select + 1
+        hif(rst) { x0.select(0) }
+        helse { x0.select(x0.select + 1) }
     end
 
     sequencer(clk.posedge,rst) do

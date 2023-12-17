@@ -1,6 +1,8 @@
 require 'std/channel.rb'
 require 'std/hruby_unit.rb'
 
+raise "std/channel.rb is deprecated."
+
 include HDLRuby::High::Std
 
 # A clocked handshake channel for testing purpuse.

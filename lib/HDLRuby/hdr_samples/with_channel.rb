@@ -1,5 +1,7 @@
 require 'std/channel.rb'
 
+raise "std/channel.rb is deprecated."
+
 include HDLRuby::High::Std
 
 # Implementation of a handshaker channel transmitting generic values

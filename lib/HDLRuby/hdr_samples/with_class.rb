@@ -1,5 +1,7 @@
 # A class for a handshake transmission.
 
+raise "Deprecated code."
+
 class Handshaker
 
     ## Create a new handshaker for transmitting +type+ data.
@@ -179,7 +181,7 @@ end
 
 # A system testing the producer/consumer.
 system :hs_test do
-    input :clk,:rst
+    inner :clk,:rst
 
     # Declares the handshaker
     hs = Handshaker.new([8])
