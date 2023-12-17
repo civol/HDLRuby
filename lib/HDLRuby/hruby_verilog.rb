@@ -169,7 +169,17 @@ module HDLRuby::Low
 
         # Converts the system to Verilog code.
         def to_verilog
-            return "(#{self.left.to_verilog} #{self.operator} #{self.right.to_verilog})"
+            # In HDLRuby if on term is signed and the other is not, the
+            # computation is signed.
+            if self.left.type.signed? and self.right.type.unsigned? then
+                return "(#{self.left.to_verilog} #{self.operator} " +
+                    "$signed({1'b0,#{self.right.to_verilog}}))"
+            elsif self.left.type.unsigned? and right.type.signed? then
+                return "($signed({1'b0,#{self.left.to_verilog}})" +
+                    " #{self.operator} #{self.right.to_verilog})"
+            else
+                return "(#{self.left.to_verilog} #{self.operator} #{self.right.to_verilog})"
+            end
         end
 
         # Method called when two or more expression terms are present.
@@ -1505,7 +1515,8 @@ module HDLRuby::Low
                 vname = name_to_verilog(self.name)
             else
                 # Not end reference, recurse.
-                vname = name_to_verilog(self.name) + "." + self.ref.to_verilog 
+                # vname = name_to_verilog(self.name) + "." + self.ref.to_verilog 
+                vname = self.ref.to_verilog + "." + name_to_verilog(self.name)
             end
             # self.properties[:verilog_name] = vname
             return "#{vname}"
@@ -1743,9 +1754,11 @@ module HDLRuby::Low
             if self.default then
                 result << " " * (spc+3) + "default: "
                 if self.default.each_statement.count >= 1 then
+                    result << "begin\n"
                     result << self.default.each_statement.map do |stmnt|
-                        stmnt.to_verilog(spc+3)
+                        stmnt.to_verilog(spc+6)
                     end.join("\n") << "\n"
+                    result << " " * (spc+3) + "end\n"
                 else
                     result << ";\n"
                 end
@@ -2376,7 +2389,7 @@ module HDLRuby::Low
                     codeC << "   initial "
                 else
                     # Generate a standard process.
-                    codeC << "   always @( "
+                    codeC << "\n   always @( "
                     # If there is no "always" condition, it is always @("*").
                     if behavior.each_event.to_a.empty? then
                         codeC << "*"

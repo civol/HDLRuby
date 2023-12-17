@@ -122,10 +122,17 @@ module HDLRuby::Low
             # Extract the connections of the sub scopes.
             cnxs = self.each_scope.map(&:extract_connections!).flatten
             # Reinsert them to self.
-            cnxs.each { |beh| self.add_connection(beh) }
+            cnxs.each { |cnx| self.add_connection(cnx) }
+
+            # The fix the RefName using sub scopes since their target have
+            # been deplaced to current scope and renamed.
+            self_scopes = self.each_scope.to_a
+            self.each_behavior { |beh| beh.fix_scope_refnames!(self_scopes) }
+            self.each_connection { |cnx| cnx.fix_scope_refnames!(self_scopes) }
 
             # Now can delete the sub scopes since they are empty.
-            self.each_scope.to_a.each { |scope| self.delete_scope!(scope) }
+            # self.each_scope.to_a.each { |scope| self.delete_scope!(scope) }
+            self_scopes.each { |scope| self.delete_scope!(scope) }
         end
 
         # Extract the behaviors from the scope and returns them into an array.
@@ -219,9 +226,10 @@ module HDLRuby::Low
         # in the internals.
         def replace_names_subs!(former,nname)
             # puts "replace_names_subs! for #{self} with former=#{former} and nname=#{nname}"
-            self.each_type do |type|
-                type.replace_names!(former,nname)
-            end
+            # No need? 
+            # self.each_type do |type|
+            #     type.replace_names!(former,nname)
+            # end
             self.each_systemT do |systemT|
                 systemT.replace_names!(former,nname)
             end
@@ -460,6 +468,13 @@ module HDLRuby::Low
             # Recurse on the block.
             self.block.replace_names!(former,nname)
         end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+          self.block.fix_scope_refnames!(scopes)
+          return self
+        end
     end
 
 
@@ -498,6 +513,34 @@ module HDLRuby::Low
                 node.break_types!(types)
             end
         end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+          # By default, does nothing.
+          return self
+        end
+    end
+
+
+    class Transmit
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            self.set_left!(self.left.fix_scope_refnames!(scopes))
+            self.set_right!(self.right.fix_scope_refnames!(scopes))
+            return self
+        end
+    end
+
+    class Connection
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            self.set_left!(self.left.fix_scope_refnames!(scopes))
+            self.set_right!(self.right.fix_scope_refnames!(scopes))
+            return self
+        end
     end
 
 
@@ -526,6 +569,16 @@ module HDLRuby::Low
                     node.set_type!(node.type.break_types!(types))
                 end
             end
+        end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            # By default: recurse.
+            self.map_nodes! do |node|
+                node.fix_scope_refnames!(scopes)
+            end
+            return self
         end
     end
 
@@ -578,6 +631,24 @@ module HDLRuby::Low
             # Recurse on the no if any.
             self.no.replace_names!(former,nname) if self.no
         end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            # Fix the condition.
+            self.set_condition!(self.condition.fix_scope_refnames!(scopes))
+            # Recurse on the yes.
+            self.yes.fix_scope_refnames!(scopes)
+            # Recurse on the alternate ifs.
+            self.map_noifs! do |cond,stmnt|
+                cond = cond.fix_scope_refnames!(scopes)
+                stmnt = stmnt.fix_scope_refnames!(scopes)
+                [cond,stmnt]
+            end
+            # Recruse on the no if any.
+            self.no.fix_scope_refnames!(scopes) if self.no
+            return self
+        end
     end
 
 
@@ -618,6 +689,16 @@ module HDLRuby::Low
                 end
             end
         end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            # Fix the match.
+            self.set_match!(self.match.fix_scope_refnames!(scopes))
+            # Recurse on the statement.
+            self.statement.fix_scope_refnames!(scopes)
+            return self
+        end
     end
 
 
@@ -655,6 +736,18 @@ module HDLRuby::Low
             # Recurse on the default.
             self.default.replace_names!(former,nname) if self.default
         end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            # Fix the value.
+            self.set_value!(self.value.fix_scope_refnames!(scopes))
+            # Recurse on the whens.
+            self.each_when {|w| w.fix_scope_refnames!(scopes) }
+            # Recurse on the default.
+            self.default.fix_scope_refnames!(scopes) if self.default
+            return self
+        end
     end
 
 
@@ -680,6 +773,14 @@ module HDLRuby::Low
         def replace_names!(former,nname)
             # Recurse on the statement.
             self.statement.replace_names!(former,nname)
+        end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            # Recurse on the statement.
+            self.statement.fix_scope_refnames!(scopes)
+            return self
         end
     end
 
@@ -737,6 +838,33 @@ module HDLRuby::Low
             return if self.each_inner.find {|inner| inner.name == former }
             # Recurse on the sub scopes and behaviors.
             replace_names_subs!(former,nname)
+        end
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            self.each_statement {|stmnt| stmnt.fix_scope_refnames!(scopes) }
+            return self
+        end
+    end
+
+
+    class RefName
+        include ForceName
+
+        # Fix the references names using scopes given in +scopes + list (they
+        # are marked to be deleted).
+        def fix_scope_refnames!(scopes)
+            return self unless self.ref.is_a?(RefName)
+            # puts "fix_scope_refnames! with self.name=#{name} and self.ref=#{self.ref}"
+            # Recurse on the ref.
+            self.set_ref!(self.ref.fix_scope_refnames!(scopes))
+            # Rename and curt the subref if referening to one of the scopes.
+            if scopes.find {|scope| scope.name == self.ref.name } then
+                self.ref.extend_name!(self)
+                self.set_ref!(RefThis.new)
+            end
+            return self
         end
     end
 

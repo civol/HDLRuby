@@ -85,7 +85,8 @@ module HDLRuby::Low
             # Get the full hierarchy up to the object.
             path = self.hierarchy
             # Create the reference.
-            return path.reduce(RefThis.new) do |ref,node|
+            # return path.reduce(RefThis.new) do |ref,node|
+            return path.reverse_each.reduce(RefThis.new) do |ref,node|
                 # puts "node=#{node}"
                 # puts "name=#{node.name}" if node.respond_to?(:name)
                 if node.respond_to?(:name) then

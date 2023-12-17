@@ -3359,6 +3359,24 @@ module HDLRuby::High
                 include HExpression
                 include HArrow
 
+                # Update the initialize to handle struct types accesses if
+                # it is not a RefObject, this latter being a proxy to a
+                # real component.
+                if klass != RefObject then
+                    original_initialize = instance_method(:initialize)
+                    define_method(:initialize) do |*args, &block|
+                        original_initialize.bind(self).call(*args,&block)
+                        # Now process it if it is a structured type.
+                        if self.type.struct? then
+                            self.type.each do |name,typ|
+                                self.define_singleton_method(name) do
+                                    RefName.new(typ,self,name)
+                                end
+                            end
+                        end
+                    end
+                end
+
                 # Converts to a new expression.
                 def to_expr
                     self.to_ref
@@ -3459,7 +3477,7 @@ module HDLRuby::High
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
             # puts "to_low with base=#{@base} @object=#{@object}"
-            # puts "@object.name=#{@object.name} @object.parent=#{@object.parent}"
+            # puts "@object.name=#{@object.name} @object.parent=#{@object.parent.name}"
             if @base.is_a?(RefThis) && 
                     (@object.parent != High.top_user) &&
                     (@object.parent != High.cur_system) &&
