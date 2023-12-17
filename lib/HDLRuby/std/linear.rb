@@ -16,7 +16,7 @@ module HDLRuby::High::Std
     # - +ruby_block+: the code of the linear computation kernel, it takes
     #                 as argument +ev+, and its own req and ack signals
     #                 (resp. +req_ker+ +ack_ker+).
-    function :linearun do |num,ev,req,ack,ruby_block|
+    hdef :linearun do |num,ev,req,ack,ruby_block|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
 
@@ -57,7 +57,7 @@ module HDLRuby::High::Std
     # Delcares a vector product by a scalar value.
     #
     # Can be used for scaling a vector.
-    function :scale do |typ,ev,req,ack,left,rights,prods,
+    hdef :scale do |typ,ev,req,ack,left,rights,prods,
                         mul = proc { |x,y| x*y }|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
@@ -101,7 +101,7 @@ module HDLRuby::High::Std
     # Declares a 1-dimension vector adder.
     #
     # Can be used for the sum of two vectors.
-    function :add_n do |typ,ev,req,ack,lefts, rights, sums,
+    hdef :add_n do |typ,ev,req,ack,lefts, rights, sums,
                         add = proc { |x,y| x+y }|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
@@ -143,7 +143,7 @@ module HDLRuby::High::Std
     end
 
     # Declares a 1-dimension vector element-wise multiplier.
-    function :mul_n do |typ,ev,req,ack,lefts, rights, prods,
+    hdef :mul_n do |typ,ev,req,ack,lefts, rights, prods,
                         mul = proc { |x,y| x*y }|
         add_n(typ,ev,req,ack,lefts,rights,prods,mul)
     end
@@ -152,7 +152,7 @@ module HDLRuby::High::Std
     # Declares a simple multiplier accumulator.
     #
     # Can be used for the scalar product of two vectors.
-    function :mac do |typ,ev,req,ack,left, right, acc,
+    hdef :mac do |typ,ev,req,ack,left, right, acc,
         mul = proc { |x,y| x*y }, add = proc { |x,y| x+y }|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
@@ -193,7 +193,7 @@ module HDLRuby::High::Std
     # Declares a simple multiple mac with single right data.
     #
     # Can be used for the product of a martix-vector product.
-    function :mac_n1 do |typ,ev,req,ack,lefts, right, accs,
+    hdef :mac_n1 do |typ,ev,req,ack,lefts, right, accs,
         mul = proc { |x,y| x*y }, add = proc { |x,y| x+y }|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
@@ -262,7 +262,7 @@ module HDLRuby::High::Std
     # Declares a simple pipelined multiple mac with single right data.
     #
     # Can be used for the product of a martix-vector product.
-    function :mac_np do |typ,ev,req,ack,lefts, rights, last,
+    hdef :mac_np do |typ,ev,req,ack,lefts, rights, last,
         mul = proc { |x,y| x*y }, add = proc { |x,y| x+y }|
         # Ensure ev is really an event.
         ev = ev.posedge unless ev.is_a?(Event)
