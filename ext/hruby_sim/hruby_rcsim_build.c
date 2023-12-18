@@ -1443,6 +1443,8 @@ void Init_hruby_sim() {
 
     /* Create the class that wraps C pointers. */
     RCSimPointer = rb_define_class("RCSimPointer",rb_cObject);
+    /* No allocator for C pointers. */
+    rb_undef_alloc_func(RCSimPointer);
 
     /* Add the interface methods. */
     /* Getting the C simulation type objects. */
