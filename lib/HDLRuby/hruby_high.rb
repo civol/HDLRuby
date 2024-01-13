@@ -2503,13 +2503,21 @@ module HDLRuby::High
     # Describes a program.
     class Program < HDLRuby::Low::Program
 
+        include Hmissing
+
+        attr_reader :namespace
+
         # Create a program in language +lang+ with start function named +func+
         # and built through +ruby_block+.
         def initialize(lang, func, &ruby_block)
             # Create the program.
             super(lang,func)
-            # Build it.
-            self.instance_eval(&ruby_block)
+            # Create the namespace for the program.
+            @namespace = Namespace.new(self)
+            # Build the program object.
+            High.space_push(@namespace)
+            High.top_user.instance_eval(&ruby_block)
+            High.space_pop
         end
 
         # Converts the if to HDLRuby::Low.

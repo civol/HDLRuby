@@ -4,14 +4,10 @@ system :with_ruby_prog do
     inner :clk
     [8].inner :count, :echo
 
-    clkR = clk
-    countR = count
-    echoR = echo
-
     program(:ruby,:echo) do
-        actport clkR.posedge
-        inport  inP: countR
-        outport outP: echoR
+        actport clk.posedge
+        inport  inP: count
+        outport outP: echo
         code "echo.rb"
     end
 
