@@ -72,7 +72,9 @@
 // rcsim_wrapper(RefIndex);
 // rcsim_wrapper(RefRange);
 
-static VALUE RCSimPointer;
+static VALUE RCSimPointer;      // The C pointer type for Ruby.
+static VALUE RCSimCinterface;   // The RCSim Ruby module for C.
+// static VALUE RubyHDL;           // The interface for Ruby programs.
 
 #define rcsim_to_value(TYPE,POINTER,VALUE) \
     (VALUE) = Data_Wrap_Struct(RCSimPointer, 0, 0, (POINTER))
@@ -372,6 +374,41 @@ VALUE rcsim_make_systemI(VALUE mod, VALUE name, VALUE systemT) {
     /* Returns the C system instance embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(SystemIS,systemI,res);
+    return res;
+}
+
+
+void ruby_function_wrap(Code);
+
+/* Creating a system code C object. 
+ * Note: HDLRuby Code object are actually refactored to Program object,
+ *       but the low-level simulation still use Code as data structure.
+ *       Hence, it may change in the future. */
+VALUE rcsim_make_code(VALUE mod, VALUE lang, VALUE funcname) {
+    // printf("rcsim_make_code\n");
+    /* Allocates the code. */
+    Code code = (Code)malloc(sizeof(SystemIS));
+    // printf("code=%p\n",code);
+    /* Set it up. */
+    code->kind  = CODE;
+    code->owner = NULL;
+    code->name = strdup(StringValueCStr(funcname));
+    // printf("code->name=%p\n",code->name);
+    code->num_events = 0;
+    code->events = NULL;
+    code->function = NULL;
+    if(strncmp(StringValueCStr(lang),"ruby",4) == 0) {
+        /* Ruby function. */
+        code->function = ruby_function_wrap;
+    } else {
+        /* Other language function. */
+        perror("Unsupported language.");
+    }
+    code->enabled = 0;
+    code->activated = 0;
+    /* Returns the C code embedded into a ruby VALUE. */
+    VALUE res;
+    rcsim_to_value(CodeS,code,res);
     return res;
 }
 
@@ -955,6 +992,30 @@ VALUE rcsim_add_scope_systemIs(VALUE mod, VALUE scopeV, VALUE sysVs) {
     return scopeV;
 }
 
+/* Adds codes to a C scope. */
+VALUE rcsim_add_scope_codes(VALUE mod, VALUE scopeV, VALUE codeVs) {
+    /* Get the C scope from the Ruby value. */
+    Scope scope;
+    value_to_rcsim(ScopeS,scopeV,scope);
+    // printf("rcsim_add_scope_codes with scope=%p\n",scope);
+    /* Prepare the size for the codes. */
+    long num = RARRAY_LEN(codeVs);
+    long old_num = scope->num_codes;
+    scope->num_codes += num;
+    // printf("first scope->codes=%p\n",scope->codes); fflush(stdout);
+    scope->codes = realloc(scope->codes,
+                            sizeof(Code[scope->num_codes]));
+    // printf("now scope->codes=%p\n",scope->codes); fflush(stdout);
+    // printf("access test: %p\n",scope->codes[0]); fflush(stdout);
+    /* Get and add the codes from the Ruby value. */
+    for(long i=0; i< num; ++i) {
+        Code code;
+        value_to_rcsim(CodeS,rb_ary_entry(codeVs,i),code);
+        scope->codes[old_num + i] = code;
+    }
+    return scopeV;
+}
+
 /* Adds sub scopes to a C scope. */
 VALUE rcsim_add_scope_scopes(VALUE mod, VALUE scopeV, VALUE scpVs) {
     /* Get the C scope from the Ruby value. */
@@ -1050,6 +1111,53 @@ VALUE rcsim_add_behavior_events(VALUE mod, VALUE behaviorV, VALUE eventVs) {
     }
     return behaviorV;
 }
+
+
+/* Adds events to a C code. */
+VALUE rcsim_add_code_events(VALUE mod, VALUE codeV, VALUE eventVs) {
+    /* Get the C code from the Ruby value. */
+    Code code;
+    value_to_rcsim(CodeS,codeV,code);
+    // printf("rcsim_add_codee_events with code=%p\n",code);
+    /* Prepare the size for the events. */
+    long num = RARRAY_LEN(eventVs);
+    long old_num = code->num_events;
+    code->num_events += num;
+    // printf("first code->events=%p\n",code->events); fflush(stdout);
+    code->events = realloc(code->events,
+                               sizeof(Event[code->num_events]));
+    // printf("now code->events=%p\n",code->events); fflush(stdout);
+    // printf("access test: %p\n",code->events[0]); fflush(stdout);
+    /* Get and add the events from the Ruby value. */
+    for(long i=0; i< num; ++i) {
+        Event event;
+        value_to_rcsim(EventS,rb_ary_entry(eventVs,i),event);
+        code->events[old_num + i] = event;
+        /* Update the signal of the event to say it activates the code. */
+        SignalI sig = event->signal;
+        switch(event->edge) {
+            case ANYEDGE:
+                sig->num_any++;
+                sig->any = realloc(sig->any,sizeof(Object[sig->num_any]));
+                sig->any[sig->num_any-1] = (Object)code;
+                break;
+            case POSEDGE:
+                sig->num_pos++;
+                sig->pos = realloc(sig->pos,sizeof(Object[sig->num_pos]));
+                sig->pos[sig->num_pos-1] = (Object)code;
+                break;
+            case NEGEDGE:
+                sig->num_neg++;
+                sig->neg = realloc(sig->neg,sizeof(Object[sig->num_neg]));
+                sig->neg[sig->num_neg-1] = (Object)code;
+                break;
+            default:
+                perror("Invalid value for an edge.");
+        }
+    }
+    return codeV;
+}
+
 
 /* Adds alternate system types to a C system instance. */
 VALUE rcsim_add_systemI_systemTs(VALUE mod, VALUE systemIV, VALUE sysVs) {
@@ -1381,7 +1489,10 @@ VALUE rcsim_set_behavior_block(VALUE mod, VALUE behaviorV, VALUE blockV) {
     return behaviorV;
 }
 
-/** Sets the value for a C signal. */
+/** Sets the value for a C signal.
+ *  NOTE: for initialization only (the simulator events are not updated),
+ *  otherwise, please use rcsim_transmit_to_signal or
+ *  rc_sim_transmit_to_signal_seq. */
 VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE exprV) {
     /* Get the C signal from the Ruby value. */
     SignalI signal;
@@ -1399,6 +1510,114 @@ VALUE rcsim_set_signal_value(VALUE mod, VALUE signalV, VALUE exprV) {
     free_value();
     return signalV;
 }
+
+/** Gets the value of a C signal. */
+VALUE rcsim_get_signal_value(VALUE mod, VALUE signalV) {
+    VALUE res;
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    // printf("rc_sim_get_signal_value for signal=%s\n",signal->name);
+    /* Returns the current value. */
+    rcsim_to_value(ValueS,signal->c_value,res);
+    return res; 
+}
+
+/** Transmit a value to a signal in a non-blocking fashion.
+ * NOTE: the simulator events are updated. */
+VALUE rcsim_transmit_to_signal(VALUE mod, VALUE signalV, VALUE exprV) {
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    // printf("rc_sim_set_signal_value for signal=%s\n",signal->name);
+    /* Get the C expression from the Ruby value. */
+    Expression expr;
+    value_to_rcsim(ExpressionS,exprV,expr);
+    /* Compute the value from it. */
+    Value value = get_value();
+    value = calc_expression(expr,value);
+    /* Transmit it. */
+    transmit_to_signal(value, signal);
+    /* End, return the transmitted expression. */
+    return exprV;
+}
+
+/** Transmit a value to a signal in a blocking fashion.
+ * NOTE: the simulator events are updated. */
+VALUE rcsim_transmit_to_signal_seq(VALUE mod, VALUE signalV, VALUE exprV) {
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    // printf("rc_sim_set_signal_value for signal=%s\n",signal->name);
+    /* Get the C expression from the Ruby value. */
+    Expression expr;
+    value_to_rcsim(ExpressionS,exprV,expr);
+    /* Compute the value from it. */
+    Value value = get_value();
+    value = calc_expression(expr,value);
+    /* Transmit it. */
+    transmit_to_signal_seq(value, signal);
+    /* End, return the transmitted expression. */
+    return exprV;
+}
+
+
+
+
+/** Gets the value of a C signal as a Ruby fixnum.
+ *  Sets 0 if the value contains x or z bits. */
+VALUE rcsim_get_signal_fixnum(VALUE mod, VALUE signalV) {
+    Value value;
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    // printf("rc_sim_get_signal_fixnum for signal=%s\n",signal->name);
+    /* Get the value from the signal. */
+    value = signal->c_value;
+    /* Is the value a numeric? */
+    if(value->numeric == 1) {
+        /* Yes, return it as a Ruby fixnum. */
+        return LONG2FIX(value->data_int);
+    } else {
+        /* No, return 0. */
+        return LONG2FIX(0);
+    }
+}
+
+/** Transmit a Ruby fixnum to a signal in a non-blocking fashion.
+ * NOTE: the simulator events are updated. */
+VALUE rcsim_transmit_fixnum_to_signal(VALUE mod, VALUE signalV, VALUE valR) {
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    /* Compute the simualtion value from valR. */
+    Value value = get_value();
+    value->type = signal->type;
+    value->numeric = 1;
+    value->data_int = FIX2LONG(valR);
+    /* Transmit it. */
+    transmit_to_signal(value, signal);
+    /* End, return the transmitted expression. */
+    return valR;
+}
+
+/** Transmit a Ruby fixnum to a signal in a non-blocking fashion.
+ * NOTE: the simulator events are updated. */
+VALUE rcsim_transmit_fixnum_to_signal_seq(VALUE mod, VALUE signalV, VALUE valR) {
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    /* Compute the simualtion value from valR. */
+    Value value = get_value();
+    value->type = signal->type;
+    value->numeric = 1;
+    value->data_int = FIX2LONG(valR);
+    /* Transmit it. */
+    transmit_to_signal_seq(value, signal);
+    /* End, return the transmitted expression. */
+    return valR;
+}
+
 
 
 /** Starts the C-Ruby hybrid simulation.
@@ -1432,6 +1651,16 @@ VALUE rcsim_main(VALUE mod, VALUE systemTV, VALUE name, VALUE outmodeV) {
 }
 
 
+/** The wrapper for calling Ruby functions from the simulator. */
+void ruby_function_wrap(Code code) {
+    /* Convert the C code object to a Ruby VALUE. */
+    VALUE codeR;
+    rcsim_to_value(CodeS,code,codeR);
+    /* Call the ruby function launcher. */
+    rb_funcall(rb_cObject,rb_intern(code->name),0,Qnil);
+}
+
+
 
 
 /** The initialization of the C-part of the C-Ruby hybrid HDLRuby simulator. */
@@ -1440,6 +1669,10 @@ void Init_hruby_sim() {
     make_sym_IDs();
     /* Create the module for C-Ruby interface. */
     VALUE mod = rb_define_module("RCSimCinterface");
+    RCSimCinterface = mod;
+
+    // /* Get access to the Ruby program interface. */
+    // RubyHDL = rb_const_get(rb_cObject, rb_intern("RubyHDL"));
 
     /* Create the class that wraps C pointers. */
     RCSimPointer = rb_define_class("RCSimPointer",rb_cObject);
@@ -1458,6 +1691,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_event",rcsim_make_event,2);
     rb_define_singleton_method(mod,"rcsim_make_signal",rcsim_make_signal,2);
     rb_define_singleton_method(mod,"rcsim_make_systemI",rcsim_make_systemI,2);
+    rb_define_singleton_method(mod,"rcsim_make_code",rcsim_make_code,2);
     rb_define_singleton_method(mod,"rcsim_make_transmit",rcsim_make_transmit,2);
     rb_define_singleton_method(mod,"rcsim_make_print",rcsim_make_print,0);
     rb_define_singleton_method(mod,"rcsim_make_timeWait",rcsim_make_timeWait,2);
@@ -1484,8 +1718,10 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_add_scope_inners",rcsim_add_scope_inners,2);
     rb_define_singleton_method(mod,"rcsim_add_scope_behaviors",rcsim_add_scope_behaviors,2);
     rb_define_singleton_method(mod,"rcsim_add_scope_systemIs",rcsim_add_scope_systemIs,2);
+    rb_define_singleton_method(mod,"rcsim_add_scope_codes",rcsim_add_scope_codes,2);
     rb_define_singleton_method(mod,"rcsim_add_scope_scopes",rcsim_add_scope_scopes,2);
     rb_define_singleton_method(mod,"rcsim_add_behavior_events",rcsim_add_behavior_events,2);
+    rb_define_singleton_method(mod,"rcsim_add_code_events",rcsim_add_code_events,2);
     rb_define_singleton_method(mod,"rcsim_add_systemI_systemTs",rcsim_add_systemI_systemTs,2);
     rb_define_singleton_method(mod,"rcsim_add_signal_signals",rcsim_add_signal_signals,2);
     rb_define_singleton_method(mod,"rcsim_add_print_args",rcsim_add_print_args,2);
@@ -1503,6 +1739,9 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_set_signal_value",rcsim_set_signal_value,2);
     /* Starting the simulation. */
     rb_define_singleton_method(mod,"rcsim_main",rcsim_main,3);
+    /* The Ruby software interface. */
+    rb_define_singleton_method(mod,"rcsim_get_signal_fixnum",rcsim_get_signal_fixnum,1);
+    rb_define_singleton_method(mod,"rcsim_transmit_fixnum_to_signal_seq",rcsim_transmit_fixnum_to_signal_seq,2);
 
 }
 

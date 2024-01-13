@@ -3,6 +3,8 @@ require 'HDLRuby'
 require 'hruby_high_fullname'
 require 'hruby_sim/hruby_sim'
 
+require 'rubyHDL'
+
 
 module HDLRuby::High
 
@@ -189,7 +191,6 @@ module HDLRuby::High
             rcbehs = self.each_behavior.map {|beh| beh.to_rcsim(subowner)} # +
                 # self.each_connection.map {|cxt| cxt.to_rcsim(subowner) }
             self.each_connection do |cnx|
-                # ICIICI
                 if !cnx.right.is_a?(RefObject) then
                     rcbehs << cnx.to_rcsim(subowner)
                 else
@@ -209,8 +210,11 @@ module HDLRuby::High
                 RCSim.rcsim_add_scope_behaviors(@rcscope,rcbehs)
             end
 
-            # Create and add the codes.
-            # TODO!!
+            # Create and add the programs.
+            rcprogs = self.each_program.map {|prog| prog.to_rcsim(subowner)} 
+            if rcprogs.any? then
+                RCSim.rcsim_add_scope_codes(@rcscope,rcprogs);
+            end
 
             return @rcscope
         end
@@ -512,12 +516,62 @@ module HDLRuby::High
 
     class Chunk
         ## Extends the Chunk class for hybrid Ruby-C simulation.
-        # TODO!!
+        # Deprecated!!
     end
 
     class Code
         ## Extends the Code class for hybrid Ruby-C simulation.
-        # TODO!!
+        # Deprecated!!
+    end
+
+    class Program
+        ## Extends the Program class for hybrid Ruby-C simulation.
+        #  NOTE: produce a low-level Code, and not program. For now,
+        #  Program is a high-level interface for software description and
+        #  is not ment to be simulated as is. It may hcange in the future 
+        #  though.
+
+        attr_reader :rccode # The access to the C version of the code.
+
+        # Generate the C description of the code comming from object
+        # whose C description is +rcowner+.
+        # NOTE: also update the table of signals accessed from software
+        # code.
+        def to_rcsim(rcowner)
+            # puts "to_rcsim for program=#{self}"
+
+            # Create the code C object.
+            # puts "make code with self.class=#{self.class}"
+            @rccode = RCSim.rcsim_make_code(self.language.to_s, self.function.to_s)
+
+            # Set the owner.
+            RCSim.rcsim_set_owner(@rccode,rcowner)
+
+            # Create and add the events.
+            if self.each_actport.any? then
+                RCSim.rcsim_add_code_events(@rccode, self.each_actport.map do|ev|
+                    ev.to_rcsim(@rccode)
+                end)
+            end
+
+            # Create the software interface.
+            if self.language == :ruby then
+                # Loads the code files.
+                self.each_code do |code|
+                    Kernel.load(code.to_s)
+                end
+                # Add the input ports.
+                self.each_inport do |sym, sig|
+                    RubyHDL.port(sym,sig.rcsignalI)
+                end
+                # Add the output ports.
+                self.each_outport do |sym, sig|
+                    RubyHDL.port(sym,sig.rcsignalI)
+                end
+            end
+
+            return @rccode
+        end
     end
 
 

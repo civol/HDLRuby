@@ -15,7 +15,7 @@ module RubyHDL
         end
 
         # For writing.
-        defile_singleton_method(:"#{name}=") do |val|
+        define_singleton_method(:"#{name}=") do |val|
             RCSim.rcsim_transmit_fixnum_to_signal_seq(sig,val)
         end
     end

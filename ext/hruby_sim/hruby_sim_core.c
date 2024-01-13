@@ -331,7 +331,8 @@ void hruby_sim_update_signals() {
                 /* Is the code really activated? */
                 if (cod->enabled && cod->activated) {
                     /* Yes, execute it. */
-                    cod->function();
+                    // cod->function();
+                    cod->function(cod); // NOTE: cod argument is required for identification.
                     /* And deactivate it. */
                     cod->activated = 0;
                 }
@@ -368,14 +369,23 @@ void hruby_sim_advance_time() {
  *  @param status the enable status. */
 static void set_enable_scope(Scope scope, int status) {
     int i;
-    int num_beh = scope->num_behaviors;
-    Behavior*  behs = scope->behaviors;
-    int num_scp = scope->num_scopes;
-    Scope* scps = scope->scopes;
+
+    int num_beh    = scope->num_behaviors;
+    Behavior* behs = scope->behaviors;
+
+    int num_cod    = scope->num_codes;
+    Code* cods     = scope->codes;
+    
+    int num_scp    = scope->num_scopes;
+    Scope* scps    = scope->scopes;
 
     /* Enable the behaviors. */
     for(i=0; i<num_beh; ++i) {
         behs[i]->enabled = status;
+    }
+    /* Enable the codes. */
+    for(i=0; i<num_cod; ++i) {
+        cods[i]->enabled = status;
     }
 
     /* Recurse on the sub scopes. */

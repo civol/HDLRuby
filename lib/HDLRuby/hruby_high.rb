@@ -1171,10 +1171,10 @@ module HDLRuby::High
         end
 
         # Declares a program in language +lang+ with start function named +func+
-        # and accessed expressions an code given in +args+.
-        def program(lang, func, *args)
+        # and built through +ruby_block+.
+        def program(lang, func, &ruby_block)
             # Create the program.
-            prog = Program.new(lang, func, *args)
+            prog = Program.new(lang, func, &ruby_block)
             # Adds the resulting program to the current scope.
             HDLRuby::High.top_user.add_program(prog)
             # Return the resulting program
@@ -2502,15 +2502,50 @@ module HDLRuby::High
     ##
     # Describes a program.
     class Program < HDLRuby::Low::Program
+
+        # Create a program in language +lang+ with start function named +func+
+        # and built through +ruby_block+.
+        def initialize(lang, func, &ruby_block)
+            # Create the program.
+            super(lang,func)
+            # Build it.
+            self.instance_eval(&ruby_block)
+        end
+
         # Converts the if to HDLRuby::Low.
         def to_low
             # Create the resulting program.
-            progL = HDLRuby::Low::Program.new(self.lang,self.function,
-                                            *self.each_expression.map(&:to_low),
-                                            *self.each_event.map(&:to_low),
-                                            *self.each_code)
+            progL = HDLRuby::Low::Program.new(self.lang,self.function)
+            # Add the wakening events.
+            self.each_event  { |ev| progL.add_event(ev.to_low) }
+            # Add the code files.
+            self.each_code   { |ev| progL.add_code(code) }
+            # Add the input signals references.
+            self.each_input  { |ref| progL.add_input(ref.to_low) }
+            # Add the output signals references.
+            self.each_output { |ref| progL.add_output(ref.to_low) }
             # Return the resulting program.
             return progL
+        end
+
+        # Adds new activation ports.
+        def actport(*evs)
+            evs.each(&method(:add_actport))
+        end
+
+        # Adds new code files.
+        def code(*codes)
+            codes.each(&method(:add_code))
+        end
+
+        # Adds new input ports.
+        def inport(ports = {})
+          ports.each { |k,v| self.add_inport(k,v) }
+        end
+
+        # Adds new output ports.
+        def outport(ports = {})
+          ports.each { |k,v| self.add_outport(k,v) }
         end
     end
 

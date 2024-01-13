@@ -844,10 +844,10 @@ module HDLRuby::Low
                       "Invalid class for a program: #{prog.class}"
             end
             # Set the parent of the program.
-            program.parent = self
+            prog.parent = self
             # Add the program.
-            @programs << program
-            program
+            @programs << prog
+            prog
         end
 
         # Iterates over the programs.
@@ -3006,49 +3006,71 @@ module HDLRuby::Low
         attr_reader :language, :function
 
         # Creates a new program in language +lang+ with start function
-        # named +func+ accessed expressions, events and code files given in
-        # +args+.
-        def initialize(lang,func,*args)
+        # named +func+.
+        def initialize(lang,func)
             # Sets the language.
             @language = lang.to_sym
             # Sets the start function.
             @function = func.to_s
-            # Process the expressions and code files arguments.
-            @exprs = []
-            @events = []
-            @codes = []
-            args.each do |arg|
-                if arg.is_a?(String) then
-                    @codes << arg
-                elsif arg.is_a?(Event) then
-                    @events << arg
-                else
-                    @exprs << arg.to_expr
-                end
+            # Initializes the contents.
+            @actports = [] # The activation ports.
+            @codes    = [] # The code files.
+            @inports  = {} # The input ports.
+            @outports = {} # The output ports.
+        end
+
+        # Add a new activation port.
+        def add_actport(ev)
+            unless ev.is_a?(Event) then
+                raise AnyError, "Invalid class for an event: #{ev.class}"
             end
+            @actports << ev
         end
 
-        # Iterates over each accessed expression.
+        # Add a new code file.
+        def add_code(code)
+            @codes << code.to_s
+        end
+
+        # Add a new input port.
+        def add_inport(name, sig)
+            # Ensure name is a symbol.
+            unless name.is_a?(Symbol) then
+                name = name.to_s.to_sym
+            end
+            # Ensure sig is a signal.
+            unless sig.is_a?(SignalI) then
+                raise AnyError, "Invalid class for a signal: #{sig.class}"
+            end
+            # Add the new port.
+            @inports[name] = sig
+        end
+
+        # Add a new output port.
+        def add_outport(name, sig)
+            # Ensure name is a symbol.
+            unless name.is_a?(Symbol) then
+                name = name.to_s.to_sym
+            end
+            # Ensure sig is a signal.
+            unless sig.is_a?(SignalI) then
+                raise AnyError, "Invalid class for a signal: #{sig.class}"
+            end
+            # Add the new port.
+            @outports[name] = sig
+        end
+
+        # Iterates over each activation event.
         #
         # Returns an enumerator if no ruby block is given.
-        def each_expression(&ruby_block)
+        def each_actport(&ruby_block)
             # No block? Return an enumerator.
-            return to_enum(:each_expression) unless ruby_block
+            return to_enum(:each_actport) unless ruby_block
             # A block is given, apply it.
-            @exprs.each(&ruby_block)
+            @actports.each(&ruby_block)
         end
 
-        # Iterates over each accessed event.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each_event(&ruby_block)
-            # No block? Return an enumerator.
-            return to_enum(:each_event) unless ruby_block
-            # A block is given, apply it.
-            @events.each(&ruby_block)
-        end
-
-        # Iterates over each code files.
+        # Iterates over each code file.
         #
         # Returns an enumerator if no ruby block is given.
         def each_code(&ruby_block)
@@ -3057,6 +3079,27 @@ module HDLRuby::Low
             # A block is given, apply it.
             @codes.each(&ruby_block)
         end
+
+        # Iterate over each input port.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inport(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_inport) unless ruby_block
+            # A block is given, apply it.
+            @inports.each(&ruby_block)
+        end
+
+        # Iterate over each output port.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_outport(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_outport) unless ruby_block
+            # A block is given, apply it.
+            @outports.each(&ruby_block)
+        end
+
     end
 
 

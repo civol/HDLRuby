@@ -605,9 +605,10 @@ typedef struct CodeS_ {
     Kind kind;          /* The kind of object. */
     Object owner;       /* The owner if any. */
 
+    char* name;         /* The name of the called function. */
     int num_events;     /* The number of events. */
     Event* events;      /* The events of the behavior. */
-    void (*function)(); /* The function to execute for the code. */
+    void (*function)(Code); /* The function to execute for the code. */
 
     int enabled;        /* Tells if the behavior is enabled or not. */
 
