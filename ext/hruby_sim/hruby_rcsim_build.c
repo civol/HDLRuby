@@ -387,7 +387,7 @@ void ruby_function_wrap(Code);
 VALUE rcsim_make_code(VALUE mod, VALUE lang, VALUE funcname) {
     // printf("rcsim_make_code\n");
     /* Allocates the code. */
-    Code code = (Code)malloc(sizeof(SystemIS));
+    Code code = (Code)malloc(sizeof(CodeS));
     // printf("code=%p\n",code);
     /* Set it up. */
     code->kind  = CODE;
