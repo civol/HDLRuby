@@ -568,7 +568,37 @@ module HDLRuby::High
                 self.each_outport do |sym, sig|
                     RubyHDL.port(sym,sig.rcsignalI)
                 end
+            elsif self.language == :c then
+                # Loads the code file: only the last one remains.
+                self.each_code do |code|
+                    code = code.to_s
+                    # Check if the file exists.
+                    unless File.file?(code) then
+                        # The code name may be not complete, 
+                        # try ".so", ".bundle" or ".dll" extensions.
+                        if File.file?(code+".so") then
+                            code += ".so"
+                        elsif File.file?(code + ".bundle") then
+                            code += ".bundle"
+                        elsif File.file?(code + ".dll") then
+                            code += ".dll"
+                        else
+                            # Code not found.
+                            raise "C code library not found: " + code
+                        end
+                    end
+                    RCSim.rcsim_load_c(@rccode,code,self.function.to_s)
+                end
+                # Add the input ports.
+                self.each_inport do |sym, sig|
+                    RCSim::CPorts[sym] = sig.rcsignalI
+                end
+                # Add the output ports.
+                self.each_outport do |sym, sig|
+                    RCSim::CPorts[sym] = sig.rcsignalI
+                end
             end
+
 
             return @rccode
         end

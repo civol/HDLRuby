@@ -6,6 +6,8 @@
 #include <string.h>
 #include <limits.h>
 
+#include <dlfcn.h>
+
 #include <ruby.h>
 #include "extconf.h"
 
@@ -74,6 +76,7 @@
 
 static VALUE RCSimPointer;      // The C pointer type for Ruby.
 static VALUE RCSimCinterface;   // The RCSim Ruby module for C.
+static VALUE RCSimCports;       // The RCSim table of C ports.
 // static VALUE RubyHDL;           // The interface for Ruby programs.
 
 #define rcsim_to_value(TYPE,POINTER,VALUE) \
@@ -397,12 +400,18 @@ VALUE rcsim_make_code(VALUE mod, VALUE lang, VALUE funcname) {
     code->num_events = 0;
     code->events = NULL;
     code->function = NULL;
-    if(strncmp(StringValueCStr(lang),"ruby",4) == 0) {
+    char* langStr = StringValueCStr(lang);
+    if(strncmp(langStr,"ruby",4) == 0) {
         /* Ruby function. */
         code->function = ruby_function_wrap;
+    } else if (strncmp(langStr,"c",1) == 0) {
+        /* C or C-compatible dynamically compiled code: it will be loaded
+         * afterward */
+        code->function = NULL;
     } else {
         /* Other language function. */
-        perror("Unsupported language.");
+        fprintf(stderr,"Unsupported language.");
+        exit(-1);
     }
     code->enabled = 0;
     code->activated = 0;
@@ -411,6 +420,34 @@ VALUE rcsim_make_code(VALUE mod, VALUE lang, VALUE funcname) {
     rcsim_to_value(CodeS,code,res);
     return res;
 }
+
+
+/** Loads a C program dynamic library (called from HDLRuby) for a code. */
+VALUE rcsim_load_c(VALUE mod, VALUE codeV, VALUE libnameV, VALUE funcnameV) {
+    char* libname;
+    char* funcname;
+    Code code;
+    void* handle;
+
+    libname  = StringValueCStr(libnameV);
+    funcname = StringValueCStr(funcnameV);
+   
+    /* Get the code. */ 
+    value_to_rcsim(CodeS,codeV,code);
+    /* Load the library. */
+    handle = dlopen(libname,RTLD_NOW | RTLD_GLOBAL);
+    if (handle == NULL) {
+        fprintf(stderr,"Unable to open program: %s\n",dlerror());
+        exit(-1);
+    }
+    code->function = dlsym(handle,funcname);
+    if (code->function == NULL) {
+        fprintf(stderr,"Unable to get function: %s\n",code->name);
+        exit(-1);
+    }
+    return codeV;
+}
+
 
 
 /* Creating a transmit C object. */
@@ -1661,6 +1698,50 @@ void ruby_function_wrap(Code code) {
 }
 
 
+/** The C interface. */
+
+/** The wrapper for getting an interface port for C software. */
+SignalI c_get_port(char* name) {
+    /* Get the C signal as a value. */
+    VALUE sigV = rb_hash_aref(RCSimCports,ID2SYM(rb_intern(name)));
+    /* Was there a signal? */
+    if (!NIL_P(sigV)) {
+        /* Yes, return it. */
+        SignalI sig;
+        value_to_rcsim(SignalIS,sigV,sig);
+        return sig;
+    } else {
+        /* No return NULL. */
+        return NULL;
+    }
+}
+
+/** The wrapper for getting a value from a port. */
+unsigned long long c_read_port(SignalI port) {
+    Value val = port->c_value;
+    if (val->numeric == 1) {
+        /* There is a defined value, return it. */
+        return val->data_int;
+    } else {
+        /* The value is undefined, return 0. */
+        return 0;
+    }
+}
+
+/** The wrapper for setting a value to a port. */
+unsigned long long c_write_port(SignalI port, unsigned long long val) {
+    /* Generate the value. */
+    Value value = get_value();
+    value->numeric = 1;
+    value->data_int = val;
+    /* Transmit it. */
+    transmit_to_signal_seq(value, port);
+    /* Returns the transmitted value. */
+    return val;
+}
+
+
+/* The simulator creation. */
 
 
 /** The initialization of the C-part of the C-Ruby hybrid HDLRuby simulator. */
@@ -1671,8 +1752,10 @@ void Init_hruby_sim() {
     VALUE mod = rb_define_module("RCSimCinterface");
     RCSimCinterface = mod;
 
-    // /* Get access to the Ruby program interface. */
-    // RubyHDL = rb_const_get(rb_cObject, rb_intern("RubyHDL"));
+    /* Create the table of C ports and add it to the C-Ruby interface. */
+    RCSimCports = rb_hash_new();
+    rb_define_const(mod,"CPorts",RCSimCports);
+
 
     /* Create the class that wraps C pointers. */
     RCSimPointer = rb_define_class("RCSimPointer",rb_cObject);
@@ -1692,6 +1775,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_signal",rcsim_make_signal,2);
     rb_define_singleton_method(mod,"rcsim_make_systemI",rcsim_make_systemI,2);
     rb_define_singleton_method(mod,"rcsim_make_code",rcsim_make_code,2);
+    rb_define_singleton_method(mod,"rcsim_load_c",rcsim_load_c,3);
     rb_define_singleton_method(mod,"rcsim_make_transmit",rcsim_make_transmit,2);
     rb_define_singleton_method(mod,"rcsim_make_print",rcsim_make_print,0);
     rb_define_singleton_method(mod,"rcsim_make_timeWait",rcsim_make_timeWait,2);
