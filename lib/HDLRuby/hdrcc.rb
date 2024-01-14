@@ -401,6 +401,26 @@ $optparse = OptionParser.new do |opts|
     opts.on("--vcd", "The simulator will generate a vcd file") do |v|
         $options[:vcd] = v
     end
+    opts.on("--rake dir", "Generates the rake files for compiling an extension") do |dir|
+        # Check the target directory.
+        if !dir or dir.empty? then
+            raise "Need a program name for generating the rake files."
+        end
+        # Create the source path.
+        src_path = File.dirname(__FILE__) + "/../c/"
+        # Create the target directory.
+        Dir.mkdir(dir) unless File.exist?(dir)
+        # Copy the header files.
+        FileUtils.copy(src_path + "cHDL.h",dir)
+        # Copy and modify the files for rake.
+        ["extconf.rb", "Rakefile"].each do |fname|
+            lines = nil
+            File.open(src_path + fname,"r") {|f| lines = f.readlines }
+            lines = ["C_PROGRAM = '#{dir}'\n"] + lines
+            File.open(dir + "/" + fname, "w") {|f| lines.each {|l| f.write(l) } }
+        end
+        exit
+    end
     opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
         $options[:verilog] = v
         $options[:multiple] = v
