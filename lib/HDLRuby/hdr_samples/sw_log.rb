@@ -22,7 +22,7 @@ def boot
             $logout.puts("At #{Time.now}, got #{val}")
             # Tell the value has been read.
             RubyHDL.ack = 1
-            sleep(0.1)
+            sleep
         end
     end
 end
