@@ -11,10 +11,21 @@ If you are new to HDLRuby, it is recommended that you consult first the followin
 
 __What's new__
 
+For HDLRuby version 3.3.0:
+ 
+ * Remade the description of software components using the Progam objects.
+   Now the Code objects are deprecated.
+
+ * Add HW-SW co-simulation capability for Ruby and compiled C-compatible
+   software programs.
+
+ * Updated the documentation and tutorial accordingly and fixed several typos.
+
+
 For HDLRuby version 3.2.0:
 
  * Added component for declaring BRAM and BRAM-based stacks.
-   The goal is to efficiently allocate memories inside FPGAs.
+   The goal is to allocate memories inside FPGAs efficiently.
 
  * Inner code overhaul for preparing version 4.0.0
 
@@ -46,7 +57,7 @@ For HDLRuby version 3.0.0:
 
 __Install__:
 
-The recommended installation method is from rubygem as follows:
+The recommended installation method is from rubygems as follows:
 
 ```
 gem install HDLRuby
@@ -61,7 +72,7 @@ git clone HDLRuby
 __Warning__: 
 
  - This is still preliminary work which may change before we release a stable version.
- - It is highly recommended to have both basic knowledges of the Ruby language and hardware description languages before using HDLRuby.
+ - It is highly recommended to have both basic knowledge of the Ruby language and hardware description languages before using HDLRuby.
 
 
 # Compiling HDLRuby descriptions
@@ -384,7 +395,7 @@ system :reg do |typ|
 end
 ```
 
-Wait... I have just realized that D-FF without any inverted output does not look very serious. So, let us extend the existing `dff` to provide an inverted output. There are three ways for doing this. First, inheritance can be used: a new system is built inheriting from `dff` as it is done in the following code.
+Wait... I have just realized that D-FF without any inverted output does not look very serious. So, let us extend the existing `dff` to provide an inverted output. There are three ways to do this. First, inheritance can be used: a new system is built inheriting from `dff` as it is done in the following code.
 
 ```ruby
 system :dff_full, dff do
@@ -442,7 +453,7 @@ system :shifter do |n|
 end
 ```
 
-As can be seen in the above examples, in HDLRuby, any construct is an object and therefore include methods. For instance, declaring a signal of a given `type` and direction (input, output, or inout) is done as follows so that `direction` is a method of the type, and the signal names are the arguments of this method (symbols or string are supported.)
+As can be seen in the above examples, in HDLRuby, any construct is an object and therefore includes methods. For instance, declaring a signal of a given `type` and direction (input, output, or inout) is done as follows so that `direction` is a method of the type, and the signal names are the arguments of this method (symbols or string are supported.)
 
 ```ruby
 <type>.<direction> <list of symbols representing the signal>
@@ -493,7 +504,7 @@ end
 In the code above, there are two generic parameters,
 `typ`, which indicates the data type of the circuit, and `coefs`, which is assumed to be an array of coefficients. Since the number of inputs depends on the number of provided coefficients, it is declared as an array of `width` bit signed whose size is equal to the number of coefficients.
 
-The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as an iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` simply performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_b0` initializes the sum to `0`.
+The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as an iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_b0` initializes the sum to `0`.
 
 While slightly longer than the previous description, this description allows declaring a circuit implementing a sum of products with any bit width and any number of coefficients. For instance, the following code describes a signed 32-bit sum of products with  16 coefficients (just random numbers here).
 
@@ -501,7 +512,7 @@ While slightly longer than the previous description, this description allows dec
 sumprod(signed[32], [3,78,43,246, 3,67,1,8, 47,82,99,13, 5,77,2,4]).(:my_circuit)  
 ```
 
-As seen in the code above, when passing a generic argument for instantiating a generic system, the name of the instance is put between brackets for avoiding confusion.
+As seen in the code above, when passing a generic argument for instantiating a generic system, the name of the instance is put between brackets to avoid confusion.
 
 While the description `sumprod` is already usable in a wide range of cases, it still uses standard addition and multiplication. However, there are cases where specific components are to be used for these operations, either for the sake of performance, compliance with constraints, or because functionally different operations are required (e.g., saturated computations). This can be solved by using functions implementing such computation in place of operators, for example, as follows:
 
@@ -547,7 +558,7 @@ hdef :add do |max, x, y|
 end
 ```
 
-It would however be necessary to add this argument when invoking the function, e.g., `add(1000,sum,mult(...))`. While this argument is relevant for addition with saturation, it is not for the other kind of addition operations, and hence, the code of `sumprod` is no general purpose.
+It would however be necessary to add this argument when invoking the function, e.g., `add(1000,sum,mult(...))`. While this argument is relevant for addition with saturation, it is not for the other kinds of addition operations, and hence, the code of `sumprod` has no general purpose.
 
 HDLRuby provides two ways to address such issues. First, it is possible to pass code as an argument. In the case of `sumprod`, it would then be enough to add two arguments that perform the required addition and multiplication. The example is below:
 
@@ -592,7 +603,7 @@ sat16_1000.define_operator(:+) do |x,y|
 end
 ```
 
-In the code above, the first line defines the new type `sat16_1000` to be 16-bit signed and the remaining overloads (redefines) the `+` operator for this type (the same should be done for the `*` operator).
+In the code above, the first line defines the new type `sat16_1000` to be 16-bit signed, and the remaining overloads (redefines) the `+` operator for this type (the same should be done for the `*` operator).
 Then, the initial version of `sumprod` can be used with this type to achieve saturated computations as follows:
 
 ```ruby
@@ -676,7 +687,7 @@ A signal represents a state in a system. It has a data type and a value, the lat
 
 ### Declaring an empty system
 
-A system is declared using the keyword `system`. It must be given a Ruby symbol for its name and a block that describe its content. For instance, the following code describes an empty system named `box`:
+A system is declared using the keyword `system`. It must be given a Ruby symbol for its name and a block that describes its content. For instance, the following code describes an empty system named `box`:
 
 ```ruby
 system(:box) {}
@@ -684,7 +695,7 @@ system(:box) {}
 
 __Notes__:
 
-- Since this is Ruby code, the body can also be delimited by the `do` and `end` Ruby keywords (in which case the parentheses can be omitted) are as follows:
+- Since this is Ruby code, the body can also be delimited by the `do` and `end` Ruby keywords (in which case the parentheses can be omitted) as follows:
 
 ```ruby
 system :box does
@@ -860,7 +871,7 @@ end
 ### Initialization of signals
 <a name="initialization"></a>
 
-Output, inner and constant signals of a system can be initialized when declared using the following syntax in place of the usual name of the signal:
+Output, inner, and constant signals of a system can be initialized when declared using the following syntax in place of the usual name of the signal:
 
 ```ruby
 <signal name>: <intial value>
@@ -899,7 +910,7 @@ system :div2 do
    
 ```
 
-For robustness or, readability purpose, it is possible to add inner scope inside the existing scope using the `sub` keyword as follows:
+For robustness or, readability purposes, it is possible to add an inner scope inside the existing scope using the `sub` keyword as follows:
 
 ```ruby
 sub do
@@ -981,7 +992,7 @@ end
 ```
 
 In addition, it is possible to declare inner signals within an execution block.
-While such signals will be physically linked to the system, they are only accessible within the block they are declared into. This permits a tighter scope for signals, which improves the readability of the code and make it possible to declare several signals with identical names provided their respective scopes are different.
+While such signals will be physically linked to the system, they are only accessible within the block they are declared into. This permits a tighter scope for signals, which improves the readability of the code and makes it possible to declare several signals with identical names provided their respective scopes are different.
 
 An event represents a specific change in the state of a signal. 
 For example, a rising edge of a clock signal named `clk` will be represented by the event `clk.posedge`. In HDLRuby, events are obtained directly from
@@ -1024,7 +1035,7 @@ system :with_sequential_behavior do
 end
 ```
 
-A sub-block can also have a different execution mode if it is declared using `seq`, which will force sequential execution mode and `par` which will force parallel execution mode. For example, in the following code a parallel sub-block is declared within a sequential one:
+A sub-block can also have a different execution mode if it is declared using `seq`, which will force sequential execution mode, and `par` which will force parallel execution mode. For example, in the following code a parallel sub-block is declared within a sequential one:
 
 ```ruby
 system :with_sequential_behavior do
@@ -1133,7 +1144,7 @@ end
 ( a <= b+1 ).at(clk.posedge)
 ```
 
-For sake of consistency, this operator can also be applied to block statements as follows, but it is probably less readable than the standard declaration of behaviors:
+For the sake of consistency, this operator can also be applied to block statements as follows, but it is probably less readable than the standard declaration of behaviors:
 
 ```ruby
 ( seq do
@@ -1330,7 +1341,7 @@ end
 #### About loops
 
 HDLRuby does not include any hardware construct for describing loops. This might look poor compared to the other HDL, but it is important to understand
-that the current synthesis tools do not really synthesize hardware from such loops but instead preprocess them (e.g., unroll them) to synthesizable loopless hardware. In HDLRuby, such features are natively supported by the Ruby loop constructs (`for`, `while`, and so on), but also by advanced Ruby constructs like the enumerators (`each`, `times`, and so on).
+that the current synthesis tools do not synthesize hardware from such loops but instead preprocess them (e.g., unroll them) to synthesizable loopless hardware. In HDLRuby, such features are natively supported by the Ruby loop constructs (`for`, `while`, and so on), but also by advanced Ruby constructs like the enumerators (`each`, `times`, and so on).
 
 __Notes__:
 
@@ -1454,9 +1465,9 @@ They include [immediate values](#immediate-values), [reference to signals](#refe
 
 ### Immediate values
 
-The immediate values of HDLRuby can represent vectors of `bit`, `unsigned`, and `signed`, and integer or floating-point numbers. They are prefixed by a `_` character and include a header that indicates the vector type and the base used for representing the value, followed by a numeral representing the value. The bit width of a value is obtained by default from the width of the numeral, but it is also possible to specify it in the header. In addition, the character `_` can be put anywhere in the number for increasing the readability, it will be ignored.
+The immediate values of HDLRuby can represent vectors of `bit`, `unsigned`, and `signed`, and integer or floating-point numbers. They are prefixed by a `_` character and include a header that indicates the vector type and the base used for representing the value, followed by a numeral representing the value. The bit width of a value is obtained by default from the width of the numeral, but it is also possible to specify it in the header. In addition, the character `_` can be put anywhere in the number to increase the readability, but it will be ignored.
 
-The vector type specifiers are the followings:
+The vector type specifiers are the following:
  
  - `b`: `bit` type, can be omitted,
   
@@ -1464,7 +1475,7 @@ The vector type specifiers are the followings:
 
  - `s`: `signed` type, the last figure is sign-extended if required by the binary, octal, and hexadecimal bases, but not for the decimal base.
 
-The base specifiers are the followings:
+The base specifiers are the following:
 
  - `b`: binary,
 
@@ -1603,7 +1614,7 @@ __Conversion operators:__
 | :to\_bit      | cast to bit vector            |
 | :to\_unsigned | cast to unsigned vector       |
 | :to\_signed   | cast to signed vector         |
-| :to\_big      | cast to big endian            |
+| :to\_big      | cast to big-endian            |
 | :to\_little   | cast to little endian         |
 | :reverse      | reverse the bit order         |
 | :ljust        | increase width from the left, preserves the sign  |
@@ -1615,7 +1626,7 @@ __Selection /concatenation operators:__
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;symbol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | :---          | :---                          |
-| :[]           | sub vector selection          |
+| :[]           | sub-vector selection          |
 | :@[]          | concatenation operator        |
 | :.            | field selection               |
 
@@ -1693,8 +1704,8 @@ The type puns include `to_bit`, `to_unsigned`, and `to_signed` that convert expr
 sig.to_bit <= _b01010011
 ```
 
-The type casts change both the type and the value and are used to adjust the width of the types.  They can only be applied to vectors of `bit`, `signed`, or `unsinged` and can only increase the bit width (bit width can be truncated using the selection operator, please refer to the next section).
-These operators comprise the bit width conversions: `ljust`, `rjust`, `zext` and `sext`.
+The type casts change both the type and the value and are used to adjust the width of the types.  They can only be applied to vectors of `bit`, `signed`, or `unsigned` and can only increase the bit width (bit width can be truncated using the selection operator, please refer to the next section).
+These operators comprise the bit width conversions: `ljust`, `rjust`, `zext`, and `sext`.
 
 More precisely, the bit width conversions operate as follows:
 
@@ -1757,7 +1768,7 @@ Concatenation and selection are done using the `[]` operator as follows:
 #### Implicit conversions
 <a name="implicit"></a>
 
-When there is no ambiguity, HDLRuby will automatically insert conversion operators when two types are not compatible with one another.  The cases where such implicit conversions are applied are summarized in the following tables where:
+When there is no ambiguity, HDLRuby will automatically insert conversion operators when two types are not compatible with one another.  The cases where such implicit conversions are applied are summarized in the following tables, where:
 
  - `operator` is the operator in use
  - `result width` is the width of the result's type
@@ -1854,7 +1865,7 @@ __Notes__:
    function :one { 1 }
    ```
    
-- Functions can accept any kind of object as an argument, including variadic arguments or blocks of code as shown below with a function that applies the code passed as an argument to all the variadic arguments of `args`:
+- Functions can accept any object as an argument, including variadic arguments or blocks of code as shown below with a function that applies the code passed as an argument to all the variadic arguments of `args`:
 
    ```ruby
    function :apply do |*args, &code|
@@ -1862,7 +1873,7 @@ __Notes__:
    end
    ```
    
-   Such a function can be used for example for connecting a signal to a set of other signals as follows (where `sig` is connected to `x`, `y` and `z`):
+   Such a function can be used for example for connecting a signal to a set of other signals as follows (where `sig` is connected to `x`, `y`, and `z`):
    ```ruby
     apply(x,y,z) { |v| v <= sig }
    ```
@@ -1936,6 +1947,201 @@ end
 Ruby functions can be compared to the macros of the C languages: they are more flexible since they edit the code they are invoked in, but they are also dangerous to use. In general, it is not recommended to use them, unless when designing a library of generic code for HDLRuby.
 
 
+## Software code
+
+It is possible to describe hardware-software components in HDLRuby using the `program` construct that encapsulates some software code a provides an interface for communicating with the hardware. This interface is composed of three kinds of components:
+
+ * The activation events: 1-bit signal that triggers the execution of a given software function when the switch from 0 to 1 (or for negative ones, from 1 to 0).
+
+ * The reading ports: bit-vector signals that can be read from a software function.
+
+ * The writing ports: bit-vector signals that can be written from a software function.
+
+__Note:__
+
+The same signal can be used at the same time by multiple ports for both reading and writing, however, from the software point of view, it will correspond to two different ports.
+
+### Declaring a software component
+
+A software component is declared like a hardware process within a system. The syntax is the following:
+
+```ruby
+program(<programming language>, <function name>) do
+   <description of the program and its interface>
+end
+```
+
+In the code above, `programming language` is a symbol representing the programming language used for the software. For now, only two languages are supported:
+
+ * `:ruby`: for programs in Ruby.
+
+ * `:c`: for programs in C. However, for this case, any language that can be compiled to a shared library linkable with C is supported.
+
+The `function name` parameter indicates which function is to be executed when an activation event occurs. There can be only one such function per program, but any number of programs can be declared inside the same module.
+
+The `description of the program and its interface` part can include the following declaration statements:
+
+ * `actport <list of events>`: for declaring the list of events that activates the program, i.e., that will trigger the execution of the program's start function.
+
+ * `inport <list of port names associated with a signal>`: for declaring the list of ports that the software code of the program can read.
+
+ * `outport <list of port names associated with a signal>`: for declaring the list of ports that the software code of the program can write to.
+
+ * `code <list of filenames>`: for declaring the source code files.
+
+For example the following declares a program in the Ruby language whose start function is `echo` that is activated on the positive edge of signal `clk`, has a read port called `inP` that is connected to signal `count` and a write port called `outP` that is connected to signal `val`, finally the code of this program is given in a file named `echo.rb`:
+
+```ruby
+system :my_system do
+   inner :clk
+   [8].inner :count, :val
+ 
+   ...
+
+   program(:ruby,'echo') do
+      actport clk.posedge
+      inport  inP:  count
+      outport outP: val
+      code "echo.rb"
+   end
+end
+```
+
+
+__Note:__
+
+The size of the input and output ports is one of the signals the give access to. However, from the software side, their values are converted to `long long` types.
+
+
+
+### About the software code used in HDLRuby programs
+
+#### Location and format of the files
+
+The file names indicating the software code to use must indicate the path to these files relative to where the HDLRuby tools are used. In the example above, that would mean that the `echo.rb` program must be in the same directory as the HDLRuby description. If this code were to be into a `ruby` directory under the current directory, the declaration would become: `code "ruby/echo.rb"`.
+For the Ruby language, any number of source files can be declared, and plain Ruby code can be used as is. However, for the C language, the software code must first be compiled, and it is the resulting file that must be declared in the code declaration. For example, if for the example above, C had to be used, then the program description would be the following:
+
+```ruby
+   program(:c, :echo) do
+      actport clk.posedge
+      inport  inP:  count
+      outport outP: val
+      code "echo"
+   end
+```
+
+Then, for this program to work, the C code must be compiled to a file named `echo`. Please notice that, in the example, the extension is omitted, to allow the system to look for the valid file type (e.g., `.so` for a Linux shared library).
+
+
+#### The hardware interface
+
+From the software point of view, the hardware interface consists only of a list of ports that can either be read or written. However, the implementation of this interface depends on the language.
+
+##### For Ruby
+
+For ruby, the interface is accessed by requiring the `rubyHDL` library. It gives provides the `RubyHDL` module that provides accessers to ports of the program.
+For example, the following program reads on port 'inP' and writes the results on port `outP':
+
+```ruby
+require 'rubyHDL'
+
+def echo
+   val = RubyHDL.inP
+   RubyHDL.outP = val
+end
+```
+
+__Note:__
+
+As long as a port has been declared in the HDLRuby description of the program, it will be available to the software as a module accesser without the need for any additional declaration or configuration.
+
+##### For C
+
+For C (and C-compatible compiled languages), the interface is accessed by including the 'cHDL.h' file. This file must be generated using the following command:
+
+```bash
+hdrcc --ch <destination project>
+```
+
+In the command above, `<destination project>` is the directory where the C code is meant to be.
+
+
+Once generated, this file provides the three following C functions:
+
+ * `void* c_get_port(const char* name)`: returns a pointer to the port whose name is passed as argument.
+
+ * `int c_read_port(void* port)`: reads the port whose pointer is passed as argument and returns its value.
+
+ * `int c_write_port(void* port, int val)`: write the value `val` to the port passed as argument.
+
+For example, the following program reads on port 'inP' and writes the results on port `outP':
+
+```c
+#include "cHDL.h"
+
+void echo() {
+   void* inP = c_get_port("inP");
+   void* outP = c_get_port("outP");
+   int val;
+   
+   val = c_read_port(inP);
+   c_write_port(outP,val);
+}
+```
+
+__Note:__
+
+The command for generating the C header file for using the HDLRuby hardware interface also generates files for helping to compile the source code. Please see [compile for simulation](#compiling-the-c-code).
+
+
+#### Hardware-software co-simulation
+
+As long as your programs a correctly described and the software files provided (and compiled in the case of C), the hardware-software co-simulation will be automatically performed when executing the HDLRuby simulator.
+
+##### Compiling the C code
+
+While programs in Ruby can be used directly, programs in C must be compiled first. For that purpose, the required files, including the hardware interface `cHDL.h`, must be generated. This is done by using the following HDLRruby command:
+
+```bash
+hdrcc --ch <destination project>
+```
+
+In the command above, `<destination project>` is both the directory where the C code is and the name of the resulting shared library.
+
+For example, if you want to compile the code located in the directory `echo` you need first to execute:
+
+```bash
+hdrcc --rake echo
+```
+
+Then, you will have to put your C files into the resulting directory and go inside it for compiling. If you have some specific needs for this compiling, or if you do not want to rely on the Ruby environment, you can compile your program there as a shared library like any other project. For example, if you are using GCC, you could type (after entering the `echo` directory):
+
+```bash
+gcc -shared -fPIC -undefined dynamic_lookup  -o c_program.so echo.c
+```
+
+The command above is for compiling a single file project on a Linux system.
+
+Otherwise, it may be easier to use the Ruby environment by first installing `rake-compiler` as follows:
+
+```bash
+gem install rake-compiler
+```
+
+And simply type the following command (after entering the `echo` directory):
+
+```bash
+rake compile
+```
+
+The rake tool will take care of everything for performing the compiling whatever your system may be.
+
+
+#### Hardware generation
+
+In the current stage, HDLRuby only generates the hardware part of a description. E.g., when generating Verilog, the programs will simply be ignored. It is therefore up to you to provide additional code for implementing the hardware-software interface. We do plan to address this limitation in the future.
+
+
 ## Time
 
 ### Time values
@@ -1978,7 +2184,7 @@ There are two kinds of such statements:
       !10.ns
    ```
 
- - The `repeat` statements: such a statement takes as argument a number of iteration and a block. The execution of the block is repeated the given number times.  For example, the following code executes 10 times the inversion of the `clk` signal every 10 nanoseconds:
+ - The `repeat` statements: such a statement takes as argument the number of iterations and a block. The execution of the block is repeated the given number of times.  For example, the following code executes 10 times the inversion of the `clk` signal every 10 nanoseconds:
 
    ```ruby
       repeat(10) do 
@@ -2002,7 +2208,7 @@ sequential blocks. The execution semantic is the following:
 
    1. Statements are grouped in sequence until a time statement is met.
 
-   2. The grouped sequence are executed in parallel.
+   2. The grouped sequences are executed in parallel.
 
    3. The time statement is executed.
 
@@ -2193,7 +2399,7 @@ __Note__:
 
 #### About inner signals and system instances
 
-By default, inner signals and instances of a parent system are not accessible by its child systems.  They can be made accessible using the `export` keyword as follows: `export <symbol 0>, <symbol 1>, ...` . For example, the following
+By default, inner signals and instances of a parent system are not accessible by its child systems.  They can be made accessible using the `export` keyword as follows: `export <symbol 0>, <symbol 1>, ...`. For example, the following
 code exports signals `clk` and `rst` and instance `dff0` of system `exporter` so that they can be accessed in child system `importer`.
 
 ```ruby
@@ -2404,14 +2610,13 @@ Several enumerators are also provided for accessing the internals of the current
 
 ### Global signals
 
-HDLRuby allows the declaration of global signals the same way system's signals are declared but outside the scope of any system.  After being declared, these signals are accessible directly from within any hardware construct.
+HDLRuby allows the declaration of global signals the same way the system's signals are declared but outside the scope of any system.  After being declared, these signals are accessible directly from within any hardware construct.
 
 To ease the design of standardized libraries, the following global signals are defined by default:
 
 | signal name | signal type | signal function                       |
 | :---        | :---        | :---                                  |
-| `$reset`    | bit         | global reset                          |
-| `$resetb`   | bit         | global reset complement               |
+| `$rst`      | bit         | global reset                          |
 | `$clk`      | bit         | global clock                          |
 
 __Note__:
@@ -2523,7 +2728,7 @@ In the code above:
 
  - the `instance_eval` keyword is a standard Ruby method that executes the block passed as an argument in context.
 
-The following is an example that switches a LED on after 1000000 clock cycles using the previously defined `after` ruby method:
+The following is an example that switches an LED on after 1000000 clock cycles using the previously defined `after` ruby method:
 
 ```ruby
 system :led_after do
@@ -2539,12 +2744,8 @@ end
 
 __Note__:
 
- - Ruby's closure still applies in HDLRuby, hence, the block sent to `after` can use the signals and instances of the current block. Moreover, the signal declared in this method will not collide with them.
+ - Ruby's closure still applies in HDLRuby, hence, the block sent to `after` can use the signals and instances of the current block. Moreover, the signals declared in this method will not collide with them.
 
-
-### Dynamic description
-
-When describing a system, it is possible to disconnect or completely undefine a signal or an instance.
 
 
 ## Extending HDLRuby
@@ -2582,11 +2783,12 @@ The following table gives the class of each construct of HDLRuby.
 | transmit        | Transmit     |
 | hif             | If           |
 | hcase           | Case         |
+| program         | Program      |
 
 
 ### Extending HDLRuby constructs locally
 
-By local extension of a hardware construct, we mean that while the construct will be changed, all the other constructs will remain unchanged. This is achieved like in Ruby by accessing the Eigen class using the `singleton_class` method and extending it using the `class_eval` method.  For example, with the following code, only system `dff` will respond to method `interface_size`:
+By local extension of a hardware construct, we mean that while the construct will be changed, all the other constructs will remain unchanged. This is achieved like with Ruby by accessing the Eigen class using the `singleton_class` method and extending it using the `class_eval` method.  For example, with the following code, only system `dff` will respond to method `interface_size`:
 
 ```ruby
 dff.singleton_class.class_eval do
@@ -2691,7 +2893,7 @@ After the libraries are loaded, the module `Std` must be included as follows:
 include HDLRuby::High::Std
 ```
 
-> However, `hdrcc` loads the stable components of the standard library by default, so you do not need to require nor include anything more to use them. In the current version, the stable components are the followings:  
+> However, `hdrcc` loads the stable components of the standard library by default, so you do not need to require nor include anything more to use them. In the current version, the stable components are the following:  
   
   - `std/clocks.rb`  
 
@@ -2792,7 +2994,7 @@ A finite state machine can be declared anywhere in a system provided it is outsi
 fsm(<event>,<reset>,<mode>) <block>
 ```
 
-Where `event` is the event (rising or falling edge of a signal) activating the state transitions, `rst` is the reset signal, and `mode` is the default execution mode and `block` is the execution block describing the states of the FSM. This last parameter can be either `:sync` for synchronous (Moore type) or `:async` for asynchronous (Mealy type).
+Where `event` is the event (rising or falling edge of a signal) activating the state transitions, `rst` is the reset signal, `mode` is the default execution mode, and `block` is the execution block describing the states of the FSM. This last parameter can be either `:sync` for synchronous (Moore type) or `:async` for asynchronous (Mealy type).
 
 The states of an FSM are described as follows:
 
@@ -2800,12 +3002,12 @@ The states of an FSM are described as follows:
 <kind>(<name>) <block>
 ```
 
-Where `kind` is the kind of state, `name` is the name of the state, and `block` is the actions to execute for the corresponding state. The kinds of states are the followings:
+Where `kind` is the kind of state, `name` is the name of the state, and `block` is the actions to execute for the corresponding state. The kinds of states are the following:
 
  * reset: the state reached when resetting the FSM. This state can be forced to be asynchronous by setting the `name` argument to `:async` and forced to be synchronous by setting the `name` argument to `:sync`. By default, the `name` argument is to be omitted.
- * state: the default kind of state, it will be synchronous if the FSM is synchronous or asynchronous otherwise.
- * sync:  the synchronous kind of state, it will be synchronous whatever the kind of FSM is used.
- * async: the asynchronous kind of state, it will be asynchronous whatever the kind of FSM is used.
+ * state: the default kind of state, will be synchronous if the FSM is synchronous or asynchronous otherwise.
+ * sync:  the synchronous kind of state, will be synchronous whatever the kind of FSM is used.
+ * async: the asynchronous kind of state, will be asynchronous whatever the kind of FSM is used.
 
 In addition, it is possible to define a default action that will be executed whatever the state is using the following statement:
 
@@ -2853,7 +3055,7 @@ fsm(clk.posedge,rst,:sync) do
 end
 ```
 
-__Note__: the goto statements act globally, i.e., they are independent of the place where they are declared within the state. For example for both following statements, the next state will always be `st_a` whatever `cond` maybe:
+__Note__: the goto statements act globally, i.e., they are independent of the place where they are declared within the state. For example for both following statements, the next state will always be `st_a` whatever `cond` may be:
 
 ```ruby
    state(:st_0) do
@@ -3036,7 +3238,7 @@ It is also possible to define a custom enumerator using the following command:
 <enum> = senumerator(<typ>,<size>) <block>
 ```
 
-Where `enum` is a Ruby variable referring to the enumerator, `typ` is the data type and `size` is the number of the elements to enumerate, and `block` is the block that implements the access to an element by index. For example, an enumerator on a memory could be defined as follows:
+Where `enum` is a Ruby variable referring to the enumerator, `typ` is the data type, `size` is the number of the elements to enumerate, and `block` is the block that implements the access to an element by index. For example, an enumerator on a memory could be defined as follows:
 
 ```ruby
     bit[8][-8].inner mem: [ _h01, _h02, _h03, _h04, _h30, _h30, _h30, _h30 ]
@@ -3135,7 +3337,7 @@ With this basis, several algorithms have been implemented using enumerators and 
 
 #### Shared signals
 
-Like any other process, It is not possible for several sequencers to write to the same signal. This is because there would be race competition that may destroy physically the device if such operations were authorized. In standard RTL design, this limitation is overcome by implementing three-state buses, multiplexers, and arbiters. However, HDLRuby sequencers support another kind of signal called the *shared signals* that abstract the implementation details for avoiding race competition.
+Like any other process, several sequencers can't write to the same signal. This is because there would be race competition that may destroy physically the device if such operations were authorized. In standard RTL design, this limitation is overcome by implementing three-state buses, multiplexers, and arbiters. However, HDLRuby sequencers support another kind of signal called the *shared signals* that abstract the implementation details for avoiding race competition.
 
 The shared signals are declared like the other kind of signals from their type. The syntax is the following:
 
@@ -3191,7 +3393,7 @@ This default behavior of shared signal avoids race competition but is not very u
 <shared signal>.select
 ```
 
-The select value starts from 0 for the first sequencer writing to the shared signal, and is increased by one per writing sequencer. For example, in the first example, for selecting the second sequencer for writing to `x` the following code can be added after this signal is declared:
+The select value starts from 0 for the first sequencer writing to the shared signal and is increased by one per writing sequencer. For example, in the first example, for selecting the second sequencer for writing to `x` the following code can be added after this signal is declared:
 
 ```ruby
    x.select <= 1
@@ -3203,12 +3405,12 @@ This value can be changed at runtime too. For example, instead of setting the se
    par(clk.posedge) { x.select <= x.select + 1 }
 ```
 
-__Note__: this select sub signal is a standard RTL signal that has the same properties and limitations as the other ones, i.e., this is not a shared signal itself.
+__Note__: this select sub-signal is a standard RTL signal that has the same properties and limitations as the other ones, i.e., this is not a shared signal itself.
 
 
 #### Arbiters
 
-Usually, it is not the signals that we want to share, but the resources they drive. For example, in a CPU, it is an ALU that is shared as a whole rather than each of its inputs separately. In order to support such cases and ease the handling of shared signals, the library also provides the *arbiter* components. This component is instantiated like a standard module as follows, where `name` is the name of the arbiter instance:
+Usually, it is not the signals that we want to share, but the resources they drive. For example, with a CPU, it is the ALU that is shared as a whole rather than each of its inputs separately. To support such cases and ease the handling of shared signals, the library also provides the *arbiter* components. This component is instantiated like a standard module as follows, where `name` is the name of the arbiter instance:
 
 ```ruby
 arbiter(:<name>).(<list of shared signal>)
@@ -3247,7 +3449,7 @@ end
 In the example, both sequencers require access to signals `x` and `y` before accessing them and then releasing the access. 
 
 Requiring access does not guarantee that the access will be granted by the arbiter though. In the access is not granted, the write access will be ignored.
-The default access granting policy of an arbiter is the priority in the order of sequencer declaration. I.e., if several sequencers are requiring one at the same time, then the one declared the earliest in the code gains write access. For example, with the code given above, the first sequencer has to write access to `x` and `y`, and since after five write cycles it releases access, the second sequencer can then write to these signals. However, not obtaining write access does not block the execution of the sequencer, simply, its write access to the corresponding shared signals is simply ignored. In the example, the second sequencer will do its first five loop cycles without any effect and have only its five last ones that change the shared signals. To avoid such a behavior, it is possible to check if the write access is granted using arbiter sub signal `acquired`: if this signal is one in the current sequencer, that means the access is granted, otherwise it is 0. For example the following will increase signal `x` only if write access is granted:
+The default access granting policy of an arbiter is the priority in the order of sequencer declaration. I.e., if several sequencers are requiring one at the same time, then the one declared the earliest in the code gains write access. For example, with the code given above, the first sequencer has to write access to `x` and `y`, and since after five write cycles it releases access, the second sequencer can then write to these signals. However, not obtaining write access does not block the execution of the sequencer, simply, its write access to the corresponding shared signals is ignored. In the example, the second sequencer will do its first five loop cycles without any effect and have only its five last ones that change the shared signals. To avoid such a behavior, it is possible to check if the write access is granted using arbiter sub signal `acquired`: if this signal is one in the current sequencer, that means the access is granted, otherwise it is 0. For example the following will increase signal `x` only if write access is granted:
 
 ```ruby
 hif(ctrl_xy.acquired) { x <= x + 1 }
@@ -3259,7 +3461,7 @@ The policy of an arbiter can be changed using command policy. You can either pro
 ctrl_xy.policy([1,0])
 ```
 
-It is also possible to set a more complex policy by providing to the policy method a block of code whose argument is a vector indicating which sequencer is currently requiring write access to the shared signals and whose result will be the number of the sequencer to grant the access. This code will be executed each time write access is actually performed. For example, in the previous code, a policy switch priorities at each access can be implemented as follows:
+It is also possible to set a more complex policy by providing to the policy method a block of code whose argument is a vector indicating which sequencer is currently requiring write access to the shared signals and whose result will be the number of the sequencer to grant the access. This code will be executed each time write access is performed. For example, in the previous code, a policy switch priorities at each access can be implemented as follows:
 
 ```ruby
 inner priority_xy: 0
@@ -3282,7 +3484,7 @@ ctrl_xy.policy do |acq|
 end
 ```
 
-As seen in the code above, each bit of the `acq` vector is one when the corresponding sequencer required an access or 0 otherwise, bit 0 corresponds to sequencer 0, bit 1 to sequencer 1 and so on.
+As seen in the code above, each bit of the `acq` vector is one when the corresponding sequencer requires an access or 0 otherwise, bit 0 corresponds to sequencer 0, bit 1 to sequencer 1, and so on.
 
 
 #### Monitors
@@ -3295,7 +3497,7 @@ The monitor component is instantiated like the arbiters as follows:
 monitor(:<name>).(<list of shared signals>)
 ```
 
-Monitors are used exactly the same ways as arbiters (including the write access granting policies) but block the execution of the sequencers that require write access until the access is granted. If we take the example of code with two sequencers given as an illustration of arbiter usage, replacing the arbiter with a monitor as follows will lock the second sequencer until it can write to shared variables `x` and `y` ensuring that all its loop cycles have the specified result:
+Monitors are used the same ways as arbiters (including the write access granting policies) but block the execution of the sequencers that require write access until the access is granted. If we take the example of code with two sequencers given as an illustration of arbiter usage, replacing the arbiter with a monitor as follows will lock the second sequencer until it can write to shared variables `x` and `y` ensuring that all its loop cycles have the specified result:
 
 ```ruby
 monitor(:ctrl_xy).(x,y)
@@ -3331,7 +3533,7 @@ end
 
 ### Sequencer-specific function: `std/sequencer_func.rb`
 
-HDLRuby function defined by `hdef` can be used in sequencer like any other HDLRuyby construct. But like the process constructs `hif` and so on, the body of these functions cannot include any sequencer-specific constructs.
+HDLRuby function defined by `hdef` can be used in a sequencer like any other HDLRuyby construct. But like the process constructs `hif` and so on, the body of these functions cannot include any sequencer-specific constructs.
 
 However, it is possible to define functions that do support the sequencer constructs using `sdef` instead of `hdef` as follows:
 
@@ -3354,7 +3556,7 @@ end
 
 As seen in the code above, a new construct `sreturn` can be used for returning a value from anywhere inside the function.
 
-When a recursion is present, HDLRuby automatically defines a stack for storing the return state and the arguments of the function. The size of the stack is heuristically set to the maximum number of bits of the arguments of the function when it is recursively called. For example, for the previous `fact` function, if when called, `n` is 16-bit, the stack will be able to hold 16 recursions. If this heuristic does not match the circuit's needs, the size can be forced as a second argument when defining the function. For example, the following code set the size to 32 whatever the arguments are:
+When a recursion is present, HDLRuby automatically defines a stack for storing the return state and the arguments of the function. The size of the stack is heuristically set to the maximum number of bits of the arguments of the function when it is recursively called. For example, for the previous `fact` function, if when called, `n` is 16-bit, the stack will be able to hold 16 recursions. If this heuristic does not match the circuit's needs, the size can be forced as a second argument when defining the function. For example, the following code sets the size to 32 whatever the arguments are:
 
 ```ruby
 sdef(:fact,32) do |n|
@@ -3633,7 +3835,7 @@ The naming convention of the samples is the following:
 * `<name>.rb`:       default type of sample.
 * `<name>_gen.rb`:   generic parameters are required for processing the sample.
 * `<name>_bench.rb`: sample including a simulation benchmark, these are the only samples that can be simulated using `hdrcc -S`. Please notice that such a sample cannot be converted to VHDL or Verilog HDL yet.
-* `with_<name>.rb`: sample illustrating a single aspect of HDLRuby or one of its library, usually includes a benchmark.
+* `with_<name>.rb`: sample illustrating a single aspect of HDLRuby or one of its libraries, usually includes a benchmark.
 
 
 # Contributing
