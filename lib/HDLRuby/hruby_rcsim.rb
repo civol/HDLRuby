@@ -558,15 +558,15 @@ module HDLRuby::High
             if self.language == :ruby then
                 # Loads the code files.
                 self.each_code do |code|
-                    Kernel.load(code.to_s)
+                    Kernel.require("./"+code.to_s)
                 end
                 # Add the input ports.
                 self.each_inport do |sym, sig|
-                    RubyHDL.port(sym,sig.rcsignalI)
+                    RubyHDL.inport(sym,sig.rcsignalI)
                 end
                 # Add the output ports.
                 self.each_outport do |sym, sig|
-                    RubyHDL.port(sym,sig.rcsignalI)
+                    RubyHDL.outport(sym,sig.rcsignalI)
                 end
             elsif self.language == :c then
                 # Loads the code file: only the last one remains.

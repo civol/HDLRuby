@@ -3060,6 +3060,7 @@ module HDLRuby::Low
             @outports[name] = sig
         end
 
+
         # Iterates over each activation event.
         #
         # Returns an enumerator if no ruby block is given.
