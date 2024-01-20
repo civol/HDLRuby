@@ -401,10 +401,10 @@ $optparse = OptionParser.new do |opts|
     opts.on("--vcd", "The simulator will generate a vcd file") do |v|
         $options[:vcd] = v
     end
-    opts.on("--rake dir", "Generates the rake files for compiling an extension") do |dir|
+    opts.on("--ch dir", "Generates the files for compiling a software extension") do |dir|
         # Check the target directory.
         if !dir or dir.empty? then
-            raise "Need a program name for generating the rake files."
+            raise "Need a program name for generating the compiling files."
         end
         # Create the source path.
         src_path = File.dirname(__FILE__) + "/../c/"

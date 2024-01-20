@@ -1656,6 +1656,18 @@ VALUE rcsim_transmit_fixnum_to_signal_seq(VALUE mod, VALUE signalV, VALUE valR) 
 }
 
 
+// /** Execute a behavior. */
+// VALUE rcsim_execute_behavior(VALUE mod, VALUE behaviorV) {
+//     /* Get the behavior. */
+//     Behavior behavior;
+//     value_to_rcsim(BehaviorS,behaviorV,behavior);
+//     /* Execute the behavior. */
+//     execute_statement((Statement)(behavior->block),0,behavior);
+//     /* Returns the behavior. */
+//     return behaviorV;
+// }
+
+
 
 /** Starts the C-Ruby hybrid simulation.
  *  @param systemTV the top system type. 
@@ -1826,6 +1838,7 @@ void Init_hruby_sim() {
     /* The Ruby software interface. */
     rb_define_singleton_method(mod,"rcsim_get_signal_fixnum",rcsim_get_signal_fixnum,1);
     rb_define_singleton_method(mod,"rcsim_transmit_fixnum_to_signal_seq",rcsim_transmit_fixnum_to_signal_seq,2);
+    // rb_define_singleton_method(mod,"rcsim_execute_behavior",rcsim_execute_behavior,1);
 
 }
 
