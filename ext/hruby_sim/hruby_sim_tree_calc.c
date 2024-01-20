@@ -505,7 +505,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
             }
 
         default:
-            perror("Invalid kind for an expression."); 
+            perror("Invalid kind for a statement."); 
     }
 }
 
