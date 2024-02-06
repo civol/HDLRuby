@@ -237,7 +237,7 @@ Value make_value(Type type, int numeric) {
 /** Make the size of a value able to store size ints.
  *  @note The content of the value is lost!
  *  @note do not change the type of the value, only its capacity.
- *  @praam value the value to change
+ *  @param value the value to change
  *  @param size the size to match */
 void resize_value(Value value, unsigned long long size) {
     if (value->capacity < size) {

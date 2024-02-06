@@ -1611,14 +1611,15 @@ VALUE rcsim_get_signal_fixnum(VALUE mod, VALUE signalV) {
     // printf("rc_sim_get_signal_fixnum for signal=%s\n",signal->name);
     /* Get the value from the signal. */
     value = signal->c_value;
-    /* Is the value a numeric? */
-    if(value->numeric == 1) {
-        /* Yes, return it as a Ruby fixnum. */
-        return LONG2FIX(value->data_int);
-    } else {
-        /* No, return 0. */
-        return LONG2FIX(0);
-    }
+    // /* Is the value a numeric? */
+    // if(value->numeric == 1) {
+    //     /* Yes, return it as a Ruby fixnum. */
+    //     return LONG2FIX(value->data_int);
+    // } else {
+    //     /* No, return 0. */
+    //     return LONG2FIX(0);
+    // }
+    return LONG2FIX(value2integer(value));
 }
 
 /** Transmit a Ruby fixnum to a signal in a non-blocking fashion.
