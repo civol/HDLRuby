@@ -91,7 +91,7 @@ module HDLRuby::High::Std
         # Prepare the min, max and blank strings.
         min = self.min.to_s
         max = self.max.to_s
-        blank = (min > max) ? min : max;
+        blank = (min.size > max.size) ? min : max;
         # Generate the html.
         return '<div>' +
             '<div class="hdiv"><div class="r-blank">' + blank + '</div>' + # just for adjusting the position with the scope.
@@ -126,6 +126,14 @@ module HDLRuby::High::Std
     ## Class describing a bitmap display.
     BITMAP = Struct.new(:id, :width, :height, :hread)
 
+
+    ## Class describing a new panel row.
+    PROW = Struct.new(:id) do
+      def to_html
+        return '<div class="prow" id="' + self.id.to_s + '"></div>';
+      end
+    end
+
     ## The base HTML/Javascript/Ajax code of the FPGA UI: 
     # header
     UI_header = <<-HTMLHEADER
@@ -148,12 +156,22 @@ Content-Type: text/html
     text-align: center;
   }
 
-  #panel {
+  .panel {
     width:  100%;
     height: 100%;
-    text-align: center; 
-    /* display: flex;
-    flex-wrap: wrap; */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: flex-start;
+    gap: 20px;
+  }
+
+  .prow {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 15px;
   }
 
   .title {
@@ -182,14 +200,19 @@ Content-Type: text/html
     -webkit-shadow: -1px -1px 1px #153212, 1px 1px 1px #63c359;
     padding-left:  8px;
     padding-right: 8px;
-    display: table-cell;
-    vertical-align: middle; 
-    /* display: inline-block;
-    height: 36px; */
+    /* display: table-cell; 
+    vertical-align: middle; */
+    height: 28px;
+    line-height: 28px;
   }
 
   .vl {
-    border-left: 10px solid #2a6424;
+    /* border-left: 10px solid #2a6424; */
+    color: #2a6424;
+    box-shadow: -1px -1px 1px #63c359, 1px 1px 1px #153212;
+    -moz-box-shadow: -1px -1px 1px #63c359, 1px 1px 1px #153212;
+    -webkit-shadow: -1px -1px 1px #63c359, 1px 1px 1px #153212;
+    width: 10px;
   }
 
   .hdiv {
@@ -205,39 +228,53 @@ Content-Type: text/html
   }
 
   .swset {
-    display: table;
-    margin-left:  auto;
-    margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left:  8px;
+    margin-right: 8px;
+    height: 40px;
   }
 
   .btset {
-    display: table;
-    margin-left:  auto;
-    margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left:  8px;
+    margin-right: 8px;
+    height: 40px;
   }
 
   .ledset {
-    display: table;
-    margin-left:  auto;
-    margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left:  8px;
+    margin-right: 8px;
+    height: 40px;
   }
 
   .digitset {
-    display: table;
-    margin-left:  auto;
-    margin-right: auto;
-  }
-
-  .signedset {
-    display: table;
-    margin-left:  auto;
-    margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left:  8px;
+    margin-right: 8px;
+    height: 40px;
   }
 
   .hexaset {
-    display: table;
-    margin-left:  auto;
-    margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left:  8px;
+    margin-right: 8px;
+    height: 40px;
   }
 
   .scopetitle {
@@ -247,13 +284,13 @@ Content-Type: text/html
     box-shadow: -1px -1px 1px #153212, 1px 1px 1px #63c359;
     -moz-box-shadow: -1px -1px 1px #153212, 1px 1px 1px #63c359;
     -webkit-shadow: -1px -1px 1px #153212, 1px 1px 1px #63c359;
-    /* padding-left:  8px;
-    padding-right: 8px; */
     display: inline-block;
     width:  30vw;
-    flex-direction: row;
+    height: 28px;
+    line-height: 28px;
     margin-right: auto;
     margin-bottom: 4px;
+    text-align:center;
   }
 
   .scopepane {
@@ -263,7 +300,9 @@ Content-Type: text/html
     -moz-box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     padding: 10px;
-    display: inline-block;
+    width: max-content;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .y-range {
@@ -294,6 +333,7 @@ Content-Type: text/html
     -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     padding-left:  8px;
     padding-right: 8px;
+    text-align:center;
   }
 
   .d-value {
@@ -308,6 +348,7 @@ Content-Type: text/html
     padding-left:  8px;
     padding-right: 8px;
     margin-top: auto;
+    text-align:center;
   }
 
   .l-value {
@@ -375,6 +416,7 @@ Content-Type: text/html
     display: inline-block;
     width: 24px;
     height: 40px;
+    margin: 2px;
     box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -moz-box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
@@ -473,12 +515,12 @@ Content-Type: text/html
 
   .led_off { 
     height: 20px;  
-    width: 20px; 
+    width: 20px;
     border: solid 2px #505050;
     border-radius: 50%;  
     background: radial-gradient(circle at 30% 30%, red 20%, #8B0000);
     display: inline-block;
-    margin-top: 9px;
+    margin: 2px;
     box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -moz-box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
@@ -491,7 +533,7 @@ Content-Type: text/html
     border-radius: 50%;  
     background: radial-gradient(circle, yellow 15%, orange 50%, red);
     display: inline-block;
-    margin-top: 9px;
+    margin: 2px;
     box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -moz-box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
     -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
@@ -509,7 +551,7 @@ Content-Type: text/html
 </div>
 <br>
 
-<div id="panel"></div>
+<div id="panel" class="panel"><div class="prow"></div></div>
 
 <script>
   // Access to the components of the UI.
@@ -529,18 +571,22 @@ Content-Type: text/html
 
   // Add an element.
   function add_element(txt) {
-    panel.innerHTML += txt;
-    const element = panel.lastElementChild;
-    panel.innerHTML += "<br>\\n";
-    // panel.innerHTML += '<div class="vl"></div>\\n';
+    if (txt.includes('prow')) {
+      // New panel row.
+      panel.innerHTML += txt;
+      return;
+    }
+    const prow = panel.lastElementChild;
+    prow.innerHTML += txt;
+    const element = prow.lastElementChild;
     // Depending of the kind of element.
     if (element.classList.contains('swset') ||
-        element.classList.contains('btset')) {
-        // Input element.
-        input_ids.push(element.id);
+      element.classList.contains('btset')) {
+      // Input element.
+      input_ids.push(element.id);
     } else {
-        // Output element.
-        output_ids.push(element.id);
+      // Output element.
+      output_ids.push(element.id);
     }
   }
 
@@ -948,6 +994,14 @@ HTMLFOOTER
       @elements << ASCII.new(@elements.size,w.to_i,h.to_i,hport[0])
       @out_elements << @elements[-1]
     end
+
+    # Add a new panel row.
+    def row()
+      # Createthe ui component.
+      @elements << PROW.new(@elements.size)
+    end
+
+
 
     # Update port number +id+ with value +val+.
     def update_port(id,val)

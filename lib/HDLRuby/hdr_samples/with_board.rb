@@ -1,7 +1,9 @@
 
 # A benchmark for testing the use of a board model implementing:
-# * a simple adder display in leds
-# * a simple counter displayed both in decimal and hexadecimal
+# * a simple adder whose input are set using slide switches, and
+#   whose output bits are showns on LEDs.
+# * simple unsigned and signed counters whose values are shown using
+#   decimal or hexadecimal displays, and oscilloscopes.
 system :with_board do
     inner :clk, :clk2
     [8].inner clk_cnt: 0
@@ -12,21 +14,28 @@ system :with_board do
     [8].inner :counter8
     signed[8].inner :scounter8
 
+    # Description of the board.
+    # It is updated at each rising edge of +clk2+.
     board(:some_board) do
         actport clk2.posedge
         bt  reset:    rst
+        row
         sw  sw_a:     sw_a
         sw  sw_b:     sw_b
         led led_z:    led_z
+        row
         digit cnt_d:  counter
         hexa  cnt_h:  counter
         digit cnt_s:  scounter8
+        row
         scope scope:  counter8
         scope scope_s:scounter8
     end
 
+    # The adder.
     led_z <= sw_a.as(bit[9]) + sw_b
 
+    # The counters and the generation of +clk2+.
     counter8 <= counter[7..0]
     scounter8 <= counter[7..0]
 
