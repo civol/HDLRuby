@@ -37,19 +37,19 @@ if ARGV.include?("-I") || ARGV.include?("--interactive") then
 end
 
 
-begin
-    # We can check the memory.
-    require 'get_process_mem'
-    $memory_check = GetProcessMem.new
-    def show_mem
-        " | "+$memory_check.bytes.to_s+"B"
-    end
-rescue LoadError
-    # We cannot check the memory.
-    def show_mem
-        ""
-    end
-end
+# begin
+#     # We can check the memory.
+#     require 'get_process_mem'
+#     $memory_check = GetProcessMem.new
+#     def show_mem
+#         " | "+$memory_check.bytes.to_s+"B"
+#     end
+# rescue LoadError
+#     # We cannot check the memory.
+#     def show_mem
+#         ""
+#     end
+# end
 
 
 require 'fileutils'
@@ -488,6 +488,8 @@ $optparse = OptionParser.new do |opts|
     end
     opts.on("--get-samples", "Copy the sample directory (hdr_samples) to current one, then exit") do
         FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples","./hdr_samples")
+        FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples/c_program","./hdr_samples/c_program")
+        FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples/ruby_program","./hdr_samples/ruby_program")
         exit
     end
     opts.on("--get-tuto", "Copy the tutorial directory (tuto) to current one, then exit") do
