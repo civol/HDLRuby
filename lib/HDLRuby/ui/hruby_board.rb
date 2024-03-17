@@ -193,6 +193,7 @@ Content-Type: text/html
 
   .name {
     font-size: 20px;
+    font-family: "Lucida Console", "Courier New", monospace;
     color: white;
     background-color: #265a20;
     box-shadow: -1px -1px 1px #153212, 1px 1px 1px #63c359;
