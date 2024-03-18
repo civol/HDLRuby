@@ -1,4 +1,4 @@
-# HDLRuby Tutorial for Software People
+# HDLRuby Tutorial for software people (*and hardware people too*)
 
 In this tutorial, you will learn the basics about the description of digital circuits using HDLRuby from the software point of view. In detail you will learn:
 
@@ -15,6 +15,10 @@ Then, the following section will introduce advanced concepts about hardware desi
  5. [Toward lower level hardware design: the processes.](#5-toward-lower-level-hardware-design-the-processes)
 
  6. [Not enough? What about genericity, object orientation, metaprogramming, and reflection?](#6-not-enough-what-about-genericity-object-orientation-metaprogramming-and-reflection)
+
+ 7. [How to mix hardware and software.](#7-how-to-mix-hardware-and-softwware)
+
+ 8. [How to interact with the simulator.](#8-how-to-interact-with-the-simulator)
 
 Within these topics, you will also have an explanation of how the following high-level concepts can be used in HDLRuby:
 
@@ -68,7 +72,7 @@ In hardware, the design loop is more like as follows:
 </p>
 
 
-At first, an HDL has the same look and feel compared to classical programming languages like C or Java: it includes expressions, control statements, and kinds of variables. However, the underlining model of computation is quite different, especially because circuits are inherently parallel devices. This will be explained progressively during this tutorial, but for now, it is enough to remember the following:
+At first, an HDL has the same look and feel compared to classical programming languages like C or Java: it includes expressions, control statements, and kinds of variables. However, the underlying model of computation is quite different, especially because circuits are inherently parallel devices. This will be explained progressively during this tutorial, but for now, it is enough to remember the following:
 
  * HDL are used for describing digital circuits and the most common ones are Verilog HDL and VHDL.
 
@@ -79,7 +83,7 @@ At first, an HDL has the same look and feel compared to classical programming la
 
 #### And what about HDLRuby?
 
-Well, HDLRuby is an HDL for describing digital circuits like Verilog HDL or VHDL but aiming at being more flexible and productive than them by relying on many concepts inherited from the Ruby programming language. So everything said earlier about HDL applies to HDLRuby, but we try to make it much easier for the designers.
+Well, HDLRuby is an HDL for describing digital circuits like Verilog HDL or VHDL but aims at being more flexible and productive than them by relying on many concepts inherited from the Ruby programming language. So everything said earlier about HDL applies to HDLRuby, but we try to make it much easier for the designers. Furthermore, HDLRuby includes constructs for describing and simulating software modules so that you can design a full hardware-software device using the same framework (there is a fancy word for that: hardware-software co-design).
 
 
 ### 1.2. Installing HDLRuby
@@ -130,7 +134,7 @@ hdrcc <options> <input file> <output directory>
 
 Where `options` specifies the action to be performed, `input file` specifies the input HDLRuby file, and `output directory` specifies the directory where the command results will be saved. As a general rule, when an input file is specified, an output directory must also be specified.
 
-Several actions are possible using `hdrcc`, the main ones being the followings:
+Several actions are possible using `hdrcc`, the main ones being the following:
 
  * Simulate a circuit description:  
  
@@ -183,7 +187,7 @@ Ports are not simple entry points though, because they also have a data type and
 
 #### That's all very well, but when do I write HDLRuby code?
 
-With that in mind, declaring a circuit consists in specifying its name and its ports. In HDLRuby this is done as follows:
+With that in mind, declaring a circuit consists of specifying its name and its ports. In HDLRuby this is done as follows:
 
 ```ruby
 system :my_circuit do
@@ -262,7 +266,7 @@ end
 
 It looks somewhat similar to the code you have just written. This is because it is the internal representation (IR) of your circuit in HDLRuby. You can see that the name of the circuit changed to some weird character string and that the data types also changed. The weird string is for avoiding name clashes, so you do not need to be concerned about it. The data types are low-level representations of the same data types that were used in the initial file. Still, this low-level representation is very close to the original one, but that will be less and less the case as the features are added to the circuit.
 
-Now, out of curiosity, how will look the equivalent Verilog HDL code? For checking that just type the following command:
+Now, out of curiosity, how will look the equivalent Verilog HDL code? To check that just type the following command:
 
 ```bash
 hdrcc --verilog my_circuit.rb work
@@ -307,13 +311,13 @@ Unfortunately, there is no more smiling face. This is because Verilog HDL only s
 
 ### 2.2. How to reuse a circuit already declared
 
-Like with functions in software, a circuit is often used as part of one or several larger circuits. Contrary to the software, however, the circuit must be physically copied for being reused. This copy is called an *instance* and the act of copying an *instantiation*. In HDLRuby, an instantiation is done as follows:
+Like with functions in software, a circuit is often used as part of one or several larger circuits. Contrary to the software, however, the circuit must be physically copied to be reused. This copy is called an *instance* and the act of copying an *instantiation*. In HDLRuby, an instantiation is done as follows:
 
 ```ruby
 <circuit name>(:<copy name>)
 ```
 
-For example, if you what to use copies of the previously defined circuit `my_circuit` in a new circuit called `another_circuit` you can do as follows:
+For example, if you want to use copies of the previously defined circuit `my_circuit` in a new circuit called `another_circuit` you can do as follows:
 
 ```ruby
 system :another_circuit do
@@ -377,7 +381,7 @@ Again, we can see similarities between the resulting Verilog HDL code and the or
 > __But why two of them?__ I would like to answer that this is because of a limitation of Verilog HDL, but this is not the case. It is because HDLRuby's instantiation mechanism is very different from the Verilog HDL (and the VHDL) one, so for the moment, and only for easing the coding work of the HDLRuby compiler, one description of `my_circuit` is generated per instance.
 
 
-Copying a circuit is easy, but it achieves no purpose if the copied circuit is not in a relationship with its environment. It is where the ports become useful: they are the communication points between a circuit and its outside world. Concretely, to interact with a circuit, its ports must be connected to something that will interact with them. How this interaction work is a story for the other sections of this tutorial. For now, let us focus on connections: in HDLRuby this is done using the assignment operator `<=` as follows:
+Copying a circuit is easy, but it achieves no purpose if the copied circuit is not in a relationship with its environment. It is where the ports become useful: they are the communication points between a circuit and its outside world. Concretely, to interact with a circuit, its ports must be connected to something that will interact with them. How this interaction works is a story for the other sections of this tutorial. For now, let us focus on connections: in HDLRuby this is done using the assignment operator `<=` as follows:
 
  * For an input port of the current circuit:  
  ```ruby
@@ -546,9 +550,9 @@ module _v0_3( clk, rst, addr, ce0, ce1, data_in, data_out );
 endmodule
 ```
 
-The code is starting to get complicated and seemed to be much different from the HDLRuby description than before. This is because this time, real syntactic limitations of Verilog HDL compared to HDLRuby have to be bypassed. Here, the limitation is that while in HDLRuby, ports can be connected wherever we want, in Verilog HDL, this must be done only while instantiating.
+The code is starting to get complicated and seems to be much different from the HDLRuby description than before. This is because this time, real syntactic limitations of Verilog HDL compared to HDLRuby have to be bypassed. Here, the limitation is that while in HDLRuby, ports can be connected wherever we want, in Verilog HDL, this must be done only while instantiating.
 
-In fact, in HDLRuby too you can do the connection while instantiating, this is even recommended for better readability of the code. There are two ways to do so: by position (like for the arguments of a function call) or by name. Let us see both by editing again `another_circuit.rb`: please just replace both instantiation lines with the followings:
+In fact, in HDLRuby too you can do the connection while instantiating, this is even recommended for better readability of the code. There are two ways to do so: by position (like for the arguments of a function call) or by name. Let us see both by editing again `another_circuit.rb`: please just replace both instantiation lines with the following:
 
 ```ruby
 my_circuit(:my_circuit0).(clk,rst,addr,ce0,data_in,data_out)
@@ -593,7 +597,7 @@ In software, handling values looks straightforward enough: they are computed wit
 
  * The wires are abstractions of physical wires or sets of wires that transmit data to the hardware component they are connected to. A wire cannot hold a value: if a component drives a value to a wire, this wire takes this value, and it will last as soon as this drive stops.
 
- * The storage components are abstractions of registers or memories that can hold values. Depending on how they are described, the value they hold can be changed on specific events like the rising edge of a clock. Hence, the storages component are closer to the software variable than the wires are.
+ * The storage components are abstractions of registers or memories that can hold values. Depending on how they are described, the value they hold can be changed on specific events like the rising edge of a clock. Hence, the storage components are closer to the software variable than the wires are.
 
 With HDL like Verilog HDL, there is a real distinction between wires and storage components. However, with other HDL like VHDL, or here with HDLRuby, both are abstracted by a single concept: the signal. Specifically, when a signal is only driven on a given event, it becomes a storage element, otherwise, it will remain a wire.
 
@@ -622,7 +626,7 @@ For now, we only used positive integer values, e.g., `[8].inner` declares an 8-b
 
 Where `base` is another data type and `range` describes the range of indexes used for accessing its elements individually. In addition, there are three root data types used for building all the other ones:
 
- * `bit`: for boolean, or 1-bit unsigned values, i.e., the only possible values are 0 and 1.
+ * `bit`: for boolean or 1-bit unsigned values, i.e., the only possible values are 0 and 1.
 
  * `signed`: for 1-bit signed values in 2's complement, i.e., the only possible values are 0 and -1.
 
@@ -792,9 +796,9 @@ system :the_counter do
 end
 ```
 
-The first line of the body of the counter looks like the connection of ports we described [previously](#circuit-use). However it is inside the body of a sequencer and will therefore be *executed* by it, that is to say, before this statement is executed, `count` may not be 0. More generally:
+The first line of the body of the counter looks like the connection of ports we described [previously](#circuit-use). However, it is inside the body of a sequencer and will therefore be *executed* by it, that is to say, before this statement is executed, `count` may not be 0. More generally:
 
- * Every assignment statement outside sequencers (and later processes) is a connection: the signal will *always* and *continuously* have the value that is assigned to them.
+ * Every assignment statement outside sequencers (and later processes) is a connection: the signal will *always* and *continuously* have the value that is assigned to it.
 
  * The other assignment statements, e.g., the ones inside a sequencer, are called *transmission* in HDLRuby and happen only when "executed."
 
@@ -814,7 +818,7 @@ If everything was all right the following text will appear:
 __:T:0:::2: 000
 ```
 
-It indicates that a signal named `__: T:0:::2` has been initialized to 0 (000), and that's all... Why is that, and why only that? First, this signal with a strange name has been generated by HDLRuby for the internal processing of the sequencer and is required to be initialized to 0. So, ok, the simulation did some initialization, but it did not seem to do any execution. This is because we did not give any description of the physical environment of the circuit, and especially, we did not say that the clock and the start signal need to change value. For describing the behavior of the environment of a circuit, we use a construct called in HDLRuby the *timed process*. They are somewhat close to sequencers but are not controlled by a clock signal but by physical time. So let us add the following code just after the sequencer (but still inside the module `the_counter`:
+It indicates that a signal named `__: T:0:::2` has been initialized to 0 (000), and that's all... Why is that, and why only that? First, this signal with a strange name has been generated by HDLRuby for the internal processing of the sequencer and is required to be initialized to 0. So, ok, the simulation did some initialization, but it did not seem to do any execution. This is because we did not give any description of the physical environment of the circuit, and especially, we did not say that the clock and the start signal need to change value. For describing the behavior of the environment of a circuit, we use a construct called, in HDLRuby, the *timed process*. They are somewhat close to sequencers but are not controlled by a clock signal but by physical time. So let us add the following code just after the sequencer (but still inside the module `the_counter`:
 
 ```ruby
    timed do
@@ -929,7 +933,9 @@ The new option `--vcd` makes the simulator produce a *Value Change Dump* file (V
 
 The resulting vcd file can be found in the `the_counter` directory with the name `hruby_simulator.vcd`. If you open it and select the `clk`, `start`, and `counter` signals you will see something like the following picture:
 
-![hruby_simulator.vcd](the_counter_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="the_counter_vcd.png"  width="80%">
+</p>
 
 Such a graph is called a time chart and displays the evolution of signals with time on the X-axis. You can see that `clk` is indeed alternating from 0 to 1, and that `start` is set to 1 for one clock cycle only. After this later signal becomes 0 again, the sequencer starts. This can be verified by looking at the value of `counter`: at first, it is undefined, that it is set to 0, then increased by 1 at each clock cycle until it reaches 3.
 
@@ -948,7 +954,7 @@ Hum, the algorithm part is quite limited, and the timed processes seem to be rea
 
 #### 3.2.2. How to write a structured programming algorithm in a sequencer
 
-Now, when we speak about algorithms, we often think about software constructs like `if` for conditional executions and `for` for loops. Unfortunately, in HW design this is usually not that simple at all... But for the HDLRuby sequencers, it is indeed that simple: all these control statements are supported without any limitation. The only thing you have to be careful about is their name: to avoid confusion with the Ruby language, their names are all prefixed with an `s` (for *sequencer*), e.g, you have to use `sif` for doing an *if*.
+Now, when we speak about algorithms, we often think about software constructs like `if` for conditional executions and `for` for loops. Unfortunately, in HW design this is usually not that simple at all... But for the HDLRuby sequencers, it is indeed that simple: all these control statements are supported without any limitation. The only thing you have to be careful about is their name: to avoid confusion with the Ruby language, their names are all prefixed with an `s` (for *sequencer*), e.g., you have to use `sif` for doing an *if*.
 
 In detail here is a list of the control statements you can use within a sequencer:
 
@@ -1011,13 +1017,13 @@ system :fact do
 end
 ```
 
-The code is more complex that what we have seen up to now, so let us study it progressively:
+The code is more complex than what we have seen up to now, so let us study it progressively:
 
  * The circuit is named `fact` (for factorial).
  
  * It has four inputs:
 
-   - `clk` and `start`: the signals that controls the execution of the sequencer (nothing new here).
+   - `clk` and `start`: the signals that control the execution of the sequencer (nothing new here).
 
    - `req`: the signal that will ask for a factorial computation (*req* stands for require).
 
@@ -1080,7 +1086,7 @@ system :fact_bench do
 end
 ```
 
-This module introduces the `repeat` construct. It can be used within a timed process only and have the following syntax: 
+This module introduces the `repeat` construct. It can be used within a timed process only and has the following syntax: 
 
 ```ruby
 repeat(<number>) <block>
@@ -1100,7 +1106,7 @@ clk <= 1
 ```
 
 > __IMPORTANT__: as said when presenting HDLRuby, this language is implemented on top of the Ruby language, and is fully compatible with it. For instance, you can write any Ruby code within HDLRuby constructs (e.g., `def`), and you can write HDLRuby code within Ruby constructs. However, there is an important difference: Ruby code is executed at compile time (i.e., when hdrcc runs) and does not produce any hardware, whereas HDLRuby code is the description of the hardware that will be produced and will be then executed either through simulation or after production physically.
-  Then, what calling `clk!` do is paste the HDLRuby code in place. Here it is used to shorten the code: instead of each time setting the clock to 0, advancing time, then setting it to 1 again, writing `clk!` is enough to obtain the same result.  
+  Then, what calling `clk!` does is paste the HDLRuby code in place. Here it is used to shorten the code: instead of each time setting the clock to 0, advancing time, then setting it to 1 again, writing `clk!` is enough to obtain the same result.  
   It is from this capability to mix Ruby and HDLRuby that comes the *meta programmability* of HDLRuby.
 
 Finally, when you simulate with the following command:
@@ -1111,7 +1117,9 @@ hdrcc --sim --vcd fact.rb fact
 
 You should obtain the following kind of resulting VCD file:
 
-  ![hruby_simulator.vcd](fact_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="fact_vcd.png"  width="80%">
+</p>
 
 
 #### But in structured programming, it is better to use local variables!
@@ -1145,7 +1153,7 @@ system :fact do
 end
 ```
 
-You can simulate it again, and you should obtain exactly the same result. However, if you try to access `res` or `val` outside the main loop, then an error will be raised.
+You can simulate it again, and you should obtain the same result. However, if you try to access `res` or `val` outside the main loop, then an error will be raised.
 
 
 #### Now about `sfor`
@@ -1240,7 +1248,9 @@ hdrcc --sim --vcd serializer.rb serializer
 
 You should obtain the following time chart:
 
-![hruby_simulator.vcd](serializer_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="serializer_vcd.png"  width="80%">
+</p>
 
 
 
@@ -1288,7 +1298,7 @@ There is a lot to unpack from this small example:
     end
     ```
 
-    In the code above, `size` is the forced size of the stack, and `error_handler` is a block of code that will be executed when a stack overflow occurs. Both arguments are optional, but if the error handler is provided, then the size must also be provided. For example, the code of the factorial can be rewritten as follows for forcing the stack to support 64 recursions:
+    In the code above, `size` is the forced size of the stack, and `error_handler` is a block of code that will be executed when a stack overflow occurs. Both arguments are optional, but if the error handler is provided, then the size must also be provided. For example, the code of the factorial can be rewritten as follows to force the stack to support 64 recursions:
 
     ```ruby
     sdef(:fact,64) do |n|
@@ -1381,7 +1391,7 @@ So, enumerators iterate over enumerable, but what is it? In HDLRuby, an enumerab
 
 #### Let us build HDLRuby enumerators.
 
-Like Ruby builds enumerators using the `each` method and its derivates (`each_with_index` and so on,) HDLRuby uses the `seach` method to build its enumerator. For example, an enumerator over the bits of signal `sig` will be built as follows: `sig.seach`, and if you want an enumerator with index, just like Ruby: `sig.seach_with_index`, and so on. Then, an enumerator can be executed when create by providing the block that will be applied on each element like in ruby, or executed later using the `seach` method again. E.g., the following sequencer code first sums the bits of signal sig at once, then do it again later with another enumerator previously stored in the Ruby variable `another_enumerator`:
+Like Ruby builds enumerators using the `each` method and its derivates (`each_with_index` and so on,) HDLRuby uses the `seach` method to build its enumerator. For example, an enumerator over the bits of signal `sig` will be built as follows: `sig.seach`, and if you want an enumerator with index, just like Ruby: `sig.seach_with_index`, and so on. Then, an enumerator can be executed when created by providing the block that will be applied on each element like in ruby, or executed later using the `seach` method again. For example, the following sequencer code first sums the bits of signal sig at once, then does it again later with another enumerator previously stored in the Ruby variable `another_enumerator`:
 
 ```ruby
 input :clk, :start
@@ -1419,9 +1429,9 @@ That's all that we will explain here, the remaining is exactly like Ruby. Moreov
    
    - You may have noticed that the initial value of reduce is set to a 4-bit 0 (`_h0`, since a hexadecimal digit is 4-bit). If this value is not set, the data type of the elements will be used for the additions, in this case, 1-bit (and a 1-bit addition is actually an exclusive or).
 
-   - While the count of the bits is a single-line statement, it is executed like a usual sequencer loop and therefore requires 8 clock cycles for completing.
+   - While the count of the bits is a single-line statement, it is executed like a usual sequencer loop and therefore requires 8 clock cycles to complete.
 
- * Fill array `ar` from input `sin` one byte per cycle then sort it and outputs its content one byte per cycle.
+ * Fill array `ar` from input `sin` one byte per cycle then sort it and output its content one byte per cycle.
 
     ```ruby
     input :clk,:start
@@ -1437,7 +1447,7 @@ That's all that we will explain here, the remaining is exactly like Ruby. Moreov
     end
     ```
    
-   In this example, `16.stimes` generates an enumerator over the `0..7` range, and is a way to build an enumerator from an integer value. In addition, please notice the use of the Ruby variable `res` for accessign the signal containing the sort result.
+   In this example, `16.stimes` generates an enumerator over the `0..7` range, and is a way to build an enumerator from an integer value. In addition, please notice the use of the Ruby variable `res` for accessing the signal containing the sort result.
 
   * Apply a 4-point FIR filter over an array obtained from input signal `sin` with 0-padding at the beginning and output the result to `sout`
 
@@ -1541,7 +1551,7 @@ There is a simple rule to follow in hardware design to avoid any trouble when ac
 
 This rule is not absolute as you will see in the [hard way](#the-hard-way-arbitrating-between-writes-to-signals) to access signals, but it has the advantage of not requiring any additional hardware construct to be implemented. Hence, we do recommend following this rule as much as possible.
 
-Let us see an example for understanding how several sequencers can interact while following this rule. First, lets us consider a sequencer that increases periodically a value and sends it to another sequencer that will count the number of bits of this value and tells the first one to proceed with the increase:
+Let us see an example for understanding how several sequencers can interact while following this rule. First, let us consider a sequencer that increases periodically a value and sends it to another sequencer that will count the number of bits of this value and tell the first one to proceed with the increase:
 
 ```ruby
 system :bit_pong do
@@ -1600,7 +1610,9 @@ hdrcc --sim --vcd bit_pong.rb bit_pong
 
 You will obtain the following kind of time chart:
 
-![hruby_simulator.vcd](bit_pong_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="bit_pong_vcd.png"  width="80%">
+</p>
 
 You may notice a detail that is crucial in hardware: the increase of `value` by the first sequencer starts not when `ack` becomes 1, but the next clock cycle. This is the second important rule in hardware design:
 
@@ -1709,7 +1721,9 @@ end
 
 Now, you should be used to it, so please try to simulate the code above. If you look at the VCD file in detail you will see a lot of signals but not any signal called `pingpong`. This is because shared signals hide underlining hardware that is exposed at simulation. Usually, what is relevant is the output value of the shared signal, which is called `<shared signal name>_out$<number>`. For our `pingpong` it is `pingpong_out$2`. Hence, you should get the following graph:
 
-![hruby_simulator.vcd](pingpong0_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="pingpong0_vcd.png"  width="80%">
+</p>
 
 Well, this is not an interesting result: `pingpong` is always 1, what about the second sequencer? There are two reasons for this:
 
@@ -1761,7 +1775,9 @@ end
 
 And the simulation result should be:
 
-![hruby_simulator.vcd](pingpong1_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="pingpong1_vcd.png"  width="80%">
+</p>
 
 Still, it may be annoying that some writes of a sequencer can be ignored. In such a case, you can use a blocking version of the arbiter called the `monitor`. This module is used like the arbiter, but when write access is required, the sequencer will be blocked until the access is granted. Hence to avoid confusion with the arbiters' syntax, requiring access to a monitor is done by the `lock` method, and releasing it is done by the `unlock` one. For example, with the following code, the expected pingpong exchange will happen even when both sequencers try to write at the same time:
 
@@ -1802,9 +1818,11 @@ system :pingpong do
 end
 ```
 
-As seen in the example, since the monitors locks processes, no `step` is required, and the simulation result should be:
+As seen in the example, since the monitor locks processes, no `step` is required, and the simulation result should be:
 
-![hruby_simulator.vcd](pingpong2_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="pingpong2_vcd.png"  width="80%">
+</p>
 
 > __WARNING__: while with an arbiter it was of no importance, with a monitor the lock must be made *after* the shared signal is written, otherwise this value will be taken into account one cycle later.
 
@@ -1821,7 +1839,7 @@ end
 
 In the code above, the sequencer checks if it has access by comparing the shared signal selection with its priority (obtained by `arb.cur_priority`).
 
-#### I do not like the priority rule of the arbiter / monitor
+#### I do not like the priority rule of the arbiter/monitor
 
 Indeed, sometimes we need to define our priority rules. This can be done when instantiating an arbiter or a monitor in two possible fashions:
 
@@ -1901,7 +1919,7 @@ sequencer(clk,start) do
    z <= u + v + d
 ```
 
-... This time, `z` requires the value of `d`, but both circuits will again be selected at the same time. However, the output of the first one is connected to the third input of the second one: since they are combinatorial, waiting a little bit is enough for obtaining the right `d` input for computing `z`.
+... This time, `z` requires the value of `d`, but both circuits will again be selected at the same time. However, the output of the first one is connected to the third input of the second one: since they are combinatorial, waiting a little bit is enough to obtain the right `d` input for computing `z`.
 
 > __WARNING__: in hardware design with HDLRuby (and with all similar languages like Verilog VHDL or VHDL,) it is assumed that a clock is slow enough for the relevant combinatorial circuits to complete computation before the next cycle. If this is not the case, the resulting circuits will not function properly. Fortunately, the synthesis frameworks usually provide tools for verifying these timings.
 
@@ -1984,7 +2002,9 @@ end
 
 The simulation result should be:
 
-![hruby_simulator.vcd](maxxer_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="maxxer_vcd.png"  width="80%">
+</p>
 
 As promised, the max is obtained at the first cycle of the sequencer execution!
 
@@ -2061,19 +2081,19 @@ Why parallel dataflow computations are indeed faster than sequential ones, in th
 
  * Second, parallel implementation of algorithms requires much more chip area than sequential ones. This is expensive, and there are some physical limitations with the size of a chip.
 
- * Third, while faster in theory, parallel implementations may end slower than sequential ones in practice. This is because, the large a combinatorial circuit is, the longer its delays are.
+ * Third, while faster in theory, parallel implementations may end slower than sequential ones in practice. This is because, the larger a combinatorial circuit is, the longer its delays are.
 
 
 Now, the big question is: how do we know which part of our circuit would better be parallel?
 
 > Unfortunately, the best answer is the designer's experience.
 
-Indeed, some design tools can choose for yourself, but the solution they give may not match your expectations. For HDLRuby, the idea is to let the designer decide but help him with as easy to use as possible sequential and parallel constructs.
+Indeed, some design tools can decide for you, but the solution they give may not match your expectations. For HDLRuby, the idea is to let the designer decide but help him with as easy to use as possible sequential and parallel constructs.
 
 
 #### That's all for this section!
 
-That was short this time because almost all have been already said in the previous sessions. But now it is time to go past the sequencers and dive into real RTL design.
+That was short this time because almost all had been already said in the previous sessions. But now it is time to go past the sequencers and dive into real RTL design.
 
 
 
@@ -2098,7 +2118,7 @@ Why sequencers are easy to use with a software mindset, they are implemented on 
 
 First, we must make things clear: 
 
-> Processes in hardware has very little (nothing?) to do with any kind of software process.
+> Processes in hardware have very little (nothing?) to do with any kind of software process.
 
 In hardware, a process is a list of data flow statements that are activated (we would say *executed* if they were software instructions) on a common condition. 
 
@@ -2189,7 +2209,7 @@ end
 
 ### 5.3. What are the combinatorial processes?
 
-These processes are declared with a `seq` or `par` keywords with a list of signals as activation conditions. They have activated each time one or more signals of their activation condition changed value. For example, the following process will only be activated when `x` or `y` changes value, but not when `z`, `u` or `v` does:
+These processes are declared with a `seq` or a `par` keywords with a list of signals as activation conditions. They have activated each time one or more signals of their activation condition changed value. For example, the following process will only be activated when `x` or `y` changes value, but not when `z`, `u` or `v` does:
 
 ```ruby
 par(x,y) do
@@ -2247,7 +2267,9 @@ end
 
 The simulation result should be:
 
-![hruby_simulator.vcd](checksum_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="checksum_vcd.png"  width="80%">
+</p>
 
 That is to say that the checksum of `x` is `04` appended at the end of `z`.
 
@@ -2312,7 +2334,9 @@ end
 
 The result should be:
 
-![hruby_simulator.vcd](clock_counter_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="clock_counter_vcd.png"  width="80%">
+</p>
 
 Did you get what the `clock_counter` circuit does? Yes, it simply counts the number of the positive edge of the signal `clk` when `run` is 1: signal `count` is initialized at 0 when declared, then the process which is activated on each positive edge of `clk` increases this signal by one. If you remember the sequencers, these clocked processes should look somewhat similar. Indeed, sequencers are built upon such processes. However, within processes, the fancy control statements like `sif`, `sloop`, or the enumerators **cannot** be used.
 
@@ -2320,7 +2344,7 @@ As seen in this code, a previously seen control statement has been used: the `hi
 
 ### 5.5. What about the control statements in processes?
 
-There is not much to say in this section... Because all have been said in the section about [parallelism in sequencer](#parallelism). The fact is all the constructs described in this previous section were initially designed for the processes, and by extension could also be used in sequencers.
+There is not much to say in this section... Because all has been said in the section about [parallelism in sequencer](#parallelism). The fact is all the constructs described in this previous section were initially designed for the processes, and by extension could also be used in sequencers.
 
 These statements can be used for both clocked processes and combinatorial processes. For example, the following is a combinatorial circuit that implements a simple ALU (Arithmetic and Logic Unit), able to perform the addition, the subtraction, the bitwise AND, and the bitwise OR of the two input values, while the operation is selected by a third input signal.
 
@@ -2369,7 +2393,9 @@ end
 
 The result should be:
 
-![hruby_simulator.vcd](alu_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="alu_vcd.png"  width="80%">
+</p>
 
 ...So we can do controls with processes, but what about sharing signals?
 
@@ -2518,7 +2544,9 @@ end
 
 And the simulation result should be:
 
-![hruby_simulator.vcd](ram_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="ram_vcd.png"  width="80%">
+</p>
 
 The first module is an 8-bit address 8-bit data RAM with a single data bus for both reading and writing. When the RAM is not read (`en` is 0 or `rwb` is 0), the data bus is set to `Z`. The second module simply accesses the RAM, and for that purpose uses a process specifically for writing to the data bus: when a write operation is performed (`en` is 1 for activating the access to the RAM and `rwb` is set to 0), the value is written to the bus, otherwise, a value is nonetheless written but it is a `Z` value. The coding style of this process is crucial for ensuring synthesis tools will succeed: we cannot guarantee it will work if it is described differently.
 
@@ -2542,14 +2570,14 @@ But, now you may understand:
 
 With that, you have all the constructs required for describing optimized hardware. Of course, mastering them requires a lot of know-how, but this is out of the scope of this tutorial. To go further, please follow lessons about hardware design using popular hardware description languages like Verilog HDL or VHDL since what you can do with them, you can do it with HDLRuby.
 
-However, there remains a few major features for more efficient coding inherited from the Ruby language.
+However, there remain a few major features for more efficient coding inherited from the Ruby language.
 
 
 ## 6. Not enough? What about genericity, object orientation, metaprogramming, and reflection?
 
 Let us imagine you spent hours designing a circuit processing 8-bit values for outputting a 16-bit result and you learn that the input should be 16-bit and the output 8-bit. Well, that's not so tough, you just need to modify the data types in your circuit description... **everywhere**. When you just finished, you learn that it would be great if there was also another version of the circuit that could output flags about the result. Ok, so let us make another version of the circuit, and since it is not so different, let us do some copy and paste, and then make modifications for the flags... But whoop! You did not notice that with your modifications you unintentionally modified a few lines of code introducing new bugs... And of course, you realize it after hours of testing.
 
-Such situations happen all the time in software design... But it is much worse in hardware. Indeed, due to the variety of hardware circuits, it is very common to want to reuse a design with different bit widths. This is why, existing hardware description language support genericity to a certain degree. However, HDLRuby ruby goes further in term of genericity, and also add object-oriented programming, metaprogramming, and reflection concepts to maximize the possibilities of code reuse. From now on, let us detail:
+Such situations happen all the time in software design... But it is much worse in hardware. Indeed, due to the variety of hardware circuits, it is very common to want to reuse a design with different bit widths. This is why, existing hardware description language supports genericity to a certain degree. However, HDLRuby ruby goes further in terms of genericity, and also adds object-oriented programming, metaprogramming, and reflection concepts to maximize the possibilities of code reuse. From now on, let us detail:
 
  * [Genericity in HDLRuby](#61-genericity-in-hdlruby)
 
@@ -2559,7 +2587,7 @@ Such situations happen all the time in software design... But it is much worse i
 
 ### 6.1. Genericity in HDLRuby
 
-In HDLRuby, genericity is supported through the *generic module* constructs. These constructs describe circuits like standard module does, but with the addition of parameters that control their content. They are declared as follows:
+In HDLRuby, genericity is supported through the *generic module* constructs. These constructs describe circuits like standard module does but with the addition of parameters that control their content. They are declared as follows:
 
 ```ruby
 system :<name> do |<list of parameters>|
@@ -2652,7 +2680,9 @@ end
 
 In this code, the syntax `proc <block>` is for creating a chunk of HDLRuby (or Ruby) code from the content of `block`. With this environment, the simulation result should be:
 
-![hruby_simulator.vcd](counter_ext_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="counter_ext_vcd.png"  width="80%">
+</p>
  
 
 ### 6.2. Object-oriented programming in HDLRuby
@@ -2742,7 +2772,7 @@ end
 
 After that, all the instances that are created from `addsub` will include the `zf` flag computation and output.
 
-In contrast, you may want that only one instance has the flag. In such a case, it may not be necessary to define a new module for that but just modify this instance only. This is possible using again the `open` method but on the instance. For example with the instance used in the following simulation environment:
+In contrast, you may want only one instance to have the flag. In such a case, it may not be necessary to define a new module for that but just modify this instance only. This is possible using again the `open` method but on the instance. For example with the instance used in the following simulation environment:
 
 ```ruby
 system :addsub_sim do
@@ -2775,7 +2805,9 @@ end
 
 And the simulation result should be:
 
-![hruby_simulator.vcd](addsub_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="addsub_vcd.png"  width="80%">
+</p>
 
 #### 6.2.3. Overriding
 
@@ -2795,7 +2827,7 @@ system :adder_flags do |width|
 end
 ```
 
-And let us assume we want to make a circuit that does the same but saturates the addition result between -300 and +300. For that purpose, the computation of `z` must be replaced. This is called `overriding` and for sake of code readability overriding is only permitted for *named sub-sections* of a module. A named subsection is declared as follows:
+Let us also assume that we want to make a circuit that does the same but saturates the addition result between -300 and +300. For that purpose, the computation of `z` must be replaced. This is called `overriding` and for the sake of code readability overriding is only permitted for *named sub-sections* of a module. A named subsection is declared as follows:
 
 ```ruby
 sub(:<name>) <block>
@@ -2864,7 +2896,9 @@ end
 
 And the simulation result should be:
 
-![hruby_simulator.vcd](adder_sat_flags_vcd.png)
+<p align="center">
+<img data-name="hruby_simulator.vcd" src="adder_sat_flags_vcd.png"  width="80%">
+</p>
 
 __Note__: with this circuit, the `of` flag (overflow) is always 0 because there cannot be any overflow for a 10-bit number with saturation at -300, 300.
 
@@ -2874,16 +2908,860 @@ __Note__: with this circuit, the `of` flag (overflow) is always 0 because there 
 
 There is not much to say about metaprogramming and reflection because both have been used extensively in this tutorial.
 
- * Metaprogramming consists in using programs that generate the final code. In HDLRuby, this is done by using Ruby code for generating, passing as an argument, and appending chunks of HDLRuby code. This has been done when presenting how to describe parallel code in sequencers, but this can be used everywhere, e.g., within the process too. Moreover, the possibility to use a chunk of code as a generic argument presented in this section is also metaprogramming.
+ * Metaprogramming consists of using programs that generate the final code. In HDLRuby, this is done by using Ruby code for generating, passing as an argument, and appending chunks of HDLRuby code. This has been done when presenting how to describe parallel code in sequencers, but this can be used everywhere, e.g., within the general processes. Moreover, the possibility to use a chunk of code as a generic argument presented in this section is also metaprogramming.
 
- * Reflection has been used in several cases, e.g., the `width` method for knowing the bit width of a type or the `open` method. For generally, HDLRuby provides a large number of methods for inspecting and modifying directly the objects of the internal representation. Please consult the documentation of the HDLRuby classes for details about them (good luck, this is low-level coding documentation).
+ * Reflection has been used in several cases, e.g., the `width` method for knowing the bit width of a type or the `open` method. More generally, HDLRuby provides a large number of methods for inspecting and modifying directly the objects of the internal representation. Please consult the documentation of the HDLRuby classes for details about them (good luck, this is low-level coding documentation).
 
 > __Note__: the sequencers, the shared signals, the arbiter, and the monitor are not native HDLRuby constructs, they have all been implemented with metaprogramming and reflection.
 
 
-## 7. What next?
 
-There are still many aspects of HDLRuby that have not been addressed in this tutorial. For example, finite state machines (FSM) and decoders are crucial hardware components that you should learn about, and which HDLRuby provides specific constructs for easier design. So from now on, please consult the main documentation of HDLRuby, and have a look at the code samples provided in the HDLRuby distribution. They can be copied to your working directory using the following command:
+## 7. How to mix hardware and software.
+
+Digital electronic devices often contain one of several processors for executing software. That makes then more versatile and easier to update or fix. However, designing a mix of software and hardware (hardware-software co-design) can be challenging, especially because both worlds use different languages and models of computation.
+
+For HDLRuby, the mix of hardware and software is done using a construct, called a program, that provides a basic communication interface made of registers and interrupts. This interface can then be extended both on the hardware and the software side to support more complex interactions.
+
+### 7.1. The Program construct
+
+A program construct, like the processes or the sequencers, is declared within a module, but unlike them, its content is not some code description (neither hardware nor software), but instead a description of its hardware-software interface.
+
+More specifically, a program is declared as follows:
+
+```ruby
+program(<programming language>, <function name>) do
+   <location of the software files and description of its interface>
+end
+```
+
+In the code above, `programming language` is a symbol representing the programming language used for the software. For now, only two languages are supported:
+
+ * `:ruby`: for programs in Ruby.
+
+ * `:c`: for programs in C. However, for this case, any language that can be compiled to a shared library linkable with C is supported.
+
+The `function name` parameter indicates which function is to be executed when an activation event occurs. There can be only one such function per program, but any number of programs can be declared inside the same module.
+
+The `location of the software files and description of its interface` part can include the following declaration statements:
+
+ * `actport <list of events>`: for declaring the list of events that activates the program, i.e., that will trigger the execution of the program's start function.
+
+ * `inport <list of port names associated with a signal>`: for declaring the list of ports that the software code of the program can read.
+
+ * `outport <list of port names associated with a signal>`: for declaring the list of ports that the software code of the program can write to.
+
+ * `code <list of filenames>`: for declaring the source code files.
+
+For example the following declares a program in the Ruby language whose start function is `echo` that is activated on the positive edge of signal `req`, has a read port called `inP` that is connected to signal `count` and a write port called `outP` that is connected to signal `val`, finally the code of this program is given in a file named `echo.rb` (the extension '.rb' can also be omitted):
+
+```ruby
+system :my_system do
+   inner :req
+   [8].inner :count, :val
+
+   program(:ruby,'echo') do
+      actport req.posedge
+      inport  inP:  count
+      outport outP: val
+      code "echo.rb"
+   end
+
+   ...
+
+end
+```
+
+A similar program construct can also use C as follows:
+
+```ruby
+system :my_system do
+   inner :req
+   [8].inner :count, :val
+
+   program(:c,'echo') do
+      actport req.posedge
+      inport  inP:  count
+      outport outP: val
+      code "echo"
+   end
+
+   ...
+
+end
+```
+
+There is a difference from Ruby though in that the C code cannot be used directly and must be compiled to a library, and it is the name of the library that has to be indicated in the `code` section. Since the format of the compiler program depends highly on the target software environment, it is recommended to omit the extension (e.g., here only 'echo' and not 'echo.so' or any other extension), so that the framework looks for the suitable format automatically.
+
+
+
+Now, let us see how the software code can be written to interact with hardware.
+
+### 7.2. Writing software for a HDLRuby Program construct.
+
+As long as the language is supported by HDLRuby (i.e., Ruby or a C-compatible compiled language), there should not be any restrictions for the software code. The function that has been declared in the HDLRuby program construct for being activated will act as a handler for an interrupt raised by one of the corresponding events.
+
+Then, for accessing the ports on the hardware-software interface, a library that depends on the used software language must be loaded.
+
+#### 7.2.1. In the case of Ruby
+
+If the software language is Ruby, then the library is loaded by requiring the file `rubyHDL.rb`. If HDLRuby is correctly installed, adding the following line at the beginning of the code is enough:
+
+```ruby
+require 'rubyHDL.rb'
+```
+
+This library gives access to a Ruby module named "RubyHDL" which gives access to the ports of the hardware-software interface described in the HDLRuby program construct. Those ports are directly accessible by name as follows: `RubyHDL.<name>`.
+
+For example, the following is an example of implementation of the `echo.rb` software used in the previous HDLRuby program example:
+
+```ruby
+require 'rubyHDL'
+
+def echo
+   val = RubyHDL.inP
+   RubyHDL.outP = val
+end
+```
+
+This program is limited to the handler `echo`, that reads on port `inP` and write the result to port `outP`. If you remember the corresponding HDLRuby program construct, that means `echo` will get the value of signal `count` and send it to signal `val`.
+
+#### 7.2.2. For the case of C
+
+If the software language is C (or a compatible compiled language), then the library is accessed by including the file `cHDL.h`. However, this file is probably not within the includes path of the C compiler, so you need to bring it to your working directory, as well as other possible necessary files, using the `hdrcc` command as follows:
+
+```bash
+hdrcc --ch <path to your working directory>
+```
+
+Here, your working directory is assumed to contain the source code for your C program.
+
+Then, you can include the file as follows in your C source code:
+
+```ruby
+#include "cHDL.h"
+```
+
+This library gives access to three C functions for interacting with the ports:
+
+ * `void* c_get_port(const char* name)`: returns a pointer to the port whose name is passed as argument.
+
+ * `int c_read_port(void* port)`: reads the port whose pointer is passed as argument and returns its value.
+
+ * `int c_write_port(void* port, int val)`: write the value `val` to the port passed as argument.
+
+Please notice that whatever the bit width of the signal connected to the part may be, from the software side the type of the data going through a port is always `int`. If the signal is larger than an `int`, the extra bits will be truncated, and if it is smaller, the value of the extra bits from the software side is undefined.
+
+
+For example, the following is an example of implementation of the `echo.rb` software used in the previous HDLRuby program example:
+
+```c
+#include "cHDL.h"
+
+void echo() {
+   static void* inP = c_get_port("inP");
+   static void* outP = c_get_port("outP");
+   int val = c_read_port(inP);
+   c_write_port(outP);
+end
+```
+
+This program is the same as the Ruby version, but the ports are only available after being looked up by name using the `c_get_port` function. It is enough to do that once though, so that in the example, we set the corresponding port variable `inP` and `outP` as static local.
+
+
+### 7.3. Hardware-software co-simulation
+
+Hardware-software co-simulation is done, like pure hardware simulation, using the HDLRuby simulator using the `hdrcc --sim` command (please see [section 1.3.](#1-3-using-hdlruby).
+
+When the software language is Ruby, there is nothing more to do. However, when the software language is C, its code must first be compiled to a shared library for the host (i.e., the computer that executes the HDLRuby simulator). For example, assuming you want to compile the C file 'echo.c' located into the 'echo' directory, if you are using GCC on a Linux system, you could type (after entering the `echo` directory):
+
+```bash
+cd echo
+gcc -shared -fPIC -undefined dynamic_lookup  -o c_program.so echo.c
+```
+
+Otherwise, it may be easier to use the Ruby environment by first installing `rake-compiler` as follows:
+
+```bash
+gem install rake-compiler
+```
+
+And simply type the following command (after entering the `echo` directory):
+
+```bash
+rake compile
+```
+
+The rake tool will take care of everything for performing the compiling whatever your system may be.
+
+When the C code is compiled, the HDLRuby simulator can be executed as usual.
+
+
+### 7.4. Is that all?
+
+Technically, there is nothing else to describe hardware-software interaction in HDLRuby. Hence, no shared memory, buffer, or other complex communication or synchronization systems. But the reason is that we do not need them in the core of HDLRuby, they can be described using a mix of standard HDLRuby and software programming. With the same method, you can also simulate external devices as black boxes.
+
+To illustrate how this mix of HDLRuby and software can be implemented, let us see three examples: a memory shared between software and hardware, a model of an operating system, a real-time clock, and a method for modeling program execution time. In all these examples we will use Ruby as software language, but this can also be done with C.
+
+#### 7.4.1. Modeling a memory shared between software and hardware
+
+There are two possibilities for modeling such a memory: either describe it in plain HDLRuby as a full hardware component, and write a program construct that simulates the access of the software part to this memory, or describe the memory as a part of the software part and simulate its access from the hardware part using a program construct. The first approach is more accurate and may be useful when a specific kind of memory is to be used, but it is slower than the second one.
+
+##### 7.4.1.1 Memory described as a hardware component
+
+For the first approach, if we assume a memory with an 8-bit address bus, and an 8-bit data bus the HDLRuby code could be as follows:
+
+```ruby
+system :hw_sw_with_hw_memory do
+   [8].inner :addr
+   [8].inner :din, :dout
+   inner     :rwb, :ce
+
+   inner :clk, :rst
+
+   # Instantiation of the memory.
+   instance :memory do
+      inner      :clk
+      [8].input :addr
+      [8].input  :din
+      [8].output :dout
+      input      :rwb, :ce
+
+      bit[8][-256].inner :content
+
+      par(clk.posedge) do
+         hif(ce) do
+            hif(rwb) { dout <= content[addr] }
+            helse    { content[addr] <= din }
+      end
+   end.(clk,addr,din,dout,rwb,ce)
+
+   # The hw generating the tick activating the software part (e.g., an OS tick):
+   # one tick every 10 clock cycles.
+   inner :tick
+   (tick <= ~rst & ~tick).at(clk.posedge * 5)
+
+   inner :req_sw, :ack_sw, :rwb_sw
+   [8].inner :addr_sw
+   [8].inner  :din_sw, :dout_sw
+
+   inner[16] :addr_hw
+   inner :req_hw, :ack_hw, :rwb_hw
+   [8].inner  :din_hw, :dout_hw
+
+   # Description of the software part.
+   program(:ruby,:some_sw) do
+      actport tick.posedge
+      outport req :req_sw, ack: ack_sw, rwb: rwb_sw
+      outport addr: addr_sw
+      outport dout: dout_sw
+      inport  din:  din_sw
+      code "some_sw.rb"
+   end
+
+   inner :priority  # 0: priority in hw access, 1: priority in sw access.
+
+   # The arbiter, sharing the memory between software and hardware giving
+   # priority to software. It uses a round-robin approach.
+   par(clk.negedge) do
+      hif(rst) { priority <= 0 }
+      ack_sw <= 0    # By default no access granted to software.
+      ack_hw <= 0    # Nor to hardware.
+      ce     <= 0
+      hif(req_sw & (priority | ~req_hw)) do
+         ce     <= 1
+         ack_sw <= 1
+         rwb    <= rwb_sw
+         addr   <= addr_sw
+         din    <= dout_sw
+         din_sw <= dout
+         priority <= ~priority
+      end
+      if(req_hw & (~priority | ~req_sw)) do
+         ce     <= 1
+         ack_hw <= 1
+         rwb    <= rwb_hw
+         addr   <= addr_hw
+         din    <= dout_hw
+         din_hw <= dout
+         priority <= ~priority
+      end
+   end
+
+   # Some hardware code accessing the memory.
+   sequencer(clk,rst) do
+      # At first, fill the memory with 0.
+      req_hw <= 1; rwb_hw <= 0
+      swhile(~ack_hw) # Wait for the access grant to memory.
+      dout_hw <= 0
+      256.stimes { |i| addr_hw <= i }
+      req_hw <= 0 # End the transactions.
+      # Now, do infinitely some arbitrary computations with the content
+      # of the memory.
+      sloop do
+         128.stimes do |i|
+            [8].inner :tmp
+            req_hw <= 1
+            rwb_hw <= 1
+            addr_hw <= i
+            swhile(~ack_hw)
+            tmp <= din_hw
+            step
+            rwb_hw  <= 0
+            addr_hw <= i + 128
+            dout_hw <= tmp *tmp   # Just some senseless data.
+            step
+            req_hw <= 0
+         end
+      end
+   end
+```
+
+This example contains four parts:
+ 
+ * A hardware description of a memory, described as an inline instance. It has an address input 'addr', a data input 'din' a data outpout 'dout' (it is common in FPGA nowadays to avoid three-state buses), a signal 'rwb' indicating if a read (1) or a write (0) access is performed, and a chip enable signal 'ce'.
+
+ *NOTE:* an inline 'instance' is a construct that both describe a module (like 'system') and instantiates it in place. When a component is to be used only once, it is a convenient way to have fast access to the description of the module where it is used, while keeping the hierarchy.
+
+ * A hardware description of an arbiter for granting access to this memory to alternatively a software component and a hardware component using round-robin. Both the software part and the hardware part have their signals for accessing the memory (e.g., resp. 'rwb_sw' and 'rwb_hw' for 'rwb'), and the arbiter will transmit them to the corresponding memory signal when their access is granted. For requiring access, both have to raise a memory request signal, resp. 'req_sw' and 'req_hw', and will know they have access when the corresponding acknowledge signals are raised, resp., 'ack_sw' and 'ack_hw'.
+
+ * A software component described with a sequencer reading and writing the memory and performing arbitrary computations. This code is activated on each rising edge of signal 'tick'.
+
+ * A hardware component described with a sequencer reading and writing the memory and performing arbitrary computations.
+
+Then, the code of the software component in the file 'some_sw.rb' can be as follows:
+
+```ruby
+require 'rubyHDL.rb'
+
+$addr = 0
+$state = 0
+$tmp = 0
+
+def some_sw
+   if(RubyHDL.ack == 0) then
+      RubyHDL.req = 1
+   else
+      case($state)
+      when 0:
+         RubyHDL.addr = 128+$addr
+         RubyHDL.rwb  = 1
+         $state = 1
+      when 1:
+         $tmp = RubyHDL.din
+         puts "Read: #{$tmp}"
+         $state = 2
+      when 2:
+         RubyHDL.rwb = 0
+         RubyHDL.addr = $addr
+         puts "Write: #{$tmp + 1}"
+         RubyHDL.dout = $tmp + 1    # Write some random computation result from
+         $state = 0                 # the previously read data. 
+         $addr  = ($addr + 1) & 255 # Next address.
+      end
+   end
+end
+```
+
+This program simply writes in the first half of the memory the result of some arbitrary computation from the data read from the first half. That is to say that it does the opposite of the hardware component described in the HDLRuby code. This code makes sense only if the process has access to the memory via explicit access to address and data registers, which is the case for some embedded architectures. If the memory is directly accessible by the processor, the access procedure must be encapsulated by Ruby methods (or C functions) that are meant to be replaced by standard memory accesses in the final code. Moreover, since a software code is fully executed by the HDLRuby simulator before giving back the hand to the simulation, this code has been written like a state machine whose state is a global variable updated at each code, so that it simulates an interaction with the hardware. This is valid if the software code is meant to be a handler of interrupt for example, but not for more conventional software. For the second case, a model of an operating system will have to be described that handles the synchronizations. Such a model as well as the encapsulation of the hardware accesses will presented in section [7.5.2](#7-5-2-modeling-an-operating-system).
+
+
+##### 7.4.1.1 Memory described as a software component
+
+Usually, CPUs have privileged access to the main memory and give direct access to it to software through a pointer, or an array. Moreover, memories are usually IP components that are instantiated as black boxes in HDL. For such cases, it is preferable to describe a memory as a program construct whose code is a simulation of its behavior described in software. This description is to be used when simulating, but it can be ignored when synthesizing the final hardware. With this approach, the previous HDLRuby code can be rewritten as follows:
+
+```ruby
+system :hw_sw_with_sw_memory do
+   [8].inner :addr
+   [8].inner :din, :dout
+   inner     :rwb
+   inner     :req, :ack
+
+   inner :clk, :rst
+
+   # Description of the memory as a black box simulated in software.
+   program(:ruby,:memory) do
+      actport clk.posedge
+      inport  addr: addr
+      inport  din:  din
+      outport dout: dout
+      inport  rwb:  rwb
+      inport  req:  req
+      outport ack:  ack
+      code "some_sw.rb"
+   end
+
+   # The hw generating the tick activating the software part (e.g., an OS tick):
+   # one tick every 10 clock cycles.
+   inner :tick
+   (tick <= ~rst & ~tick).at(clk.posedge * 5)
+
+   # Description of the software part.
+   program(:ruby,:some_sw) do
+      actport tick
+      code "some_sw.rb"
+   end
+
+   # Some hardware code accessing the memory.
+   sequencer(clk,rst) do
+      # At first, fill the memory with 0.
+      req <= 1
+      rwb <= 0
+      swhile(~ack) # Wait for the access grant to memory.
+      dout <= 0
+      256.stimes { |i| addr_hw <= i }
+      req <= 0 # End the transactions.
+      # Now, do infinitively some arbitrary computations with the content
+      # of the memory.
+      sloop do
+         128.stimes do |i|
+            [8].inner :tmp
+            req <= 1
+            rwb <= 1
+            addr <= i
+            swhile(~ack)
+            tmp <= din
+            step
+            rwb  <= 0
+            addr <= i + 128
+            dout <= tmp *tmp   # Just some senseless data.
+            step
+            req <= 0
+         end
+      end
+   end
+```
+
+This time the arbiter has been integrated into the black box modeling the memory so that the hardware part only has to use the direct memory signals 'addr', 'din', 'dout', 'rwb', 'req' and 'ack'.
+The code of the software part contains two functions, one for modeling the memory 'memory', and the previous software function 'some_sw'. For the sake of concision, both are included in the same file given below, but for a real design, it would be better to put them in different files so that the real software is separated from the black box simulation code.
+
+```ruby
+require 'rubyHDL.rb'
+
+MEM = [0] * 256
+
+$priority = 0
+
+def memory
+    # Is there an access request from the HW?
+    if(RubyHDL.req == 1) then
+       # Is it being processed?
+       if (RubyHDL.ack == 1) then
+          # Yes, go on processing.
+          if (RubyHDL.rwb == 1) then
+             # Read access.
+             RubyHDL.dout = MEM[RubyHDL.addr]
+          else
+             # Write access.
+             MEM[RubyHDL.addr] = RubyHDL.din
+          end
+       elsif ($priority == 0)
+          # Grant the access.
+          RubyHDL.ack = 1
+          $priority = 1
+       end
+    end
+    else
+       # No, ensure the access grant is removed.
+       RubyHDL.ack = 0
+    end
+end
+
+$addr = 0
+$state = 0
+$tmp = 0
+
+def some_sw
+   if(RubyHDL.ack == 0) then
+      # The access from HW to memory not granted, can go an.
+      case($state)
+      when 0:
+         if ($priority == 1) then
+            $state = 1
+         end
+      when 1:
+         $tmp = MEM[$addr+128]
+         puts "Read: #{$tmp}"
+         $state = 2
+      when 2:
+         puts "Write: #{$tmp + 1}"
+         MEM[$addr] = $tmp + 1      # Write some random computation result from
+         $state = 0                 # the previously read data. 
+         $addr  = ($addr + 1) & 255 # Next address.
+         $priority = 0
+      end
+   end
+end
+```
+
+In this example, the memory is modeled by a simple array. The function 'memory' handles the accesses from the hardware and the arbitration between software and hardware access using a round-robin algorithm. The software program given by function 'some_sw' is identical to the previous one, apart from the memory access which is a direct array access, and the check of the memory grant, since this time no software-specific signal is used for the arbitration.
+
+
+##### 7.4.2 Modeling an operating system
+
+Usually, software is executed on top of an operating system, or a minimal runtime, e.g., even the plainest C runs on top of 'crt0'. This low-level software is usually fixed and highly target-dependent. Hence, it is usually enough to simulate this behavior. Since the HDLRuby simulator supports any compiled C (or other compatible compiled language), or Ruby, all the techniques that can be used in these languages for abstract low-level software can be used. Here, we will use Ruby threads as an illustration for modeling a simple multitask system with an interrupt handler. In the example, there will be two tasks, one reading data from a dummy hardware device described in HDLRuby, transmitting it using a pipe to another one which writes its data to the standard output every second.
+
+```ruby
+system :hw_sw_with_os do
+   inner :clk,:rst
+
+   # The OS tick
+   inner :tick
+   (tick <= ~rst & ~tick).at(clk.posedge * 5)
+
+   # The general interrupt signal: interrupt request, acknowledge, and number
+   inner :irq, :iak
+
+   # A register that 
+
+   # The os model.
+   program(:ruby, :os) do
+      actport tick: tick
+      inport register: register     # Some register direcly acessible by software
+      code "sw_with_os.rb"
+   end
+
+   # The interrupt handler.
+   program(:ruby,:handler) do
+      actport irq: irq
+      outport iak: iak
+      code "sw_with_os.rb"
+   end
+
+
+   # Some dummy hardware generating data (counting clocks) and raising an
+   # interrupt when the data is ready on a software-accessible register.
+   par(clk.posedge) do
+      hif(rst) { register <= 0 }
+      helse do
+         # Increase the value of the register.
+         register <= register + 1
+         # Handle the interrupts.
+         hif(irq == 0) do
+            # Is the prevous irq have been processed?
+            hif (iak == 0) do
+               # Yes, raise an interrupt.
+               irq <= 1
+            end
+         else
+            # Wait for the irq to be acknowledge.
+            if (iak == 1) { irq <= 0 }
+         end
+      end
+   end
+end
+```
+
+The software code 'sw_with_os.rb' is as follows:
+
+```ruby
+require 'rubyHDL.rb'
+
+$register = 0
+
+$start = true
+
+# The os simulation function. Initialize the tasks and the communication pipe
+# for the first call, then update the value of the $register variable.
+def os
+   if($start) then
+      # Create the communication pipe.
+      $pout, $pin = IO.pipe
+      $tasks = []
+      # Create the first task reading the values.
+      $tasks << Thread.new(&Kernel.method(:read_task))
+      # Create the second task displaying the values.
+      $tasks << Thread.new(&Kernel.method(:show_task))
+      $start = false
+   else
+      # Update $register.
+      $register = RubyHDL.register
+   end
+end
+
+# The interrupt handler: acknowledge the interrupt, wakes up the read task.
+def handler
+   RubyHDL.iak = 1
+   $tasks[0].run
+end
+
+# Waits an interrupt: sleep and when waked up tell another interrupt can come.
+def wait_irq
+   sleep
+   RubyHDL.iak = 0
+end
+
+# The reading task: wait an interrupt then get a value and add it to the pipe.
+def read_task
+   loop do
+      wait_irq
+      $pin << $register.to_s
+   end
+end
+
+# The displaying task: write in stdout the data obtained from the pipe each
+# second.
+def show_task
+   loop do
+      sleep(1)
+      puts $pout.readline
+   end
+end
+```
+
+
+### 7.5. Hardware-software co-synthesis
+
+The HDLRuby compiler can be applied to HDLRuby description containing program. However, when producing Verilog HDL or VHDL files, the compiler will ignore the prorgam session. The reason is because the integration of hardware and software is highly target dependent and often licensed. However, you can use the HDLRuby integration of programs using ports for decribing the integration specific to a given target. 
+
+As an illustration, let us assume that we want to design an application for a very basic SoC system including a CPU and a FPGA where a set of 8-bit FPGA registers are memory-mapped to the CPU through a set of predefined addresses: input with `fi0` to `fi3` for respective addresses `0xC000` to `0xC009`, and output with `fo0` to `fo3` for respective addresses `0xC010` to `0xC020`.
+For this case, the HDLRuby module representing the target system and the corresponding program construct can be written as follows:
+
+```ruby
+system :soc_basic do
+  input :clk
+  [8].input  :fi0, :fi1, :fi2, :fi3
+  [8].output :fo0, :fo1, :fo2, :fo3
+  ...
+
+  program(:c, :my_func) do
+    actport clk.posedge
+    outport fi0: fi0, fi1: fi1, fi2: fi2, fi3: fi3
+    inport  fo0: fo0, fo1: fo1, fo2: fo2, fo3: fo3
+    code "my_soft.c"
+  end
+
+  < Some HDLRuby code describing the hardware part of the application >
+end
+```
+
+And the C program `my_soft.c` can be written as follows using functions like `read_fo0()` for reading register `fo0` and `write_fi1(val)` for writing to register `fi1`, and calling only once `init_soclib` for initializing the API library:
+
+```c
+#include "soclib.h"
+
+void my_func() {
+    static int start = 1;
+    if(start) { init_scolib(); start = 0; }
+  
+    char fo0 = read_fo0();
+    ...
+    write_fi1(val);
+    ...
+}
+```
+
+Alternatively, the initialisation can be delegated to another program construct in the HDLRuby code, activated on a reset signal. Then, the respective hardware and software code becomes as follows:
+
+```ruby
+system :soc_basic do
+  input :clk, :rst
+  [8].input  :fi0, :fi1, :fi2, :fi3
+  [8].output :fo0, :fo1, :fo2, :fo3
+  ...
+
+  program(:c, :init_soclib) do
+    actport rst.posedge
+  end
+
+  program(:c, :my_func) do
+    actport clk.posedge
+    outport fi0: fi0, fi1: fi1, fi2: fi2, fi3: fi3
+    inport  fo0: fo0, fo1: fo1, fo2: fo2, fo3: fo3
+    code "my_soft.c"
+  end
+
+  < Some HDLRuby code describing the hardware part of the application >
+end
+```
+
+```c
+#include "soclib.h"
+
+void my_func() {
+    char fo0 = read_fo0();
+    ...
+    write_fi1(val);
+    ...
+}
+```
+
+
+Whatever the approach being used for the initialization, the read and write functions are defined in the `soclib.h` file. Two versions of this file are to be provided, one for running with the HDLRuby simulator, and one for running for the target SoC. These two files, with possible additional target constraints files (e.g., xcd file for Xilinx platforms) are the sole additional file that are to be provided by the user to have an application which can be both simulated on the HDLRuby simulator, and synthesized for the target SoC. For the example above, the HDLRuby version of `soclib.h` is as follows:
+
+```c
+#include "cHDL.h"
+
+static void *fo0, *fo1, *fo2, *fo3;
+static void *fi1, *fi1, *fi2, *fi3;
+
+soclib_init() {
+     fo0 = c_get_port("fo0");
+     ...
+}
+
+
+#define read_fo0() c_read_port(fo0)
+...
+#define write_fi1(val) c_write_port(fi1,(val))
+...
+```
+
+And the SoC specific version could look as follows, where `target_soc_API.h` represents whatever include files required for using the target SoC API:
+
+```c
+#include "target_soc_API.h"
+
+soclib_init() {
+   <Some initialization code if required by the target SoC API>
+}
+
+#defined read_fo0() (*0xC010)
+...
+#define write_fi1(val) (*0xC001 = (val))
+...
+```
+
+## 8. How to interact with the simulator.
+
+### 8.1. Do-It-Yourself interaction.
+
+Using the program construct presented in the prevous section, it easy add basic interactions to the simulation of your module. For example, you can read and write values from the standard input and map them to HDLRuby signals using the following Ruby program (`stdrw.rb`):
+
+```ruby
+require 'RubyHDL'
+
+def stdrw
+  RubyHDL.sigI = $stdin.read.to_i
+  $stdout.puts(RubyHDL.sigO)
+end
+```
+
+Then, a corresponding HDLRuby module that accumulates the read inputs could be writen as follows:
+
+```ruby
+system :accum do
+  inner :clk
+  [32].inner :sigI, :sigO
+
+  program(:ruby,:stdrw) do
+    actport clk.posedge
+    outport sigI: sigI
+    inport  sigO: sigO
+    code "stdrw.rb"
+  end
+
+  (sigO <= sigO+sigI).at(clk.posedge)
+
+  timed do
+    clk <= 0
+    sigO <= 0
+    sigI <= 0
+    repeat(1000) do
+       !10.ns
+       clk <= ~clk
+    end
+  end
+end
+```
+
+__Note__: The input method used in the Ruby program requires to input a number with the keyboard, press '<ENTER>' then '<CTRL>-D' for validating it.
+
+Since a Ruby (or C) code can be used for the program construct, more complex interactive interface can be made, for example, you can consult the sample code `with_program_ruby_cpu.rb` which utilizes the `curses` interface for simulating a UART keyboard and CRT monitor.
+
+
+### 8.2. Using the web browser-based GUI
+
+HDLRuby also provides a construct derivated for the programs for easily building a web browser-based GUI. This GUI is described using a `board` construct as follows:
+
+```ruby
+board(:<board name>,<server port>) do
+  actport <event>
+  <description of the GUI>
+end
+```
+
+This construct can be declared within any module, and contains the following elements as given in the code above:
+
+ * `board name`: the name of the board.
+
+ * `server port`: the web port the GUI can be accessed through, by default, it is `8000`.
+
+ * `event`: the event (edge of a signal) indicating when the GUI is synchronized with the simulator. __Note__: the more frequent the event is, the slower the simulation will be.
+
+ * `description of the GUI`: a set of statements describing the content of the GUI.
+
+There are two types of statements for describing the GUI: the active ones, that are connected to a HDLRuby signal, and the passive ones that configure the shape of the GUI. The statements of the first type are declared as follows:
+
+```ruby
+<element> <element name>: <HDLRuby signal>
+```
+
+And the comprise the following:
+
+ * `sw`: represents a set of slide switches, their number is set to match the bit-width of the attached signal.
+
+ * `bt`: represents a set of push buttons, their number is set to match the bit-width of the attached signal.
+
+ * `led`: represents a set of LEDs, their number is set to match the bit-width of the attached signal.
+
+ * `hexa`: represents a hexadecimal number display, its character width is set to match the width of the largest possible value of the attached signal.
+
+ * `digit`: represents a decimal number display, its character width is set to match the width of the largest possible positive or the smallest possible negative value of the attached signal.
+
+ * `scope`: represents an oscilloscope display, the vertical axis represents the value of the attached signal, its range is determined by its data type, and the horizontal axis represents the time is number of synchronization of the GUI.
+   
+There is for now only one statement of the second type: `row`. This statement is used without any argument and adds a new row to the GUI for placing components.
+
+For example, we can use a GUI instead of the basic standard input and output for the example given in [the previous section](#8-1-do-it-yourself-interaction). The code could be as follows, for having one slide switch for setting the value to add, and LEDs for displaying the accumulation result (`accum.rb`):
+
+```ruby
+system :accum do
+  inner :clk
+  [32].inner :sigI, :sigO
+
+  board(:boardrw) do
+    actport clk.posedge
+    sw  sigI: sigI
+    row
+    led sigO: sigO
+  end
+
+  (sigO <= sigO+sigI).at(clk.posedge)
+
+  timed do
+    clk <= 0
+    sigO <= 0
+    sigI <= 0
+    repeat(1000) do
+       !10.ns
+       clk <= ~clk
+    end
+  end
+end
+```
+
+This code is simulated exactly like any other HDLRuby description, e.g.:
+
+```bash
+hdrcc --sim --vcd accum.rb accum
+```
+
+However, the simulator will wait until a browser connects to it. For that, you can open a web browser, and go to the local url: `http://localhost:8000`. The simulation will then start and you can interact with the GUI which should look as follows:
+
+<p align="center">
+<img src="gui_accum.png"  width="80%">
+</p>
+
+A more complete example can be found among the HDLRuby samples: `with_board.rb`, which when simulated will use the following GUI:
+
+<p align="center">
+<img src="gui_board.png"  width="80%">
+</p>
+
+
+## 9. What next?
+
+There are still many aspects of HDLRuby that have not been addressed in this tutorial. For example, finite state machines (FSM) and decoders are crucial hardware components that you should learn about, and HDLRuby provides specific constructs for easier design. So from now on, please consult the main documentation of HDLRuby, and have a look at the code samples provided in the HDLRuby distribution. They can be copied to your working directory using the following command:
 
 ```bash
 hdrcc --get-samples

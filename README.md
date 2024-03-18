@@ -7,17 +7,21 @@ __Note__:
 
 If you are new to HDLRuby, it is recommended that you consult first the following tutorial (even if you are a hardware person):
 
- * [HDLRuby tutorial for software people](tuto/tutorial_sw.md)
+ * [HDLRuby tutorial for software people](tuto/tutorial_sw.md) [md]
+
+ * [HDLRuby tutorial for software people](tuto/tutorial_sw.html) [html]
 
 __What's new__
 
 For HDLRuby version 3.3.0:
  
- * Remade the description of software components using the Progam objects.
+ * Remade the description of software components using the program construct.
    Now the Code objects are deprecated.
 
- * Add HW-SW co-simulation capability for Ruby and compiled C-compatible
+ * Added HW-SW co-simulation capability for Ruby and compiled C-compatible
    software programs.
+
+ * Added a browser-based graphical interface simulating simulates a development board that interacts with the HDLRuby simulator.
 
  * Updated the documentation and tutorial accordingly and fixed several typos.
 
@@ -119,7 +123,7 @@ __Notes__:
 
 * If no top system is given, it is automatically looked for from the input file.
 * If no option is given, it simply checks the input file.
-* If you are new to HDLRuby, or if you want to see how new features work, we strongly encourage to get a local copy of the test HDLRuby sample using:  
+* If you are new to HDLRuby, or if you want to see how new features work, we strongly encourage you to get a local copy of the test HDLRuby sample using:  
     
   ```bash
   hdrcc --get-samples
@@ -679,7 +683,7 @@ Several constructs in HDLRuby are referred to by name, e.g., systems and signals
 After being declared, the construct can be referred to by using the name directly (i.e., without the `:` of Ruby symbols). For example, if a construct
 has been declared with `:hello` as the name, it will be afterward referred to by `hello`.
 
-## Systems and signals
+## Systems and Signals
 
 A system represents a digital system and corresponds to a Verilog HDL module. A system has an interface comprising input, output, and inout signals, and includes structural and behavioral descriptions.
 
@@ -1258,8 +1262,7 @@ __Note:__
 ## Statements
 
 Statements are the basic elements of a behavioral description. They are regrouped in blocks that specify their execution mode (parallel or sequential).
-There are four kinds of statements: the transmit statement which computes expressions and sends the result to the target signals, the control statement
-that changes the execution flow of the behavior, the block statement (described earlier), and the inner signal declaration.
+There are four kinds of statements: the transmit statement which computes expressions and sends the result to the target signals, the control statement which changes the execution flow of the behavior, the block statement (described earlier), and the inner signal declaration.
 
 __Note__:
 
@@ -1340,8 +1343,7 @@ end
 
 #### About loops
 
-HDLRuby does not include any hardware construct for describing loops. This might look poor compared to the other HDL, but it is important to understand
-that the current synthesis tools do not synthesize hardware from such loops but instead preprocess them (e.g., unroll them) to synthesizable loopless hardware. In HDLRuby, such features are natively supported by the Ruby loop constructs (`for`, `while`, and so on), but also by advanced Ruby constructs like the enumerators (`each`, `times`, and so on).
+HDLRuby does not include any hardware construct for describing loops. This might look poor compared to the other HDL, but it is important to understand that the current synthesis tools do not synthesize hardware from such loops but instead preprocess them (e.g., unroll them) to synthesizable loopless hardware. In HDLRuby, such features are natively supported by the Ruby loop constructs (`for`, `while`, and so on), but also by advanced Ruby constructs like the enumerators (`each`, `times`, and so on).
 
 __Notes__:
 
@@ -1359,10 +1361,9 @@ __Notes__:
 ## Types
 <a name="types"></a>
 
-Each signal and each expression is associated with a data type that describes the kind of value it can represent.  In HDLRuby, the data types represent
-bit-vectors associated with the way they should be interpreted, i.e., as bit strings, unsigned values, signed values, or hierarchical contents.
+Each signal and each expression is associated with a data type that describes the kind of value it can represent.  In HDLRuby, the data types represent bit-vectors associated with the way they should be interpreted, i.e., as bit strings, unsigned values, signed values, or hierarchical contents.
 
-### Type construction
+### Type Construction
 
 There are five basic types, `bit`, `signed`, `unsigned`, `integer`, and `float` that represent respectively single bit logical values, single-bit unsigned values, single-bit signed values, Ruby integer values, and Ruby floating-point values (double precision). The first three types are HW and support four-valued logic, whereas the two last ones are SW (but are compatible with HW) and only support Boolean logic. Ruby integers can represent any element of **Z** (the mathematical integers) and have for that purpose a variable bit-width.
 
@@ -1521,8 +1522,7 @@ __Notes__:
 
 References are expressions used to designate signals or a part of signals.
 
-The simplest reference is simply the name of a signal. It designates the signal corresponding to this name in the current scope. For instance, in the
-following code, inner signal `sig0` is declared, and therefore the name *sig0* becomes a reference to designate this signal.
+The simplest reference is simply the name of a signal. It designates the signal corresponding to this name in the current scope. For instance, in the following code, inner signal `sig0` is declared, and therefore the name *sig0* becomes a reference to designate this signal.
 
 ```ruby
 # Declaration of signal sig0.
@@ -1967,7 +1967,7 @@ A software component is declared like a hardware process within a system. The sy
 
 ```ruby
 program(<programming language>, <function name>) do
-   <description of the program and its interface>
+   <location of the software files and description of its interface>
 end
 ```
 
@@ -1979,7 +1979,7 @@ In the code above, `programming language` is a symbol representing the programmi
 
 The `function name` parameter indicates which function is to be executed when an activation event occurs. There can be only one such function per program, but any number of programs can be declared inside the same module.
 
-The `description of the program and its interface` part can include the following declaration statements:
+The `location of the software files and description of its interface` part can include the following declaration statements:
 
  * `actport <list of events>`: for declaring the list of events that activates the program, i.e., that will trigger the execution of the program's start function.
 
@@ -1989,17 +1989,17 @@ The `description of the program and its interface` part can include the followin
 
  * `code <list of filenames>`: for declaring the source code files.
 
-For example the following declares a program in the Ruby language whose start function is `echo` that is activated on the positive edge of signal `clk`, has a read port called `inP` that is connected to signal `count` and a write port called `outP` that is connected to signal `val`, finally the code of this program is given in a file named `echo.rb`:
+For example the following declares a program in the Ruby language whose start function is `echo` that is activated on the positive edge of signal `req`, has a read port called `inP` that is connected to signal `count` and a write port called `outP` that is connected to signal `val`, finally the code of this program is given in a file named `echo.rb`:
 
 ```ruby
 system :my_system do
-   inner :clk
+   inner :req
    [8].inner :count, :val
  
    ...
 
    program(:ruby,'echo') do
-      actport clk.posedge
+      actport req.posedge
       inport  inP:  count
       outport outP: val
       code "echo.rb"
@@ -2010,7 +2010,7 @@ end
 
 __Note:__
 
-The size of the input and output ports is one of the signals the give access to. However, from the software side, their values are converted to `long long` types.
+The size of the input and output ports is one of the signals they give access to. However, from the software side, their values are converted to `long long` types.
 
 
 
@@ -2023,7 +2023,7 @@ For the Ruby language, any number of source files can be declared, and plain Rub
 
 ```ruby
    program(:c, :echo) do
-      actport clk.posedge
+      actport req.posedge
       inport  inP:  count
       outport outP: val
       code "echo"
@@ -2032,6 +2032,10 @@ For the Ruby language, any number of source files can be declared, and plain Rub
 
 Then, for this program to work, the C code must be compiled to a file named `echo`. Please notice that, in the example, the extension is omitted, to allow the system to look for the valid file type (e.g., `.so` for a Linux shared library).
 
+__Note:__
+
+The same software file can be used for several different program constructs, however the functions it contains will be unique for the whole device.
+
 
 #### The hardware interface
 
@@ -2039,7 +2043,7 @@ From the software point of view, the hardware interface consists only of a list 
 
 ##### For Ruby
 
-For ruby, the interface is accessed by requiring the `rubyHDL` library. It gives provides the `RubyHDL` module that provides accessers to ports of the program.
+For ruby, the interface is accessed by requiring the `rubyHDL` library. It gives provides the `RubyHDL` module that provides accessors to ports of the program.
 For example, the following program reads on port 'inP' and writes the results on port `outP':
 
 ```ruby
@@ -2053,7 +2057,7 @@ end
 
 __Note:__
 
-As long as a port has been declared in the HDLRuby description of the program, it will be available to the software as a module accesser without the need for any additional declaration or configuration.
+As long as a port has been declared in the HDLRuby description of the program, it will be available to the software as a module accessor without the need for any additional declaration or configuration.
 
 ##### For C
 
@@ -2139,7 +2143,94 @@ The rake tool will take care of everything for performing the compiling whatever
 
 #### Hardware generation
 
-In the current stage, HDLRuby only generates the hardware part of a description. E.g., when generating Verilog, the programs will simply be ignored. It is therefore up to you to provide additional code for implementing the hardware-software interface. We do plan to address this limitation in the future.
+In the current stage, HDLRuby only generates the hardware part of a description. E.g., when generating Verilog, the programs are simply being ignored. It is therefore up to the user to provide additional code for implementing the hardware-software interface. The reason is that such interfaces are target-dependent, and often comprise licensed software and IP components that cannot be integrated into HDLruby. 
+
+This is less a limitation than it seems since it is possible to write program constructs that wrap such accesses so that the software and HDLRuby code can be used as is in the target system. As an illustration, you can consult the example given in the tutorial: [7.6. Hardware-software co-synthesis](tuto/tutorial_sw.md#7-6-hardware-software-co-synthesis). 
+
+
+### Extended co-simulation
+
+Since HDLRuby programs can support any compiled software, these components can also be used for executing any kind of application that is not specifically meant to be executed on the target CPU. For instance, some peripheral circuits like a keyboard or a monitor can be modeled using an HDLRuby program, as illustrated in the HDLRuby sample `with_program_ruby_cpu.rb`.
+
+
+
+### Development board simulation graphical interface
+
+HDLRuby provides a web browser-based GUI for the simulator as an extension of the co-design platform presented in this section. This GUI is to be declared as follows within a module:
+
+```ruby
+board(:<board name>,<server port>) do
+  actport <event>
+  <description of the GUI>
+end
+```
+
+In the code above, `board name` is the name of the board, `server port` is the local port the browser has to connect to for accessing the GUI (by default it is set to 8000), and `event` is the event (e.g., the rising edge of a clock) that activates the synchronization of the GUI with the simulator.
+
+Then the description of the GUI consists of a list of the following possible development board-oriented elements. Active elements are to be given a name and attached to a HDLRuby signal as follows:
+
+```ruby
+<element> <element name>: <HDLRuby signal>
+```
+
+The list of possible elements is as follows:
+
+ * `sw`: represents a set of slide switches, their number is set to match the bit-width of the attached signal.
+
+ * `bt`: represents a set of push buttons, their number is set to match the bit-width of the attached signal.
+
+ * `led`: represents a set of LEDs, their number is set to match the bit-width of the attached signal.
+
+ * `hexa`: represents a hexadecimal number display, its character width is set to match the width of the largest possible value of the attached signal.
+
+ * `digit`: represents a decimal number display, its character width is set to match the width of the largest possible positive or the smallest possible negative value of the attached signal.
+
+ * `scope`: represents an oscilloscope display, the vertical axis represents the value of the attached signal, its range is determined by its data type, and the horizontal axis represents the time is number of synchronization of the GUI.
+
+ * `row`: inserts a new line in the GUI.
+
+
+For example, for a GUI presenting an interface to an adder with input signals `x` and `y` and output signal `z` displayed as LEDs, a digit display, and an oscilloscope, the following description can be used:
+
+```ruby
+system :adder_with_gui do
+  [8].inner :x, :y, :z
+  
+  z <= x + y
+
+  inner :gui_sync
+  
+  board(:adder_gui) do
+    actport gui_sync.posedge
+    sw x: x
+    sw y: y
+    row
+    led z_led: z
+    digit z_digit: z
+    row
+    scope z_scope: z
+  end
+
+  timed do
+    clk <= 0
+    repeat(10000) do
+      !10.ns
+      clk <= ~clk
+    end
+  end
+end
+```
+
+With the code above, the GUI will show a row containing two sets of slide switches for input `x` and `y`, a row containing a set of LEDs and a digital display for showing `z`, and a row containing an oscilloscope for showing the evolution `z`.
+
+This code is simulated exactly like any other HDLRuby description, e.g., the following command will start the simulation and generate a VCD wave file:
+
+```bash
+hdrcc --sim --vcd my_adder.rb my_adder
+```
+
+However, the simulator will wait until a browser connects to it. For that, you can open a web browser, and go to the local url: `http://localhost:8000`. The simulation will then start and you can interact with the GUI.
+
 
 
 ## Time
@@ -2352,8 +2443,7 @@ In the code above, `some_sig` is a signal available in the current context. This
 
 #### Basics
 
-In HDLRuby, a system can inherit from the content of one or several other parent systems using the `include` command as follows: `include <list of
-systems>`.  Such an include can be put anywhere in the body of a system, but the resulting content will be accessible only after this command.
+In HDLRuby, a system can inherit from the content of one or several other parent systems using the `include` command as follows: `include <list of systems>`.  Such an include can be put anywhere in the body of a system, but the resulting content will be accessible only after this command.
 
 For example, the following code describes first a simple D-FF, and then uses it to describe a FF with an additional reversed output (`qb`):
 
@@ -2399,8 +2489,7 @@ __Note__:
 
 #### About inner signals and system instances
 
-By default, inner signals and instances of a parent system are not accessible by its child systems.  They can be made accessible using the `export` keyword as follows: `export <symbol 0>, <symbol 1>, ...`. For example, the following
-code exports signals `clk` and `rst` and instance `dff0` of system `exporter` so that they can be accessed in child system `importer`.
+By default, inner signals and instances of a parent system are not accessible by its child systems.  They can be made accessible using the `export` keyword as follows: `export <symbol 0>, <symbol 1>, ...`. For example, the following code exports signals `clk` and `rst` and instance `dff0` of system `exporter` so that they can be accessed in child system `importer`.
 
 ```ruby
 system :exporter do
@@ -2562,7 +2651,7 @@ end
 Please notice, that in the code above, the left value has been cast to a plain bit-vector to avoid the infinite recursive call of the `*` operator.
 
 Operators can also be overloaded with generic types. However, in such a case, the generic argument must also be present in the list of arguments of the overloaded operators.
-For instance, let us consider the following fixed-point type of variable width (and whose decimal point is set at half of its bit range):
+For instance, let us consider the following fixed-point type of variable width (whose decimal point is set at half of its bit range):
 
 ```ruby
 typedef(:fixed) do |width|
@@ -3212,11 +3301,11 @@ The enumerators can be controlled using the following methods:
 
  - `type`: returns the type of the elements accessed by the enumerator.
 
- - `seach`: returns the current enumerator. If a block is given, performs the iteration instead of returning an enumerator.
+ - `seach`: returns the current enumerator. If a block is given, it performs the iteration instead of returning an enumerator.
 
- - `seach_with_index`: returns an enumerator over the elements of the current enumerator associated with their index position. If a block is given, performs the iteration instead of returning an enumerator.
+ - `seach_with_index`: returns an enumerator over the elements of the current enumerator associated with their index position. If a block is given, it performs the iteration instead of returning an enumerator.
 
- - `seach_with_object(<obj>)`: returns an enumerator over the elements of the current enumerator associated with object `obj` (any object, HDLRuby or not, can be used). If a block is given, performs the iteration instead of returning an enumerator.
+ - `seach_with_object(<obj>)`: returns an enumerator over the elements of the current enumerator associated with object `obj` (any object, HDLRuby or not, can be used). If a block is given, it performs the iteration instead of returning an enumerator.
 
  - `with_index`: identical to `seach_with_index`.
 
@@ -3337,7 +3426,7 @@ With this basis, several algorithms have been implemented using enumerators and 
 
 #### Shared signals
 
-Like any other process, several sequencers can't write to the same signal. This is because there would be race competition that may destroy physically the device if such operations were authorized. In standard RTL design, this limitation is overcome by implementing three-state buses, multiplexers, and arbiters. However, HDLRuby sequencers support another kind of signal called the *shared signals* that abstract the implementation details for avoiding race competition.
+Like any other process, several sequencers can't write to the same signal. This is because there would be race competition that may physically destroy the device if such operations were authorized. In standard RTL design, this limitation is overcome by implementing three-state buses, multiplexers, and arbiters. However, HDLRuby sequencers support another kind of signal called the *shared signals* that abstract the implementation details for avoiding race competition.
 
 The shared signals are declared like the other kind of signals from their type. The syntax is the following:
 
@@ -3351,14 +3440,14 @@ They can also have an initial (and default) value when declared as follows:
 <type>.shared <list of names with initialization>
 ```
 
-For example, the following code declares two 8-bit shared signals `x` and `y` and two signed 16-bit shared signals initialized to 0 `u` and `v`:
+For example, the following code declares two 8-bit shared signals `x` and `y`, and two signed 16-bit shared signals initialized to 0 `u` and `v`:
 
 ```ruby
 [8].shared :x, :y
 signed[8].shared u: 0, v: 0
 ```
 
-A shared signal can then be read and written to by any sequencer from anywhere in the subsequent code of the current scope. However, they cannot be written to outside a sequencer. For example, the following code is valid:
+A shared signal can then be read and written to by any sequencer from anywhere in the subsequent code of the current scope. However, they cannot be written outside a sequencer. For example, the following code is valid:
 
 ```ruby
 input :clk, :start
@@ -3484,7 +3573,7 @@ ctrl_xy.policy do |acq|
 end
 ```
 
-As seen in the code above, each bit of the `acq` vector is one when the corresponding sequencer requires an access or 0 otherwise, bit 0 corresponds to sequencer 0, bit 1 to sequencer 1, and so on.
+As seen in the code above, each bit of the `acq` vector is one when the corresponding sequencer requires access or 0 otherwise, bit 0 corresponds to sequencer 0, bit 1 to sequencer 1, and so on.
 
 
 #### Monitors
