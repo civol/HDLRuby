@@ -8,7 +8,7 @@ system :with_ruby_prog do
         actport clk.posedge
         inport  inP: count
         outport outP: echo
-        code "echo.rb"
+        code "ruby_program/echo.rb"
     end
 
 

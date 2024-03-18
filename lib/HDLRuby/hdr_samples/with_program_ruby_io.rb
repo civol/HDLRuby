@@ -6,7 +6,7 @@ system :accum do
     actport clk.posedge
     outport sigI: sigI
     inport  sigO: sigO
-    code "stdrw.rb"
+    code "ruby_program/stdrw.rb"
   end
 
   (sigO <= sigO+sigI).at(clk.negedge)

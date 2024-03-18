@@ -8,12 +8,12 @@ system :with_ruby_thread do
         actport rst.negedge
         inport  din: count
         outport ack: ack
-        code "sw_log.rb"
+        code "ruby_program/sw_log.rb"
     end
 
     program(:ruby,:log) do
         actport req.posedge
-        code "sw_log.rb"
+        code "ruby_program/sw_log.rb"
     end
 
     par(ack.posedge) { count <= count + 1 }

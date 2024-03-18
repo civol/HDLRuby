@@ -11,14 +11,14 @@ system :with_ruby_prog_mem do
         inport  rwb:  rwb
         inport  din:  count
         outport dout: data
-        code "sw_inc_mem.rb"
+        code "ruby_program/sw_inc_mem.rb"
     end
 
     # This is real software.
     program(:ruby,:inc_mem) do
         actport req.posedge
         inport  index: index
-        code "sw_inc_mem.rb"
+        code "ruby_program/sw_inc_mem.rb"
     end
 
 

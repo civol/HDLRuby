@@ -25,7 +25,7 @@ system :with_ruby_prog_cpu do
         outport vSIZE: vSIZE, vSTART: vSTART, vEND: vEND
         outport rxCYCLE: rxCYCLE
         outport vADDR: vADDR, kADDR: kADDR
-        code "sw_cpu_terminal.rb"
+        code "ruby_program/sw_cpu_terminal.rb"
     end
 
     ## The processor model.
@@ -43,20 +43,20 @@ system :with_ruby_prog_cpu do
 
         inport key_reg: key_reg
 
-        code "sw_cpu_terminal.rb"
+        code "ruby_program/sw_cpu_terminal.rb"
     end
 
     # This is the reset part of the CPU.
     program(:ruby, :cpu_rst) do
         actport rst.posedge
-        code "sw_cpu_terminal.rb"
+        code "ruby_program/sw_cpu_terminal.rb"
     end
 
     # This is the interrupt part of the CPU.
     program(:ruby,:cpu_irq) do
         actport req.posedge
         outport ack:   ack
-        code "sw_cpu_terminal.rb"
+        code "ruby_program/sw_cpu_terminal.rb"
     end
 
 
@@ -127,7 +127,7 @@ system :with_ruby_prog_cpu do
     program(:ruby,:monitor) do
         actport vclk.negedge
         inport vblank: vblank, hblank: hblank, pixel: pixel
-        code "sw_cpu_terminal.rb"
+        code "ruby_program/sw_cpu_terminal.rb"
     end
 
 
@@ -157,7 +157,7 @@ system :with_ruby_prog_cpu do
     program(:ruby,:keyboard) do
         actport uclk.negedge
         outport rx: rx
-        code "sw_cpu_terminal.rb"
+        code "ruby_program/sw_cpu_terminal.rb"
     end
 
     # The signals for getting key values from UART
