@@ -6,11 +6,15 @@
 #include <string.h>
 #include <limits.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 
 #include <ruby.h>
-#include "extconf.h"
 
+#include "extconf.h"
 #include "hruby_sim.h"
 
 // #if defined(_WIN32) || defined(_WIN64)
@@ -422,6 +426,35 @@ VALUE rcsim_make_code(VALUE mod, VALUE lang, VALUE funcname) {
 }
 
 
+
+
+#if defined(_WIN32) || defined(_WIN64)
+/** Loads a C program dynamic library (called from HDLRuby) for a code. */
+VALUE rcsim_load_c(VALUE mod, VALUE codeV, VALUE libnameV, VALUE funcnameV) {
+    char* libname;
+    char* funcname;
+    Code code;
+    HINSTANCE handle;
+
+    libname  = StringValueCStr(libnameV);
+    funcname = StringValueCStr(funcnameV);
+   
+    /* Get the code. */ 
+    value_to_rcsim(CodeS,codeV,code);
+    /* Load the library. */
+    handle = LoadLibrary(TEXT(libname));
+    if (handle == NULL) {
+        fprintf(stderr,"Unable to open program library: %s\n",libname);
+        exit(-1);
+    }
+    code->function = GetProcAddress(handle,funcname);
+    if (code->function == NULL) {
+        fprintf(stderr,"Unable to get function: %s\n",code->name);
+        exit(-1);
+    }
+    return codeV;
+}
+#else
 /** Loads a C program dynamic library (called from HDLRuby) for a code. */
 VALUE rcsim_load_c(VALUE mod, VALUE codeV, VALUE libnameV, VALUE funcnameV) {
     char* libname;
@@ -447,6 +480,7 @@ VALUE rcsim_load_c(VALUE mod, VALUE codeV, VALUE libnameV, VALUE funcnameV) {
     }
     return codeV;
 }
+#endif
 
 
 
