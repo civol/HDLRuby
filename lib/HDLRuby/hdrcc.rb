@@ -46,9 +46,9 @@ end
 #     end
 # rescue LoadError
 #     # We cannot check the memory.
-#     def show_mem
-#         ""
-#     end
+    def show_mem
+        ""
+    end
 # end
 
 
@@ -609,7 +609,7 @@ if $options[:syntax] then
     $output << $loader.show_all
     exit
 end
-HDLRuby.show "#{Time.now}#{show_mem}"
+# HDLRuby.show "#{Time.now}#{show_mem}"
 HDLRuby.show "##### Starting parser #####"
 
 if $options[:debug] then
