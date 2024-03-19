@@ -798,6 +798,7 @@ Content-Type: text/html
   function hruby_sync() {
     let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
+      // console.log("response=" + this.responseText);
       if (this.readyState == 4 && this.status == 200) {
         if (/[0-9]+:[0-9]/.test(this.responseText)) {
           // There is a real response.
@@ -806,7 +807,6 @@ Content-Type: text/html
           for(command of commands) {
              const toks = command.split(':');
              element_update(document.getElementById(toks[0]),toks[1]);
-             // ledset_update(document.getElementById(toks[0]),toks[1]);
           }
         }
       }
@@ -818,7 +818,7 @@ Content-Type: text/html
     }
     // console.log("act=" + act);
     xhttp.open("GET", act, true);
-    xhttp.overrideMimeType("text/html");
+    xhttp.overrideMimeType("text/plain; charset=x-user-defined");
     xhttp.send();
   }
 
@@ -837,6 +837,12 @@ HTMLHEADER
 </body>
 </html>
 HTMLFOOTER
+
+UI_response = <<-HTMLRESPONSE
+HTTP/1.1 200
+Content-Type: text/plain
+
+HTMLRESPONSE
 
 
     # The already used ports.
@@ -1029,7 +1035,7 @@ HTMLFOOTER
           self.update_port(id,val)
         end
         # And generate the response: an update of each board output element.
-        return @out_elements.each.map do |e|
+        return UI_response + @out_elements.each.map do |e|
           # puts "resp=" + "#{e.id}:#{RubyHDL.send(e.hread)}"
           "#{e.id}:#{RubyHDL.send(e.hread)}"
         end.join(";")
