@@ -367,25 +367,25 @@ $optparse = OptionParser.new do |opts|
     opts.on("-r", "--hdr","Output in HDLRuby format") do |v|
         $options[:hdr] = v
     end
-    opts.on("-C", "--clang","Output in C format (simulator)") do |v|
-        $options[:clang] = v
-        $options[:multiple] = v
-    end
-    opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
-        $options[:allocate] = v
-    end
+    # opts.on("-C", "--clang","Output in C format (simulator, deprecated)") do |v|
+    #     $options[:clang] = v
+    #     $options[:multiple] = v
+    # end
+    # opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
+    #     $options[:allocate] = v
+    # end
     opts.on("-S","--sim","Default simulator (hybrid C-Ruby)") do |v|
         $options[:rcsim] = v
         $options[:multiple] = v
         $sim = true
     end
-    opts.on("--csim","Standalone C-based simulator") do |v|
+    opts.on("--csim","Standalone C-based simulator (deprecated)") do |v|
         $options[:clang] = v
         $options[:multiple] = v
         $options[:csim] = v
         $sim = true
     end
-    opts.on("--rsim","Ruby-based simulator") do |v|
+    opts.on("--rsim","Ruby-based simulator (deprecated)") do |v|
         $options[:rsim] = v
         $options[:multiple] = v
         $sim = true
@@ -411,12 +411,19 @@ $optparse = OptionParser.new do |opts|
         # Create the target directory.
         Dir.mkdir(dir) unless File.exist?(dir)
         # Copy the header files.
-        FileUtils.copy(src_path + "cHDL.h",dir)
+        ## FileUtils.copy(src_path + "cHDL.h",dir)
+        # And update it with any empty initialization function
+        # (not used but required for compiling for windows).
+        lines = nil
+        File.open(src_path + "cHDL.h","r") {|f| lines = f.readlines }
+        lines = ["void Init_#{dir}() {}\n\n"] + lines
+        File.open(dir + "/" + "cHDL.h", "w") {|f| lines.each {|l| f.write(l) } }
         # Copy and modify the files for rake.
         ["extconf.rb", "Rakefile"].each do |fname|
             lines = nil
             File.open(src_path + fname,"r") {|f| lines = f.readlines }
-            lines = ["C_PROGRAM = '#{dir}'\n"] + lines
+            # puts "Checking dir: #{File.dirname(__FILE__)+"/../hruby_sim/"}"
+            lines = ["C_PROGRAM = '#{dir}'\nRCSIM_DIR = '#{File.dirname(__FILE__)+"/../hruby_sim/"}'\n"] + lines
             File.open(dir + "/" + fname, "w") {|f| lines.each {|l| f.write(l) } }
         end
         exit
@@ -498,6 +505,12 @@ $optparse = OptionParser.new do |opts|
     end
     opts.on("--version", "Show the version of HDLRuby, then exit") do |v|
         puts VERSION
+        exit
+    end
+    opts.on("--path","Shows the path where HDLRuby is install.") do |v|
+        require 'pathname'
+        path = Pathname.new(__FILE__ + "../../../../").cleanpath
+        puts path.to_s
         exit
     end
     # opts.on_tail("-h", "--help", "Show this message") do

@@ -2095,7 +2095,23 @@ void echo() {
 
 __Note:__
 
-The command for generating the C header file for using the HDLRuby hardware interface also generates files for helping to compile the source code. Please see [compile for simulation](#compiling-the-c-code).
+* The command for generating the C header file for using the HDLRuby hardware interface also generates files for helping to compile the source code. Please see [compile for simulation](#compiling-the-c-code).
+
+* **Important:** for windows, dynamically loaded functions must be declared with the following prefix: `__declspec(dllexport)`. If this prefix is not present before each function that is used as an HDLRuby program, the simulation will not work. For example, for Windows, the function echo *must* be written as follows:
+
+```c
+#include "cHDL.h"
+
+__declspec(dllexport) void echo() {
+   void* inP = c_get_port("inP");
+   void* outP = c_get_port("outP");
+   int val;
+   
+   val = c_read_port(inP);
+   c_write_port(outP,val);
+}
+```
+
 
 
 #### Hardware-software co-simulation
@@ -2115,7 +2131,7 @@ In the command above, `<destination project>` is both the directory where the C 
 For example, if you want to compile the code located in the directory `echo` you need first to execute:
 
 ```bash
-hdrcc --rake echo
+hdrcc --ch echo
 ```
 
 Then, you will have to put your C files into the resulting directory and go inside it for compiling. If you have some specific needs for this compiling, or if you do not want to rely on the Ruby environment, you can compile your program there as a shared library like any other project. For example, if you are using GCC, you could type (after entering the `echo` directory):

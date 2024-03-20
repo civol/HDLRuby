@@ -3095,6 +3095,23 @@ The rake tool will take care of everything for performing the compiling whatever
 
 When the C code is compiled, the HDLRuby simulator can be executed as usual.
 
+__Note__:
+
+**Important:** for windows, dynamically loaded functions must be declared with the following prefix: `__declspec(dllexport)`. If this prefix is not present before each function that is used as an HDLRuby program, the simulation will not work. For example, for Windows, the function echo *must* be written as follows:
+
+```c
+#include "cHDL.h"
+
+__declspec(dllexport) void echo() {
+   void* inP = c_get_port("inP");
+   void* outP = c_get_port("outP");
+   int val;
+   
+   val = c_read_port(inP);
+   c_write_port(outP,val);
+}
+```
+
 
 ### 7.4. Is that all?
 

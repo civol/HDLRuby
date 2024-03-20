@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "cHDL.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+__declspec(dllexport)
+#endif
 void echo(void* code) {
     static void* inP = NULL;
     static void* outP = NULL;

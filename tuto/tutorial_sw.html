@@ -2163,6 +2163,18 @@ It is from this capability to mix Ruby and HDLRuby that comes the <em>meta progr
 <div class="sourceCode" id="cb145"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb145-1"><a href="#cb145-1" aria-hidden="true" tabindex="-1"></a><span class="ex">rake</span> compile</span></code></pre></div>
 <p>The rake tool will take care of everything for performing the compiling whatever your system may be.</p>
 <p>When the C code is compiled, the HDLRuby simulator can be executed as usual.</p>
+<p><strong>Note</strong>:</p>
+<p><strong>Important:</strong> for windows, dynamically loaded functions must be declared with the following prefix: <code>__declspec(dllexport)</code>. If this prefix is not present before each function that is used as an HDLRuby program, the simulation will not work. For example, for Windows, the function echo <em>must</em> be written as follows:</p>
+<div class="sourceCode" id="cb146"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;cHDL.h&quot;</span></span>
+<span id="cb146-2"><a href="#cb146-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb146-3"><a href="#cb146-3" aria-hidden="true" tabindex="-1"></a>__declspec<span class="op">(</span>dllexport<span class="op">)</span> <span class="dt">void</span> echo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb146-4"><a href="#cb146-4" aria-hidden="true" tabindex="-1"></a>   <span class="dt">void</span><span class="op">*</span> inP <span class="op">=</span> c_get_port<span class="op">(</span><span class="st">&quot;inP&quot;</span><span class="op">);</span></span>
+<span id="cb146-5"><a href="#cb146-5" aria-hidden="true" tabindex="-1"></a>   <span class="dt">void</span><span class="op">*</span> outP <span class="op">=</span> c_get_port<span class="op">(</span><span class="st">&quot;outP&quot;</span><span class="op">);</span></span>
+<span id="cb146-6"><a href="#cb146-6" aria-hidden="true" tabindex="-1"></a>   <span class="dt">int</span> val<span class="op">;</span></span>
+<span id="cb146-7"><a href="#cb146-7" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb146-8"><a href="#cb146-8" aria-hidden="true" tabindex="-1"></a>   val <span class="op">=</span> c_read_port<span class="op">(</span>inP<span class="op">);</span></span>
+<span id="cb146-9"><a href="#cb146-9" aria-hidden="true" tabindex="-1"></a>   c_write_port<span class="op">(</span>outP<span class="op">,</span>val<span class="op">);</span></span>
+<span id="cb146-10"><a href="#cb146-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <h3 id="is-that-all">7.4. Is that all?</h3>
 <p>Technically, there is nothing else to describe hardware-software interaction in HDLRuby. Hence, no shared memory, buffer, or other complex communication or synchronization systems. But the reason is that we do not need them in the core of HDLRuby, they can be described using a mix of standard HDLRuby and software programming. With the same method, you can also simulate external devices as black boxes.</p>
 <p>To illustrate how this mix of HDLRuby and software can be implemented, let us see three examples: a memory shared between software and hardware, a model of an operating system, a real-time clock, and a method for modeling program execution time. In all these examples we will use Ruby as software language, but this can also be done with C.</p>
@@ -2170,109 +2182,109 @@ It is from this capability to mix Ruby and HDLRuby that comes the <em>meta progr
 <p>There are two possibilities for modeling such a memory: either describe it in plain HDLRuby as a full hardware component, and write a program construct that simulates the access of the software part to this memory, or describe the memory as a part of the software part and simulate its access from the hardware part using a program construct. The first approach is more accurate and may be useful when a specific kind of memory is to be used, but it is slower than the second one.</p>
 <h5 id="memory-described-as-a-hardware-component">7.4.1.1 Memory described as a hardware component</h5>
 <p>For the first approach, if we assume a memory with an 8-bit address bus, and an 8-bit data bus the HDLRuby code could be as follows:</p>
-<div class="sourceCode" id="cb146"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:hw_sw_with_hw_memory</span> <span class="cf">do</span></span>
-<span id="cb146-2"><a href="#cb146-2" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:addr</span></span>
-<span id="cb146-3"><a href="#cb146-3" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:din</span>, <span class="wa">:dout</span></span>
-<span id="cb146-4"><a href="#cb146-4" aria-hidden="true" tabindex="-1"></a>   inner     <span class="wa">:rwb</span>, <span class="wa">:ce</span></span>
-<span id="cb146-5"><a href="#cb146-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-6"><a href="#cb146-6" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
-<span id="cb146-7"><a href="#cb146-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-8"><a href="#cb146-8" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Instantiation of the memory.</span></span>
-<span id="cb146-9"><a href="#cb146-9" aria-hidden="true" tabindex="-1"></a>   instance <span class="wa">:memory</span> <span class="cf">do</span></span>
-<span id="cb146-10"><a href="#cb146-10" aria-hidden="true" tabindex="-1"></a>      inner      <span class="wa">:clk</span></span>
-<span id="cb146-11"><a href="#cb146-11" aria-hidden="true" tabindex="-1"></a>      <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span> <span class="wa">:addr</span></span>
-<span id="cb146-12"><a href="#cb146-12" aria-hidden="true" tabindex="-1"></a>      <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span>  <span class="wa">:din</span></span>
-<span id="cb146-13"><a href="#cb146-13" aria-hidden="true" tabindex="-1"></a>      <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.output</span> <span class="wa">:dout</span></span>
-<span id="cb146-14"><a href="#cb146-14" aria-hidden="true" tabindex="-1"></a>      input      <span class="wa">:rwb</span>, <span class="wa">:ce</span></span>
-<span id="cb146-15"><a href="#cb146-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-16"><a href="#cb146-16" aria-hidden="true" tabindex="-1"></a>      bit<span class="kw">[</span><span class="dv">8</span><span class="kw">][-</span><span class="dv">256</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:content</span></span>
-<span id="cb146-17"><a href="#cb146-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-18"><a href="#cb146-18" aria-hidden="true" tabindex="-1"></a>      par(clk<span class="at">.posedge</span>) <span class="cf">do</span></span>
-<span id="cb146-19"><a href="#cb146-19" aria-hidden="true" tabindex="-1"></a>         hif(ce) <span class="cf">do</span></span>
-<span id="cb146-20"><a href="#cb146-20" aria-hidden="true" tabindex="-1"></a>            hif(rwb) <span class="kw">{</span> dout <span class="kw">&lt;=</span> content<span class="kw">[</span>addr<span class="kw">]</span> <span class="kw">}</span></span>
-<span id="cb146-21"><a href="#cb146-21" aria-hidden="true" tabindex="-1"></a>            helse    <span class="kw">{</span> content<span class="kw">[</span>addr<span class="kw">]</span> <span class="kw">&lt;=</span> din <span class="kw">}</span></span>
-<span id="cb146-22"><a href="#cb146-22" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb146-23"><a href="#cb146-23" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span><span class="kw">.</span>(clk,addr,din,dout,rwb,ce)</span>
-<span id="cb146-24"><a href="#cb146-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-25"><a href="#cb146-25" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The hw generating the tick activating the software part (e.g., an OS tick):</span></span>
-<span id="cb146-26"><a href="#cb146-26" aria-hidden="true" tabindex="-1"></a>   <span class="co"># one tick every 10 clock cycles.</span></span>
-<span id="cb146-27"><a href="#cb146-27" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:tick</span></span>
-<span id="cb146-28"><a href="#cb146-28" aria-hidden="true" tabindex="-1"></a>   (tick <span class="kw">&lt;=</span> <span class="kw">~</span>rst <span class="kw">&amp;</span> <span class="kw">~</span>tick)<span class="at">.at</span>(clk<span class="at">.posedge</span> <span class="kw">*</span> <span class="dv">5</span>)</span>
-<span id="cb146-29"><a href="#cb146-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-30"><a href="#cb146-30" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:req_sw</span>, <span class="wa">:ack_sw</span>, <span class="wa">:rwb_sw</span></span>
-<span id="cb146-31"><a href="#cb146-31" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:addr_sw</span></span>
-<span id="cb146-32"><a href="#cb146-32" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span>  <span class="wa">:din_sw</span>, <span class="wa">:dout_sw</span></span>
-<span id="cb146-33"><a href="#cb146-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-34"><a href="#cb146-34" aria-hidden="true" tabindex="-1"></a>   inner<span class="kw">[</span><span class="dv">16</span><span class="kw">]</span> <span class="wa">:addr_hw</span></span>
-<span id="cb146-35"><a href="#cb146-35" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:req_hw</span>, <span class="wa">:ack_hw</span>, <span class="wa">:rwb_hw</span></span>
-<span id="cb146-36"><a href="#cb146-36" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span>  <span class="wa">:din_hw</span>, <span class="wa">:dout_hw</span></span>
-<span id="cb146-37"><a href="#cb146-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-38"><a href="#cb146-38" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Description of the software part.</span></span>
-<span id="cb146-39"><a href="#cb146-39" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:some_sw</span>) <span class="cf">do</span></span>
-<span id="cb146-40"><a href="#cb146-40" aria-hidden="true" tabindex="-1"></a>      actport tick<span class="at">.posedge</span></span>
-<span id="cb146-41"><a href="#cb146-41" aria-hidden="true" tabindex="-1"></a>      outport req <span class="wa">:req_sw</span>, <span class="wa">ack: </span>ack_sw, <span class="wa">rwb: </span>rwb_sw</span>
-<span id="cb146-42"><a href="#cb146-42" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">addr: </span>addr_sw</span>
-<span id="cb146-43"><a href="#cb146-43" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">dout: </span>dout_sw</span>
-<span id="cb146-44"><a href="#cb146-44" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">din: </span> din_sw</span>
-<span id="cb146-45"><a href="#cb146-45" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;some_sw.rb&quot;</span></span>
-<span id="cb146-46"><a href="#cb146-46" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb146-47"><a href="#cb146-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-48"><a href="#cb146-48" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:priority</span>  <span class="co"># 0: priority in hw access, 1: priority in sw access.</span></span>
-<span id="cb146-49"><a href="#cb146-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-50"><a href="#cb146-50" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The arbiter, sharing the memory between software and hardware giving</span></span>
-<span id="cb146-51"><a href="#cb146-51" aria-hidden="true" tabindex="-1"></a>   <span class="co"># priority to software. It uses a round-robin approach.</span></span>
-<span id="cb146-52"><a href="#cb146-52" aria-hidden="true" tabindex="-1"></a>   par(clk<span class="at">.negedge</span>) <span class="cf">do</span></span>
-<span id="cb146-53"><a href="#cb146-53" aria-hidden="true" tabindex="-1"></a>      hif(rst) <span class="kw">{</span> priority <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="kw">}</span></span>
-<span id="cb146-54"><a href="#cb146-54" aria-hidden="true" tabindex="-1"></a>      ack_sw <span class="kw">&lt;=</span> <span class="dv">0</span>    <span class="co"># By default no access granted to software.</span></span>
-<span id="cb146-55"><a href="#cb146-55" aria-hidden="true" tabindex="-1"></a>      ack_hw <span class="kw">&lt;=</span> <span class="dv">0</span>    <span class="co"># Nor to hardware.</span></span>
-<span id="cb146-56"><a href="#cb146-56" aria-hidden="true" tabindex="-1"></a>      ce     <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb146-57"><a href="#cb146-57" aria-hidden="true" tabindex="-1"></a>      hif(req_sw <span class="kw">&amp;</span> (priority <span class="kw">|</span> <span class="kw">~</span>req_hw)) <span class="cf">do</span></span>
-<span id="cb146-58"><a href="#cb146-58" aria-hidden="true" tabindex="-1"></a>         ce     <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb146-59"><a href="#cb146-59" aria-hidden="true" tabindex="-1"></a>         ack_sw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb146-60"><a href="#cb146-60" aria-hidden="true" tabindex="-1"></a>         rwb    <span class="kw">&lt;=</span> rwb_sw</span>
-<span id="cb146-61"><a href="#cb146-61" aria-hidden="true" tabindex="-1"></a>         addr   <span class="kw">&lt;=</span> addr_sw</span>
-<span id="cb146-62"><a href="#cb146-62" aria-hidden="true" tabindex="-1"></a>         din    <span class="kw">&lt;=</span> dout_sw</span>
-<span id="cb146-63"><a href="#cb146-63" aria-hidden="true" tabindex="-1"></a>         din_sw <span class="kw">&lt;=</span> dout</span>
-<span id="cb146-64"><a href="#cb146-64" aria-hidden="true" tabindex="-1"></a>         priority <span class="kw">&lt;=</span> <span class="kw">~</span>priority</span>
-<span id="cb146-65"><a href="#cb146-65" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb146-66"><a href="#cb146-66" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(req_hw <span class="kw">&amp;</span> (<span class="kw">~</span>priority <span class="kw">|</span> <span class="kw">~</span>req_sw)) <span class="cf">do</span></span>
-<span id="cb146-67"><a href="#cb146-67" aria-hidden="true" tabindex="-1"></a>         ce     <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb146-68"><a href="#cb146-68" aria-hidden="true" tabindex="-1"></a>         ack_hw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb146-69"><a href="#cb146-69" aria-hidden="true" tabindex="-1"></a>         rwb    <span class="kw">&lt;=</span> rwb_hw</span>
-<span id="cb146-70"><a href="#cb146-70" aria-hidden="true" tabindex="-1"></a>         addr   <span class="kw">&lt;=</span> addr_hw</span>
-<span id="cb146-71"><a href="#cb146-71" aria-hidden="true" tabindex="-1"></a>         din    <span class="kw">&lt;=</span> dout_hw</span>
-<span id="cb146-72"><a href="#cb146-72" aria-hidden="true" tabindex="-1"></a>         din_hw <span class="kw">&lt;=</span> dout</span>
-<span id="cb146-73"><a href="#cb146-73" aria-hidden="true" tabindex="-1"></a>         priority <span class="kw">&lt;=</span> <span class="kw">~</span>priority</span>
-<span id="cb146-74"><a href="#cb146-74" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb146-75"><a href="#cb146-75" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb146-76"><a href="#cb146-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb146-77"><a href="#cb146-77" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Some hardware code accessing the memory.</span></span>
-<span id="cb146-78"><a href="#cb146-78" aria-hidden="true" tabindex="-1"></a>   sequencer(clk,rst) <span class="cf">do</span></span>
-<span id="cb146-79"><a href="#cb146-79" aria-hidden="true" tabindex="-1"></a>      <span class="co"># At first, fill the memory with 0.</span></span>
-<span id="cb146-80"><a href="#cb146-80" aria-hidden="true" tabindex="-1"></a>      req_hw <span class="kw">&lt;=</span> <span class="dv">1</span>; rwb_hw <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb146-81"><a href="#cb146-81" aria-hidden="true" tabindex="-1"></a>      swhile(<span class="kw">~</span>ack_hw) <span class="co"># Wait for the access grant to memory.</span></span>
-<span id="cb146-82"><a href="#cb146-82" aria-hidden="true" tabindex="-1"></a>      dout_hw <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb146-83"><a href="#cb146-83" aria-hidden="true" tabindex="-1"></a>      <span class="dv">256</span><span class="at">.stimes</span> <span class="kw">{</span> <span class="kw">|</span>i<span class="kw">|</span> addr_hw <span class="kw">&lt;=</span> i <span class="kw">}</span></span>
-<span id="cb146-84"><a href="#cb146-84" aria-hidden="true" tabindex="-1"></a>      req_hw <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="co"># End the transactions.</span></span>
-<span id="cb146-85"><a href="#cb146-85" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Now, do infinitely some arbitrary computations with the content</span></span>
-<span id="cb146-86"><a href="#cb146-86" aria-hidden="true" tabindex="-1"></a>      <span class="co"># of the memory.</span></span>
-<span id="cb146-87"><a href="#cb146-87" aria-hidden="true" tabindex="-1"></a>      sloop <span class="cf">do</span></span>
-<span id="cb146-88"><a href="#cb146-88" aria-hidden="true" tabindex="-1"></a>         <span class="dv">128</span><span class="at">.stimes</span> <span class="cf">do</span> <span class="kw">|</span>i<span class="kw">|</span></span>
-<span id="cb146-89"><a href="#cb146-89" aria-hidden="true" tabindex="-1"></a>            <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:tmp</span></span>
-<span id="cb146-90"><a href="#cb146-90" aria-hidden="true" tabindex="-1"></a>            req_hw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb146-91"><a href="#cb146-91" aria-hidden="true" tabindex="-1"></a>            rwb_hw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb146-92"><a href="#cb146-92" aria-hidden="true" tabindex="-1"></a>            addr_hw <span class="kw">&lt;=</span> i</span>
-<span id="cb146-93"><a href="#cb146-93" aria-hidden="true" tabindex="-1"></a>            swhile(<span class="kw">~</span>ack_hw)</span>
-<span id="cb146-94"><a href="#cb146-94" aria-hidden="true" tabindex="-1"></a>            tmp <span class="kw">&lt;=</span> din_hw</span>
-<span id="cb146-95"><a href="#cb146-95" aria-hidden="true" tabindex="-1"></a>            step</span>
-<span id="cb146-96"><a href="#cb146-96" aria-hidden="true" tabindex="-1"></a>            rwb_hw  <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb146-97"><a href="#cb146-97" aria-hidden="true" tabindex="-1"></a>            addr_hw <span class="kw">&lt;=</span> i <span class="kw">+</span> <span class="dv">128</span></span>
-<span id="cb146-98"><a href="#cb146-98" aria-hidden="true" tabindex="-1"></a>            dout_hw <span class="kw">&lt;=</span> tmp <span class="kw">*</span>tmp   <span class="co"># Just some senseless data.</span></span>
-<span id="cb146-99"><a href="#cb146-99" aria-hidden="true" tabindex="-1"></a>            step</span>
-<span id="cb146-100"><a href="#cb146-100" aria-hidden="true" tabindex="-1"></a>            req_hw <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb146-101"><a href="#cb146-101" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
-<span id="cb146-102"><a href="#cb146-102" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb146-103"><a href="#cb146-103" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb147"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb147-1"><a href="#cb147-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:hw_sw_with_hw_memory</span> <span class="cf">do</span></span>
+<span id="cb147-2"><a href="#cb147-2" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:addr</span></span>
+<span id="cb147-3"><a href="#cb147-3" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:din</span>, <span class="wa">:dout</span></span>
+<span id="cb147-4"><a href="#cb147-4" aria-hidden="true" tabindex="-1"></a>   inner     <span class="wa">:rwb</span>, <span class="wa">:ce</span></span>
+<span id="cb147-5"><a href="#cb147-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-6"><a href="#cb147-6" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
+<span id="cb147-7"><a href="#cb147-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-8"><a href="#cb147-8" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Instantiation of the memory.</span></span>
+<span id="cb147-9"><a href="#cb147-9" aria-hidden="true" tabindex="-1"></a>   instance <span class="wa">:memory</span> <span class="cf">do</span></span>
+<span id="cb147-10"><a href="#cb147-10" aria-hidden="true" tabindex="-1"></a>      inner      <span class="wa">:clk</span></span>
+<span id="cb147-11"><a href="#cb147-11" aria-hidden="true" tabindex="-1"></a>      <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span> <span class="wa">:addr</span></span>
+<span id="cb147-12"><a href="#cb147-12" aria-hidden="true" tabindex="-1"></a>      <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span>  <span class="wa">:din</span></span>
+<span id="cb147-13"><a href="#cb147-13" aria-hidden="true" tabindex="-1"></a>      <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.output</span> <span class="wa">:dout</span></span>
+<span id="cb147-14"><a href="#cb147-14" aria-hidden="true" tabindex="-1"></a>      input      <span class="wa">:rwb</span>, <span class="wa">:ce</span></span>
+<span id="cb147-15"><a href="#cb147-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-16"><a href="#cb147-16" aria-hidden="true" tabindex="-1"></a>      bit<span class="kw">[</span><span class="dv">8</span><span class="kw">][-</span><span class="dv">256</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:content</span></span>
+<span id="cb147-17"><a href="#cb147-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-18"><a href="#cb147-18" aria-hidden="true" tabindex="-1"></a>      par(clk<span class="at">.posedge</span>) <span class="cf">do</span></span>
+<span id="cb147-19"><a href="#cb147-19" aria-hidden="true" tabindex="-1"></a>         hif(ce) <span class="cf">do</span></span>
+<span id="cb147-20"><a href="#cb147-20" aria-hidden="true" tabindex="-1"></a>            hif(rwb) <span class="kw">{</span> dout <span class="kw">&lt;=</span> content<span class="kw">[</span>addr<span class="kw">]</span> <span class="kw">}</span></span>
+<span id="cb147-21"><a href="#cb147-21" aria-hidden="true" tabindex="-1"></a>            helse    <span class="kw">{</span> content<span class="kw">[</span>addr<span class="kw">]</span> <span class="kw">&lt;=</span> din <span class="kw">}</span></span>
+<span id="cb147-22"><a href="#cb147-22" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb147-23"><a href="#cb147-23" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span><span class="kw">.</span>(clk,addr,din,dout,rwb,ce)</span>
+<span id="cb147-24"><a href="#cb147-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-25"><a href="#cb147-25" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The hw generating the tick activating the software part (e.g., an OS tick):</span></span>
+<span id="cb147-26"><a href="#cb147-26" aria-hidden="true" tabindex="-1"></a>   <span class="co"># one tick every 10 clock cycles.</span></span>
+<span id="cb147-27"><a href="#cb147-27" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:tick</span></span>
+<span id="cb147-28"><a href="#cb147-28" aria-hidden="true" tabindex="-1"></a>   (tick <span class="kw">&lt;=</span> <span class="kw">~</span>rst <span class="kw">&amp;</span> <span class="kw">~</span>tick)<span class="at">.at</span>(clk<span class="at">.posedge</span> <span class="kw">*</span> <span class="dv">5</span>)</span>
+<span id="cb147-29"><a href="#cb147-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-30"><a href="#cb147-30" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:req_sw</span>, <span class="wa">:ack_sw</span>, <span class="wa">:rwb_sw</span></span>
+<span id="cb147-31"><a href="#cb147-31" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:addr_sw</span></span>
+<span id="cb147-32"><a href="#cb147-32" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span>  <span class="wa">:din_sw</span>, <span class="wa">:dout_sw</span></span>
+<span id="cb147-33"><a href="#cb147-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-34"><a href="#cb147-34" aria-hidden="true" tabindex="-1"></a>   inner<span class="kw">[</span><span class="dv">16</span><span class="kw">]</span> <span class="wa">:addr_hw</span></span>
+<span id="cb147-35"><a href="#cb147-35" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:req_hw</span>, <span class="wa">:ack_hw</span>, <span class="wa">:rwb_hw</span></span>
+<span id="cb147-36"><a href="#cb147-36" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span>  <span class="wa">:din_hw</span>, <span class="wa">:dout_hw</span></span>
+<span id="cb147-37"><a href="#cb147-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-38"><a href="#cb147-38" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Description of the software part.</span></span>
+<span id="cb147-39"><a href="#cb147-39" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:some_sw</span>) <span class="cf">do</span></span>
+<span id="cb147-40"><a href="#cb147-40" aria-hidden="true" tabindex="-1"></a>      actport tick<span class="at">.posedge</span></span>
+<span id="cb147-41"><a href="#cb147-41" aria-hidden="true" tabindex="-1"></a>      outport req <span class="wa">:req_sw</span>, <span class="wa">ack: </span>ack_sw, <span class="wa">rwb: </span>rwb_sw</span>
+<span id="cb147-42"><a href="#cb147-42" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">addr: </span>addr_sw</span>
+<span id="cb147-43"><a href="#cb147-43" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">dout: </span>dout_sw</span>
+<span id="cb147-44"><a href="#cb147-44" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">din: </span> din_sw</span>
+<span id="cb147-45"><a href="#cb147-45" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;some_sw.rb&quot;</span></span>
+<span id="cb147-46"><a href="#cb147-46" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb147-47"><a href="#cb147-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-48"><a href="#cb147-48" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:priority</span>  <span class="co"># 0: priority in hw access, 1: priority in sw access.</span></span>
+<span id="cb147-49"><a href="#cb147-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-50"><a href="#cb147-50" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The arbiter, sharing the memory between software and hardware giving</span></span>
+<span id="cb147-51"><a href="#cb147-51" aria-hidden="true" tabindex="-1"></a>   <span class="co"># priority to software. It uses a round-robin approach.</span></span>
+<span id="cb147-52"><a href="#cb147-52" aria-hidden="true" tabindex="-1"></a>   par(clk<span class="at">.negedge</span>) <span class="cf">do</span></span>
+<span id="cb147-53"><a href="#cb147-53" aria-hidden="true" tabindex="-1"></a>      hif(rst) <span class="kw">{</span> priority <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="kw">}</span></span>
+<span id="cb147-54"><a href="#cb147-54" aria-hidden="true" tabindex="-1"></a>      ack_sw <span class="kw">&lt;=</span> <span class="dv">0</span>    <span class="co"># By default no access granted to software.</span></span>
+<span id="cb147-55"><a href="#cb147-55" aria-hidden="true" tabindex="-1"></a>      ack_hw <span class="kw">&lt;=</span> <span class="dv">0</span>    <span class="co"># Nor to hardware.</span></span>
+<span id="cb147-56"><a href="#cb147-56" aria-hidden="true" tabindex="-1"></a>      ce     <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb147-57"><a href="#cb147-57" aria-hidden="true" tabindex="-1"></a>      hif(req_sw <span class="kw">&amp;</span> (priority <span class="kw">|</span> <span class="kw">~</span>req_hw)) <span class="cf">do</span></span>
+<span id="cb147-58"><a href="#cb147-58" aria-hidden="true" tabindex="-1"></a>         ce     <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb147-59"><a href="#cb147-59" aria-hidden="true" tabindex="-1"></a>         ack_sw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb147-60"><a href="#cb147-60" aria-hidden="true" tabindex="-1"></a>         rwb    <span class="kw">&lt;=</span> rwb_sw</span>
+<span id="cb147-61"><a href="#cb147-61" aria-hidden="true" tabindex="-1"></a>         addr   <span class="kw">&lt;=</span> addr_sw</span>
+<span id="cb147-62"><a href="#cb147-62" aria-hidden="true" tabindex="-1"></a>         din    <span class="kw">&lt;=</span> dout_sw</span>
+<span id="cb147-63"><a href="#cb147-63" aria-hidden="true" tabindex="-1"></a>         din_sw <span class="kw">&lt;=</span> dout</span>
+<span id="cb147-64"><a href="#cb147-64" aria-hidden="true" tabindex="-1"></a>         priority <span class="kw">&lt;=</span> <span class="kw">~</span>priority</span>
+<span id="cb147-65"><a href="#cb147-65" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb147-66"><a href="#cb147-66" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(req_hw <span class="kw">&amp;</span> (<span class="kw">~</span>priority <span class="kw">|</span> <span class="kw">~</span>req_sw)) <span class="cf">do</span></span>
+<span id="cb147-67"><a href="#cb147-67" aria-hidden="true" tabindex="-1"></a>         ce     <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb147-68"><a href="#cb147-68" aria-hidden="true" tabindex="-1"></a>         ack_hw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb147-69"><a href="#cb147-69" aria-hidden="true" tabindex="-1"></a>         rwb    <span class="kw">&lt;=</span> rwb_hw</span>
+<span id="cb147-70"><a href="#cb147-70" aria-hidden="true" tabindex="-1"></a>         addr   <span class="kw">&lt;=</span> addr_hw</span>
+<span id="cb147-71"><a href="#cb147-71" aria-hidden="true" tabindex="-1"></a>         din    <span class="kw">&lt;=</span> dout_hw</span>
+<span id="cb147-72"><a href="#cb147-72" aria-hidden="true" tabindex="-1"></a>         din_hw <span class="kw">&lt;=</span> dout</span>
+<span id="cb147-73"><a href="#cb147-73" aria-hidden="true" tabindex="-1"></a>         priority <span class="kw">&lt;=</span> <span class="kw">~</span>priority</span>
+<span id="cb147-74"><a href="#cb147-74" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb147-75"><a href="#cb147-75" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb147-76"><a href="#cb147-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-77"><a href="#cb147-77" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Some hardware code accessing the memory.</span></span>
+<span id="cb147-78"><a href="#cb147-78" aria-hidden="true" tabindex="-1"></a>   sequencer(clk,rst) <span class="cf">do</span></span>
+<span id="cb147-79"><a href="#cb147-79" aria-hidden="true" tabindex="-1"></a>      <span class="co"># At first, fill the memory with 0.</span></span>
+<span id="cb147-80"><a href="#cb147-80" aria-hidden="true" tabindex="-1"></a>      req_hw <span class="kw">&lt;=</span> <span class="dv">1</span>; rwb_hw <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb147-81"><a href="#cb147-81" aria-hidden="true" tabindex="-1"></a>      swhile(<span class="kw">~</span>ack_hw) <span class="co"># Wait for the access grant to memory.</span></span>
+<span id="cb147-82"><a href="#cb147-82" aria-hidden="true" tabindex="-1"></a>      dout_hw <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb147-83"><a href="#cb147-83" aria-hidden="true" tabindex="-1"></a>      <span class="dv">256</span><span class="at">.stimes</span> <span class="kw">{</span> <span class="kw">|</span>i<span class="kw">|</span> addr_hw <span class="kw">&lt;=</span> i <span class="kw">}</span></span>
+<span id="cb147-84"><a href="#cb147-84" aria-hidden="true" tabindex="-1"></a>      req_hw <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="co"># End the transactions.</span></span>
+<span id="cb147-85"><a href="#cb147-85" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Now, do infinitely some arbitrary computations with the content</span></span>
+<span id="cb147-86"><a href="#cb147-86" aria-hidden="true" tabindex="-1"></a>      <span class="co"># of the memory.</span></span>
+<span id="cb147-87"><a href="#cb147-87" aria-hidden="true" tabindex="-1"></a>      sloop <span class="cf">do</span></span>
+<span id="cb147-88"><a href="#cb147-88" aria-hidden="true" tabindex="-1"></a>         <span class="dv">128</span><span class="at">.stimes</span> <span class="cf">do</span> <span class="kw">|</span>i<span class="kw">|</span></span>
+<span id="cb147-89"><a href="#cb147-89" aria-hidden="true" tabindex="-1"></a>            <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:tmp</span></span>
+<span id="cb147-90"><a href="#cb147-90" aria-hidden="true" tabindex="-1"></a>            req_hw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb147-91"><a href="#cb147-91" aria-hidden="true" tabindex="-1"></a>            rwb_hw <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb147-92"><a href="#cb147-92" aria-hidden="true" tabindex="-1"></a>            addr_hw <span class="kw">&lt;=</span> i</span>
+<span id="cb147-93"><a href="#cb147-93" aria-hidden="true" tabindex="-1"></a>            swhile(<span class="kw">~</span>ack_hw)</span>
+<span id="cb147-94"><a href="#cb147-94" aria-hidden="true" tabindex="-1"></a>            tmp <span class="kw">&lt;=</span> din_hw</span>
+<span id="cb147-95"><a href="#cb147-95" aria-hidden="true" tabindex="-1"></a>            step</span>
+<span id="cb147-96"><a href="#cb147-96" aria-hidden="true" tabindex="-1"></a>            rwb_hw  <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb147-97"><a href="#cb147-97" aria-hidden="true" tabindex="-1"></a>            addr_hw <span class="kw">&lt;=</span> i <span class="kw">+</span> <span class="dv">128</span></span>
+<span id="cb147-98"><a href="#cb147-98" aria-hidden="true" tabindex="-1"></a>            dout_hw <span class="kw">&lt;=</span> tmp <span class="kw">*</span>tmp   <span class="co"># Just some senseless data.</span></span>
+<span id="cb147-99"><a href="#cb147-99" aria-hidden="true" tabindex="-1"></a>            step</span>
+<span id="cb147-100"><a href="#cb147-100" aria-hidden="true" tabindex="-1"></a>            req_hw <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb147-101"><a href="#cb147-101" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
+<span id="cb147-102"><a href="#cb147-102" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb147-103"><a href="#cb147-103" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span></code></pre></div>
 <p>This example contains four parts:</p>
 <ul>
 <li>A hardware description of a memory, described as an inline instance. It has an address input ‘addr’, a data input ‘din’ a data outpout ‘dout’ (it is common in FPGA nowadays to avoid three-state buses), a signal ‘rwb’ indicating if a read (1) or a write (0) access is performed, and a chip enable signal ‘ce’.</li>
@@ -2284,384 +2296,384 @@ It is from this capability to mix Ruby and HDLRuby that comes the <em>meta progr
 <li><p>A hardware component described with a sequencer reading and writing the memory and performing arbitrary computations.</p></li>
 </ul>
 <p>Then, the code of the software component in the file ‘some_sw.rb’ can be as follows:</p>
-<div class="sourceCode" id="cb147"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb147-1"><a href="#cb147-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL.rb&#39;</span></span>
-<span id="cb147-2"><a href="#cb147-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb147-3"><a href="#cb147-3" aria-hidden="true" tabindex="-1"></a><span class="va">$addr</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb147-4"><a href="#cb147-4" aria-hidden="true" tabindex="-1"></a><span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb147-5"><a href="#cb147-5" aria-hidden="true" tabindex="-1"></a><span class="va">$tmp</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb147-6"><a href="#cb147-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb147-7"><a href="#cb147-7" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> some_sw</span>
-<span id="cb147-8"><a href="#cb147-8" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span>(<span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">then</span></span>
-<span id="cb147-9"><a href="#cb147-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">RubyHDL</span><span class="at">.req</span> <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb147-10"><a href="#cb147-10" aria-hidden="true" tabindex="-1"></a>   <span class="cf">else</span></span>
-<span id="cb147-11"><a href="#cb147-11" aria-hidden="true" tabindex="-1"></a>      <span class="cf">case</span>(<span class="va">$state</span>)</span>
-<span id="cb147-12"><a href="#cb147-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">0</span>:</span>
-<span id="cb147-13"><a href="#cb147-13" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.addr</span> <span class="kw">=</span> <span class="dv">128</span><span class="kw">+</span><span class="va">$addr</span></span>
-<span id="cb147-14"><a href="#cb147-14" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.rwb</span>  <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb147-15"><a href="#cb147-15" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb147-16"><a href="#cb147-16" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">1</span>:</span>
-<span id="cb147-17"><a href="#cb147-17" aria-hidden="true" tabindex="-1"></a>         <span class="va">$tmp</span> <span class="kw">=</span> <span class="dt">RubyHDL</span><span class="at">.din</span></span>
-<span id="cb147-18"><a href="#cb147-18" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Read: </span><span class="sc">#{</span><span class="va">$tmp</span><span class="sc">}</span><span class="st">&quot;</span></span>
-<span id="cb147-19"><a href="#cb147-19" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">2</span></span>
-<span id="cb147-20"><a href="#cb147-20" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">2</span>:</span>
-<span id="cb147-21"><a href="#cb147-21" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.rwb</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb147-22"><a href="#cb147-22" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.addr</span> <span class="kw">=</span> <span class="va">$addr</span></span>
-<span id="cb147-23"><a href="#cb147-23" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Write: </span><span class="sc">#{</span><span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span><span class="sc">}</span><span class="st">&quot;</span></span>
-<span id="cb147-24"><a href="#cb147-24" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.dout</span> <span class="kw">=</span> <span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span>    <span class="co"># Write some random computation result from</span></span>
-<span id="cb147-25"><a href="#cb147-25" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span>                 <span class="co"># the previously read data. </span></span>
-<span id="cb147-26"><a href="#cb147-26" aria-hidden="true" tabindex="-1"></a>         <span class="va">$addr</span>  <span class="kw">=</span> (<span class="va">$addr</span> <span class="kw">+</span> <span class="dv">1</span>) <span class="kw">&amp;</span> <span class="dv">255</span> <span class="co"># Next address.</span></span>
-<span id="cb147-27"><a href="#cb147-27" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb147-28"><a href="#cb147-28" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb147-29"><a href="#cb147-29" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb148"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL.rb&#39;</span></span>
+<span id="cb148-2"><a href="#cb148-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a><span class="va">$addr</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb148-4"><a href="#cb148-4" aria-hidden="true" tabindex="-1"></a><span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb148-5"><a href="#cb148-5" aria-hidden="true" tabindex="-1"></a><span class="va">$tmp</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb148-7"><a href="#cb148-7" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> some_sw</span>
+<span id="cb148-8"><a href="#cb148-8" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span>(<span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">then</span></span>
+<span id="cb148-9"><a href="#cb148-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">RubyHDL</span><span class="at">.req</span> <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb148-10"><a href="#cb148-10" aria-hidden="true" tabindex="-1"></a>   <span class="cf">else</span></span>
+<span id="cb148-11"><a href="#cb148-11" aria-hidden="true" tabindex="-1"></a>      <span class="cf">case</span>(<span class="va">$state</span>)</span>
+<span id="cb148-12"><a href="#cb148-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">0</span>:</span>
+<span id="cb148-13"><a href="#cb148-13" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.addr</span> <span class="kw">=</span> <span class="dv">128</span><span class="kw">+</span><span class="va">$addr</span></span>
+<span id="cb148-14"><a href="#cb148-14" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.rwb</span>  <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb148-15"><a href="#cb148-15" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb148-16"><a href="#cb148-16" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">1</span>:</span>
+<span id="cb148-17"><a href="#cb148-17" aria-hidden="true" tabindex="-1"></a>         <span class="va">$tmp</span> <span class="kw">=</span> <span class="dt">RubyHDL</span><span class="at">.din</span></span>
+<span id="cb148-18"><a href="#cb148-18" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Read: </span><span class="sc">#{</span><span class="va">$tmp</span><span class="sc">}</span><span class="st">&quot;</span></span>
+<span id="cb148-19"><a href="#cb148-19" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">2</span></span>
+<span id="cb148-20"><a href="#cb148-20" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">2</span>:</span>
+<span id="cb148-21"><a href="#cb148-21" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.rwb</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb148-22"><a href="#cb148-22" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.addr</span> <span class="kw">=</span> <span class="va">$addr</span></span>
+<span id="cb148-23"><a href="#cb148-23" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Write: </span><span class="sc">#{</span><span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span><span class="sc">}</span><span class="st">&quot;</span></span>
+<span id="cb148-24"><a href="#cb148-24" aria-hidden="true" tabindex="-1"></a>         <span class="dt">RubyHDL</span><span class="at">.dout</span> <span class="kw">=</span> <span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span>    <span class="co"># Write some random computation result from</span></span>
+<span id="cb148-25"><a href="#cb148-25" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span>                 <span class="co"># the previously read data. </span></span>
+<span id="cb148-26"><a href="#cb148-26" aria-hidden="true" tabindex="-1"></a>         <span class="va">$addr</span>  <span class="kw">=</span> (<span class="va">$addr</span> <span class="kw">+</span> <span class="dv">1</span>) <span class="kw">&amp;</span> <span class="dv">255</span> <span class="co"># Next address.</span></span>
+<span id="cb148-27"><a href="#cb148-27" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb148-28"><a href="#cb148-28" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb148-29"><a href="#cb148-29" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>This program simply writes in the first half of the memory the result of some arbitrary computation from the data read from the first half. That is to say that it does the opposite of the hardware component described in the HDLRuby code. This code makes sense only if the process has access to the memory via explicit access to address and data registers, which is the case for some embedded architectures. If the memory is directly accessible by the processor, the access procedure must be encapsulated by Ruby methods (or C functions) that are meant to be replaced by standard memory accesses in the final code. Moreover, since a software code is fully executed by the HDLRuby simulator before giving back the hand to the simulation, this code has been written like a state machine whose state is a global variable updated at each code, so that it simulates an interaction with the hardware. This is valid if the software code is meant to be a handler of interrupt for example, but not for more conventional software. For the second case, a model of an operating system will have to be described that handles the synchronizations. Such a model as well as the encapsulation of the hardware accesses will presented in section <a href="#7-5-2-modeling-an-operating-system">7.5.2</a>.</p>
 <h5 id="memory-described-as-a-software-component">7.4.1.1 Memory described as a software component</h5>
 <p>Usually, CPUs have privileged access to the main memory and give direct access to it to software through a pointer, or an array. Moreover, memories are usually IP components that are instantiated as black boxes in HDL. For such cases, it is preferable to describe a memory as a program construct whose code is a simulation of its behavior described in software. This description is to be used when simulating, but it can be ignored when synthesizing the final hardware. With this approach, the previous HDLRuby code can be rewritten as follows:</p>
-<div class="sourceCode" id="cb148"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:hw_sw_with_sw_memory</span> <span class="cf">do</span></span>
-<span id="cb148-2"><a href="#cb148-2" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:addr</span></span>
-<span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:din</span>, <span class="wa">:dout</span></span>
-<span id="cb148-4"><a href="#cb148-4" aria-hidden="true" tabindex="-1"></a>   inner     <span class="wa">:rwb</span></span>
-<span id="cb148-5"><a href="#cb148-5" aria-hidden="true" tabindex="-1"></a>   inner     <span class="wa">:req</span>, <span class="wa">:ack</span></span>
-<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb148-7"><a href="#cb148-7" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
-<span id="cb148-8"><a href="#cb148-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb148-9"><a href="#cb148-9" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Description of the memory as a black box simulated in software.</span></span>
-<span id="cb148-10"><a href="#cb148-10" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:memory</span>) <span class="cf">do</span></span>
-<span id="cb148-11"><a href="#cb148-11" aria-hidden="true" tabindex="-1"></a>      actport clk<span class="at">.posedge</span></span>
-<span id="cb148-12"><a href="#cb148-12" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">addr: </span>addr</span>
-<span id="cb148-13"><a href="#cb148-13" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">din: </span> din</span>
-<span id="cb148-14"><a href="#cb148-14" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">dout: </span>dout</span>
-<span id="cb148-15"><a href="#cb148-15" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">rwb: </span> rwb</span>
-<span id="cb148-16"><a href="#cb148-16" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">req: </span> req</span>
-<span id="cb148-17"><a href="#cb148-17" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">ack: </span> ack</span>
-<span id="cb148-18"><a href="#cb148-18" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;some_sw.rb&quot;</span></span>
-<span id="cb148-19"><a href="#cb148-19" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb148-20"><a href="#cb148-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb148-21"><a href="#cb148-21" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The hw generating the tick activating the software part (e.g., an OS tick):</span></span>
-<span id="cb148-22"><a href="#cb148-22" aria-hidden="true" tabindex="-1"></a>   <span class="co"># one tick every 10 clock cycles.</span></span>
-<span id="cb148-23"><a href="#cb148-23" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:tick</span></span>
-<span id="cb148-24"><a href="#cb148-24" aria-hidden="true" tabindex="-1"></a>   (tick <span class="kw">&lt;=</span> <span class="kw">~</span>rst <span class="kw">&amp;</span> <span class="kw">~</span>tick)<span class="at">.at</span>(clk<span class="at">.posedge</span> <span class="kw">*</span> <span class="dv">5</span>)</span>
-<span id="cb148-25"><a href="#cb148-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb148-26"><a href="#cb148-26" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Description of the software part.</span></span>
-<span id="cb148-27"><a href="#cb148-27" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:some_sw</span>) <span class="cf">do</span></span>
-<span id="cb148-28"><a href="#cb148-28" aria-hidden="true" tabindex="-1"></a>      actport tick</span>
-<span id="cb148-29"><a href="#cb148-29" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;some_sw.rb&quot;</span></span>
-<span id="cb148-30"><a href="#cb148-30" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb148-31"><a href="#cb148-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb148-32"><a href="#cb148-32" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Some hardware code accessing the memory.</span></span>
-<span id="cb148-33"><a href="#cb148-33" aria-hidden="true" tabindex="-1"></a>   sequencer(clk,rst) <span class="cf">do</span></span>
-<span id="cb148-34"><a href="#cb148-34" aria-hidden="true" tabindex="-1"></a>      <span class="co"># At first, fill the memory with 0.</span></span>
-<span id="cb148-35"><a href="#cb148-35" aria-hidden="true" tabindex="-1"></a>      req <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb148-36"><a href="#cb148-36" aria-hidden="true" tabindex="-1"></a>      rwb <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb148-37"><a href="#cb148-37" aria-hidden="true" tabindex="-1"></a>      swhile(<span class="kw">~</span>ack) <span class="co"># Wait for the access grant to memory.</span></span>
-<span id="cb148-38"><a href="#cb148-38" aria-hidden="true" tabindex="-1"></a>      dout <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb148-39"><a href="#cb148-39" aria-hidden="true" tabindex="-1"></a>      <span class="dv">256</span><span class="at">.stimes</span> <span class="kw">{</span> <span class="kw">|</span>i<span class="kw">|</span> addr_hw <span class="kw">&lt;=</span> i <span class="kw">}</span></span>
-<span id="cb148-40"><a href="#cb148-40" aria-hidden="true" tabindex="-1"></a>      req <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="co"># End the transactions.</span></span>
-<span id="cb148-41"><a href="#cb148-41" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Now, do infinitively some arbitrary computations with the content</span></span>
-<span id="cb148-42"><a href="#cb148-42" aria-hidden="true" tabindex="-1"></a>      <span class="co"># of the memory.</span></span>
-<span id="cb148-43"><a href="#cb148-43" aria-hidden="true" tabindex="-1"></a>      sloop <span class="cf">do</span></span>
-<span id="cb148-44"><a href="#cb148-44" aria-hidden="true" tabindex="-1"></a>         <span class="dv">128</span><span class="at">.stimes</span> <span class="cf">do</span> <span class="kw">|</span>i<span class="kw">|</span></span>
-<span id="cb148-45"><a href="#cb148-45" aria-hidden="true" tabindex="-1"></a>            <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:tmp</span></span>
-<span id="cb148-46"><a href="#cb148-46" aria-hidden="true" tabindex="-1"></a>            req <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb148-47"><a href="#cb148-47" aria-hidden="true" tabindex="-1"></a>            rwb <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb148-48"><a href="#cb148-48" aria-hidden="true" tabindex="-1"></a>            addr <span class="kw">&lt;=</span> i</span>
-<span id="cb148-49"><a href="#cb148-49" aria-hidden="true" tabindex="-1"></a>            swhile(<span class="kw">~</span>ack)</span>
-<span id="cb148-50"><a href="#cb148-50" aria-hidden="true" tabindex="-1"></a>            tmp <span class="kw">&lt;=</span> din</span>
-<span id="cb148-51"><a href="#cb148-51" aria-hidden="true" tabindex="-1"></a>            step</span>
-<span id="cb148-52"><a href="#cb148-52" aria-hidden="true" tabindex="-1"></a>            rwb  <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb148-53"><a href="#cb148-53" aria-hidden="true" tabindex="-1"></a>            addr <span class="kw">&lt;=</span> i <span class="kw">+</span> <span class="dv">128</span></span>
-<span id="cb148-54"><a href="#cb148-54" aria-hidden="true" tabindex="-1"></a>            dout <span class="kw">&lt;=</span> tmp <span class="kw">*</span>tmp   <span class="co"># Just some senseless data.</span></span>
-<span id="cb148-55"><a href="#cb148-55" aria-hidden="true" tabindex="-1"></a>            step</span>
-<span id="cb148-56"><a href="#cb148-56" aria-hidden="true" tabindex="-1"></a>            req <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb148-57"><a href="#cb148-57" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
-<span id="cb148-58"><a href="#cb148-58" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb148-59"><a href="#cb148-59" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span></code></pre></div>
-<p>This time the arbiter has been integrated into the black box modeling the memory so that the hardware part only has to use the direct memory signals ‘addr’, ‘din’, ‘dout’, ‘rwb’, ‘req’ and ‘ack’. The code of the software part contains two functions, one for modeling the memory ‘memory’, and the previous software function ‘some_sw’. For the sake of concision, both are included in the same file given below, but for a real design, it would be better to put them in different files so that the real software is separated from the black box simulation code.</p>
-<div class="sourceCode" id="cb149"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb149-1"><a href="#cb149-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL.rb&#39;</span></span>
-<span id="cb149-2"><a href="#cb149-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb149-3"><a href="#cb149-3" aria-hidden="true" tabindex="-1"></a><span class="cn">MEM</span> <span class="kw">=</span> <span class="kw">[</span><span class="dv">0</span><span class="kw">]</span> <span class="kw">*</span> <span class="dv">256</span></span>
-<span id="cb149-4"><a href="#cb149-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb149-5"><a href="#cb149-5" aria-hidden="true" tabindex="-1"></a><span class="va">$priority</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<div class="sourceCode" id="cb149"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb149-1"><a href="#cb149-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:hw_sw_with_sw_memory</span> <span class="cf">do</span></span>
+<span id="cb149-2"><a href="#cb149-2" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:addr</span></span>
+<span id="cb149-3"><a href="#cb149-3" aria-hidden="true" tabindex="-1"></a>   <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:din</span>, <span class="wa">:dout</span></span>
+<span id="cb149-4"><a href="#cb149-4" aria-hidden="true" tabindex="-1"></a>   inner     <span class="wa">:rwb</span></span>
+<span id="cb149-5"><a href="#cb149-5" aria-hidden="true" tabindex="-1"></a>   inner     <span class="wa">:req</span>, <span class="wa">:ack</span></span>
 <span id="cb149-6"><a href="#cb149-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb149-7"><a href="#cb149-7" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> memory</span>
-<span id="cb149-8"><a href="#cb149-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Is there an access request from the HW?</span></span>
-<span id="cb149-9"><a href="#cb149-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="dt">RubyHDL</span><span class="at">.req</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
-<span id="cb149-10"><a href="#cb149-10" aria-hidden="true" tabindex="-1"></a>       <span class="co"># Is it being processed?</span></span>
-<span id="cb149-11"><a href="#cb149-11" aria-hidden="true" tabindex="-1"></a>       <span class="cf">if</span> (<span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
-<span id="cb149-12"><a href="#cb149-12" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Yes, go on processing.</span></span>
-<span id="cb149-13"><a href="#cb149-13" aria-hidden="true" tabindex="-1"></a>          <span class="cf">if</span> (<span class="dt">RubyHDL</span><span class="at">.rwb</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
-<span id="cb149-14"><a href="#cb149-14" aria-hidden="true" tabindex="-1"></a>             <span class="co"># Read access.</span></span>
-<span id="cb149-15"><a href="#cb149-15" aria-hidden="true" tabindex="-1"></a>             <span class="dt">RubyHDL</span><span class="at">.dout</span> <span class="kw">=</span> <span class="cn">MEM</span><span class="kw">[</span><span class="dt">RubyHDL</span><span class="at">.addr</span><span class="kw">]</span></span>
-<span id="cb149-16"><a href="#cb149-16" aria-hidden="true" tabindex="-1"></a>          <span class="cf">else</span></span>
-<span id="cb149-17"><a href="#cb149-17" aria-hidden="true" tabindex="-1"></a>             <span class="co"># Write access.</span></span>
-<span id="cb149-18"><a href="#cb149-18" aria-hidden="true" tabindex="-1"></a>             <span class="cn">MEM</span><span class="kw">[</span><span class="dt">RubyHDL</span><span class="at">.addr</span><span class="kw">]</span> <span class="kw">=</span> <span class="dt">RubyHDL</span><span class="at">.din</span></span>
-<span id="cb149-19"><a href="#cb149-19" aria-hidden="true" tabindex="-1"></a>          <span class="cf">end</span></span>
-<span id="cb149-20"><a href="#cb149-20" aria-hidden="true" tabindex="-1"></a>       <span class="cf">elsif</span> (<span class="va">$priority</span> <span class="kw">==</span> <span class="dv">0</span>)</span>
-<span id="cb149-21"><a href="#cb149-21" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Grant the access.</span></span>
-<span id="cb149-22"><a href="#cb149-22" aria-hidden="true" tabindex="-1"></a>          <span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb149-23"><a href="#cb149-23" aria-hidden="true" tabindex="-1"></a>          <span class="va">$priority</span> <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb149-24"><a href="#cb149-24" aria-hidden="true" tabindex="-1"></a>       <span class="cf">end</span></span>
-<span id="cb149-25"><a href="#cb149-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb149-26"><a href="#cb149-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
-<span id="cb149-27"><a href="#cb149-27" aria-hidden="true" tabindex="-1"></a>       <span class="co"># No, ensure the access grant is removed.</span></span>
-<span id="cb149-28"><a href="#cb149-28" aria-hidden="true" tabindex="-1"></a>       <span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb149-29"><a href="#cb149-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb149-30"><a href="#cb149-30" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb149-7"><a href="#cb149-7" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
+<span id="cb149-8"><a href="#cb149-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb149-9"><a href="#cb149-9" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Description of the memory as a black box simulated in software.</span></span>
+<span id="cb149-10"><a href="#cb149-10" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:memory</span>) <span class="cf">do</span></span>
+<span id="cb149-11"><a href="#cb149-11" aria-hidden="true" tabindex="-1"></a>      actport clk<span class="at">.posedge</span></span>
+<span id="cb149-12"><a href="#cb149-12" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">addr: </span>addr</span>
+<span id="cb149-13"><a href="#cb149-13" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">din: </span> din</span>
+<span id="cb149-14"><a href="#cb149-14" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">dout: </span>dout</span>
+<span id="cb149-15"><a href="#cb149-15" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">rwb: </span> rwb</span>
+<span id="cb149-16"><a href="#cb149-16" aria-hidden="true" tabindex="-1"></a>      inport  <span class="wa">req: </span> req</span>
+<span id="cb149-17"><a href="#cb149-17" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">ack: </span> ack</span>
+<span id="cb149-18"><a href="#cb149-18" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;some_sw.rb&quot;</span></span>
+<span id="cb149-19"><a href="#cb149-19" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb149-20"><a href="#cb149-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb149-21"><a href="#cb149-21" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The hw generating the tick activating the software part (e.g., an OS tick):</span></span>
+<span id="cb149-22"><a href="#cb149-22" aria-hidden="true" tabindex="-1"></a>   <span class="co"># one tick every 10 clock cycles.</span></span>
+<span id="cb149-23"><a href="#cb149-23" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:tick</span></span>
+<span id="cb149-24"><a href="#cb149-24" aria-hidden="true" tabindex="-1"></a>   (tick <span class="kw">&lt;=</span> <span class="kw">~</span>rst <span class="kw">&amp;</span> <span class="kw">~</span>tick)<span class="at">.at</span>(clk<span class="at">.posedge</span> <span class="kw">*</span> <span class="dv">5</span>)</span>
+<span id="cb149-25"><a href="#cb149-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb149-26"><a href="#cb149-26" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Description of the software part.</span></span>
+<span id="cb149-27"><a href="#cb149-27" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:some_sw</span>) <span class="cf">do</span></span>
+<span id="cb149-28"><a href="#cb149-28" aria-hidden="true" tabindex="-1"></a>      actport tick</span>
+<span id="cb149-29"><a href="#cb149-29" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;some_sw.rb&quot;</span></span>
+<span id="cb149-30"><a href="#cb149-30" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
 <span id="cb149-31"><a href="#cb149-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb149-32"><a href="#cb149-32" aria-hidden="true" tabindex="-1"></a><span class="va">$addr</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb149-33"><a href="#cb149-33" aria-hidden="true" tabindex="-1"></a><span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb149-34"><a href="#cb149-34" aria-hidden="true" tabindex="-1"></a><span class="va">$tmp</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb149-35"><a href="#cb149-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb149-36"><a href="#cb149-36" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> some_sw</span>
-<span id="cb149-37"><a href="#cb149-37" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span>(<span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">then</span></span>
-<span id="cb149-38"><a href="#cb149-38" aria-hidden="true" tabindex="-1"></a>      <span class="co"># The access from HW to memory not granted, can go an.</span></span>
-<span id="cb149-39"><a href="#cb149-39" aria-hidden="true" tabindex="-1"></a>      <span class="cf">case</span>(<span class="va">$state</span>)</span>
-<span id="cb149-40"><a href="#cb149-40" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">0</span>:</span>
-<span id="cb149-41"><a href="#cb149-41" aria-hidden="true" tabindex="-1"></a>         <span class="cf">if</span> (<span class="va">$priority</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
-<span id="cb149-42"><a href="#cb149-42" aria-hidden="true" tabindex="-1"></a>            <span class="va">$state</span> <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb149-43"><a href="#cb149-43" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
-<span id="cb149-44"><a href="#cb149-44" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">1</span>:</span>
-<span id="cb149-45"><a href="#cb149-45" aria-hidden="true" tabindex="-1"></a>         <span class="va">$tmp</span> <span class="kw">=</span> <span class="cn">MEM</span><span class="kw">[</span><span class="va">$addr</span><span class="kw">+</span><span class="dv">128</span><span class="kw">]</span></span>
-<span id="cb149-46"><a href="#cb149-46" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Read: </span><span class="sc">#{</span><span class="va">$tmp</span><span class="sc">}</span><span class="st">&quot;</span></span>
-<span id="cb149-47"><a href="#cb149-47" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">2</span></span>
-<span id="cb149-48"><a href="#cb149-48" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">2</span>:</span>
-<span id="cb149-49"><a href="#cb149-49" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Write: </span><span class="sc">#{</span><span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span><span class="sc">}</span><span class="st">&quot;</span></span>
-<span id="cb149-50"><a href="#cb149-50" aria-hidden="true" tabindex="-1"></a>         <span class="cn">MEM</span><span class="kw">[</span><span class="va">$addr</span><span class="kw">]</span> <span class="kw">=</span> <span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span>      <span class="co"># Write some random computation result from</span></span>
-<span id="cb149-51"><a href="#cb149-51" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span>                 <span class="co"># the previously read data. </span></span>
-<span id="cb149-52"><a href="#cb149-52" aria-hidden="true" tabindex="-1"></a>         <span class="va">$addr</span>  <span class="kw">=</span> (<span class="va">$addr</span> <span class="kw">+</span> <span class="dv">1</span>) <span class="kw">&amp;</span> <span class="dv">255</span> <span class="co"># Next address.</span></span>
-<span id="cb149-53"><a href="#cb149-53" aria-hidden="true" tabindex="-1"></a>         <span class="va">$priority</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb149-54"><a href="#cb149-54" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb149-55"><a href="#cb149-55" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb149-56"><a href="#cb149-56" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<span id="cb149-32"><a href="#cb149-32" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Some hardware code accessing the memory.</span></span>
+<span id="cb149-33"><a href="#cb149-33" aria-hidden="true" tabindex="-1"></a>   sequencer(clk,rst) <span class="cf">do</span></span>
+<span id="cb149-34"><a href="#cb149-34" aria-hidden="true" tabindex="-1"></a>      <span class="co"># At first, fill the memory with 0.</span></span>
+<span id="cb149-35"><a href="#cb149-35" aria-hidden="true" tabindex="-1"></a>      req <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb149-36"><a href="#cb149-36" aria-hidden="true" tabindex="-1"></a>      rwb <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb149-37"><a href="#cb149-37" aria-hidden="true" tabindex="-1"></a>      swhile(<span class="kw">~</span>ack) <span class="co"># Wait for the access grant to memory.</span></span>
+<span id="cb149-38"><a href="#cb149-38" aria-hidden="true" tabindex="-1"></a>      dout <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb149-39"><a href="#cb149-39" aria-hidden="true" tabindex="-1"></a>      <span class="dv">256</span><span class="at">.stimes</span> <span class="kw">{</span> <span class="kw">|</span>i<span class="kw">|</span> addr_hw <span class="kw">&lt;=</span> i <span class="kw">}</span></span>
+<span id="cb149-40"><a href="#cb149-40" aria-hidden="true" tabindex="-1"></a>      req <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="co"># End the transactions.</span></span>
+<span id="cb149-41"><a href="#cb149-41" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Now, do infinitively some arbitrary computations with the content</span></span>
+<span id="cb149-42"><a href="#cb149-42" aria-hidden="true" tabindex="-1"></a>      <span class="co"># of the memory.</span></span>
+<span id="cb149-43"><a href="#cb149-43" aria-hidden="true" tabindex="-1"></a>      sloop <span class="cf">do</span></span>
+<span id="cb149-44"><a href="#cb149-44" aria-hidden="true" tabindex="-1"></a>         <span class="dv">128</span><span class="at">.stimes</span> <span class="cf">do</span> <span class="kw">|</span>i<span class="kw">|</span></span>
+<span id="cb149-45"><a href="#cb149-45" aria-hidden="true" tabindex="-1"></a>            <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:tmp</span></span>
+<span id="cb149-46"><a href="#cb149-46" aria-hidden="true" tabindex="-1"></a>            req <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb149-47"><a href="#cb149-47" aria-hidden="true" tabindex="-1"></a>            rwb <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb149-48"><a href="#cb149-48" aria-hidden="true" tabindex="-1"></a>            addr <span class="kw">&lt;=</span> i</span>
+<span id="cb149-49"><a href="#cb149-49" aria-hidden="true" tabindex="-1"></a>            swhile(<span class="kw">~</span>ack)</span>
+<span id="cb149-50"><a href="#cb149-50" aria-hidden="true" tabindex="-1"></a>            tmp <span class="kw">&lt;=</span> din</span>
+<span id="cb149-51"><a href="#cb149-51" aria-hidden="true" tabindex="-1"></a>            step</span>
+<span id="cb149-52"><a href="#cb149-52" aria-hidden="true" tabindex="-1"></a>            rwb  <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb149-53"><a href="#cb149-53" aria-hidden="true" tabindex="-1"></a>            addr <span class="kw">&lt;=</span> i <span class="kw">+</span> <span class="dv">128</span></span>
+<span id="cb149-54"><a href="#cb149-54" aria-hidden="true" tabindex="-1"></a>            dout <span class="kw">&lt;=</span> tmp <span class="kw">*</span>tmp   <span class="co"># Just some senseless data.</span></span>
+<span id="cb149-55"><a href="#cb149-55" aria-hidden="true" tabindex="-1"></a>            step</span>
+<span id="cb149-56"><a href="#cb149-56" aria-hidden="true" tabindex="-1"></a>            req <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb149-57"><a href="#cb149-57" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
+<span id="cb149-58"><a href="#cb149-58" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb149-59"><a href="#cb149-59" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span></code></pre></div>
+<p>This time the arbiter has been integrated into the black box modeling the memory so that the hardware part only has to use the direct memory signals ‘addr’, ‘din’, ‘dout’, ‘rwb’, ‘req’ and ‘ack’. The code of the software part contains two functions, one for modeling the memory ‘memory’, and the previous software function ‘some_sw’. For the sake of concision, both are included in the same file given below, but for a real design, it would be better to put them in different files so that the real software is separated from the black box simulation code.</p>
+<div class="sourceCode" id="cb150"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL.rb&#39;</span></span>
+<span id="cb150-2"><a href="#cb150-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a><span class="cn">MEM</span> <span class="kw">=</span> <span class="kw">[</span><span class="dv">0</span><span class="kw">]</span> <span class="kw">*</span> <span class="dv">256</span></span>
+<span id="cb150-4"><a href="#cb150-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-5"><a href="#cb150-5" aria-hidden="true" tabindex="-1"></a><span class="va">$priority</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-7"><a href="#cb150-7" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> memory</span>
+<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Is there an access request from the HW?</span></span>
+<span id="cb150-9"><a href="#cb150-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="dt">RubyHDL</span><span class="at">.req</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
+<span id="cb150-10"><a href="#cb150-10" aria-hidden="true" tabindex="-1"></a>       <span class="co"># Is it being processed?</span></span>
+<span id="cb150-11"><a href="#cb150-11" aria-hidden="true" tabindex="-1"></a>       <span class="cf">if</span> (<span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
+<span id="cb150-12"><a href="#cb150-12" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Yes, go on processing.</span></span>
+<span id="cb150-13"><a href="#cb150-13" aria-hidden="true" tabindex="-1"></a>          <span class="cf">if</span> (<span class="dt">RubyHDL</span><span class="at">.rwb</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
+<span id="cb150-14"><a href="#cb150-14" aria-hidden="true" tabindex="-1"></a>             <span class="co"># Read access.</span></span>
+<span id="cb150-15"><a href="#cb150-15" aria-hidden="true" tabindex="-1"></a>             <span class="dt">RubyHDL</span><span class="at">.dout</span> <span class="kw">=</span> <span class="cn">MEM</span><span class="kw">[</span><span class="dt">RubyHDL</span><span class="at">.addr</span><span class="kw">]</span></span>
+<span id="cb150-16"><a href="#cb150-16" aria-hidden="true" tabindex="-1"></a>          <span class="cf">else</span></span>
+<span id="cb150-17"><a href="#cb150-17" aria-hidden="true" tabindex="-1"></a>             <span class="co"># Write access.</span></span>
+<span id="cb150-18"><a href="#cb150-18" aria-hidden="true" tabindex="-1"></a>             <span class="cn">MEM</span><span class="kw">[</span><span class="dt">RubyHDL</span><span class="at">.addr</span><span class="kw">]</span> <span class="kw">=</span> <span class="dt">RubyHDL</span><span class="at">.din</span></span>
+<span id="cb150-19"><a href="#cb150-19" aria-hidden="true" tabindex="-1"></a>          <span class="cf">end</span></span>
+<span id="cb150-20"><a href="#cb150-20" aria-hidden="true" tabindex="-1"></a>       <span class="cf">elsif</span> (<span class="va">$priority</span> <span class="kw">==</span> <span class="dv">0</span>)</span>
+<span id="cb150-21"><a href="#cb150-21" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Grant the access.</span></span>
+<span id="cb150-22"><a href="#cb150-22" aria-hidden="true" tabindex="-1"></a>          <span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb150-23"><a href="#cb150-23" aria-hidden="true" tabindex="-1"></a>          <span class="va">$priority</span> <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb150-24"><a href="#cb150-24" aria-hidden="true" tabindex="-1"></a>       <span class="cf">end</span></span>
+<span id="cb150-25"><a href="#cb150-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb150-26"><a href="#cb150-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb150-27"><a href="#cb150-27" aria-hidden="true" tabindex="-1"></a>       <span class="co"># No, ensure the access grant is removed.</span></span>
+<span id="cb150-28"><a href="#cb150-28" aria-hidden="true" tabindex="-1"></a>       <span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb150-29"><a href="#cb150-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb150-30"><a href="#cb150-30" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb150-31"><a href="#cb150-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-32"><a href="#cb150-32" aria-hidden="true" tabindex="-1"></a><span class="va">$addr</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb150-33"><a href="#cb150-33" aria-hidden="true" tabindex="-1"></a><span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb150-34"><a href="#cb150-34" aria-hidden="true" tabindex="-1"></a><span class="va">$tmp</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb150-35"><a href="#cb150-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-36"><a href="#cb150-36" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> some_sw</span>
+<span id="cb150-37"><a href="#cb150-37" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span>(<span class="dt">RubyHDL</span><span class="at">.ack</span> <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">then</span></span>
+<span id="cb150-38"><a href="#cb150-38" aria-hidden="true" tabindex="-1"></a>      <span class="co"># The access from HW to memory not granted, can go an.</span></span>
+<span id="cb150-39"><a href="#cb150-39" aria-hidden="true" tabindex="-1"></a>      <span class="cf">case</span>(<span class="va">$state</span>)</span>
+<span id="cb150-40"><a href="#cb150-40" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">0</span>:</span>
+<span id="cb150-41"><a href="#cb150-41" aria-hidden="true" tabindex="-1"></a>         <span class="cf">if</span> (<span class="va">$priority</span> <span class="kw">==</span> <span class="dv">1</span>) <span class="cf">then</span></span>
+<span id="cb150-42"><a href="#cb150-42" aria-hidden="true" tabindex="-1"></a>            <span class="va">$state</span> <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb150-43"><a href="#cb150-43" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
+<span id="cb150-44"><a href="#cb150-44" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">1</span>:</span>
+<span id="cb150-45"><a href="#cb150-45" aria-hidden="true" tabindex="-1"></a>         <span class="va">$tmp</span> <span class="kw">=</span> <span class="cn">MEM</span><span class="kw">[</span><span class="va">$addr</span><span class="kw">+</span><span class="dv">128</span><span class="kw">]</span></span>
+<span id="cb150-46"><a href="#cb150-46" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Read: </span><span class="sc">#{</span><span class="va">$tmp</span><span class="sc">}</span><span class="st">&quot;</span></span>
+<span id="cb150-47"><a href="#cb150-47" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">2</span></span>
+<span id="cb150-48"><a href="#cb150-48" aria-hidden="true" tabindex="-1"></a>      <span class="cf">when</span> <span class="dv">2</span>:</span>
+<span id="cb150-49"><a href="#cb150-49" aria-hidden="true" tabindex="-1"></a>         <span class="fu">puts</span> <span class="st">&quot;Write: </span><span class="sc">#{</span><span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span><span class="sc">}</span><span class="st">&quot;</span></span>
+<span id="cb150-50"><a href="#cb150-50" aria-hidden="true" tabindex="-1"></a>         <span class="cn">MEM</span><span class="kw">[</span><span class="va">$addr</span><span class="kw">]</span> <span class="kw">=</span> <span class="va">$tmp</span> <span class="kw">+</span> <span class="dv">1</span>      <span class="co"># Write some random computation result from</span></span>
+<span id="cb150-51"><a href="#cb150-51" aria-hidden="true" tabindex="-1"></a>         <span class="va">$state</span> <span class="kw">=</span> <span class="dv">0</span>                 <span class="co"># the previously read data. </span></span>
+<span id="cb150-52"><a href="#cb150-52" aria-hidden="true" tabindex="-1"></a>         <span class="va">$addr</span>  <span class="kw">=</span> (<span class="va">$addr</span> <span class="kw">+</span> <span class="dv">1</span>) <span class="kw">&amp;</span> <span class="dv">255</span> <span class="co"># Next address.</span></span>
+<span id="cb150-53"><a href="#cb150-53" aria-hidden="true" tabindex="-1"></a>         <span class="va">$priority</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb150-54"><a href="#cb150-54" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb150-55"><a href="#cb150-55" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb150-56"><a href="#cb150-56" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>In this example, the memory is modeled by a simple array. The function ‘memory’ handles the accesses from the hardware and the arbitration between software and hardware access using a round-robin algorithm. The software program given by function ‘some_sw’ is identical to the previous one, apart from the memory access which is a direct array access, and the check of the memory grant, since this time no software-specific signal is used for the arbitration.</p>
 <h5 id="modeling-an-operating-system">7.4.2 Modeling an operating system</h5>
 <p>Usually, software is executed on top of an operating system, or a minimal runtime, e.g., even the plainest C runs on top of ‘crt0’. This low-level software is usually fixed and highly target-dependent. Hence, it is usually enough to simulate this behavior. Since the HDLRuby simulator supports any compiled C (or other compatible compiled language), or Ruby, all the techniques that can be used in these languages for abstract low-level software can be used. Here, we will use Ruby threads as an illustration for modeling a simple multitask system with an interrupt handler. In the example, there will be two tasks, one reading data from a dummy hardware device described in HDLRuby, transmitting it using a pipe to another one which writes its data to the standard output every second.</p>
-<div class="sourceCode" id="cb150"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:hw_sw_with_os</span> <span class="cf">do</span></span>
-<span id="cb150-2"><a href="#cb150-2" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:clk</span>,<span class="wa">:rst</span></span>
-<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-4"><a href="#cb150-4" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The OS tick</span></span>
-<span id="cb150-5"><a href="#cb150-5" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:tick</span></span>
-<span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a>   (tick <span class="kw">&lt;=</span> <span class="kw">~</span>rst <span class="kw">&amp;</span> <span class="kw">~</span>tick)<span class="at">.at</span>(clk<span class="at">.posedge</span> <span class="kw">*</span> <span class="dv">5</span>)</span>
-<span id="cb150-7"><a href="#cb150-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The general interrupt signal: interrupt request, acknowledge, and number</span></span>
-<span id="cb150-9"><a href="#cb150-9" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:irq</span>, <span class="wa">:iak</span></span>
-<span id="cb150-10"><a href="#cb150-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-11"><a href="#cb150-11" aria-hidden="true" tabindex="-1"></a>   <span class="co"># A register that </span></span>
-<span id="cb150-12"><a href="#cb150-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-13"><a href="#cb150-13" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The os model.</span></span>
-<span id="cb150-14"><a href="#cb150-14" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>, <span class="wa">:os</span>) <span class="cf">do</span></span>
-<span id="cb150-15"><a href="#cb150-15" aria-hidden="true" tabindex="-1"></a>      actport <span class="wa">tick: </span>tick</span>
-<span id="cb150-16"><a href="#cb150-16" aria-hidden="true" tabindex="-1"></a>      inport <span class="wa">register: </span>register     <span class="co"># Some register direcly acessible by software</span></span>
-<span id="cb150-17"><a href="#cb150-17" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;sw_with_os.rb&quot;</span></span>
-<span id="cb150-18"><a href="#cb150-18" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb150-19"><a href="#cb150-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-20"><a href="#cb150-20" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The interrupt handler.</span></span>
-<span id="cb150-21"><a href="#cb150-21" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:handler</span>) <span class="cf">do</span></span>
-<span id="cb150-22"><a href="#cb150-22" aria-hidden="true" tabindex="-1"></a>      actport <span class="wa">irq: </span>irq</span>
-<span id="cb150-23"><a href="#cb150-23" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">iak: </span>iak</span>
-<span id="cb150-24"><a href="#cb150-24" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;sw_with_os.rb&quot;</span></span>
-<span id="cb150-25"><a href="#cb150-25" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb150-26"><a href="#cb150-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-27"><a href="#cb150-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-28"><a href="#cb150-28" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Some dummy hardware generating data (counting clocks) and raising an</span></span>
-<span id="cb150-29"><a href="#cb150-29" aria-hidden="true" tabindex="-1"></a>   <span class="co"># interrupt when the data is ready on a software-accessible register.</span></span>
-<span id="cb150-30"><a href="#cb150-30" aria-hidden="true" tabindex="-1"></a>   par(clk<span class="at">.posedge</span>) <span class="cf">do</span></span>
-<span id="cb150-31"><a href="#cb150-31" aria-hidden="true" tabindex="-1"></a>      hif(rst) <span class="kw">{</span> register <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="kw">}</span></span>
-<span id="cb150-32"><a href="#cb150-32" aria-hidden="true" tabindex="-1"></a>      helse <span class="cf">do</span></span>
-<span id="cb150-33"><a href="#cb150-33" aria-hidden="true" tabindex="-1"></a>         <span class="co"># Increase the value of the register.</span></span>
-<span id="cb150-34"><a href="#cb150-34" aria-hidden="true" tabindex="-1"></a>         register <span class="kw">&lt;=</span> register <span class="kw">+</span> <span class="dv">1</span></span>
-<span id="cb150-35"><a href="#cb150-35" aria-hidden="true" tabindex="-1"></a>         <span class="co"># Handle the interrupts.</span></span>
-<span id="cb150-36"><a href="#cb150-36" aria-hidden="true" tabindex="-1"></a>         hif(irq <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">do</span></span>
-<span id="cb150-37"><a href="#cb150-37" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Is the prevous irq have been processed?</span></span>
-<span id="cb150-38"><a href="#cb150-38" aria-hidden="true" tabindex="-1"></a>            hif (iak <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">do</span></span>
-<span id="cb150-39"><a href="#cb150-39" aria-hidden="true" tabindex="-1"></a>               <span class="co"># Yes, raise an interrupt.</span></span>
-<span id="cb150-40"><a href="#cb150-40" aria-hidden="true" tabindex="-1"></a>               irq <span class="kw">&lt;=</span> <span class="dv">1</span></span>
-<span id="cb150-41"><a href="#cb150-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
-<span id="cb150-42"><a href="#cb150-42" aria-hidden="true" tabindex="-1"></a>         <span class="cf">else</span></span>
-<span id="cb150-43"><a href="#cb150-43" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Wait for the irq to be acknowledge.</span></span>
-<span id="cb150-44"><a href="#cb150-44" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (iak <span class="kw">==</span> <span class="dv">1</span>) <span class="kw">{</span> irq <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="kw">}</span></span>
-<span id="cb150-45"><a href="#cb150-45" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
-<span id="cb150-46"><a href="#cb150-46" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
-<span id="cb150-47"><a href="#cb150-47" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb150-48"><a href="#cb150-48" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb151"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb151-1"><a href="#cb151-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:hw_sw_with_os</span> <span class="cf">do</span></span>
+<span id="cb151-2"><a href="#cb151-2" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:clk</span>,<span class="wa">:rst</span></span>
+<span id="cb151-3"><a href="#cb151-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-4"><a href="#cb151-4" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The OS tick</span></span>
+<span id="cb151-5"><a href="#cb151-5" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:tick</span></span>
+<span id="cb151-6"><a href="#cb151-6" aria-hidden="true" tabindex="-1"></a>   (tick <span class="kw">&lt;=</span> <span class="kw">~</span>rst <span class="kw">&amp;</span> <span class="kw">~</span>tick)<span class="at">.at</span>(clk<span class="at">.posedge</span> <span class="kw">*</span> <span class="dv">5</span>)</span>
+<span id="cb151-7"><a href="#cb151-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-8"><a href="#cb151-8" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The general interrupt signal: interrupt request, acknowledge, and number</span></span>
+<span id="cb151-9"><a href="#cb151-9" aria-hidden="true" tabindex="-1"></a>   inner <span class="wa">:irq</span>, <span class="wa">:iak</span></span>
+<span id="cb151-10"><a href="#cb151-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-11"><a href="#cb151-11" aria-hidden="true" tabindex="-1"></a>   <span class="co"># A register that </span></span>
+<span id="cb151-12"><a href="#cb151-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-13"><a href="#cb151-13" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The os model.</span></span>
+<span id="cb151-14"><a href="#cb151-14" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>, <span class="wa">:os</span>) <span class="cf">do</span></span>
+<span id="cb151-15"><a href="#cb151-15" aria-hidden="true" tabindex="-1"></a>      actport <span class="wa">tick: </span>tick</span>
+<span id="cb151-16"><a href="#cb151-16" aria-hidden="true" tabindex="-1"></a>      inport <span class="wa">register: </span>register     <span class="co"># Some register direcly acessible by software</span></span>
+<span id="cb151-17"><a href="#cb151-17" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;sw_with_os.rb&quot;</span></span>
+<span id="cb151-18"><a href="#cb151-18" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb151-19"><a href="#cb151-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-20"><a href="#cb151-20" aria-hidden="true" tabindex="-1"></a>   <span class="co"># The interrupt handler.</span></span>
+<span id="cb151-21"><a href="#cb151-21" aria-hidden="true" tabindex="-1"></a>   program(<span class="wa">:ruby</span>,<span class="wa">:handler</span>) <span class="cf">do</span></span>
+<span id="cb151-22"><a href="#cb151-22" aria-hidden="true" tabindex="-1"></a>      actport <span class="wa">irq: </span>irq</span>
+<span id="cb151-23"><a href="#cb151-23" aria-hidden="true" tabindex="-1"></a>      outport <span class="wa">iak: </span>iak</span>
+<span id="cb151-24"><a href="#cb151-24" aria-hidden="true" tabindex="-1"></a>      code <span class="st">&quot;sw_with_os.rb&quot;</span></span>
+<span id="cb151-25"><a href="#cb151-25" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb151-26"><a href="#cb151-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-27"><a href="#cb151-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb151-28"><a href="#cb151-28" aria-hidden="true" tabindex="-1"></a>   <span class="co"># Some dummy hardware generating data (counting clocks) and raising an</span></span>
+<span id="cb151-29"><a href="#cb151-29" aria-hidden="true" tabindex="-1"></a>   <span class="co"># interrupt when the data is ready on a software-accessible register.</span></span>
+<span id="cb151-30"><a href="#cb151-30" aria-hidden="true" tabindex="-1"></a>   par(clk<span class="at">.posedge</span>) <span class="cf">do</span></span>
+<span id="cb151-31"><a href="#cb151-31" aria-hidden="true" tabindex="-1"></a>      hif(rst) <span class="kw">{</span> register <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="kw">}</span></span>
+<span id="cb151-32"><a href="#cb151-32" aria-hidden="true" tabindex="-1"></a>      helse <span class="cf">do</span></span>
+<span id="cb151-33"><a href="#cb151-33" aria-hidden="true" tabindex="-1"></a>         <span class="co"># Increase the value of the register.</span></span>
+<span id="cb151-34"><a href="#cb151-34" aria-hidden="true" tabindex="-1"></a>         register <span class="kw">&lt;=</span> register <span class="kw">+</span> <span class="dv">1</span></span>
+<span id="cb151-35"><a href="#cb151-35" aria-hidden="true" tabindex="-1"></a>         <span class="co"># Handle the interrupts.</span></span>
+<span id="cb151-36"><a href="#cb151-36" aria-hidden="true" tabindex="-1"></a>         hif(irq <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">do</span></span>
+<span id="cb151-37"><a href="#cb151-37" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Is the prevous irq have been processed?</span></span>
+<span id="cb151-38"><a href="#cb151-38" aria-hidden="true" tabindex="-1"></a>            hif (iak <span class="kw">==</span> <span class="dv">0</span>) <span class="cf">do</span></span>
+<span id="cb151-39"><a href="#cb151-39" aria-hidden="true" tabindex="-1"></a>               <span class="co"># Yes, raise an interrupt.</span></span>
+<span id="cb151-40"><a href="#cb151-40" aria-hidden="true" tabindex="-1"></a>               irq <span class="kw">&lt;=</span> <span class="dv">1</span></span>
+<span id="cb151-41"><a href="#cb151-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb151-42"><a href="#cb151-42" aria-hidden="true" tabindex="-1"></a>         <span class="cf">else</span></span>
+<span id="cb151-43"><a href="#cb151-43" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Wait for the irq to be acknowledge.</span></span>
+<span id="cb151-44"><a href="#cb151-44" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (iak <span class="kw">==</span> <span class="dv">1</span>) <span class="kw">{</span> irq <span class="kw">&lt;=</span> <span class="dv">0</span> <span class="kw">}</span></span>
+<span id="cb151-45"><a href="#cb151-45" aria-hidden="true" tabindex="-1"></a>         <span class="cf">end</span></span>
+<span id="cb151-46"><a href="#cb151-46" aria-hidden="true" tabindex="-1"></a>      <span class="cf">end</span></span>
+<span id="cb151-47"><a href="#cb151-47" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb151-48"><a href="#cb151-48" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>The software code ‘sw_with_os.rb’ is as follows:</p>
-<div class="sourceCode" id="cb151"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb151-1"><a href="#cb151-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL.rb&#39;</span></span>
-<span id="cb151-2"><a href="#cb151-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-3"><a href="#cb151-3" aria-hidden="true" tabindex="-1"></a><span class="va">$register</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb151-4"><a href="#cb151-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-5"><a href="#cb151-5" aria-hidden="true" tabindex="-1"></a><span class="va">$start</span> <span class="kw">=</span> <span class="dv">true</span></span>
-<span id="cb151-6"><a href="#cb151-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-7"><a href="#cb151-7" aria-hidden="true" tabindex="-1"></a><span class="co"># The os simulation function. Initialize the tasks and the communication pipe</span></span>
-<span id="cb151-8"><a href="#cb151-8" aria-hidden="true" tabindex="-1"></a><span class="co"># for the first call, then update the value of the $register variable.</span></span>
-<span id="cb151-9"><a href="#cb151-9" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> os</span>
-<span id="cb151-10"><a href="#cb151-10" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span>(<span class="va">$start</span>) <span class="cf">then</span></span>
-<span id="cb151-11"><a href="#cb151-11" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Create the communication pipe.</span></span>
-<span id="cb151-12"><a href="#cb151-12" aria-hidden="true" tabindex="-1"></a>      <span class="va">$pout</span>, <span class="va">$pin</span> <span class="kw">=</span> <span class="cn">IO</span><span class="at">.pipe</span></span>
-<span id="cb151-13"><a href="#cb151-13" aria-hidden="true" tabindex="-1"></a>      <span class="va">$tasks</span> <span class="kw">=</span> <span class="kw">[]</span></span>
-<span id="cb151-14"><a href="#cb151-14" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Create the first task reading the values.</span></span>
-<span id="cb151-15"><a href="#cb151-15" aria-hidden="true" tabindex="-1"></a>      <span class="va">$tasks</span> <span class="kw">&lt;&lt;</span> <span class="dt">Thread</span><span class="at">.new</span>(<span class="kw">&amp;</span><span class="dt">Kernel</span><span class="at">.method</span>(<span class="wa">:read_task</span>))</span>
-<span id="cb151-16"><a href="#cb151-16" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Create the second task displaying the values.</span></span>
-<span id="cb151-17"><a href="#cb151-17" aria-hidden="true" tabindex="-1"></a>      <span class="va">$tasks</span> <span class="kw">&lt;&lt;</span> <span class="dt">Thread</span><span class="at">.new</span>(<span class="kw">&amp;</span><span class="dt">Kernel</span><span class="at">.method</span>(<span class="wa">:show_task</span>))</span>
-<span id="cb151-18"><a href="#cb151-18" aria-hidden="true" tabindex="-1"></a>      <span class="va">$start</span> <span class="kw">=</span> <span class="dv">false</span></span>
-<span id="cb151-19"><a href="#cb151-19" aria-hidden="true" tabindex="-1"></a>   <span class="cf">else</span></span>
-<span id="cb151-20"><a href="#cb151-20" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Update $register.</span></span>
-<span id="cb151-21"><a href="#cb151-21" aria-hidden="true" tabindex="-1"></a>      <span class="va">$register</span> <span class="kw">=</span> <span class="dt">RubyHDL</span><span class="at">.register</span></span>
-<span id="cb151-22"><a href="#cb151-22" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb151-23"><a href="#cb151-23" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb151-24"><a href="#cb151-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-25"><a href="#cb151-25" aria-hidden="true" tabindex="-1"></a><span class="co"># The interrupt handler: acknowledge the interrupt, wakes up the read task.</span></span>
-<span id="cb151-26"><a href="#cb151-26" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> handler</span>
-<span id="cb151-27"><a href="#cb151-27" aria-hidden="true" tabindex="-1"></a>   <span class="dt">RubyHDL</span><span class="at">.iak</span> <span class="kw">=</span> <span class="dv">1</span></span>
-<span id="cb151-28"><a href="#cb151-28" aria-hidden="true" tabindex="-1"></a>   <span class="va">$tasks</span><span class="kw">[</span><span class="dv">0</span><span class="kw">]</span><span class="at">.run</span></span>
-<span id="cb151-29"><a href="#cb151-29" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb151-30"><a href="#cb151-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-31"><a href="#cb151-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Waits an interrupt: sleep and when waked up tell another interrupt can come.</span></span>
-<span id="cb151-32"><a href="#cb151-32" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> wait_irq</span>
-<span id="cb151-33"><a href="#cb151-33" aria-hidden="true" tabindex="-1"></a>   <span class="fu">sleep</span></span>
-<span id="cb151-34"><a href="#cb151-34" aria-hidden="true" tabindex="-1"></a>   <span class="dt">RubyHDL</span><span class="at">.iak</span> <span class="kw">=</span> <span class="dv">0</span></span>
-<span id="cb151-35"><a href="#cb151-35" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb151-36"><a href="#cb151-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-37"><a href="#cb151-37" aria-hidden="true" tabindex="-1"></a><span class="co"># The reading task: wait an interrupt then get a value and add it to the pipe.</span></span>
-<span id="cb151-38"><a href="#cb151-38" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> read_task</span>
-<span id="cb151-39"><a href="#cb151-39" aria-hidden="true" tabindex="-1"></a>   <span class="fu">loop</span> <span class="cf">do</span></span>
-<span id="cb151-40"><a href="#cb151-40" aria-hidden="true" tabindex="-1"></a>      wait_irq</span>
-<span id="cb151-41"><a href="#cb151-41" aria-hidden="true" tabindex="-1"></a>      <span class="va">$pin</span> <span class="kw">&lt;&lt;</span> <span class="va">$register</span><span class="at">.to_s</span></span>
-<span id="cb151-42"><a href="#cb151-42" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb151-43"><a href="#cb151-43" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb151-44"><a href="#cb151-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb151-45"><a href="#cb151-45" aria-hidden="true" tabindex="-1"></a><span class="co"># The displaying task: write in stdout the data obtained from the pipe each</span></span>
-<span id="cb151-46"><a href="#cb151-46" aria-hidden="true" tabindex="-1"></a><span class="co"># second.</span></span>
-<span id="cb151-47"><a href="#cb151-47" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> show_task</span>
-<span id="cb151-48"><a href="#cb151-48" aria-hidden="true" tabindex="-1"></a>   <span class="fu">loop</span> <span class="cf">do</span></span>
-<span id="cb151-49"><a href="#cb151-49" aria-hidden="true" tabindex="-1"></a>      <span class="fu">sleep</span>(<span class="dv">1</span>)</span>
-<span id="cb151-50"><a href="#cb151-50" aria-hidden="true" tabindex="-1"></a>      <span class="fu">puts</span> <span class="va">$pout</span><span class="at">.readline</span></span>
-<span id="cb151-51"><a href="#cb151-51" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
-<span id="cb151-52"><a href="#cb151-52" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb152"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL.rb&#39;</span></span>
+<span id="cb152-2"><a href="#cb152-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-3"><a href="#cb152-3" aria-hidden="true" tabindex="-1"></a><span class="va">$register</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb152-4"><a href="#cb152-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-5"><a href="#cb152-5" aria-hidden="true" tabindex="-1"></a><span class="va">$start</span> <span class="kw">=</span> <span class="dv">true</span></span>
+<span id="cb152-6"><a href="#cb152-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-7"><a href="#cb152-7" aria-hidden="true" tabindex="-1"></a><span class="co"># The os simulation function. Initialize the tasks and the communication pipe</span></span>
+<span id="cb152-8"><a href="#cb152-8" aria-hidden="true" tabindex="-1"></a><span class="co"># for the first call, then update the value of the $register variable.</span></span>
+<span id="cb152-9"><a href="#cb152-9" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> os</span>
+<span id="cb152-10"><a href="#cb152-10" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span>(<span class="va">$start</span>) <span class="cf">then</span></span>
+<span id="cb152-11"><a href="#cb152-11" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Create the communication pipe.</span></span>
+<span id="cb152-12"><a href="#cb152-12" aria-hidden="true" tabindex="-1"></a>      <span class="va">$pout</span>, <span class="va">$pin</span> <span class="kw">=</span> <span class="cn">IO</span><span class="at">.pipe</span></span>
+<span id="cb152-13"><a href="#cb152-13" aria-hidden="true" tabindex="-1"></a>      <span class="va">$tasks</span> <span class="kw">=</span> <span class="kw">[]</span></span>
+<span id="cb152-14"><a href="#cb152-14" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Create the first task reading the values.</span></span>
+<span id="cb152-15"><a href="#cb152-15" aria-hidden="true" tabindex="-1"></a>      <span class="va">$tasks</span> <span class="kw">&lt;&lt;</span> <span class="dt">Thread</span><span class="at">.new</span>(<span class="kw">&amp;</span><span class="dt">Kernel</span><span class="at">.method</span>(<span class="wa">:read_task</span>))</span>
+<span id="cb152-16"><a href="#cb152-16" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Create the second task displaying the values.</span></span>
+<span id="cb152-17"><a href="#cb152-17" aria-hidden="true" tabindex="-1"></a>      <span class="va">$tasks</span> <span class="kw">&lt;&lt;</span> <span class="dt">Thread</span><span class="at">.new</span>(<span class="kw">&amp;</span><span class="dt">Kernel</span><span class="at">.method</span>(<span class="wa">:show_task</span>))</span>
+<span id="cb152-18"><a href="#cb152-18" aria-hidden="true" tabindex="-1"></a>      <span class="va">$start</span> <span class="kw">=</span> <span class="dv">false</span></span>
+<span id="cb152-19"><a href="#cb152-19" aria-hidden="true" tabindex="-1"></a>   <span class="cf">else</span></span>
+<span id="cb152-20"><a href="#cb152-20" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Update $register.</span></span>
+<span id="cb152-21"><a href="#cb152-21" aria-hidden="true" tabindex="-1"></a>      <span class="va">$register</span> <span class="kw">=</span> <span class="dt">RubyHDL</span><span class="at">.register</span></span>
+<span id="cb152-22"><a href="#cb152-22" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb152-23"><a href="#cb152-23" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb152-24"><a href="#cb152-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-25"><a href="#cb152-25" aria-hidden="true" tabindex="-1"></a><span class="co"># The interrupt handler: acknowledge the interrupt, wakes up the read task.</span></span>
+<span id="cb152-26"><a href="#cb152-26" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> handler</span>
+<span id="cb152-27"><a href="#cb152-27" aria-hidden="true" tabindex="-1"></a>   <span class="dt">RubyHDL</span><span class="at">.iak</span> <span class="kw">=</span> <span class="dv">1</span></span>
+<span id="cb152-28"><a href="#cb152-28" aria-hidden="true" tabindex="-1"></a>   <span class="va">$tasks</span><span class="kw">[</span><span class="dv">0</span><span class="kw">]</span><span class="at">.run</span></span>
+<span id="cb152-29"><a href="#cb152-29" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb152-30"><a href="#cb152-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-31"><a href="#cb152-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Waits an interrupt: sleep and when waked up tell another interrupt can come.</span></span>
+<span id="cb152-32"><a href="#cb152-32" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> wait_irq</span>
+<span id="cb152-33"><a href="#cb152-33" aria-hidden="true" tabindex="-1"></a>   <span class="fu">sleep</span></span>
+<span id="cb152-34"><a href="#cb152-34" aria-hidden="true" tabindex="-1"></a>   <span class="dt">RubyHDL</span><span class="at">.iak</span> <span class="kw">=</span> <span class="dv">0</span></span>
+<span id="cb152-35"><a href="#cb152-35" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb152-36"><a href="#cb152-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-37"><a href="#cb152-37" aria-hidden="true" tabindex="-1"></a><span class="co"># The reading task: wait an interrupt then get a value and add it to the pipe.</span></span>
+<span id="cb152-38"><a href="#cb152-38" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> read_task</span>
+<span id="cb152-39"><a href="#cb152-39" aria-hidden="true" tabindex="-1"></a>   <span class="fu">loop</span> <span class="cf">do</span></span>
+<span id="cb152-40"><a href="#cb152-40" aria-hidden="true" tabindex="-1"></a>      wait_irq</span>
+<span id="cb152-41"><a href="#cb152-41" aria-hidden="true" tabindex="-1"></a>      <span class="va">$pin</span> <span class="kw">&lt;&lt;</span> <span class="va">$register</span><span class="at">.to_s</span></span>
+<span id="cb152-42"><a href="#cb152-42" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb152-43"><a href="#cb152-43" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb152-44"><a href="#cb152-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-45"><a href="#cb152-45" aria-hidden="true" tabindex="-1"></a><span class="co"># The displaying task: write in stdout the data obtained from the pipe each</span></span>
+<span id="cb152-46"><a href="#cb152-46" aria-hidden="true" tabindex="-1"></a><span class="co"># second.</span></span>
+<span id="cb152-47"><a href="#cb152-47" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> show_task</span>
+<span id="cb152-48"><a href="#cb152-48" aria-hidden="true" tabindex="-1"></a>   <span class="fu">loop</span> <span class="cf">do</span></span>
+<span id="cb152-49"><a href="#cb152-49" aria-hidden="true" tabindex="-1"></a>      <span class="fu">sleep</span>(<span class="dv">1</span>)</span>
+<span id="cb152-50"><a href="#cb152-50" aria-hidden="true" tabindex="-1"></a>      <span class="fu">puts</span> <span class="va">$pout</span><span class="at">.readline</span></span>
+<span id="cb152-51"><a href="#cb152-51" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
+<span id="cb152-52"><a href="#cb152-52" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <h3 id="hardware-software-co-synthesis">7.5. Hardware-software co-synthesis</h3>
 <p>The HDLRuby compiler can be applied to HDLRuby description containing program. However, when producing Verilog HDL or VHDL files, the compiler will ignore the prorgam session. The reason is because the integration of hardware and software is highly target dependent and often licensed. However, you can use the HDLRuby integration of programs using ports for decribing the integration specific to a given target.</p>
 <p>As an illustration, let us assume that we want to design an application for a very basic SoC system including a CPU and a FPGA where a set of 8-bit FPGA registers are memory-mapped to the CPU through a set of predefined addresses: input with <code>fi0</code> to <code>fi3</code> for respective addresses <code>0xC000</code> to <code>0xC009</code>, and output with <code>fo0</code> to <code>fo3</code> for respective addresses <code>0xC010</code> to <code>0xC020</code>. For this case, the HDLRuby module representing the target system and the corresponding program construct can be written as follows:</p>
-<div class="sourceCode" id="cb152"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:soc_basic</span> <span class="cf">do</span></span>
-<span id="cb152-2"><a href="#cb152-2" aria-hidden="true" tabindex="-1"></a>  input <span class="wa">:clk</span></span>
-<span id="cb152-3"><a href="#cb152-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span>  <span class="wa">:fi0</span>, <span class="wa">:fi1</span>, <span class="wa">:fi2</span>, <span class="wa">:fi3</span></span>
-<span id="cb152-4"><a href="#cb152-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.output</span> <span class="wa">:fo0</span>, <span class="wa">:fo1</span>, <span class="wa">:fo2</span>, <span class="wa">:fo3</span></span>
-<span id="cb152-5"><a href="#cb152-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">...</span></span>
-<span id="cb152-6"><a href="#cb152-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb152-7"><a href="#cb152-7" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:c</span>, <span class="wa">:my_func</span>) <span class="cf">do</span></span>
-<span id="cb152-8"><a href="#cb152-8" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
-<span id="cb152-9"><a href="#cb152-9" aria-hidden="true" tabindex="-1"></a>    outport <span class="wa">fi0: </span>fi0, <span class="wa">fi1: </span>fi1, <span class="wa">fi2: </span>fi2, <span class="wa">fi3: </span>fi3</span>
-<span id="cb152-10"><a href="#cb152-10" aria-hidden="true" tabindex="-1"></a>    inport  <span class="wa">fo0: </span>fo0, <span class="wa">fo1: </span>fo1, <span class="wa">fo2: </span>fo2, <span class="wa">fo3: </span>fo3</span>
-<span id="cb152-11"><a href="#cb152-11" aria-hidden="true" tabindex="-1"></a>    code <span class="st">&quot;my_soft.c&quot;</span></span>
-<span id="cb152-12"><a href="#cb152-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb152-13"><a href="#cb152-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb152-14"><a href="#cb152-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&lt;</span> <span class="dt">Some</span> <span class="dt">HDLRuby</span> code describing the hardware part of the application <span class="kw">&gt;</span></span>
-<span id="cb152-15"><a href="#cb152-15" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb153"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb153-1"><a href="#cb153-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:soc_basic</span> <span class="cf">do</span></span>
+<span id="cb153-2"><a href="#cb153-2" aria-hidden="true" tabindex="-1"></a>  input <span class="wa">:clk</span></span>
+<span id="cb153-3"><a href="#cb153-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span>  <span class="wa">:fi0</span>, <span class="wa">:fi1</span>, <span class="wa">:fi2</span>, <span class="wa">:fi3</span></span>
+<span id="cb153-4"><a href="#cb153-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.output</span> <span class="wa">:fo0</span>, <span class="wa">:fo1</span>, <span class="wa">:fo2</span>, <span class="wa">:fo3</span></span>
+<span id="cb153-5"><a href="#cb153-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">...</span></span>
+<span id="cb153-6"><a href="#cb153-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb153-7"><a href="#cb153-7" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:c</span>, <span class="wa">:my_func</span>) <span class="cf">do</span></span>
+<span id="cb153-8"><a href="#cb153-8" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
+<span id="cb153-9"><a href="#cb153-9" aria-hidden="true" tabindex="-1"></a>    outport <span class="wa">fi0: </span>fi0, <span class="wa">fi1: </span>fi1, <span class="wa">fi2: </span>fi2, <span class="wa">fi3: </span>fi3</span>
+<span id="cb153-10"><a href="#cb153-10" aria-hidden="true" tabindex="-1"></a>    inport  <span class="wa">fo0: </span>fo0, <span class="wa">fo1: </span>fo1, <span class="wa">fo2: </span>fo2, <span class="wa">fo3: </span>fo3</span>
+<span id="cb153-11"><a href="#cb153-11" aria-hidden="true" tabindex="-1"></a>    code <span class="st">&quot;my_soft.c&quot;</span></span>
+<span id="cb153-12"><a href="#cb153-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb153-13"><a href="#cb153-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb153-14"><a href="#cb153-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&lt;</span> <span class="dt">Some</span> <span class="dt">HDLRuby</span> code describing the hardware part of the application <span class="kw">&gt;</span></span>
+<span id="cb153-15"><a href="#cb153-15" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>And the C program <code>my_soft.c</code> can be written as follows using functions like <code>read_fo0()</code> for reading register <code>fo0</code> and <code>write_fi1(val)</code> for writing to register <code>fi1</code>, and calling only once <code>init_soclib</code> for initializing the API library:</p>
-<div class="sourceCode" id="cb153"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb153-1"><a href="#cb153-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;soclib.h&quot;</span></span>
-<span id="cb153-2"><a href="#cb153-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb153-3"><a href="#cb153-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> my_func<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb153-4"><a href="#cb153-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">static</span> <span class="dt">int</span> start <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
-<span id="cb153-5"><a href="#cb153-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>start<span class="op">)</span> <span class="op">{</span> init_scolib<span class="op">();</span> start <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> <span class="op">}</span></span>
-<span id="cb153-6"><a href="#cb153-6" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb153-7"><a href="#cb153-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> fo0 <span class="op">=</span> read_fo0<span class="op">();</span></span>
-<span id="cb153-8"><a href="#cb153-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
-<span id="cb153-9"><a href="#cb153-9" aria-hidden="true" tabindex="-1"></a>    write_fi1<span class="op">(</span>val<span class="op">);</span></span>
-<span id="cb153-10"><a href="#cb153-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
-<span id="cb153-11"><a href="#cb153-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb154"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;soclib.h&quot;</span></span>
+<span id="cb154-2"><a href="#cb154-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb154-3"><a href="#cb154-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> my_func<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb154-4"><a href="#cb154-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">static</span> <span class="dt">int</span> start <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb154-5"><a href="#cb154-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>start<span class="op">)</span> <span class="op">{</span> init_scolib<span class="op">();</span> start <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb154-6"><a href="#cb154-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb154-7"><a href="#cb154-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> fo0 <span class="op">=</span> read_fo0<span class="op">();</span></span>
+<span id="cb154-8"><a href="#cb154-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb154-9"><a href="#cb154-9" aria-hidden="true" tabindex="-1"></a>    write_fi1<span class="op">(</span>val<span class="op">);</span></span>
+<span id="cb154-10"><a href="#cb154-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb154-11"><a href="#cb154-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>Alternatively, the initialisation can be delegated to another program construct in the HDLRuby code, activated on a reset signal. Then, the respective hardware and software code becomes as follows:</p>
-<div class="sourceCode" id="cb154"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:soc_basic</span> <span class="cf">do</span></span>
-<span id="cb154-2"><a href="#cb154-2" aria-hidden="true" tabindex="-1"></a>  input <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
-<span id="cb154-3"><a href="#cb154-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span>  <span class="wa">:fi0</span>, <span class="wa">:fi1</span>, <span class="wa">:fi2</span>, <span class="wa">:fi3</span></span>
-<span id="cb154-4"><a href="#cb154-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.output</span> <span class="wa">:fo0</span>, <span class="wa">:fo1</span>, <span class="wa">:fo2</span>, <span class="wa">:fo3</span></span>
-<span id="cb154-5"><a href="#cb154-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">...</span></span>
-<span id="cb154-6"><a href="#cb154-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb154-7"><a href="#cb154-7" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:c</span>, <span class="wa">:init_soclib</span>) <span class="cf">do</span></span>
-<span id="cb154-8"><a href="#cb154-8" aria-hidden="true" tabindex="-1"></a>    actport rst<span class="at">.posedge</span></span>
-<span id="cb154-9"><a href="#cb154-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb154-10"><a href="#cb154-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb154-11"><a href="#cb154-11" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:c</span>, <span class="wa">:my_func</span>) <span class="cf">do</span></span>
-<span id="cb154-12"><a href="#cb154-12" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
-<span id="cb154-13"><a href="#cb154-13" aria-hidden="true" tabindex="-1"></a>    outport <span class="wa">fi0: </span>fi0, <span class="wa">fi1: </span>fi1, <span class="wa">fi2: </span>fi2, <span class="wa">fi3: </span>fi3</span>
-<span id="cb154-14"><a href="#cb154-14" aria-hidden="true" tabindex="-1"></a>    inport  <span class="wa">fo0: </span>fo0, <span class="wa">fo1: </span>fo1, <span class="wa">fo2: </span>fo2, <span class="wa">fo3: </span>fo3</span>
-<span id="cb154-15"><a href="#cb154-15" aria-hidden="true" tabindex="-1"></a>    code <span class="st">&quot;my_soft.c&quot;</span></span>
-<span id="cb154-16"><a href="#cb154-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb154-17"><a href="#cb154-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb154-18"><a href="#cb154-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&lt;</span> <span class="dt">Some</span> <span class="dt">HDLRuby</span> code describing the hardware part of the application <span class="kw">&gt;</span></span>
-<span id="cb154-19"><a href="#cb154-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
-<div class="sourceCode" id="cb155"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb155-1"><a href="#cb155-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;soclib.h&quot;</span></span>
-<span id="cb155-2"><a href="#cb155-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb155-3"><a href="#cb155-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> my_func<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb155-4"><a href="#cb155-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> fo0 <span class="op">=</span> read_fo0<span class="op">();</span></span>
-<span id="cb155-5"><a href="#cb155-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
-<span id="cb155-6"><a href="#cb155-6" aria-hidden="true" tabindex="-1"></a>    write_fi1<span class="op">(</span>val<span class="op">);</span></span>
-<span id="cb155-7"><a href="#cb155-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
-<span id="cb155-8"><a href="#cb155-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p>Whatever the approach being used for the initialization, the read and write functions are defined in the <code>soclib.h</code> file. Two versions of this file are to be provided, one for running with the HDLRuby simulator, and one for running for the target SoC. These two files, with possible additional target constraints files (e.g., xcd file for Xilinx platforms) are the sole additional file that are to be provided by the user to have an application which can be both simulated on the HDLRuby simulator, and synthesized for the target SoC. For the example above, the HDLRuby version of <code>soclib.h</code> is as follows:</p>
-<div class="sourceCode" id="cb156"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;cHDL.h&quot;</span></span>
+<div class="sourceCode" id="cb155"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb155-1"><a href="#cb155-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:soc_basic</span> <span class="cf">do</span></span>
+<span id="cb155-2"><a href="#cb155-2" aria-hidden="true" tabindex="-1"></a>  input <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
+<span id="cb155-3"><a href="#cb155-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.input</span>  <span class="wa">:fi0</span>, <span class="wa">:fi1</span>, <span class="wa">:fi2</span>, <span class="wa">:fi3</span></span>
+<span id="cb155-4"><a href="#cb155-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">8</span><span class="kw">]</span><span class="at">.output</span> <span class="wa">:fo0</span>, <span class="wa">:fo1</span>, <span class="wa">:fo2</span>, <span class="wa">:fo3</span></span>
+<span id="cb155-5"><a href="#cb155-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">...</span></span>
+<span id="cb155-6"><a href="#cb155-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb155-7"><a href="#cb155-7" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:c</span>, <span class="wa">:init_soclib</span>) <span class="cf">do</span></span>
+<span id="cb155-8"><a href="#cb155-8" aria-hidden="true" tabindex="-1"></a>    actport rst<span class="at">.posedge</span></span>
+<span id="cb155-9"><a href="#cb155-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb155-10"><a href="#cb155-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb155-11"><a href="#cb155-11" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:c</span>, <span class="wa">:my_func</span>) <span class="cf">do</span></span>
+<span id="cb155-12"><a href="#cb155-12" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
+<span id="cb155-13"><a href="#cb155-13" aria-hidden="true" tabindex="-1"></a>    outport <span class="wa">fi0: </span>fi0, <span class="wa">fi1: </span>fi1, <span class="wa">fi2: </span>fi2, <span class="wa">fi3: </span>fi3</span>
+<span id="cb155-14"><a href="#cb155-14" aria-hidden="true" tabindex="-1"></a>    inport  <span class="wa">fo0: </span>fo0, <span class="wa">fo1: </span>fo1, <span class="wa">fo2: </span>fo2, <span class="wa">fo3: </span>fo3</span>
+<span id="cb155-15"><a href="#cb155-15" aria-hidden="true" tabindex="-1"></a>    code <span class="st">&quot;my_soft.c&quot;</span></span>
+<span id="cb155-16"><a href="#cb155-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb155-17"><a href="#cb155-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb155-18"><a href="#cb155-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&lt;</span> <span class="dt">Some</span> <span class="dt">HDLRuby</span> code describing the hardware part of the application <span class="kw">&gt;</span></span>
+<span id="cb155-19"><a href="#cb155-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb156"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;soclib.h&quot;</span></span>
 <span id="cb156-2"><a href="#cb156-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb156-3"><a href="#cb156-3" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> <span class="op">*</span>fo0<span class="op">,</span> <span class="op">*</span>fo1<span class="op">,</span> <span class="op">*</span>fo2<span class="op">,</span> <span class="op">*</span>fo3<span class="op">;</span></span>
-<span id="cb156-4"><a href="#cb156-4" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> <span class="op">*</span>fi1<span class="op">,</span> <span class="op">*</span>fi1<span class="op">,</span> <span class="op">*</span>fi2<span class="op">,</span> <span class="op">*</span>fi3<span class="op">;</span></span>
-<span id="cb156-5"><a href="#cb156-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb156-6"><a href="#cb156-6" aria-hidden="true" tabindex="-1"></a>soclib_init<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb156-7"><a href="#cb156-7" aria-hidden="true" tabindex="-1"></a>     fo0 <span class="op">=</span> c_get_port<span class="op">(</span><span class="st">&quot;fo0&quot;</span><span class="op">);</span></span>
-<span id="cb156-8"><a href="#cb156-8" aria-hidden="true" tabindex="-1"></a>     <span class="op">...</span></span>
-<span id="cb156-9"><a href="#cb156-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
-<span id="cb156-10"><a href="#cb156-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb156-11"><a href="#cb156-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb156-12"><a href="#cb156-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#define read_fo0() c_read_port(fo0)</span></span>
-<span id="cb156-13"><a href="#cb156-13" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
-<span id="cb156-14"><a href="#cb156-14" aria-hidden="true" tabindex="-1"></a><span class="pp">#define write_fi1(val) c_write_port(fi1,(val))</span></span>
-<span id="cb156-15"><a href="#cb156-15" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
-<p>And the SoC specific version could look as follows, where <code>target_soc_API.h</code> represents whatever include files required for using the target SoC API:</p>
-<div class="sourceCode" id="cb157"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb157-1"><a href="#cb157-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;target_soc_API.h&quot;</span></span>
+<span id="cb156-3"><a href="#cb156-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> my_func<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb156-4"><a href="#cb156-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> fo0 <span class="op">=</span> read_fo0<span class="op">();</span></span>
+<span id="cb156-5"><a href="#cb156-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb156-6"><a href="#cb156-6" aria-hidden="true" tabindex="-1"></a>    write_fi1<span class="op">(</span>val<span class="op">);</span></span>
+<span id="cb156-7"><a href="#cb156-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb156-8"><a href="#cb156-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Whatever the approach being used for the initialization, the read and write functions are defined in the <code>soclib.h</code> file. Two versions of this file are to be provided, one for running with the HDLRuby simulator, and one for running for the target SoC. These two files, with possible additional target constraints files (e.g., xcd file for Xilinx platforms) are the sole additional file that are to be provided by the user to have an application which can be both simulated on the HDLRuby simulator, and synthesized for the target SoC. For the example above, the HDLRuby version of <code>soclib.h</code> is as follows:</p>
+<div class="sourceCode" id="cb157"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb157-1"><a href="#cb157-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;cHDL.h&quot;</span></span>
 <span id="cb157-2"><a href="#cb157-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb157-3"><a href="#cb157-3" aria-hidden="true" tabindex="-1"></a>soclib_init<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb157-4"><a href="#cb157-4" aria-hidden="true" tabindex="-1"></a>   <span class="op">&lt;</span>Some initialization code <span class="cf">if</span> required by the target SoC API<span class="op">&gt;</span></span>
-<span id="cb157-5"><a href="#cb157-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
-<span id="cb157-6"><a href="#cb157-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb157-7"><a href="#cb157-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#defined read_fo0() (*0xC010)</span></span>
-<span id="cb157-8"><a href="#cb157-8" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
-<span id="cb157-9"><a href="#cb157-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#define write_fi1(val) (*0xC001 = (val))</span></span>
-<span id="cb157-10"><a href="#cb157-10" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<span id="cb157-3"><a href="#cb157-3" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> <span class="op">*</span>fo0<span class="op">,</span> <span class="op">*</span>fo1<span class="op">,</span> <span class="op">*</span>fo2<span class="op">,</span> <span class="op">*</span>fo3<span class="op">;</span></span>
+<span id="cb157-4"><a href="#cb157-4" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> <span class="op">*</span>fi1<span class="op">,</span> <span class="op">*</span>fi1<span class="op">,</span> <span class="op">*</span>fi2<span class="op">,</span> <span class="op">*</span>fi3<span class="op">;</span></span>
+<span id="cb157-5"><a href="#cb157-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb157-6"><a href="#cb157-6" aria-hidden="true" tabindex="-1"></a>soclib_init<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb157-7"><a href="#cb157-7" aria-hidden="true" tabindex="-1"></a>     fo0 <span class="op">=</span> c_get_port<span class="op">(</span><span class="st">&quot;fo0&quot;</span><span class="op">);</span></span>
+<span id="cb157-8"><a href="#cb157-8" aria-hidden="true" tabindex="-1"></a>     <span class="op">...</span></span>
+<span id="cb157-9"><a href="#cb157-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb157-10"><a href="#cb157-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb157-11"><a href="#cb157-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb157-12"><a href="#cb157-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#define read_fo0() c_read_port(fo0)</span></span>
+<span id="cb157-13"><a href="#cb157-13" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb157-14"><a href="#cb157-14" aria-hidden="true" tabindex="-1"></a><span class="pp">#define write_fi1(val) c_write_port(fi1,(val))</span></span>
+<span id="cb157-15"><a href="#cb157-15" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>And the SoC specific version could look as follows, where <code>target_soc_API.h</code> represents whatever include files required for using the target SoC API:</p>
+<div class="sourceCode" id="cb158"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;target_soc_API.h&quot;</span></span>
+<span id="cb158-2"><a href="#cb158-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb158-3"><a href="#cb158-3" aria-hidden="true" tabindex="-1"></a>soclib_init<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb158-4"><a href="#cb158-4" aria-hidden="true" tabindex="-1"></a>   <span class="op">&lt;</span>Some initialization code <span class="cf">if</span> required by the target SoC API<span class="op">&gt;</span></span>
+<span id="cb158-5"><a href="#cb158-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb158-6"><a href="#cb158-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb158-7"><a href="#cb158-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#defined read_fo0() (*0xC010)</span></span>
+<span id="cb158-8"><a href="#cb158-8" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb158-9"><a href="#cb158-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#define write_fi1(val) (*0xC001 = (val))</span></span>
+<span id="cb158-10"><a href="#cb158-10" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
 <h2 id="how-to-interact-with-the-simulator.">8. How to interact with the simulator.</h2>
 <h3 id="do-it-yourself-interaction.">8.1. Do-It-Yourself interaction.</h3>
 <p>Using the program construct presented in the prevous section, it easy add basic interactions to the simulation of your module. For example, you can read and write values from the standard input and map them to HDLRuby signals using the following Ruby program (<code>stdrw.rb</code>):</p>
-<div class="sourceCode" id="cb158"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;RubyHDL&#39;</span></span>
-<span id="cb158-2"><a href="#cb158-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb158-3"><a href="#cb158-3" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> stdrw</span>
-<span id="cb158-4"><a href="#cb158-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RubyHDL</span><span class="at">.sigI</span> <span class="kw">=</span> <span class="va">$stdin</span><span class="at">.read.to_i</span></span>
-<span id="cb158-5"><a href="#cb158-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">$stdout</span><span class="at">.puts</span>(<span class="dt">RubyHDL</span><span class="at">.sigO</span>)</span>
-<span id="cb158-6"><a href="#cb158-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb159"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb159-1"><a href="#cb159-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;RubyHDL&#39;</span></span>
+<span id="cb159-2"><a href="#cb159-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb159-3"><a href="#cb159-3" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> stdrw</span>
+<span id="cb159-4"><a href="#cb159-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RubyHDL</span><span class="at">.sigI</span> <span class="kw">=</span> <span class="va">$stdin</span><span class="at">.read.to_i</span></span>
+<span id="cb159-5"><a href="#cb159-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">$stdout</span><span class="at">.puts</span>(<span class="dt">RubyHDL</span><span class="at">.sigO</span>)</span>
+<span id="cb159-6"><a href="#cb159-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>Then, a corresponding HDLRuby module that accumulates the read inputs could be writen as follows:</p>
-<div class="sourceCode" id="cb159"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb159-1"><a href="#cb159-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:accum</span> <span class="cf">do</span></span>
-<span id="cb159-2"><a href="#cb159-2" aria-hidden="true" tabindex="-1"></a>  inner <span class="wa">:clk</span></span>
-<span id="cb159-3"><a href="#cb159-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">32</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:sigI</span>, <span class="wa">:sigO</span></span>
-<span id="cb159-4"><a href="#cb159-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb159-5"><a href="#cb159-5" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:ruby</span>,<span class="wa">:stdrw</span>) <span class="cf">do</span></span>
-<span id="cb159-6"><a href="#cb159-6" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
-<span id="cb159-7"><a href="#cb159-7" aria-hidden="true" tabindex="-1"></a>    outport <span class="wa">sigI: </span>sigI</span>
-<span id="cb159-8"><a href="#cb159-8" aria-hidden="true" tabindex="-1"></a>    inport  <span class="wa">sigO: </span>sigO</span>
-<span id="cb159-9"><a href="#cb159-9" aria-hidden="true" tabindex="-1"></a>    code <span class="st">&quot;stdrw.rb&quot;</span></span>
-<span id="cb159-10"><a href="#cb159-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb159-11"><a href="#cb159-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb159-12"><a href="#cb159-12" aria-hidden="true" tabindex="-1"></a>  (sigO <span class="kw">&lt;=</span> sigO<span class="kw">+</span>sigI)<span class="at">.at</span>(clk<span class="at">.posedge</span>)</span>
-<span id="cb159-13"><a href="#cb159-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb159-14"><a href="#cb159-14" aria-hidden="true" tabindex="-1"></a>  timed <span class="cf">do</span></span>
-<span id="cb159-15"><a href="#cb159-15" aria-hidden="true" tabindex="-1"></a>    clk <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb159-16"><a href="#cb159-16" aria-hidden="true" tabindex="-1"></a>    sigO <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb159-17"><a href="#cb159-17" aria-hidden="true" tabindex="-1"></a>    sigI <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb159-18"><a href="#cb159-18" aria-hidden="true" tabindex="-1"></a>    repeat(<span class="dv">1000</span>) <span class="cf">do</span></span>
-<span id="cb159-19"><a href="#cb159-19" aria-hidden="true" tabindex="-1"></a>       !<span class="dv">10</span><span class="at">.ns</span></span>
-<span id="cb159-20"><a href="#cb159-20" aria-hidden="true" tabindex="-1"></a>       clk <span class="kw">&lt;=</span> <span class="kw">~</span>clk</span>
-<span id="cb159-21"><a href="#cb159-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb159-22"><a href="#cb159-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb159-23"><a href="#cb159-23" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb160"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:accum</span> <span class="cf">do</span></span>
+<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a>  inner <span class="wa">:clk</span></span>
+<span id="cb160-3"><a href="#cb160-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">32</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:sigI</span>, <span class="wa">:sigO</span></span>
+<span id="cb160-4"><a href="#cb160-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb160-5"><a href="#cb160-5" aria-hidden="true" tabindex="-1"></a>  program(<span class="wa">:ruby</span>,<span class="wa">:stdrw</span>) <span class="cf">do</span></span>
+<span id="cb160-6"><a href="#cb160-6" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
+<span id="cb160-7"><a href="#cb160-7" aria-hidden="true" tabindex="-1"></a>    outport <span class="wa">sigI: </span>sigI</span>
+<span id="cb160-8"><a href="#cb160-8" aria-hidden="true" tabindex="-1"></a>    inport  <span class="wa">sigO: </span>sigO</span>
+<span id="cb160-9"><a href="#cb160-9" aria-hidden="true" tabindex="-1"></a>    code <span class="st">&quot;stdrw.rb&quot;</span></span>
+<span id="cb160-10"><a href="#cb160-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb160-11"><a href="#cb160-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb160-12"><a href="#cb160-12" aria-hidden="true" tabindex="-1"></a>  (sigO <span class="kw">&lt;=</span> sigO<span class="kw">+</span>sigI)<span class="at">.at</span>(clk<span class="at">.posedge</span>)</span>
+<span id="cb160-13"><a href="#cb160-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb160-14"><a href="#cb160-14" aria-hidden="true" tabindex="-1"></a>  timed <span class="cf">do</span></span>
+<span id="cb160-15"><a href="#cb160-15" aria-hidden="true" tabindex="-1"></a>    clk <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb160-16"><a href="#cb160-16" aria-hidden="true" tabindex="-1"></a>    sigO <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb160-17"><a href="#cb160-17" aria-hidden="true" tabindex="-1"></a>    sigI <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb160-18"><a href="#cb160-18" aria-hidden="true" tabindex="-1"></a>    repeat(<span class="dv">1000</span>) <span class="cf">do</span></span>
+<span id="cb160-19"><a href="#cb160-19" aria-hidden="true" tabindex="-1"></a>       !<span class="dv">10</span><span class="at">.ns</span></span>
+<span id="cb160-20"><a href="#cb160-20" aria-hidden="true" tabindex="-1"></a>       clk <span class="kw">&lt;=</span> <span class="kw">~</span>clk</span>
+<span id="cb160-21"><a href="#cb160-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb160-22"><a href="#cb160-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb160-23"><a href="#cb160-23" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p><strong>Note</strong>: The input method used in the Ruby program requires to input a number with the keyboard, press ‘<ENTER>’ then ‘<CTRL>-D’ for validating it.</p>
 <p>Since a Ruby (or C) code can be used for the program construct, more complex interactive interface can be made, for example, you can consult the sample code <code>with_program_ruby_cpu.rb</code> which utilizes the <code>curses</code> interface for simulating a UART keyboard and CRT monitor.</p>
 <h3 id="using-the-web-browser-based-gui">8.2. Using the web browser-based GUI</h3>
 <p>HDLRuby also provides a construct derivated for the programs for easily building a web browser-based GUI. This GUI is described using a <code>board</code> construct as follows:</p>
-<div class="sourceCode" id="cb160"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a>board(:<span class="kw">&lt;</span>board name<span class="kw">&gt;</span>,<span class="kw">&lt;</span>server port<span class="kw">&gt;</span>) <span class="cf">do</span></span>
-<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a>  actport <span class="kw">&lt;</span>event<span class="kw">&gt;</span></span>
-<span id="cb160-3"><a href="#cb160-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&lt;</span>description of the <span class="cn">GUI</span><span class="kw">&gt;</span></span>
-<span id="cb160-4"><a href="#cb160-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb161"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb161-1"><a href="#cb161-1" aria-hidden="true" tabindex="-1"></a>board(:<span class="kw">&lt;</span>board name<span class="kw">&gt;</span>,<span class="kw">&lt;</span>server port<span class="kw">&gt;</span>) <span class="cf">do</span></span>
+<span id="cb161-2"><a href="#cb161-2" aria-hidden="true" tabindex="-1"></a>  actport <span class="kw">&lt;</span>event<span class="kw">&gt;</span></span>
+<span id="cb161-3"><a href="#cb161-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&lt;</span>description of the <span class="cn">GUI</span><span class="kw">&gt;</span></span>
+<span id="cb161-4"><a href="#cb161-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>This construct can be declared within any module, and contains the following elements as given in the code above:</p>
 <ul>
 <li><p><code>board name</code>: the name of the board.</p></li>
@@ -2670,7 +2682,7 @@ It is from this capability to mix Ruby and HDLRuby that comes the <em>meta progr
 <li><p><code>description of the GUI</code>: a set of statements describing the content of the GUI.</p></li>
 </ul>
 <p>There are two types of statements for describing the GUI: the active ones, that are connected to a HDLRuby signal, and the passive ones that configure the shape of the GUI. The statements of the first type are declared as follows:</p>
-<div class="sourceCode" id="cb161"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb161-1"><a href="#cb161-1" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;</span>element<span class="kw">&gt;</span> <span class="kw">&lt;</span>element name<span class="kw">&gt;</span>: <span class="kw">&lt;</span><span class="dt">HDLRuby</span> signal<span class="kw">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb162"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;</span>element<span class="kw">&gt;</span> <span class="kw">&lt;</span>element name<span class="kw">&gt;</span>: <span class="kw">&lt;</span><span class="dt">HDLRuby</span> signal<span class="kw">&gt;</span></span></code></pre></div>
 <p>And the comprise the following:</p>
 <ul>
 <li><p><code>sw</code>: represents a set of slide switches, their number is set to match the bit-width of the attached signal.</p></li>
@@ -2682,31 +2694,31 @@ It is from this capability to mix Ruby and HDLRuby that comes the <em>meta progr
 </ul>
 <p>There is for now only one statement of the second type: <code>row</code>. This statement is used without any argument and adds a new row to the GUI for placing components.</p>
 <p>For example, we can use a GUI instead of the basic standard input and output for the example given in <a href="#8-1-do-it-yourself-interaction">the previous section</a>. The code could be as follows, for having one slide switch for setting the value to add, and LEDs for displaying the accumulation result (<code>accum.rb</code>):</p>
-<div class="sourceCode" id="cb162"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:accum</span> <span class="cf">do</span></span>
-<span id="cb162-2"><a href="#cb162-2" aria-hidden="true" tabindex="-1"></a>  inner <span class="wa">:clk</span></span>
-<span id="cb162-3"><a href="#cb162-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">32</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:sigI</span>, <span class="wa">:sigO</span></span>
-<span id="cb162-4"><a href="#cb162-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb162-5"><a href="#cb162-5" aria-hidden="true" tabindex="-1"></a>  board(<span class="wa">:boardrw</span>) <span class="cf">do</span></span>
-<span id="cb162-6"><a href="#cb162-6" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
-<span id="cb162-7"><a href="#cb162-7" aria-hidden="true" tabindex="-1"></a>    sw  <span class="wa">sigI: </span>sigI</span>
-<span id="cb162-8"><a href="#cb162-8" aria-hidden="true" tabindex="-1"></a>    row</span>
-<span id="cb162-9"><a href="#cb162-9" aria-hidden="true" tabindex="-1"></a>    led <span class="wa">sigO: </span>sigO</span>
-<span id="cb162-10"><a href="#cb162-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb162-11"><a href="#cb162-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb162-12"><a href="#cb162-12" aria-hidden="true" tabindex="-1"></a>  (sigO <span class="kw">&lt;=</span> sigO<span class="kw">+</span>sigI)<span class="at">.at</span>(clk<span class="at">.posedge</span>)</span>
-<span id="cb162-13"><a href="#cb162-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb162-14"><a href="#cb162-14" aria-hidden="true" tabindex="-1"></a>  timed <span class="cf">do</span></span>
-<span id="cb162-15"><a href="#cb162-15" aria-hidden="true" tabindex="-1"></a>    clk <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb162-16"><a href="#cb162-16" aria-hidden="true" tabindex="-1"></a>    sigO <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb162-17"><a href="#cb162-17" aria-hidden="true" tabindex="-1"></a>    sigI <span class="kw">&lt;=</span> <span class="dv">0</span></span>
-<span id="cb162-18"><a href="#cb162-18" aria-hidden="true" tabindex="-1"></a>    repeat(<span class="dv">1000</span>) <span class="cf">do</span></span>
-<span id="cb162-19"><a href="#cb162-19" aria-hidden="true" tabindex="-1"></a>       !<span class="dv">10</span><span class="at">.ns</span></span>
-<span id="cb162-20"><a href="#cb162-20" aria-hidden="true" tabindex="-1"></a>       clk <span class="kw">&lt;=</span> <span class="kw">~</span>clk</span>
-<span id="cb162-21"><a href="#cb162-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb162-22"><a href="#cb162-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb162-23"><a href="#cb162-23" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb163"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb163-1"><a href="#cb163-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:accum</span> <span class="cf">do</span></span>
+<span id="cb163-2"><a href="#cb163-2" aria-hidden="true" tabindex="-1"></a>  inner <span class="wa">:clk</span></span>
+<span id="cb163-3"><a href="#cb163-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">[</span><span class="dv">32</span><span class="kw">]</span><span class="at">.inner</span> <span class="wa">:sigI</span>, <span class="wa">:sigO</span></span>
+<span id="cb163-4"><a href="#cb163-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-5"><a href="#cb163-5" aria-hidden="true" tabindex="-1"></a>  board(<span class="wa">:boardrw</span>) <span class="cf">do</span></span>
+<span id="cb163-6"><a href="#cb163-6" aria-hidden="true" tabindex="-1"></a>    actport clk<span class="at">.posedge</span></span>
+<span id="cb163-7"><a href="#cb163-7" aria-hidden="true" tabindex="-1"></a>    sw  <span class="wa">sigI: </span>sigI</span>
+<span id="cb163-8"><a href="#cb163-8" aria-hidden="true" tabindex="-1"></a>    row</span>
+<span id="cb163-9"><a href="#cb163-9" aria-hidden="true" tabindex="-1"></a>    led <span class="wa">sigO: </span>sigO</span>
+<span id="cb163-10"><a href="#cb163-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb163-11"><a href="#cb163-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-12"><a href="#cb163-12" aria-hidden="true" tabindex="-1"></a>  (sigO <span class="kw">&lt;=</span> sigO<span class="kw">+</span>sigI)<span class="at">.at</span>(clk<span class="at">.posedge</span>)</span>
+<span id="cb163-13"><a href="#cb163-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-14"><a href="#cb163-14" aria-hidden="true" tabindex="-1"></a>  timed <span class="cf">do</span></span>
+<span id="cb163-15"><a href="#cb163-15" aria-hidden="true" tabindex="-1"></a>    clk <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb163-16"><a href="#cb163-16" aria-hidden="true" tabindex="-1"></a>    sigO <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb163-17"><a href="#cb163-17" aria-hidden="true" tabindex="-1"></a>    sigI <span class="kw">&lt;=</span> <span class="dv">0</span></span>
+<span id="cb163-18"><a href="#cb163-18" aria-hidden="true" tabindex="-1"></a>    repeat(<span class="dv">1000</span>) <span class="cf">do</span></span>
+<span id="cb163-19"><a href="#cb163-19" aria-hidden="true" tabindex="-1"></a>       !<span class="dv">10</span><span class="at">.ns</span></span>
+<span id="cb163-20"><a href="#cb163-20" aria-hidden="true" tabindex="-1"></a>       clk <span class="kw">&lt;=</span> <span class="kw">~</span>clk</span>
+<span id="cb163-21"><a href="#cb163-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb163-22"><a href="#cb163-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb163-23"><a href="#cb163-23" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>This code is simulated exactly like any other HDLRuby description, e.g.:</p>
-<div class="sourceCode" id="cb163"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb163-1"><a href="#cb163-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hdrcc</span> <span class="at">--sim</span> <span class="at">--vcd</span> accum.rb accum</span></code></pre></div>
+<div class="sourceCode" id="cb164"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hdrcc</span> <span class="at">--sim</span> <span class="at">--vcd</span> accum.rb accum</span></code></pre></div>
 <p>However, the simulator will wait until a browser connects to it. For that, you can open a web browser, and go to the local url: <code>http://localhost:8000</code>. The simulation will then start and you can interact with the GUI which should look as follows:</p>
 <p align="center">
 <img src="gui_accum.png"  width="80%">
@@ -2717,4 +2729,4 @@ It is from this capability to mix Ruby and HDLRuby that comes the <em>meta progr
 </p>
 <h2 id="what-next">9. What next?</h2>
 <p>There are still many aspects of HDLRuby that have not been addressed in this tutorial. For example, finite state machines (FSM) and decoders are crucial hardware components that you should learn about, and HDLRuby provides specific constructs for easier design. So from now on, please consult the main documentation of HDLRuby, and have a look at the code samples provided in the HDLRuby distribution. They can be copied to your working directory using the following command:</p>
-<div class="sourceCode" id="cb164"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hdrcc</span> <span class="at">--get-samples</span></span></code></pre></div>
+<div class="sourceCode" id="cb165"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hdrcc</span> <span class="at">--get-samples</span></span></code></pre></div>

@@ -8,6 +8,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
+#include <direct.h>
 #else
 #include <dlfcn.h>
 #endif
@@ -438,13 +439,31 @@ VALUE rcsim_load_c(VALUE mod, VALUE codeV, VALUE libnameV, VALUE funcnameV) {
 
     libname  = StringValueCStr(libnameV);
     funcname = StringValueCStr(funcnameV);
+
+    char path[1024];
+
+    if (getcwd(path, sizeof(path)) != NULL) {
+        printf("Current working directory: %s\n", path);
+    } else {
+        perror("getcwd error");
+        return 1;
+    }
+
+    if(strlen(path) + strlen(libname) >= 1023) {
+        fprintf(stderr,"Path too long for loading c program.\n");
+    }
+    strcat(path,"/");
+    strcat(path,libname);
+    // printf("Loading c program at: %s\n",path);
    
     /* Get the code. */ 
     value_to_rcsim(CodeS,codeV,code);
     /* Load the library. */
-    handle = LoadLibrary(TEXT(libname));
+    handle = LoadLibrary(TEXT(path));
     if (handle == NULL) {
-        fprintf(stderr,"Unable to open program library: %s\n",libname);
+        fprintf(stderr,"Unable to open program library at: %s\n",path);
+        DWORD dwError = GetLastError();
+        fprintf(stderr,"LoadLibrary failed with error code %ld\n", dwError);
         exit(-1);
     }
     code->function = GetProcAddress(handle,funcname);
@@ -1746,6 +1765,13 @@ void ruby_function_wrap(Code code) {
 
 
 /** The C interface. */
+
+#if defined(_WIN32) || defined(_WIN64)
+__declspec(dllexport) SignalI c_get_port(char* name);
+__declspec(dllexport) unsigned long long c_read_port(SignalI port);
+__declspec(dllexport) unsigned long long c_write_port(SignalI port, unsigned long long val);
+#endif
+
 
 /** The wrapper for getting an interface port for C software. */
 SignalI c_get_port(char* name) {
