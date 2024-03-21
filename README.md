@@ -1926,7 +1926,7 @@ As another example, the following function will add an alternative code that gen
 
 ```ruby
 def too_bad
-   helse { $rst <= 1 }
+   helse { rst <= 1 }
 end
 ```
 
@@ -2713,21 +2713,6 @@ Several enumerators are also provided for accessing the internals of the current
 | `each_statement`  | statements of the current block      |
 | `each_inner`      | inner signals of the current block (or system if not within a block) |
 
-### Global signals
-
-HDLRuby allows the declaration of global signals the same way the system's signals are declared but outside the scope of any system.  After being declared, these signals are accessible directly from within any hardware construct.
-
-To ease the design of standardized libraries, the following global signals are defined by default:
-
-| signal name | signal type | signal function                       |
-| :---        | :---        | :---                                  |
-| `$rst`      | bit         | global reset                          |
-| `$clk`      | bit         | global clock                          |
-
-__Note__:
- 
- - When not used, the global signals are discarded.
-
 
 
 ### Defining and executing Ruby methods within HDLRuby constructs
@@ -2807,7 +2792,7 @@ end
 While requiring caution, a properly designed method can be very useful for clean code reuse. For example, the following method allows to start the execution of a block after a given number of cycles:
 
 ```ruby
-def after(cycles,rst = $rst, &code)
+def after(cycles, rst, &code)
    sub do
       inner :count
       hif rst == 1 do
@@ -2827,8 +2812,6 @@ end
 
 In the code above: 
  
- - the default initialization of `rst` to `$rst` allows resetting the counter even if no such signal is provided as an argument.
-
  - `sub` ensures that the `count` signal does not conflict with another signal with the same name.
 
  - the `instance_eval` keyword is a standard Ruby method that executes the block passed as an argument in context.
@@ -2838,11 +2821,11 @@ The following is an example that switches an LED on after 1000000 clock cycles u
 ```ruby
 system :led_after do
    output :led
-   input :clk
+   input :clk, :rst
 
    par(clk.posedge) do
-      (led <= 0).hif($rst)
-      after(100000) { led <= 1 }
+      (led <= 0).hif(rst)
+      after(100000,rst) { led <= 1 }
    end
 end
 ```
@@ -3053,7 +3036,7 @@ Where:
  * `<clock>` is the clock to use, this argument can be omitted.
  * `<reset>` is the signal used to reset the counter used for waiting, this argument can be omitted.
 
-This statement can be used either inside or outside a clocked behavior. When used within a clocked behavior, the clock event of the behavior is used for the counter unless specified otherwise. When used outside such behavior, the clock is the global default clock `$clk`. In both cases, the reset is the global reset `$rst` unless specified otherwise.
+This statement can be used inside a clocked behavior where the clock event of the behavior is used for the counter unless specified otherwise. 
 
 The second construct is the `before` statement that activates a block until a given number of clock cycles is passed. Its syntax and usage are identical to the `after` statement.
 

@@ -1563,7 +1563,7 @@ end</code></pre>
 <span id="cb137-5"><a href="#cb137-5" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>As another example, the following function will add an alternative code that generates a reset to a condition statement (<code>hif</code> or <code>hcase</code>):</p>
 <div class="sourceCode" id="cb138"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> too_bad</span>
-<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>   helse <span class="kw">{</span> <span class="va">$rst</span> <span class="kw">&lt;=</span> <span class="dv">1</span> <span class="kw">}</span></span>
+<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>   helse <span class="kw">{</span> rst <span class="kw">&lt;=</span> <span class="dv">1</span> <span class="kw">}</span></span>
 <span id="cb138-3"><a href="#cb138-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>This function can be used as follows:</p>
 <div class="sourceCode" id="cb139"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb139-1"><a href="#cb139-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:sys</span> <span class="cf">do</span></span>
@@ -2108,34 +2108,6 @@ end</code></pre>
 </tr>
 </tbody>
 </table>
-<h3 id="global-signals">Global signals</h3>
-<p>HDLRuby allows the declaration of global signals the same way the system’s signals are declared but outside the scope of any system. After being declared, these signals are accessible directly from within any hardware construct.</p>
-<p>To ease the design of standardized libraries, the following global signals are defined by default:</p>
-<table>
-<thead>
-<tr class="header">
-<th style="text-align: left;">signal name</th>
-<th style="text-align: left;">signal type</th>
-<th style="text-align: left;">signal function</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;"><code>$rst</code></td>
-<td style="text-align: left;">bit</td>
-<td style="text-align: left;">global reset</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><code>$clk</code></td>
-<td style="text-align: left;">bit</td>
-<td style="text-align: left;">global clock</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Note</strong>:</p>
-<ul>
-<li>When not used, the global signals are discarded.</li>
-</ul>
 <h3 id="defining-and-executing-ruby-methods-within-hdlruby-constructs">Defining and executing Ruby methods within HDLRuby constructs</h3>
 <p><a name="method"></a></p>
 <p>Like with any Ruby program, it is possible to define and execute methods anywhere in HDLRuby using the standard Ruby syntax. When defined, a method is attached to the enclosing HDLRuby construct. For instance, when defining a method when declaring a system, it can be used within this system only, while when defining a method outside any construct, it can be used everywhere in the HDLRuby description.</p>
@@ -2196,7 +2168,7 @@ end</code></pre>
 <span id="cb191-11"><a href="#cb191-11" aria-hidden="true" tabindex="-1"></a>   mconnect(i0,o0,o1,o2,o3)</span>
 <span id="cb191-12"><a href="#cb191-12" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>While requiring caution, a properly designed method can be very useful for clean code reuse. For example, the following method allows to start the execution of a block after a given number of cycles:</p>
-<div class="sourceCode" id="cb192"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb192-1"><a href="#cb192-1" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> after(cycles,rst <span class="kw">=</span> <span class="va">$rst</span>, <span class="kw">&amp;</span>code)</span>
+<div class="sourceCode" id="cb192"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb192-1"><a href="#cb192-1" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> after(cycles, rst, <span class="kw">&amp;</span>code)</span>
 <span id="cb192-2"><a href="#cb192-2" aria-hidden="true" tabindex="-1"></a>   <span class="fu">sub</span> <span class="cf">do</span></span>
 <span id="cb192-3"><a href="#cb192-3" aria-hidden="true" tabindex="-1"></a>      inner <span class="wa">:count</span></span>
 <span id="cb192-4"><a href="#cb192-4" aria-hidden="true" tabindex="-1"></a>      hif rst <span class="kw">==</span> <span class="dv">1</span> <span class="cf">do</span></span>
@@ -2214,18 +2186,17 @@ end</code></pre>
 <span id="cb192-16"><a href="#cb192-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>In the code above:</p>
 <ul>
-<li><p>the default initialization of <code>rst</code> to <code>$rst</code> allows resetting the counter even if no such signal is provided as an argument.</p></li>
 <li><p><code>sub</code> ensures that the <code>count</code> signal does not conflict with another signal with the same name.</p></li>
 <li><p>the <code>instance_eval</code> keyword is a standard Ruby method that executes the block passed as an argument in context.</p></li>
 </ul>
 <p>The following is an example that switches an LED on after 1000000 clock cycles using the previously defined <code>after</code> ruby method:</p>
 <div class="sourceCode" id="cb193"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb193-1"><a href="#cb193-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span> <span class="wa">:led_after</span> <span class="cf">do</span></span>
 <span id="cb193-2"><a href="#cb193-2" aria-hidden="true" tabindex="-1"></a>   output <span class="wa">:led</span></span>
-<span id="cb193-3"><a href="#cb193-3" aria-hidden="true" tabindex="-1"></a>   input <span class="wa">:clk</span></span>
+<span id="cb193-3"><a href="#cb193-3" aria-hidden="true" tabindex="-1"></a>   input <span class="wa">:clk</span>, <span class="wa">:rst</span></span>
 <span id="cb193-4"><a href="#cb193-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb193-5"><a href="#cb193-5" aria-hidden="true" tabindex="-1"></a>   par(clk<span class="at">.posedge</span>) <span class="cf">do</span></span>
-<span id="cb193-6"><a href="#cb193-6" aria-hidden="true" tabindex="-1"></a>      (led <span class="kw">&lt;=</span> <span class="dv">0</span>)<span class="at">.hif</span>(<span class="va">$rst</span>)</span>
-<span id="cb193-7"><a href="#cb193-7" aria-hidden="true" tabindex="-1"></a>      after(<span class="dv">100000</span>) <span class="kw">{</span> led <span class="kw">&lt;=</span> <span class="dv">1</span> <span class="kw">}</span></span>
+<span id="cb193-6"><a href="#cb193-6" aria-hidden="true" tabindex="-1"></a>      (led <span class="kw">&lt;=</span> <span class="dv">0</span>)<span class="at">.hif</span>(rst)</span>
+<span id="cb193-7"><a href="#cb193-7" aria-hidden="true" tabindex="-1"></a>      after(<span class="dv">100000</span>,rst) <span class="kw">{</span> led <span class="kw">&lt;=</span> <span class="dv">1</span> <span class="kw">}</span></span>
 <span id="cb193-8"><a href="#cb193-8" aria-hidden="true" tabindex="-1"></a>   <span class="cf">end</span></span>
 <span id="cb193-9"><a href="#cb193-9" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p><strong>Note</strong>:</p>
@@ -2404,7 +2375,7 @@ end</code></pre>
 <li><code>&lt;clock&gt;</code> is the clock to use, this argument can be omitted.</li>
 <li><code>&lt;reset&gt;</code> is the signal used to reset the counter used for waiting, this argument can be omitted.</li>
 </ul>
-<p>This statement can be used either inside or outside a clocked behavior. When used within a clocked behavior, the clock event of the behavior is used for the counter unless specified otherwise. When used outside such behavior, the clock is the global default clock <code>$clk</code>. In both cases, the reset is the global reset <code>$rst</code> unless specified otherwise.</p>
+<p>This statement can be used inside a clocked behavior where the clock event of the behavior is used for the counter unless specified otherwise.</p>
 <p>The second construct is the <code>before</code> statement that activates a block until a given number of clock cycles is passed. Its syntax and usage are identical to the <code>after</code> statement.</p>
 <h2 id="decoder-stddecoder.rb">Decoder: <code>std/decoder.rb</code></h2>
 <p><a name="decoder"></a></p>
