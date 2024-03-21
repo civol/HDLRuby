@@ -4,10 +4,10 @@ module HDLRuby::High::Std
 # Standard HDLRuby::High library: clocks
 # 
 ########################################################################
-
+    @@__clocks_rst = nil
 
     # Initialize the clock generator with +rst+ as reset signal.
-    def configure_clocks(rst = $rst)
+    def configure_clocks(rst = nil)
         @@__clocks_rst = rst
     end
 
@@ -19,13 +19,22 @@ module HDLRuby::High::Std
         HDLRuby::High.cur_system.open do
 
             # Ensures times is a value.
-            times = times.to_value
+            times = times.to_value - 1
+            if (times == 0) then
+              AnyError.new("Clock multiplier must be >= 2.") 
+            end
 
             # Create the counter.
             # Create the name of the counter.
             name = HDLRuby.uniq_name
             # Declare the counter.
-            [times.width].inner(name)
+            if @@__clocks_rst then
+                # There is a reset, so no need to initialize.
+                [times.width].inner(name)
+            else
+                # There is no reset, so need to initialize.
+                [times.width].inner(name => 0)
+            end
             # Get the signal of the counter.
             counter = get_inner(name)
 
@@ -33,22 +42,40 @@ module HDLRuby::High::Std
             # Create the name of the clock.
             name = HDLRuby.uniq_name
             # Declares the clock.
-            bit.inner(name)
+            if @@__clocks_rst then
+                # There is a reset, so no need to initialize.
+                bit.inner(name)
+            else
+                # There is no reset, so need to initialize.
+                bit.inner(name => 0)
+            end
             # Get the signal of the clock.
             clock = get_inner(name)
             
             # Control it.
             par(event) do
-                hif(@@__clocks_rst) do
-                    counter.to_ref <= times.to_expr
-                    clock.to_ref <= 0
-                end
-                helsif(counter.to_expr == 0) do
-                    counter.to_ref <= times.to_expr 
-                    clock.to_ref <= ~ clock.to_expr
-                end
-                helse do
-                    counter.to_ref <= counter.to_expr + 1
+                if @@__clocks_rst then
+                    # There is a reset, handle it.
+                    hif(@@__clocks_rst) do
+                        counter.to_ref <= times.to_expr
+                        clock.to_ref <= 0
+                    end
+                    helsif(counter.to_expr == 0) do
+                        counter.to_ref <= times.to_expr 
+                        clock.to_ref <= ~ clock.to_expr
+                    end
+                    helse do
+                        counter.to_ref <= counter.to_expr - 1
+                    end
+                else
+                    # There is no reset.
+                    hif(counter.to_expr == 0) do
+                        counter.to_ref <= times.to_expr 
+                        clock.to_ref <= ~ clock.to_expr
+                    end
+                    helse do
+                        counter.to_ref <= counter.to_expr - 1
+                    end
                 end
             end
         end
@@ -87,13 +114,22 @@ module HDLRuby::High::Std
         # Enters the current system
         HDLRuby::High.cur_system.open do
             # Ensure times is a value.
-            times = times.to_value
+            times = times.to_value - 1
+            if (times == 0) then
+              AnyError.new("Clock multiplier must be >= 2.") 
+            end
 
             # Create the event counter.
             # Create the name of the counter.
             name = HDLRuby.uniq_name
             # Declare the counter.
-            [times.width].inner(name)
+            if @@__clocks_rst then
+                # There is a reset, so no need to initialize.
+                [times.width].inner(name)
+            else
+                # There is no reset, so need to initialize.
+                [times.width].inner(name => 0)
+            end
             # Get the signal of the counter.
             counter = get_inner(name)
 
@@ -101,7 +137,13 @@ module HDLRuby::High::Std
             # Create the name of the counter.
             name = HDLRuby.uniq_name
             # Declare the counter.
-            [times.width].inner(name)
+            if @@__clocks_rst then
+                # There is a reset, so no need to initialize.
+                [times.width].inner(name)
+            else
+                # There is no reset, so need to initialize.
+                [times.width].inner(name => 0)
+            end
             # Get the signal of the counter.
             counter_inv = get_inner(name)
 
@@ -109,20 +151,54 @@ module HDLRuby::High::Std
             # Create the name of the clock.
             name = HDLRuby.uniq_name
             # Declare the clock.
-            bit.inner(name)
+            if @@__clocks_rst then
+                # There is a reset, so no need to initialize.
+                bit.inner(name)
+            else
+                # There is no reset, so need to initialize.
+                bit.inner(name => 0)
+            end
             # Get the signal of the clock.
             clock = get_inner(name)
 
             # Control the event counter
             par(event) do
-                hif(@@__clocks_rst | counter.to_expr == 0) do
-                    counter.to_ref <= times.to_expr/2 + 1
+                if @@__clocks_rst then
+                    # There is a reset, handle it.
+                    hif(@@__clocks_rst | counter.to_expr == 0) do
+                        counter.to_ref <= times.to_expr/2 + 1
+                    end
+                    helse do
+                      counter.to_ref <= counter.to_expr - 1
+                    end
+                else
+                    # There is no reset.
+                    hif(counter.to_expr == 0) do
+                        counter.to_ref <= times.to_expr/2 + 1
+                    end
+                    helse do
+                      counter.to_ref <= counter.to_expr - 1
+                    end
                 end
             end
-            # Control the inverteed event counter
+            # Control the inverted event counter
             par(event.invert) do
-                hif(@@__clocks_rst | counter_inv.to_expr == 0) do
-                    counter_inv.to_ref <= times.to_expr/2 + 1
+                if @@__clocks_rst then
+                    # There is a reset, handle it.
+                    hif(@@__clocks_rst | counter_inv.to_expr == 0) do
+                        counter_inv.to_ref <= times.to_expr/2 + 1
+                    end
+                    helse do
+                      counter_inv.to_ref <= counter_inv.to_expr - 1
+                    end
+                else
+                    # There is no reset.
+                    hif(counter_inv.to_expr == 0) do
+                        counter_inv.to_ref <= times.to_expr/2 + 1
+                    end
+                    helse do
+                      counter_inv.to_ref <= counter_inv.to_expr - 1
+                    end
                 end
             end
             # Compute the clock.
