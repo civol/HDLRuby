@@ -28,7 +28,7 @@ end
 
 
 # A system for testing inheritance and of?
-system :with_reconf do
+system :with_of do
     input :clk,:rst
     input :d
     output :q
