@@ -33,7 +33,7 @@ module HDLRuby::High::Std
                 [times.width].inner(name)
             else
                 # There is no reset, so need to initialize.
-                [times.width].inner(name => 0)
+              [times.width].inner(name => times)
             end
             # Get the signal of the counter.
             counter = get_inner(name)
@@ -47,7 +47,7 @@ module HDLRuby::High::Std
                 bit.inner(name)
             else
                 # There is no reset, so need to initialize.
-                bit.inner(name => 0)
+                bit.inner(name => times)
             end
             # Get the signal of the clock.
             clock = get_inner(name)
@@ -57,24 +57,24 @@ module HDLRuby::High::Std
                 if @@__clocks_rst then
                     # There is a reset, handle it.
                     hif(@@__clocks_rst) do
-                        counter.to_ref <= times.to_expr
-                        clock.to_ref <= 0
+                      counter <= times
+                        clock <= 0
                     end
                     helsif(counter.to_expr == 0) do
-                        counter.to_ref <= times.to_expr 
-                        clock.to_ref <= ~ clock.to_expr
+                        counter <= times 
+                        clock   <= ~ clock
                     end
                     helse do
-                        counter.to_ref <= counter.to_expr - 1
+                        counter <= counter - 1
                     end
                 else
                     # There is no reset.
-                    hif(counter.to_expr == 0) do
-                        counter.to_ref <= times.to_expr 
-                        clock.to_ref <= ~ clock.to_expr
+                    hif(counter == 0) do
+                        counter <= times 
+                        clock   <= ~ clock
                     end
                     helse do
-                        counter.to_ref <= counter.to_expr - 1
+                        counter <= counter - 1
                     end
                 end
             end
@@ -82,29 +82,37 @@ module HDLRuby::High::Std
         return clock
     end
 
-    # module clk_div3(clk,reset, clk_out);
 
-    #     input clk;
-    #     input reset;
-    #     output clk_out;
+# https://referencedesigner.com/tutorials/verilogexamples/verilog_ex_07.php
+# 
+# module clk_divn #(
+# parameter WIDTH = 3,
+# parameter N = 5)
+#  
+# (clk,reset, clk_out);
+#  
+# input clk;
+# input reset;
+# output clk_out;
+#  
+# reg [WIDTH-1:0] pos_count, neg_count;
+# wire [WIDTH-1:0] r_nxt;
+#  
+#  always @(posedge clk)
+#  if (reset)
+#  pos_count <=0;
+#  else if (pos_count ==N-1) pos_count <= 0;
+#  else pos_count<= pos_count +1;
+#  
+#  always @(negedge clk)
+#  if (reset)
+#  neg_count <=0;
+#  else  if (neg_count ==N-1) neg_count <= 0;
+#  else neg_count<= neg_count +1; 
+#  
+# assign clk_out = ((pos_count > (N>>1)) | (neg_count > (N>>1))); 
+# endmodule
 
-    #     reg [1:0] pos_count, neg_count;
-    #     wire [1:0] r_nxt;
-
-    #     always @(posedge clk)
-    #     if (reset)
-    #         pos_count <=0;
-    #     else if (pos_count ==2) pos_count <= 0;
-    #     else pos_count<= pos_count +1;
-
-    #     always @(negedge clk)
-    #     if (reset)
-    #         neg_count <=0;
-    #     else  if (neg_count ==2) neg_count <= 0;
-    #     else neg_count<= neg_count +1;
-
-    #     assign clk_out = ((pos_count == 2) | (neg_count == 2));
-    # endmodule
 
     # Creates a clock inverted every +times+ occurence of an +event+ and its
     # everted.
@@ -114,8 +122,8 @@ module HDLRuby::High::Std
         # Enters the current system
         HDLRuby::High.cur_system.open do
             # Ensure times is a value.
-            times = times.to_value - 1
-            if (times == 0) then
+            times = times.to_value 
+            if (times == 1) then
               AnyError.new("Clock multiplier must be >= 2.") 
             end
 
@@ -142,7 +150,7 @@ module HDLRuby::High::Std
                 [times.width].inner(name)
             else
                 # There is no reset, so need to initialize.
-                [times.width].inner(name => 0)
+              [times.width].inner(name => 0)
             end
             # Get the signal of the counter.
             counter_inv = get_inner(name)
@@ -161,54 +169,38 @@ module HDLRuby::High::Std
             # Get the signal of the clock.
             clock = get_inner(name)
 
-            # Control the event counter
+            # Control the even counter.
             par(event) do
                 if @@__clocks_rst then
-                    # There is a reset, handle it.
-                    hif(@@__clocks_rst | counter.to_expr == 0) do
-                        counter.to_ref <= times.to_expr/2 + 1
-                    end
-                    helse do
-                      counter.to_ref <= counter.to_expr - 1
-                    end
+                    hif(@@__clocks_rst)        { counter <= 0 }
+                    helsif(counter == times-1) { counter <= 0 }
+                    helse                      { counter <= counter + 1 }
                 else
-                    # There is no reset.
-                    hif(counter.to_expr == 0) do
-                        counter.to_ref <= times.to_expr/2 + 1
-                    end
-                    helse do
-                      counter.to_ref <= counter.to_expr - 1
-                    end
+                    hif(counter == times-1)     { counter <= 0 }
+                    helse                      { counter <= counter + 1 }
                 end
             end
-            # Control the inverted event counter
+
+            # Control the odd counter.
             par(event.invert) do
                 if @@__clocks_rst then
-                    # There is a reset, handle it.
-                    hif(@@__clocks_rst | counter_inv.to_expr == 0) do
-                        counter_inv.to_ref <= times.to_expr/2 + 1
-                    end
-                    helse do
-                      counter_inv.to_ref <= counter_inv.to_expr - 1
-                    end
+                    hif(@@__clocks_rst)        { counter_inv <= 0 }
+                    helsif(counter == times-1) { counter_inv <= 0 }
+                    helse                      { counter_inv <= counter_inv + 1 }
                 else
-                    # There is no reset.
-                    hif(counter_inv.to_expr == 0) do
-                        counter_inv.to_ref <= times.to_expr/2 + 1
-                    end
-                    helse do
-                      counter_inv.to_ref <= counter_inv.to_expr - 1
-                    end
+                    hif(counter == times-1)     { counter_inv <= 0 }
+                    helse                      { counter_inv <= counter_inv + 1 }
                 end
             end
-            # Compute the clock.
-            clock.to_ref <= ~((counter.to_expr == times.to_expr/2 + 1) |
-                (counter_inv.to_expr == times.to_expr/2 + 1))
+
+            clock <= ((counter > (times/2)) | (counter_inv > (times/2)))
         end
-        # Return it.
+        # Return the clock.
         return clock
     end
+
 end
+
 
 
 class HDLRuby::High::Event
