@@ -202,8 +202,8 @@ module HDLRuby::High::Std
                 end
             end
             # Compute the clock.
-            clock.to_ref <= (counter.to_expr == times.to_expr/2 + 1) |
-                (counter_inv.to_expr == times.to_expr/2 + 1)
+            clock.to_ref <= ~((counter.to_expr == times.to_expr/2 + 1) |
+                (counter_inv.to_expr == times.to_expr/2 + 1))
         end
         # Return it.
         return clock
