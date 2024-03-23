@@ -181,7 +181,7 @@
 </ul>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hdrcc</span> <span class="at">-I</span> pry</span></code></pre></div>
 <h2 id="using-hdlruby-in-interactive-mode">Using HDLRuby in interactive mode</h2>
-<p>When running in interactive mode, the HDLRuby framework starts a REPL prompt and creates a working directory called ‘HDLRubyWorkspace’. By default, the REPL is ‘irb’, but it can be set to ‘pry’. Within this prompt, HDLRuby code can be written like in an HDLRuby description file. However, to process this code the following commands are added:</p>
+<p>When running in interactive mode, the HDLRuby framework starts a REPL prompt and creates a working directory called <code>HDLRubyWorkspace</code>. By default, the REPL is <code>irb</code>, but it can be set to <code>pry</code>. Within this prompt, HDLRuby code can be written like in an HDLRuby description file. However, to process this code the following commands are added:</p>
 <ul>
 <li>Compile an HDLRuby module:</li>
 </ul>
@@ -1634,7 +1634,7 @@ end</code></pre>
 <h4 id="the-hardware-interface">The hardware interface</h4>
 <p>From the software point of view, the hardware interface consists only of a list of ports that can either be read or written. However, the implementation of this interface depends on the language.</p>
 <h5 id="for-ruby">For Ruby</h5>
-<p>For ruby, the interface is accessed by requiring the <code>rubyHDL</code> library. It gives provides the <code>RubyHDL</code> module that provides accessors to ports of the program. For example, the following program reads on port ‘inP’ and writes the results on port `outP’:</p>
+<p>For ruby, the interface is accessed by requiring the <code>rubyHDL</code> library. It gives provides the <code>RubyHDL</code> module that provides accessors to ports of the program. For example, the following program reads on port <code>inP</code> and writes the results on port <code>outP</code>:</p>
 <div class="sourceCode" id="cb143"><pre class="sourceCode ruby"><code class="sourceCode ruby"><span id="cb143-1"><a href="#cb143-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span> <span class="vs">&#39;rubyHDL&#39;</span></span>
 <span id="cb143-2"><a href="#cb143-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb143-3"><a href="#cb143-3" aria-hidden="true" tabindex="-1"></a><span class="cf">def</span> echo</span>
@@ -1644,7 +1644,7 @@ end</code></pre>
 <p><strong>Note:</strong></p>
 <p>As long as a port has been declared in the HDLRuby description of the program, it will be available to the software as a module accessor without the need for any additional declaration or configuration.</p>
 <h5 id="for-c">For C</h5>
-<p>For C (and C-compatible compiled languages), the interface is accessed by including the ‘cHDL.h’ file. This file must be generated using the following command:</p>
+<p>For C (and C-compatible compiled languages), the interface is accessed by including the <code>cHDL.h</code> file. This file must be generated using the following command:</p>
 <div class="sourceCode" id="cb144"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hdrcc</span> <span class="at">--ch</span> <span class="op">&lt;</span>destination project<span class="op">&gt;</span></span></code></pre></div>
 <p>In the command above, <code>&lt;destination project&gt;</code> is the directory where the C code is meant to be.</p>
 <p>Once generated, this file provides the three following C functions:</p>
@@ -1653,7 +1653,7 @@ end</code></pre>
 <li><p><code>int c_read_port(void* port)</code>: reads the port whose pointer is passed as argument and returns its value.</p></li>
 <li><p><code>int c_write_port(void* port, int val)</code>: write the value <code>val</code> to the port passed as argument.</p></li>
 </ul>
-<p>For example, the following program reads on port ‘inP’ and writes the results on port `outP’:</p>
+<p>For example, the following program reads on port <code>inP</code> and writes the results on port <code>outP</code>:</p>
 <div class="sourceCode" id="cb145"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb145-1"><a href="#cb145-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;cHDL.h&quot;</span></span>
 <span id="cb145-2"><a href="#cb145-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb145-3"><a href="#cb145-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> echo<span class="op">()</span> <span class="op">{</span></span>

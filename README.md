@@ -180,7 +180,7 @@ hdrcc -I pry
 
 ## Using HDLRuby in interactive mode
 
-When running in interactive mode, the HDLRuby framework starts a REPL prompt and creates a working directory called 'HDLRubyWorkspace'. By default, the REPL is 'irb', but it can be set to 'pry'. Within this prompt, HDLRuby code can be written like in an HDLRuby description file. However, to process this code the following commands are added:
+When running in interactive mode, the HDLRuby framework starts a REPL prompt and creates a working directory called `HDLRubyWorkspace`. By default, the REPL is `irb`, but it can be set to `pry`. Within this prompt, HDLRuby code can be written like in an HDLRuby description file. However, to process this code the following commands are added:
 
 * Compile an HDLRuby module:
 
@@ -2044,7 +2044,7 @@ From the software point of view, the hardware interface consists only of a list 
 ##### For Ruby
 
 For ruby, the interface is accessed by requiring the `rubyHDL` library. It gives provides the `RubyHDL` module that provides accessors to ports of the program.
-For example, the following program reads on port 'inP' and writes the results on port `outP':
+For example, the following program reads on port `inP` and writes the results on port `outP`:
 
 ```ruby
 require 'rubyHDL'
@@ -2061,7 +2061,7 @@ As long as a port has been declared in the HDLRuby description of the program, i
 
 ##### For C
 
-For C (and C-compatible compiled languages), the interface is accessed by including the 'cHDL.h' file. This file must be generated using the following command:
+For C (and C-compatible compiled languages), the interface is accessed by including the `cHDL.h` file. This file must be generated using the following command:
 
 ```bash
 hdrcc --ch <destination project>
@@ -2078,7 +2078,7 @@ Once generated, this file provides the three following C functions:
 
  * `int c_write_port(void* port, int val)`: write the value `val` to the port passed as argument.
 
-For example, the following program reads on port 'inP' and writes the results on port `outP':
+For example, the following program reads on port `inP` and writes the results on port `outP`:
 
 ```c
 #include "cHDL.h"

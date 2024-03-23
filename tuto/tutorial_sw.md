@@ -929,7 +929,7 @@ Indeed, the text output of the simulator is hard to read, and therefore we highl
 hdrcc --sim --vcd the_counter.rb the_counter
 ```
 
-The new option `--vcd` makes the simulator produce a *Value Change Dump* file (VCD) that can be visualized graphically by many HW design tools. If you do not have any such tool you can get [GTKWave](https://gtkwave.sourceforge.net/) which is under GNU General Public License v2.0.
+The new option `--vcd` makes the simulator produce a *Value Change Dump* file (VCD) that can be visualized graphically by many HW design tools. If you do not have any such tool you can get [GTKWave](https://gtkwave.sourceforge.net/) which is under GNU General Public License v2.0, or [HTMLWave](https://github.com/civol/htmlwave) by the author of HDLRuby (link of interest!) and which is under the MIT License (also available as web application at this [link](https://civol.github.io/htmlwave/htmlwave.html).)
 
 The resulting vcd file can be found in the `the_counter` directory with the name `hruby_simulator.vcd`. If you open it and select the `clk`, `start`, and `counter` signals you will see something like the following picture:
 
@@ -2952,7 +2952,7 @@ The `location of the software files and description of its interface` part can i
 
  * `code <list of filenames>`: for declaring the source code files.
 
-For example the following declares a program in the Ruby language whose start function is `echo` that is activated on the positive edge of signal `req`, has a read port called `inP` that is connected to signal `count` and a write port called `outP` that is connected to signal `val`, finally the code of this program is given in a file named `echo.rb` (the extension '.rb' can also be omitted):
+For example the following declares a program in the Ruby language whose start function is `echo` that is activated on the positive edge of signal `req`, has a read port called `inP` that is connected to signal `count` and a write port called `outP` that is connected to signal `val`, finally the code of this program is given in a file named `echo.rb` (the extension `.rb` can also be omitted):
 
 ```ruby
 system :my_system do
@@ -2990,7 +2990,7 @@ system :my_system do
 end
 ```
 
-There is a difference from Ruby though in that the C code cannot be used directly and must be compiled to a library, and it is the name of the library that has to be indicated in the `code` section. Since the format of the compiler program depends highly on the target software environment, it is recommended to omit the extension (e.g., here only 'echo' and not 'echo.so' or any other extension), so that the framework looks for the suitable format automatically.
+There is a difference from Ruby though in that the C code cannot be used directly and must be compiled to a library, and it is the name of the library that has to be indicated in the `code` section. Since the format of the compiler program depends highly on the target software environment, it is recommended to omit the extension (e.g., here only `echo` and not `echo.so` or any other extension), so that the framework looks for the suitable format automatically.
 
 
 
@@ -3072,7 +3072,7 @@ This program is the same as the Ruby version, but the ports are only available a
 
 Hardware-software co-simulation is done, like pure hardware simulation, using the HDLRuby simulator using the `hdrcc --sim` command (please see [section 1.3.](#1-3-using-hdlruby).
 
-When the software language is Ruby, there is nothing more to do. However, when the software language is C, its code must first be compiled to a shared library for the host (i.e., the computer that executes the HDLRuby simulator). For example, assuming you want to compile the C file 'echo.c' located into the 'echo' directory, if you are using GCC on a Linux system, you could type (after entering the `echo` directory):
+When the software language is Ruby, there is nothing more to do. However, when the software language is C, its code must first be compiled to a shared library for the host (i.e., the computer that executes the HDLRuby simulator). For example, assuming you want to compile the C file `echo.c` located into the `echo` directory, if you are using GCC on a Linux system, you could type (after entering the `echo` directory):
 
 ```bash
 cd echo
@@ -3225,7 +3225,7 @@ system :hw_sw_with_hw_memory do
             step
             rwb_hw  <= 0
             addr_hw <= i + 128
-            dout_hw <= tmp *tmp   # Just some senseless data.
+            dout_hw <= tmp * tmp   # Just some senseless data.
             step
             req_hw <= 0
          end
@@ -3235,17 +3235,17 @@ system :hw_sw_with_hw_memory do
 
 This example contains four parts:
  
- * A hardware description of a memory, described as an inline instance. It has an address input 'addr', a data input 'din' a data outpout 'dout' (it is common in FPGA nowadays to avoid three-state buses), a signal 'rwb' indicating if a read (1) or a write (0) access is performed, and a chip enable signal 'ce'.
+ * A hardware description of a memory, described as an inline instance. It has an address input `addr`, a data input `din` a data outpout `dout` (it is common in FPGA nowadays to avoid three-state buses), a signal `rwb` indicating if a read (1) or a write (0) access is performed, and a chip enable signal `ce`.
 
- *NOTE:* an inline 'instance' is a construct that both describe a module (like 'system') and instantiates it in place. When a component is to be used only once, it is a convenient way to have fast access to the description of the module where it is used, while keeping the hierarchy.
+ *NOTE:* an inline `instance` is a construct that both describe a module (like `system`) and instantiates it in place. When a component is to be used only once, it is a convenient way to have fast access to the description of the module where it is used, while keeping the hierarchy.
 
- * A hardware description of an arbiter for granting access to this memory to alternatively a software component and a hardware component using round-robin. Both the software part and the hardware part have their signals for accessing the memory (e.g., resp. 'rwb_sw' and 'rwb_hw' for 'rwb'), and the arbiter will transmit them to the corresponding memory signal when their access is granted. For requiring access, both have to raise a memory request signal, resp. 'req_sw' and 'req_hw', and will know they have access when the corresponding acknowledge signals are raised, resp., 'ack_sw' and 'ack_hw'.
+ * A hardware description of an arbiter for granting access to this memory to alternatively a software component and a hardware component using round-robin. Both the software part and the hardware part have their signals for accessing the memory (e.g., resp. `rwb_sw` and `rwb_hw` for `rwb`), and the arbiter will transmit them to the corresponding memory signal when their access is granted. For requiring access, both have to raise a memory request signal, resp. `req_sw` and `req_hw`, and will know they have access when the corresponding acknowledge signals are raised, resp., `ack_sw` and `ack_hw`.
 
- * A software component described with a sequencer reading and writing the memory and performing arbitrary computations. This code is activated on each rising edge of signal 'tick'.
+ * A software component described with a sequencer reading and writing the memory and performing arbitrary computations. This code is activated on each rising edge of signal `tick`.
 
  * A hardware component described with a sequencer reading and writing the memory and performing arbitrary computations.
 
-Then, the code of the software component in the file 'some_sw.rb' can be as follows:
+Then, the code of the software component in the file `some_sw.rb` can be as follows:
 
 ```ruby
 require 'rubyHDL.rb'
@@ -3348,8 +3348,8 @@ system :hw_sw_with_sw_memory do
    end
 ```
 
-This time the arbiter has been integrated into the black box modeling the memory so that the hardware part only has to use the direct memory signals 'addr', 'din', 'dout', 'rwb', 'req' and 'ack'.
-The code of the software part contains two functions, one for modeling the memory 'memory', and the previous software function 'some_sw'. For the sake of concision, both are included in the same file given below, but for a real design, it would be better to put them in different files so that the real software is separated from the black box simulation code.
+This time the arbiter has been integrated into the black box modeling the memory so that the hardware part only has to use the direct memory signals `addr`, `din`, `dout`, `rwb`, `req` and `ack`.
+The code of the software part contains two functions, one for modeling the memory `memory`, and the previous software function `some_sw`. For the sake of concision, both are included in the same file given below, but for a real design, it would be better to put them in different files so that the real software is separated from the black box simulation code.
 
 ```ruby
 require 'rubyHDL.rb'
@@ -3410,12 +3410,12 @@ def some_sw
 end
 ```
 
-In this example, the memory is modeled by a simple array. The function 'memory' handles the accesses from the hardware and the arbitration between software and hardware access using a round-robin algorithm. The software program given by function 'some_sw' is identical to the previous one, apart from the memory access which is a direct array access, and the check of the memory grant, since this time no software-specific signal is used for the arbitration.
+In this example, the memory is modeled by a simple array. The function `memory` handles the accesses from the hardware and the arbitration between software and hardware access using a round-robin algorithm. The software program given by function `some_sw` is identical to the previous one, apart from the memory access which is a direct array access, and the check of the memory grant, since this time no software-specific signal is used for the arbitration.
 
 
 ##### 7.4.2 Modeling an operating system
 
-Usually, software is executed on top of an operating system, or a minimal runtime, e.g., even the plainest C runs on top of 'crt0'. This low-level software is usually fixed and highly target-dependent. Hence, it is usually enough to simulate this behavior. Since the HDLRuby simulator supports any compiled C (or other compatible compiled language), or Ruby, all the techniques that can be used in these languages for abstract low-level software can be used. Here, we will use Ruby threads as an illustration for modeling a simple multitask system with an interrupt handler. In the example, there will be two tasks, one reading data from a dummy hardware device described in HDLRuby, transmitting it using a pipe to another one which writes its data to the standard output every second.
+Usually, software is executed on top of an operating system, or a minimal runtime, e.g., even the plainest C runs on top of `crt0`. This low-level software is usually fixed and highly target-dependent. Hence, it is usually enough to simulate this behavior. Since the HDLRuby simulator supports any compiled C (or other compatible compiled language), or Ruby, all the techniques that can be used in these languages for abstract low-level software can be used. Here, we will use Ruby threads as an illustration for modeling a simple multitask system with an interrupt handler. In the example, there will be two tasks, one reading data from a dummy hardware device described in HDLRuby, transmitting it using a pipe to another one which writes its data to the standard output every second.
 
 ```ruby
 system :hw_sw_with_os do
@@ -3468,7 +3468,7 @@ system :hw_sw_with_os do
 end
 ```
 
-The software code 'sw_with_os.rb' is as follows:
+The software code `sw_with_os.rb` is as follows:
 
 ```ruby
 require 'rubyHDL.rb'
@@ -3681,7 +3681,7 @@ system :accum do
 end
 ```
 
-__Note__: The input method used in the Ruby program requires to input a number with the keyboard, press '<ENTER>' then '<CTRL>-D' for validating it.
+__Note__: The input method used in the Ruby program requires to input a number with the keyboard, press `<ENTER>` then `<CTRL>-D` for validating it.
 
 Since a Ruby (or C) code can be used for the program construct, more complex interactive interface can be made, for example, you can consult the sample code `with_program_ruby_cpu.rb` which utilizes the `curses` interface for simulating a UART keyboard and CRT monitor.
 
