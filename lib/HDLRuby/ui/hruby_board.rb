@@ -123,9 +123,8 @@ module HDLRuby::High::Std
     ## Class describing an ascii display.
     ASCII = Struct.new(:id, :size, :hread)
 
-    ## Class describing a bitmap display.
+    ## Class describing a bitmap display with keyboard input supported
     BITMAP = Struct.new(:id, :width, :height, :hread)
-
 
     ## Class describing a new panel row.
     PROW = Struct.new(:id) do
@@ -999,7 +998,7 @@ HTMLRESPONSE
       @program.inport(hport)
       hport = hport.first
       # Createthe ui component.
-      @elements << ASCII.new(@elements.size,w.to_i,h.to_i,hport[0])
+      @elements << BITMAP.new(@elements.size,w.to_i,h.to_i,hport[0])
       @out_elements << @elements[-1]
     end
 
