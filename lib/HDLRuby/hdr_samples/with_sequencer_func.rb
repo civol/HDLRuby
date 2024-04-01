@@ -1,7 +1,3 @@
-require 'std/sequencer_func.rb'
-
-include HDLRuby::High::Std
-
 
 # A factorial with default stack depth.
 sdef(:fact) do |n|
@@ -31,11 +27,13 @@ system :my_seqencer do
         5.stimes do |i|
             val <= i
             res <= fact(val)
+            hprint("res=",res,"\n")
         end
         hprint("Going to overflow...\n")
         4.stimes do |i|
             val <= i
             res <= fact_over(val)
+            hprint("res=",res,"\n")
         end
         hprint("stack_overflow_error=",stack_overflow_error,"\n")
     end
