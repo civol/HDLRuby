@@ -500,7 +500,7 @@ $optparse = OptionParser.new do |opts|
         exit
     end
     opts.on("--get-tuto", "Copy the tutorial directory (tuto) to current one, then exit") do
-      FileUtils.copy_entry(File.dirname(__FILE__) + "../../tuto","./tuto")
+      FileUtils.copy_entry(File.dirname(__FILE__) + "/../../tuto","./tuto")
         exit
     end
     opts.on("--version", "Show the version of HDLRuby, then exit") do |v|

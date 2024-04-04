@@ -7,9 +7,13 @@ __Note__:
 
 If you are new to HDLRuby, it is recommended that you consult first the following tutorial (even if you are a hardware person):
 
- * [HDLRuby tutorial for software people](tuto/tutorial_sw.md) [md]
+ * [HDLRuby tutorial for software people](https://github.com/civol/HDLRuby/blob/master/tuto/tutorial_sw.md) [md]
 
- * [HDLRuby tutorial for software people](tuto/tutorial_sw.html) [html]
+And if you want an html version the following command with create a `tuto` folder containing all the required files, then just open `tuto/tutorial_sw.html`:
+
+```
+hdrcc --get-tuto
+```
 
 __What's new__
 
@@ -70,7 +74,7 @@ gem install HDLRuby
 Developers willing to contribute to HDLRuby can install the sources from GitHub as follows:
 
 ```
-git clone HDLRuby
+git clone https://github.com/civol/HDLRuby.git
 ```
 
 __Warning__: 
