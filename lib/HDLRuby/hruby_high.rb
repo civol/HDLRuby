@@ -2523,15 +2523,15 @@ module HDLRuby::High
         # Converts the if to HDLRuby::Low.
         def to_low
             # Create the resulting program.
-            progL = HDLRuby::Low::Program.new(self.lang,self.function)
+            progL = HDLRuby::Low::Program.new(self.language,self.function)
             # Add the wakening events.
-            self.each_event  { |ev| progL.add_event(ev.to_low) }
+            self.each_actport  { |ev| progL.add_actport(ev.to_low) }
             # Add the code files.
             self.each_code   { |ev| progL.add_code(code) }
             # Add the input signals references.
-            self.each_input  { |ref| progL.add_input(ref.to_low) }
+            self.each_inport  { |p| progL.add_inport(p[0],p[1].to_low) }
             # Add the output signals references.
-            self.each_output { |ref| progL.add_output(ref.to_low) }
+            self.each_outport { |p| progL.add_outport(p[0],p[1].to_low) }
             # Return the resulting program.
             return progL
         end
