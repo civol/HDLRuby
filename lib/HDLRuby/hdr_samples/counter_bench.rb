@@ -17,11 +17,10 @@ system :counter do
 
 
     par do
-        add.(q,0)
         hif(rst) { [cc,qq] <= 0 }
         helse do
-            add.(q,1,[cc,qq])
             hif(ctrl == 1) { add.(q,-1,[cc,qq]) }
+            helse          { add.(q,1,[cc,qq]) }
         end
     end
 

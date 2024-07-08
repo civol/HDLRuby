@@ -4,10 +4,8 @@ require "HDLRuby/hruby_verilog_name.rb"
 require 'HDLRuby/hruby_low_mutable'
 
 
-# module HDLRuby::Verilog
 include HDLRuby::Verilog
 
-#include HDLRuby::Low
 module HDLRuby::Low
 
 
@@ -38,12 +36,16 @@ module HDLRuby::Low
     $vector_reg = ""   # For storing signal type at structure declaration. (temporary)
     $vector_cnt = 0    # For allocating numbers at structure declaration.  (temporary)
 
+    
     class ::Integer
+        ## Extends the Integer class with generation of verilog text.
+
         def to_verilog
             to_s
         end
     end
 
+    
     # Class summarizing "hash" used for "par" or "seq" conversion.
     class Fm
         attr_reader :fm_seq, :fm_par, :rep, :rep_sharp
@@ -56,13 +58,128 @@ module HDLRuby::Low
     end
 
     # Declaration of fm to manage each hash.
-    $fm = Fm.new
+    # $fm = Fm.new
+    FmI = Fm.new
 
-    # A class that translates the left-hand side, operator, and right-hand side into form of expression.
+
+    # Class for generating the truncating functions in verilog.
+    # Such function are necessary as expression cannot be truncated directly.
+    class Truncers
+        def initialize
+            @truncers = []
+        end
+
+        # Convert a range to an array.
+        def r2a(rng)
+            return [rng.first,rng.last]
+        end
+
+        # Add a truncer to of expression of bit range +rngI+ using +rngS+ slice.
+        def add(rngI,rngS)
+            # Convert the ranges to arrays.
+            rngI,rngS = self.r2a(rngI), self.r2a(rngS)
+            # Add them
+            @truncers << [rngI,rngS]
+        end
+        alias_method :<<, :add
+
+
+        # Generate a truncer function name for expression of bit range +rngI+ using +rngS+ slice.
+        def truncer_name(rngI,rngS)
+            # Convert the ranges to arrays.
+            rngI,rngS = self.r2a(rngI), self.r2a(rngS)
+            # Generate the name.
+            return "truncer_#{rngI[0]}_#{rngI[1]}_#{rngS[0]}_#{rngS[1]}"
+        end
+
+        # Generate the truncating functions.
+        def dump
+            # Ensure there is only one truncating function per range.
+            @truncers.sort!.uniq!
+            # Generate the resulting code.
+            codeT = ""
+            @truncers.each do |(rngI,rngS)|
+                rngO = [rngS[0]-rngS[1],0]
+                codeT << "     function [#{rngO[0]}:#{rngO[1]}] "
+                codeT << self.truncer_name(rngI,rngS) 
+                codeT << "(input [#{rngI[0]}:#{rngI[1]}] val);\n"
+                codeT << "         " << self.truncer_name(rngI,rngS) << " = "
+                codeT << "val[#{rngS[0]}:#{rngS[1]}];\n"
+                codeT << "      endfunction\n\n"
+            end
+            # Clears the truncers.
+            @truncers = []
+            return codeT
+        end
+    end
+
+    # Declaration of the truncating function generator.
+    TruncersI = Truncers.new
+
+
+    # Class for generating the truncating functions in verilog.
+    # Such function are necessary as expression cannot be truncated directly.
+    class Indexers
+        def initialize
+            @indexers = []
+        end
+
+        # Add an indexer to of expression of verilog type +typI+ returning 
+        # verilog type +typR+.
+        def add(typI,typR)
+            # Add them
+            @indexers << [typI,typR]
+        end
+        alias_method :<<, :add
+
+
+        # Generate an indexer function name for expression of verilog type
+        # +typI+ returning verilog type +typR+.
+        def indexer_name(typI,typR)
+            # Generate the name.
+            return "indexer_#{name_to_verilog(typI)}_#{name_to_verilog(typR)}"
+        end
+
+        # Generate the indexing functions.
+        def dump
+            # Ensure there is only one indexing function per range.
+            @indexers.sort!.uniq!
+            # Generate the resulting code.
+            codeT = ""
+            @indexers.each do |(typI,typR)|
+                codeT << "     function #{typR} "
+                codeT << self.indexer_name(typI,typR) 
+                codeT << "(input #{typI} val, input integer idx);\n"
+                codeT << "         " << self.indexer_name(typI,typR) << " = "
+                codeT << "val[idx];\n"
+                codeT << "      endfunction\n\n"
+            end
+            # Clears the indexers.
+            @indexers = []
+            return codeT
+        end
+    end
+
+    # Declaration of the truncating function generator.
+    IndexersI = Indexers.new
+
+
     class Binary
+        ## Enhances Binary with verilog generation.
+
         # Converts the system to Verilog code.
         def to_verilog
-            return "(#{self.left.to_verilog} #{self.operator} #{self.right.to_verilog})"
+            # In HDLRuby if on term is signed and the other is not, the
+            # computation is signed.
+            if self.left.type.signed? and self.right.type.unsigned? then
+                return "(#{self.left.to_verilog} #{self.operator} " +
+                    "$signed({1'b0,#{self.right.to_verilog}}))"
+            elsif self.left.type.unsigned? and right.type.signed? then
+                return "($signed({1'b0,#{self.left.to_verilog}})" +
+                    " #{self.operator} #{self.right.to_verilog})"
+            else
+                return "(#{self.left.to_verilog} #{self.operator} #{self.right.to_verilog})"
+            end
         end
 
         # Method called when two or more expression terms are present.
@@ -75,10 +192,10 @@ module HDLRuby::Low
                 left = self.left.to_change(mode)
             else
                 # If you need to replace the variable, replace it. Otherwise we will get a clone.
-                if $fm.fm_par.has_key?(self.left.to_verilog) && mode == :par then
-                    left = $fm.fm_par["#{self.left.to_verilog}"]
-                elsif $fm.fm_seq.has_key?(self.left.to_verilog) && mode == :seq then
-                    left = $fm.fm_seq["#{self.left.to_verilog}"]
+                if FmI.fm_par.has_key?(self.left.to_verilog) && mode == :par then
+                    left = FmI.fm_par["#{self.left.to_verilog}"]
+                elsif FmI.fm_seq.has_key?(self.left.to_verilog) && mode == :seq then
+                    left = FmI.fm_seq["#{self.left.to_verilog}"]
                 else
                     left = self.left.clone
                 end
@@ -88,10 +205,10 @@ module HDLRuby::Low
                 right = self.right.to_change(mode)
             else
                 # If you need to replace the variable, replace it. Otherwise we will get a clone.
-                if $fm.fm_par.has_key?(self.right.to_verilog) && mode == :par then
-                    right = $fm.fm_par["#{self.right.to_verilog}"]
-                elsif $fm.fm_seq.has_key?(self.right.to_verilog) && mode == :seq then
-                    right = $fm.fm_seq["#{self.right.to_verilog}"]
+                if FmI.fm_par.has_key?(self.right.to_verilog) && mode == :par then
+                    right = FmI.fm_par["#{self.right.to_verilog}"]
+                elsif FmI.fm_seq.has_key?(self.right.to_verilog) && mode == :seq then
+                    right = FmI.fm_seq["#{self.right.to_verilog}"]
                 else
                     right = self.right.clone
                 end
@@ -101,9 +218,10 @@ module HDLRuby::Low
         end
     end
 
-    # class of Represent blocking substitution or nonblocking assignment.
-    # Enhance Transmit with generation of verilog code.
+
     class Transmit
+        ## Enhances Transmit with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog(spc = 3)
             # Determine blocking assignment or nonblocking substitution from mode and return it.
@@ -112,9 +230,11 @@ module HDLRuby::Low
         end
     end
 
-    # Enhance Print with generation of verilog code.
+
     class Print
-        # Converts the system to Verilog code.
+        ## Enhances Print with generation of verilog code.
+
+        # Converts the print to Verilog code.
         def to_verilog(spc = 3)
             code = "#{" " * spc}$write(#{self.each_arg.map do |arg|
             arg.to_verilog
@@ -123,13 +243,25 @@ module HDLRuby::Low
         end
     end
 
-    # To scheduling to the Block.
-    # Enhance Block with generation of verilog code.
+
+    class TimeTerminate
+        ## Enhances TimeTerminate with generation of verilog code.
+
+        # Converts the terminate to Verilog code.
+        def to_verilog(spc = 3)
+            return "#{" " * spc}$finish;"
+        end
+    end
+
+
     class Block
+        ## Enhances Block with generation of verilog code.
+        # To scheduling to the Block.
 
         # Converts the system to Verilog code adding 'spc' spaces at the begining
         # of each line.
-        def to_verilog(spc = 3)
+        # NOTE: if +vcdmodule+ is not nil add code for generating vcd file when simulating
+        def to_verilog(spc = 3, vcdmodule = nil)
             code = "begin"
             if self.name && !self.name.empty? then
                 vname = name_to_verilog(self.name)
@@ -140,7 +272,6 @@ module HDLRuby::Low
             # Declaration of "inner" part within "always".
             block.each_inner do |inner|
                 if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
-                    # code << "      reg"
                     code << "#{" " * (spc+3)}reg"
                 else
                     code << "#{" " * (spc+3)}wire"
@@ -164,6 +295,12 @@ module HDLRuby::Low
                 code << ";\n"
             end
 
+            # Make the generation of vcd file if required.
+            if vcdmodule then
+                code << "\n#{" " * (spc+3)}$dumpfile(\"verilog_simulator.vcd\");"
+                code << "\n#{" " * (spc+3)}$dumpvars(0,#{vcdmodule});\n"
+            end
+
             # Translate the block that finished scheduling.
             block.each_statement do |statement|
                 # puts "#{statement.to_verilog(spc+3)}"
@@ -182,60 +319,62 @@ module HDLRuby::Low
 
 
 
-        # Extract and convert to verilog the TimeRepeat statements.
-        # NOTE: work only on the current level of the block (should be called
-        # through each_block_deep).
-        def repeat_to_verilog!
-            code = ""
-            # Gather the TimeRepeat statements.
-            repeats = self.each_statement.find_all { |st| st.is_a?(TimeRepeat) }
-            # Remove them from the block.
-            repeats.each { |st| self.delete_statement!(st) }
-            # Generate them separately in timed always processes.
-            repeats.each do |st|
-                code << "   always #{st.delay.to_verilog} begin\n"
+        # Deprecated with new TimeRepeat!
+        #
+        # # Extract and convert to verilog the TimeRepeat statements.
+        # # NOTE: work only on the current level of the block (should be called
+        # # through each_block_deep).
+        # def repeat_to_verilog!
+        #     code = ""
+        #     # Gather the TimeRepeat statements.
+        #     repeats = self.each_statement.find_all { |st| st.is_a?(TimeRepeat) }
+        #     # Remove them from the block.
+        #     repeats.each { |st| self.delete_statement!(st) }
+        #     # Generate them separately in timed always processes.
+        #     repeats.each do |st|
+        #         code << "   always #{st.delay.to_verilog} begin\n"
 
-                # Perform "scheduling" using the method "flatten".
-                block = st.statement.flatten(st.statement.mode.to_s)
+        #         # Perform "scheduling" using the method "flatten".
+        #         block = st.statement.flatten(st.statement.mode.to_s)
 
-                # Declaration of "inner" part within "always".
-                block.each_inner do |inner|
-                    # if regs.include?(inner.name) then
-                    if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
-                        code << "      reg"
-                    else
-                        code << "      wire"
-                    end
+        #         # Declaration of "inner" part within "always".
+        #         block.each_inner do |inner|
+        #             # if regs.include?(inner.name) then
+        #             if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
+        #                 code << "      reg"
+        #             else
+        #                 code << "      wire"
+        #             end
 
-                    # Variable has "base", but if there is width etc, it is not in "base".
-                    # It is determined by an if.
-                    if inner.type.base? 
-                        if inner.type.base.base? 
-                            code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
-                        else
-                            code << "#{inner.type.to_verilog} #{inner.to_verilog}"
-                        end
-                    else
-                        code << " #{inner.type.to_verilog}#{inner.to_verilog}"
-                    end
-                    if inner.value then
-                        # There is an initial value.
-                        code << " = #{inner.value.to_verilog}"
-                    end
-                    code << ";\n"
-                end
+        #             # Variable has "base", but if there is width etc, it is not in "base".
+        #             # It is determined by an if.
+        #             if inner.type.base? 
+        #                 if inner.type.base.base? 
+        #                     code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+        #                 else
+        #                     code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+        #                 end
+        #             else
+        #                 code << " #{inner.type.to_verilog}#{inner.to_verilog}"
+        #             end
+        #             if inner.value then
+        #                 # There is an initial value.
+        #                 code << " = #{inner.value.to_verilog}"
+        #             end
+        #             code << ";\n"
+        #         end
 
-                # Translate the block that finished scheduling.
-                block.each_statement do |statement|
-                    code  << "\n      #{statement.to_verilog(block.mode.to_s)}"
-                end
+        #         # Translate the block that finished scheduling.
+        #         block.each_statement do |statement|
+        #             code  << "\n      #{statement.to_verilog(block.mode.to_s)}"
+        #         end
 
-                $fm.fm_par.clear()
+        #         FmI.fm_par.clear()
 
-                code << "\n   end\n\n"
-            end
-            return code
-        end
+        #         code << "\n   end\n\n"
+        #     end
+        #     return code
+        # end
 
 
         # Process top layer of Block.
@@ -283,9 +422,9 @@ module HDLRuby::Low
 
                                         new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                        $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                        FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                        $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                        FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
                                         new_default.add_statement(new_statement.clone)
                                     else
                                         new_default.add_statement(statement.clone)
@@ -317,9 +456,9 @@ module HDLRuby::Low
 
                                         new_smt = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                        $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                        FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                        $fm.fm_par["#{statement.left.to_verilog}"] = new_smt.left
+                                        FmI.fm_par["#{statement.left.to_verilog}"] = new_smt.left
                                         new_when_smt.add_statement(new_smt.clone)
                                     else
                                         new_when_smt.add_statement(statement.clone)
@@ -335,11 +474,11 @@ module HDLRuby::Low
 
                         new_block.add_statement(new_statement)
 
-                        $fm.rep_sharp.each_key do |key|
-                            new_smt = Transmit.new(key.clone,$fm.rep_sharp[key].clone)
+                        FmI.rep_sharp.each_key do |key|
+                            new_smt = Transmit.new(key.clone,FmI.rep_sharp[key].clone)
                             new_block.add_statement(new_smt.clone)
                         end
-                        $fm.rep_sharp.clear() # Deactivate rep that has become obsolete.
+                        FmI.rep_sharp.clear() # Deactivate rep that has become obsolete.
 
                         # If the statement is if, there is a block for each of yes, no, noifs, so translate each.
                     elsif statement.is_a?(If) then   
@@ -372,12 +511,12 @@ module HDLRuby::Low
 
                                     new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                    $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                    FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
                                     new_yes.add_statement(new_statement.clone)
 
 
-                                    $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                    FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
 
                                 else
                                     new_yes.add_statement(statement.clone)
@@ -419,9 +558,9 @@ module HDLRuby::Low
 
                                         new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                        $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                        FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                        $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                        FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
                                         new_no.add_statement(new_statement.clone)
                                     else
                                         new_no.add_statement(statement.clone)
@@ -468,9 +607,9 @@ module HDLRuby::Low
 
                                         new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                        $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                        FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                        $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                        FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
                                         new_noif.add_statement(new_statement.clone)
                                     else
                                         new_noif.add_statement(statement.clone)
@@ -485,17 +624,17 @@ module HDLRuby::Low
 
                         new_block.add_statement(new_statement.clone)
 
-                        $fm.rep_sharp.each_key do |key|
-                            new_smt = Transmit.new(key.clone,$fm.rep_sharp[key].clone)
+                        FmI.rep_sharp.each_key do |key|
+                            new_smt = Transmit.new(key.clone,FmI.rep_sharp[key].clone)
                             new_block.add_statement(new_smt.clone)
                         end
-                        $fm.rep_sharp.clear() # Deactivate rep that has become obsolete.
+                        FmI.rep_sharp.clear() # Deactivate rep that has become obsolete.
 
                         # Process when "statement" is "Transmit" (just expression).
                         # Record the expression in fm_par used for par-> seq and add the expression to new_block which is the "new block".
                     elsif statement.is_a?(Transmit) then
                         if self.mode == :seq then
-                            $fm.fm_par["#{statement.left.to_verilog}"] = statement.right
+                            FmI.fm_par["#{statement.left.to_verilog}"] = statement.right
                         end
                         new_block.add_statement(statement.clone)
 
@@ -517,7 +656,7 @@ module HDLRuby::Low
                         smt.each_statement do |tmt|
                             # Retrieve the RefName of the variable on the left side and store it in this_name.
                             if ((tmt.is_a? (Transmit)) && (self.mode == :seq)) then
-                                $fm.fm_par["#{tmt.left.to_verilog}"] = tmt.right
+                                FmI.fm_par["#{tmt.left.to_verilog}"] = tmt.right
                             end
                             new_block.add_statement(tmt.clone)           
                         end
@@ -566,9 +705,9 @@ module HDLRuby::Low
 
                                     new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                    $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                    FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                    $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                    FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
                                     new_yes.add_statement(new_statement.clone)
                                 else
                                     new_yes.add_statement(statement.clone)
@@ -610,9 +749,9 @@ module HDLRuby::Low
 
                                         new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                        $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                        FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                        $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                        FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
                                         new_no.add_statement(new_statement.clone)
                                     else
                                         new_no.add_statement(statement.clone)
@@ -658,9 +797,9 @@ module HDLRuby::Low
 
                                         new_statement = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                        $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                        FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                        $fm.fm_par["#{statement.left.to_verilog}"] = new_statement.left
+                                        FmI.fm_par["#{statement.left.to_verilog}"] = new_statement.left
                                         new_noif.add_statement(new_statement.clone)
                                     else
                                         new_noif.add_statement(statement.clone)
@@ -675,11 +814,11 @@ module HDLRuby::Low
 
                         new_block.add_statement(new_statement.clone)
 
-                        $fm.rep_sharp.each_key do |key|
-                            new_smt = Transmit.new(key.clone,$fm.rep_sharp[key].clone)
+                        FmI.rep_sharp.each_key do |key|
+                            new_smt = Transmit.new(key.clone,FmI.rep_sharp[key].clone)
                             new_block.add_statement(new_smt.clone)
                         end
-                        $fm.rep_sharp.clear() # Deactivate rep that has become obsolete.
+                        FmI.rep_sharp.clear() # Deactivate rep that has become obsolete.
 
                     elsif statement.is_a?(Case) then
                         if statement.default.is_a?(Block)
@@ -714,8 +853,8 @@ module HDLRuby::Low
             if (self.each_statement.find {|stmnt| stmnt.is_a?(Block)} || (self.each_statement.find {|stmnt| stmnt.is_a?(If)}) || (self.each_statement.find {|stmnt| stmnt.is_a?(Case)}))then
                 # In the case of seq, the lower layer is par. Isolate fm_par so that it is not crosstalked.
                 if(self.mode == :seq) then
-                    fm_buckup = $fm.fm_par.clone
-                    $fm.fm_par.clear()
+                    fm_buckup = FmI.fm_par.clone
+                    FmI.fm_par.clear()
 
                     new_block = change_branch(self)
                 else
@@ -727,7 +866,7 @@ module HDLRuby::Low
                     # If statement is If, convert yes, no, noif and add them to flat.
                     if statement.is_a?(Case) then
                         if(self.mode == :seq) then
-                            fm_buckup_if = $fm.fm_par.clone
+                            fm_buckup_if = FmI.fm_par.clone
                         end
 
                         if statement.default.is_a?(Block)
@@ -745,7 +884,7 @@ module HDLRuby::Low
                         statement.each_when do |whens|
                             if(self.mode == :seq) then
                                 fm_buckup_if.each_key do |key|
-                                    $fm.fm_par[key] = fm_buckup_if[key]
+                                    FmI.fm_par[key] = fm_buckup_if[key]
                                 end
                             end
 
@@ -757,7 +896,7 @@ module HDLRuby::Low
 
                     elsif statement.is_a?(If) then
                         if(self.mode == :seq) then
-                            fm_buckup_if = $fm.fm_par.clone
+                            fm_buckup_if = FmI.fm_par.clone
                         end
 
                         # Since yes always exist, convert without confirming.
@@ -768,7 +907,7 @@ module HDLRuby::Low
 
                             if(self.mode == :seq) then
                                 fm_buckup_if.each_key do |key|
-                                    $fm.fm_par[key] = fm_buckup_if[key]
+                                    FmI.fm_par[key] = fm_buckup_if[key]
                                 end
                             end
 
@@ -781,7 +920,7 @@ module HDLRuby::Low
                         statement.each_noif do |condition, block|
                             if(self.mode == :seq) then
                                 fm_buckup_if.each_key do |key|
-                                    $fm.fm_par[key] = fm_buckup_if[key]
+                                    FmI.fm_par[key] = fm_buckup_if[key]
                                 end
                             end
 
@@ -794,7 +933,7 @@ module HDLRuby::Low
                         # If statement is Transmit, record the expression in fm_par and add the expression to flat as it is.
                     elsif statement.is_a?(Transmit) then
                         if(self.mode == :seq) then
-                            $fm.fm_par["#{statement.left.to_verilog}"] = statement.right.clone
+                            FmI.fm_par["#{statement.left.to_verilog}"] = statement.right.clone
                         end
 
                         flat.add_statement(statement.clone)
@@ -821,7 +960,7 @@ module HDLRuby::Low
                         # If it is seq, the expression after conversion is also likely to be used, so record the expression.
                         smt.each_statement do |tmt|
                             if self.mode == :seq then
-                                $fm.fm_par["#{tmt.left.to_verilog}"] = tmt.right.clone
+                                FmI.fm_par["#{tmt.left.to_verilog}"] = tmt.right.clone
                             end
                             flat.add_statement(tmt.clone)
                         end         
@@ -830,9 +969,9 @@ module HDLRuby::Low
 
                 # Overwrite to restore fm_par which was quarantined.
                 if(self.mode == :seq) then
-                    $fm.fm_par.clear()
+                    FmI.fm_par.clear()
                     fm_buckup.each_key do |key|
-                        $fm.fm_par[key] = fm_buckup[key]
+                        FmI.fm_par[key] = fm_buckup[key]
                     end
                 end
 
@@ -846,11 +985,11 @@ module HDLRuby::Low
                 trans.each_statement do |statement|
                     replase.add_statement(statement.clone)
                     if statement.is_a?(If)
-                        $fm.rep_sharp.each_key do |key|
-                            new_statement = Transmit.new(key.clone,$fm.rep_sharp[key].clone)
+                        FmI.rep_sharp.each_key do |key|
+                            new_statement = Transmit.new(key.clone,FmI.rep_sharp[key].clone)
                             replase.add_statement(new_statement.clone)
                         end
-                        $fm.rep_sharp.clear() # Deactivate rep that has become obsolete.
+                        FmI.rep_sharp.clear() # Deactivate rep that has become obsolete.
                     end
                 end
 
@@ -882,7 +1021,7 @@ module HDLRuby::Low
             list = []
 
             if rst == false then
-                fm_seq_backup = $fm.fm_seq.dup
+                fm_seq_backup = FmI.fm_seq.dup
             end
 
             # The statement is divided (since it is the lowest layer, there is only Transmit).
@@ -896,12 +1035,12 @@ module HDLRuby::Low
                 elsif statement.is_a?(Case) then
 
                     if statement.default.is_a?(Block)
-                        rep_buckup = $fm.rep.dup
-                        $fm.rep.clear()
+                        rep_buckup = FmI.rep.dup
+                        FmI.rep.clear()
                         default = statement.default.to_conversion(mode,false,false)
-                        $fm.rep.clear()
+                        FmI.rep.clear()
                         rep_buckup.each_key do |key|
-                            $fm.rep[key] = rep_buckup[key]
+                            FmI.rep[key] = rep_buckup[key]
                         end
 
                         new_default = Block.new(default.mode,"")
@@ -931,9 +1070,9 @@ module HDLRuby::Low
 
                                     new_smt = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                    $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                    FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                    $fm.fm_par["#{statement.left.to_verilog}"] = new_smt.left
+                                    FmI.fm_par["#{statement.left.to_verilog}"] = new_smt.left
                                     new_default.add_statement(new_smt.clone)
                                 else
                                     new_default.add_statement(statement.clone)
@@ -949,12 +1088,12 @@ module HDLRuby::Low
 
                     statement.each_when do |whens|
 
-                        rep_buckup = $fm.rep.dup
-                        $fm.rep.clear()
+                        rep_buckup = FmI.rep.dup
+                        FmI.rep.clear()
                         when_smt = whens.statement.to_conversion(mode,false,false)
-                        $fm.rep.clear()
+                        FmI.rep.clear()
                         rep_buckup.each_key do |key|
-                            $fm.rep[key] = rep_buckup[key]
+                            FmI.rep[key] = rep_buckup[key]
                         end
 
                         new_when_smt = Block.new(when_smt.mode,"")
@@ -974,9 +1113,9 @@ module HDLRuby::Low
 
                                     new_smt = Transmit.new(search_refname(statement.left,"#"),statement.right.clone)
 
-                                    $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                    FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                    $fm.fm_par["#{statement.left.to_verilog}"] = new_smt.left
+                                    FmI.fm_par["#{statement.left.to_verilog}"] = new_smt.left
                                     new_when_smt.add_statement(new_smt.clone)
                                 else
                                     new_when_smt.add_statement(statement.clone)
@@ -992,12 +1131,12 @@ module HDLRuby::Low
 
                 elsif statement.is_a?(If) then
 
-                    rep_buckup = $fm.rep.dup
-                    $fm.rep.clear()
+                    rep_buckup = FmI.rep.dup
+                    FmI.rep.clear()
                     yes = statement.yes.to_conversion(mode, false,false)
-                    $fm.rep.clear()
+                    FmI.rep.clear()
                     rep_buckup.each_key do |key|
-                        $fm.rep[key] = rep_buckup[key]
+                        FmI.rep[key] = rep_buckup[key]
                     end
 
                     yes.each_inner do |inner|
@@ -1020,9 +1159,9 @@ module HDLRuby::Low
 
                             yes_statement = Transmit.new(search_refname(smt.left,"#"),smt.right.clone)
 
-                            $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                            FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                            $fm.fm_par["#{smt.left.to_verilog}"] = yes_statement.left
+                            FmI.fm_par["#{smt.left.to_verilog}"] = yes_statement.left
                             new_yes.add_statement(yes_statement)
                         else
                             new_yes.add_statement(smt.clone)
@@ -1030,12 +1169,12 @@ module HDLRuby::Low
                     end
 
                     if statement.no.is_a? (Block) then
-                        rep_buckup = $fm.rep.dup
-                        $fm.rep.clear()
+                        rep_buckup = FmI.rep.dup
+                        FmI.rep.clear()
                         no = statement.no.to_conversion(mode,false,false)
-                        $fm.rep.clear()
+                        FmI.rep.clear()
                         rep_buckup.each_key do |key|
-                            $fm.rep[key] = rep_buckup[key]
+                            FmI.rep[key] = rep_buckup[key]
                         end
 
                         no.each_inner do |inner|
@@ -1058,9 +1197,9 @@ module HDLRuby::Low
 
                                 no_statement = Transmit.new(search_refname(smt.left,"#"),smt.right.clone)
 
-                                $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                $fm.fm_par["#{smt.left.to_verilog}"] = no_statement.left
+                                FmI.fm_par["#{smt.left.to_verilog}"] = no_statement.left
                                 new_no.add_statement(no_statement)
                             else
                                 new_no.add_statement(smt.clone)
@@ -1071,12 +1210,12 @@ module HDLRuby::Low
                     new_statement = If.new(statement.condition.clone,new_yes.clone,statement.no ? new_no.clone : nil)
 
                     statement.each_noif do |condition, block|
-                        rep_buckup = $fm.rep.dup
-                        $fm.rep.clear()
+                        rep_buckup = FmI.rep.dup
+                        FmI.rep.clear()
                         noif = block.to_conversion(mode,false,false)
-                        $fm.rep.clear()
+                        FmI.rep.clear()
                         rep_buckup.each_key do |key|
-                            $fm.rep[key] = rep_buckup[key]
+                            FmI.rep[key] = rep_buckup[key]
                         end
 
                         noif.each_inner do |inner|
@@ -1099,9 +1238,9 @@ module HDLRuby::Low
 
                                 noif_statement = Transmit.new(search_refname(smt.left,"#"),smt.right.clone)
 
-                                $fm.rep_sharp[statement.left] = search_refname(statement.left,"#")
+                                FmI.rep_sharp[statement.left] = search_refname(statement.left,"#")
 
-                                $fm.fm_par["#{smt.left.to_verilog}"] = noif_statement.left
+                                FmI.fm_par["#{smt.left.to_verilog}"] = noif_statement.left
                                 new_noif.add_statement(no_statement)
                             else
                                 new_noif.add_statement(smt.clone)
@@ -1118,10 +1257,10 @@ module HDLRuby::Low
                         # Check the right side and the left side, and if they are variables, check the corresponding expressions and replace them.
                         # If it is not a variable, it calls the method to be searched.
                         if statement.right.left.is_a? (Ref) then               
-                            if (mode == :par && self.mode == :seq) && $fm.fm_seq.has_key?(statement.right.left.to_verilog) then
-                                statement_left = $fm.fm_seq["#{statement.right.left.to_verilog}"]
-                            elsif (mode == :seq && self.mode == :par) && $fm.fm_par.has_key?(statement.right.left.to_verilog) then
-                                statement_left = $fm.fm_par["#{statement.right.left.to_verilog}"]
+                            if (mode == :par && self.mode == :seq) && FmI.fm_seq.has_key?(statement.right.left.to_verilog) then
+                                statement_left = FmI.fm_seq["#{statement.right.left.to_verilog}"]
+                            elsif (mode == :seq && self.mode == :par) && FmI.fm_par.has_key?(statement.right.left.to_verilog) then
+                                statement_left = FmI.fm_par["#{statement.right.left.to_verilog}"]
                             else
                                 statement_left = statement.right.left.clone
                             end
@@ -1132,10 +1271,10 @@ module HDLRuby::Low
                         end
 
                         if statement.right.right.is_a? (Ref) then
-                            if (mode == :par && self.mode == :seq) && $fm.fm_seq.has_key?(statement.right.right.to_verilog) then
-                                statement_right = $fm.fm_seq["#{statement.right.right.to_verilog}"]
-                            elsif (mode == :seq && self.mode == :par) && $fm.fm_par.has_key?(statement.right.right.to_verilog) then
-                                statement_right = $fm.fm_par["#{statement.right.right.to_verilog}"]
+                            if (mode == :par && self.mode == :seq) && FmI.fm_seq.has_key?(statement.right.right.to_verilog) then
+                                statement_right = FmI.fm_seq["#{statement.right.right.to_verilog}"]
+                            elsif (mode == :seq && self.mode == :par) && FmI.fm_par.has_key?(statement.right.right.to_verilog) then
+                                statement_right = FmI.fm_par["#{statement.right.right.to_verilog}"]
                             else
                                 statement_right = statement.right.right.clone
                             end
@@ -1147,10 +1286,10 @@ module HDLRuby::Low
                         new_right = Binary.new(statement.right.type,statement.right.operator,statement_left.clone,statement_right.clone)
                         # Confirm whether it is a variable.
                     elsif statement.right.is_a?(Ref) then
-                        if (mode == :par && self.mode == :seq) && $fm.fm_seq.has_key?(statement.right.to_verilog) then
-                            new_right = $fm.fm_seq["#{statement.right.to_verilog}"].clone
-                        elsif (mode == :seq && self.mode == :par) && $fm.fm_par.has_key?(statement.right.to_verilog) then
-                            new_right = $fm.fm_par["#{statement.right.to_verilog}"].clone
+                        if (mode == :par && self.mode == :seq) && FmI.fm_seq.has_key?(statement.right.to_verilog) then
+                            new_right = FmI.fm_seq["#{statement.right.to_verilog}"].clone
+                        elsif (mode == :seq && self.mode == :par) && FmI.fm_par.has_key?(statement.right.to_verilog) then
+                            new_right = FmI.fm_par["#{statement.right.to_verilog}"].clone
                         else
                             new_right = statement.right.clone
                         end
@@ -1163,7 +1302,7 @@ module HDLRuby::Low
                         # Dock the existing left hand side and the replaced right hand side to create a new expression.
                         # Record the expression after conversion to hash to continue seq-> par.
                         new_statement = Transmit.new(statement.left.clone,new_right)
-                        $fm.fm_seq["#{statement.left.to_verilog}"] = new_right
+                        FmI.fm_seq["#{statement.left.to_verilog}"] = new_right
                     elsif (mode == :seq && self.mode == :par) && (rep) then
                         unless (res_name(statement.left).name.to_s.include? "#")
                             # Search the variable on the left side and give 'to the name.
@@ -1176,7 +1315,7 @@ module HDLRuby::Low
 
                             new_statement = Transmit.new(search_refname(statement.left,"'"),new_right)
 
-                            $fm.rep[statement.left] = new_statement     
+                            FmI.rep[statement.left] = new_statement     
                         end
                     else
                         new_statement = Transmit.new(statement.left.clone,new_right)
@@ -1193,34 +1332,34 @@ module HDLRuby::Low
                 end
 
                 if (rep)
-                    $fm.rep_sharp.each_key do |key|
-                        new_smt = Transmit.new(key.clone,$fm.rep_sharp[key].clone)
+                    FmI.rep_sharp.each_key do |key|
+                        new_smt = Transmit.new(key.clone,FmI.rep_sharp[key].clone)
                         flat.add_statement(new_smt.clone)
                     end
-                    $fm.rep_sharp.clear() # Deactivate rep that has become obsolete.
+                    FmI.rep_sharp.clear() # Deactivate rep that has become obsolete.
                 end
             end
             # Add an expression after paragraph based on rep.
             # A complement expression like x = x '.
-            $fm.rep.each_key do |key|
-                new_statement = Transmit.new(key.clone,$fm.rep[key].left.clone)
+            FmI.rep.each_key do |key|
+                new_statement = Transmit.new(key.clone,FmI.rep[key].left.clone)
                 flat.add_statement(new_statement.clone)
             end
-            $fm.rep.clear() # Deactivate rep that has become obsolete.
+            FmI.rep.clear() # Deactivate rep that has become obsolete.
 
 
             # Since seq -> par is the end, fm_par is deleted.
             if (mode == :par && self.mode == :seq) then
-                $fm.fm_seq.clear()
+                FmI.fm_seq.clear()
             end
 
             # In case of if statement (when rst == false) you can not convert no or else if you delete the contents of fm_seq.
             # Therefore, in this case restore the backup to restore.
             # This means that it is necessary to erase fm_seq once obtained in the if statement once.
             if(rst == false) then
-                $fm.fm_seq.clear()
+                FmI.fm_seq.clear()
                 fm_seq_backup.each_key do |key|
-                    $fm.fm_seq[key] = fm_seq_backup[key]
+                    FmI.fm_seq[key] = fm_seq_backup[key]
                 end
             end
 
@@ -1365,12 +1504,20 @@ module HDLRuby::Low
         end
     end
 
-    # Used to display variable names.
-    # Enhance RefName with generation of verilog code.
+
     class RefName
+        ## Enhances RefName with generation of verilog code.
+
         # Converts the system to Verilog code using +renamer+ for producing Verilog-compatible names.
         def to_verilog
-            vname = name_to_verilog(self.name)
+            if (self.ref.is_a?(RefThis)) then
+                # End reference.
+                vname = name_to_verilog(self.name)
+            else
+                # Not end reference, recurse.
+                # vname = name_to_verilog(self.name) + "." + self.ref.to_verilog 
+                vname = self.ref.to_verilog + "." + name_to_verilog(self.name)
+            end
             # self.properties[:verilog_name] = vname
             return "#{vname}"
         end
@@ -1389,19 +1536,29 @@ module HDLRuby::Low
         end
     end
 
-    # Used to convert an array.
-    # Enhance RefIndex with generation of verilog code.
+    
     class RefIndex
+        ## Enhances RefIndex with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
-            return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
+            # return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
+            if self.ref.is_a?(RefName) then
+                return "#{self.ref.to_verilog}[#{self.index.to_verilog}]"
+            else
+                # No a pure signal, need to use a function for accessing.
+                at = self.ref.type.to_verilog
+                rt = self.type.to_verilog
+                IndexersI.add(at,rt)
+                return "#{IndexersI.indexer_name(at,rt)}(#{self.ref.to_verilog},#{self.index.to_verilog})"
+            end
         end
     end
 
 
-    # Used to indicate the number of bits.
-    # Enhance TypeVector with generation of verilog code.
     class TypeVector
+        ## Enhances TypeVector with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             # if self.base.name.to_s != "bit"
@@ -1412,16 +1569,33 @@ module HDLRuby::Low
         end
     end
 
-    # Necessary for displaying bit width (eg, specify and assign).
+
     class RefRange
+        ## Enhances RefRange with generation of verilog code.
+
+        # Necessary for displaying bit width (eg, specify and assign).
+
         # Converts the system to Verilog code.
         def to_verilog(unknown = false)
-            return "#{self.ref.to_verilog}[#{self.range.first.to_getrange}:#{self.range.last.to_getrange}]"
+            if self.ref.is_a?(RefName) then
+                return "#{self.ref.to_verilog}[#{self.range.first.to_getrange}:#{self.range.last.to_getrange}]"
+            else
+                # No a pure signal, need to use a function for accessing.
+                # sr = self.range.first.to_i..self.range.last.to_i
+                # cr = (self.type.width-1)..0
+                sr = (self.range.first.to_i+1)*self.ref.type.base.width-1..
+                    self.range.last.to_i*self.ref.type.base.width
+                cr = (self.ref.type.width-1)..0
+                TruncersI.add(cr,sr)
+                return "#{TruncersI.truncer_name(cr,sr)}(#{self.ref.to_verilog})"
+            end
         end
     end
 
-    # Use it when collecting references.
+
     class RefConcat
+        ## Enhances RefConcat with generation of verilog code.
+
         def to_verilog    
             ref = self.each_ref.to_a
 
@@ -1435,43 +1609,79 @@ module HDLRuby::Low
         end
     end
 
-    # Used to output bitstring.
-    # Enhance HDLRuby with generation of verilog code.
+
     class HDLRuby::BitString
+        ## Enhances BitString with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             return "#{self.to_s}"
         end
     end
 
-    # Used for connection using choice.
-    # Enhance Select with generation of verilog code.
+
     class Select
+        ## Enhances Select with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             # Outputs the first and second choices (choice (0) and choice (1)).
-            return "#{self.select.to_verilog} == 1 #{self.operator} #{self.get_choice(0).to_verilog} : #{self.get_choice(1).to_verilog}"
+            # return "#{self.select.to_verilog} == 1 #{self.operator} #{self.get_choice(0).to_verilog} : #{self.get_choice(1).to_verilog}"
+            res = ""
+            sels = self.select.to_verilog
+            @choices[0..-2].each_with_index do |choice,i|
+                res << "#{sels} == #{i} ? #{choice.to_verilog} : "
+            end
+            res << @choices[-1].to_verilog
+            return res
         end
     end
 
-    # Used to output numbers.
-    # Enhance Value with generation of verilog code.
+
     class Value
+        ## Enhances Value with generation of verilog code.
+
         # Converts the system to Verilog code.
         # If it is bit, it is b, and if it is int, it is represented by d. (Example: 4'b0000, 32'd1)
         def to_verilog(unknown = nil)
-            if self.type.base.name.to_s == "bit"
-                return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
-            elsif self.type.name.to_s == "integer"
-                str = self.content.to_verilog
-                if str[0] == "-" then
-                    # Negative value.
-                    return "-#{self.type.range.first + 1}'d#{str[1..-1]}"
+            # if self.type.base.name.to_s == "bit"
+            # if self.type.unsigned? then
+            #     # return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
+            #     return "#{self.type.width}'b#{self.content.to_verilog}"
+            # elsif self.type.name.to_s == "integer"
+            #     str = self.content.to_verilog
+            #     if str[0] == "-" then
+            #         # Negative value.
+            #         return "-#{self.type.range.first + 1}'d#{str[1..-1]}"
+            #     else
+            #         return "#{self.type.range.first + 1}'d#{str}"
+            #     end
+            # end
+            # return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
+            if self.content.is_a?(Numeric) then
+                if self.type.signed? then
+                    if self.content < 0 then
+                        # str = (2**self.type.width + self.content).to_s(2)
+                        str = self.content.to_s(2)
+                        str = "0" * (self.type.width-str.length+1) + str[1..-1]
+                        return "-#{self.type.width}'sb#{str}"
+                    else
+                        str = self.content.to_s(2)
+                        str = "0" * (self.type.width-str.length) + str
+                        return "#{self.type.width}'sb#{str}"
+                    end
                 else
-                    return "#{self.type.range.first + 1}'d#{str}"
+                    return "#{self.type.width}'b#{self.content.to_s(2)}"
+                end
+                # return "#{self.type.width}'b#{str}"
+            else
+                str = self.content.to_verilog
+                if self.content.negative? then
+                    return "#{str.length}'sb#{str}"
+                else
+                    return "#{str.length}'b#{str}"
                 end
             end
-            return "#{self.type.range.first + 1}'b#{self.content.to_verilog}"
         end
         # How to use when simply obtaining the width
         def to_getrange
@@ -1480,9 +1690,9 @@ module HDLRuby::Low
     end
 
 
-    # Used to transrate if.
-    # Enhance If with generation of verilog code.
     class If
+        ## Enhances If with generation of verilog code.
+
         # # Converts the system to Verilog code.
         # def to_verilog(mode = nil)
         # Converts to Verilog code, checking adding 'spc' spaces at the begining
@@ -1518,17 +1728,16 @@ module HDLRuby::Low
         end
     end
 
-    # Used to translate case
+
     class Case
-        # def to_verilog(mode = nil)
-        #
+        ## Enhances Case with generation of verilog code.
+
         # Converts to Verilog code, checking if variables are register
         # or wire adding 'spc' spaces at the begining of each line.
         def to_verilog(spc = 3)
 
             result = " " * spc # Indented based on space_count.
 
-            result = ""
             result << "case(#{self.value.to_verilog})\n"
 
             # n the case statement, each branch is partitioned by when. Process each time when.
@@ -1537,18 +1746,21 @@ module HDLRuby::Low
                 result << " " * (spc+3) + "#{whens.match.to_verilog}: "
 
                 if whens.statement.each_statement.count >= 1 then
-                    result << whens.statement.to_verilog(spc+3)
+                    result << whens.statement.to_verilog(spc+3) << "\n"
                 else
-                    result << "\n"
+                    result << ";\n"
                 end
             end
             if self.default then
+                result << " " * (spc+3) + "default: "
                 if self.default.each_statement.count >= 1 then
+                    result << "begin\n"
                     result << self.default.each_statement.map do |stmnt|
-                        stmnt.to_verilog(spc+3)
-                    end.join("\n")
+                        stmnt.to_verilog(spc+6)
+                    end.join("\n") << "\n"
+                    result << " " * (spc+3) + "end\n"
                 else
-                    result << "\n"
+                    result << ";\n"
                 end
             end
             result << " " * spc + "endcase\n" # Conclusion.
@@ -1557,9 +1769,10 @@ module HDLRuby::Low
         end
     end
 
-    # Translate expression of combination circuit.
-    # Enhance Connection with generation of verilog code.
+    
     class Connection
+        ## Enhances Connection with generation of verilog code.
+
         # Converts the system to Verilog code.
 
         # Method used for array.
@@ -1616,23 +1829,29 @@ module HDLRuby::Low
         end
     end
 
-    # It could be used for instantiation.
+    
     class RefThis
+        ## Enhances RefThis with generation of verilog code.
+
         def to_another_verilog
             return ""
         end
     end
 
-    # Used when using "~" for expressions.
+    
     class Unary
+        ## Enhances Unary with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             return "#{self.operator[0]}#{self.child.to_verilog}"
         end
     end
 
-    # Used when casting expressions.
+    
     class Cast
+        ## Enhances Cast with generation of verilog code.
+
         # Converts the system to Verilog code.
         # NOTE: the cast is rounded up size bit-width cast is not supported
         #       by traditional verilog.
@@ -1644,13 +1863,25 @@ module HDLRuby::Low
             cw = self.child.type.width
             sw = self.type.width
             if self.type.signed? then
-                if (sw>cw) then
-                    # Need to sign extend.
-                    return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," +
-                        "#{self.child.to_verilog}})"
+                # Need to sign extend.
+                if cw == 1 then
+                    return "$signed({#{sw}{#{self.child.to_verilog}}})"
+                elsif (sw>cw) then
+                    # return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," + "#{self.child.to_verilog}})"
+                    if self.child.is_a?(RefName) then
+                        return "$signed({{#{sw-cw}{#{self.child.to_verilog}[#{cw-1}]}}," + "#{self.child.to_verilog}})"
+                    else
+                        # No a pure signal, need to use a function for accessing.
+                        at = self.child.type.to_verilog
+                        rt = bit.to_verilog
+                        IndexersI.add(at,rt)
+                        return "$signed({{#{sw-cw}{#{IndexersI.indexer_name(at,rt)}(#{self.child.to_verilog},#{cw-1})}}," + "#{self.child.to_verilog}})"
+                    end
                 elsif (sw<cw) then
                     # Need to truncate
-                    return "$signed(#{self.child.to_verilog}[#{sw-1}:0])"
+                    # return "$signed(#{self.child.to_verilog}[#{sw-1}:0])"
+                    TruncersI.add((cw-1)..0,(sw-1)..0)
+                    return "$signed(#{TruncersI.truncer_name((cw-1)..0,(sw-1)..0)}(#{self.child.to_verilog}))"
                 else
                     # Only enforce signed.
                     return "$signed(#{self.child.to_verilog})"
@@ -1661,7 +1892,9 @@ module HDLRuby::Low
                     return "$unsigned({{#{sw-cw}{1'b0}},#{self.child.to_verilog}})"
                 elsif (sw<cw) then
                     # Need to truncate
-                    return "$unsigned(#{self.child.to_verilog}[#{sw-1}:0])"
+                    # return "$unsigned(#{self.child.to_verilog}[#{sw-1}:0])"
+                    TruncersI.add((cw-1)..0,(sw-1)..0)
+                    return "$unsigned(#{TruncersI.truncer_name((cw-1)..0,(sw-1)..0)}(#{self.child.to_verilog}))"
                 else
                     # Only enforce signed.
                     return "$unsigned(#{self.child.to_verilog})"
@@ -1670,9 +1903,10 @@ module HDLRuby::Low
         end
     end
 
-    # For declaring variables.
-    # Enhance SignalI with generation of verilog code.
+
     class SignalI
+        ## Enhances SignalI with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog
             # Convert unusable characters and return them.
@@ -1682,25 +1916,30 @@ module HDLRuby::Low
         end
     end
 
-    # If it is signed, it outputs signed.
-    # Enhance Type with generation of verilog code.
+    
     class Type
+        ## Enhances Type with generation of verilog code.
+
         # Converts the type to Verilog code.
         def to_verilog
             return self.name == :signed ? "#{self.name.to_s} " : ""
         end
     end
 
-    # Replace type by refered type.
+    
     class TypeDef
+        ## Enhances TypeDef with generation of verilog code.
+
         # Converts the type to verilog code.
         def to_verilog
             return self.def.to_verilog
         end
     end
 
-    # Use it when collecting.
+    
     class Concat
+        ## Enhances Concat with generation of verilog code.
+
         def to_verilog    
             expression = self.each_expression.to_a
 
@@ -1714,14 +1953,19 @@ module HDLRuby::Low
         end
     end
 
-    # Look at the unit of time, convert the time to ps and output it.
-    # One of two people, TimeWait and Delay.
+    
     class TimeWait
+        ## Enhances TimeWait with generation of verilog code.
+
         def to_verilog(spc = 3)
             return (" " * spc) + self.delay.to_verilog + "\n"
         end
     end
+
+
     class Delay
+        ## Enhances Delay with generation of verilog code.
+
         def to_verilog
             time = self.value.to_s
             if(self.unit.to_s == "ps") then
@@ -1738,13 +1982,24 @@ module HDLRuby::Low
         end
     end
 
+
+    class TimeRepeat
+        ## Enhances TimeRepeat with generation of verilog code.
+
+        def to_verilog(spc = 3)
+            result = (" " * spc) + "repeat(#{self.number})" + "\n"
+            result << self.statement.to_verilog(spc+3)
+        end
+    end
+
     # Those who disappeared.
     #class SystemI
     #class TypeTuple
     #class Event
 
-    # Enhance SystemT with generation of verilog code.
+    
     class SystemT
+        ## Enhances SystemT with generation of verilog code.
 
         ## Tells if a connection is actually a port connection.
         def port_output_connection?(connection)
@@ -1793,9 +2048,60 @@ module HDLRuby::Low
         end
 
 
+        # Get the signals that can be declared as reg.
+        # If +vname+ is given, use as base for reference name.
+        def self.get_regs(expr,vname = nil)
+            if expr.is_a?(RefConcat) then
+                return expr.each_ref.map {|ref| self.get_regs(ref,vname) }.flatten
+            elsif expr.is_a?(RefName) then
+                if vname then
+                    puts "vname=#{vname} expr.name=#{expr.name}"
+                    if expr.ref && name_to_verilog(expr.name) == vname then
+                        return get_regs(expr.ref)
+                    else
+                        return []
+                    end
+                else
+                    return [expr]
+                end
+            else
+                return get_regs(expr.ref,vname)
+            end
+        end
+
+        # Get signals indirectly refered that have to become reg in
+        # a sub system. +vname+ is the name of the system whose signals
+        # are to be processed.
+        def self.get_indirect_verilog_regs(systemI,vname)
+            # Get the sub systemT.
+            sub_systemT = systemI.systemT
+            # Get the indirect reg inside it.
+            sub_systemT.each_behavior do |behavior|
+                behavior.each_block_deep do |block|
+                    block.each_statement do |statement|
+                        if statement.is_a?(Transmit) &&
+                                statement.left.to_verilog.include?(vname + ".")
+                            puts "hierachical=#{statement.left.to_verilog}"
+                            # HDLRuby::Low::VERILOG_REGS << SystemT.get_regs(statement.left.ref).to_verilog
+                            HDLRuby::Low::VERILOG_REGS.concat( SystemT.get_regs(statement.left,vname).map(&:to_verilog))
+                        end
+                    end
+                end
+            end
+            # And recurse on its systemIs.
+            sub_systemT.each_systemI do |sub_systemI|
+                SystemT.get_indirect_verilog_regs(sub_systemI,vname)
+            end
+        end
+
 
         # Converts the system to Verilog code.
-        def to_verilog
+        # NOTE: if +vcd+ is true, generate verilog code whose simulation
+        #       produces a vcd file.
+        def to_verilog(vcd = false)
+            # Create the name of the module.
+            vname = name_to_verilog(self.name)
+            # puts "Processing systemT named=#{vname}"
             # Detect the registers
             HDLRuby::Low::VERILOG_REGS.clear
             # The left values.
@@ -1803,10 +2109,14 @@ module HDLRuby::Low
                 behavior.each_block_deep do |block|
                     block.each_statement do |statement|
                         if statement.is_a?(Transmit)
-                            HDLRuby::Low::VERILOG_REGS << statement.left.to_verilog
+                            # HDLRuby::Low::VERILOG_REGS << SystemT.get_regs(statement.left).to_verilog
+                            HDLRuby::Low::VERILOG_REGS.concat(SystemT.get_regs(statement.left).map(&:to_verilog))
                         end
                     end
                 end
+            end
+            self.each_systemI do |systemI|
+                SystemT.get_indirect_verilog_regs(systemI,vname)
             end
             # And the initialized signals.
             self.each_output do |output|
@@ -1817,17 +2127,18 @@ module HDLRuby::Low
                 # regs << inner.to_verilog if inner.value
                 HDLRuby::Low::VERILOG_REGS << inner.to_verilog if inner.value
             end
-            # And the array types signals.
-            self.each_signal do |sig|
-                if sig.type.vector? && sig.type.base.vector? then
-                    HDLRuby::Low::VERILOG_REGS << sig.to_verilog
-                end
-            end
-            self.each_inner do |sig|
-                if sig.type.vector? && sig.type.base.vector? then
-                    HDLRuby::Low::VERILOG_REGS << sig.to_verilog
-                end
-            end
+            # Actual NOT...
+            # # And the array types signals.
+            # self.each_signal do |sig|
+            #     if sig.type.vector? && sig.type.base.vector? then
+            #         HDLRuby::Low::VERILOG_REGS << sig.to_verilog
+            #     end
+            # end
+            # self.each_inner do |sig|
+            #     if sig.type.vector? && sig.type.base.vector? then
+            #         HDLRuby::Low::VERILOG_REGS << sig.to_verilog
+            #     end
+            # end
 
             # Code generation
             inputs = 0
@@ -1841,7 +2152,6 @@ module HDLRuby::Low
             # Spelling necessary for simulation.
             code = "`timescale 1ps/1ps\n\n"
 
-            vname = name_to_verilog(self.name)
             # self.properties[:verilog_name] = vname
             # Output the module name.
             code << "module #{vname}("
@@ -1940,62 +2250,74 @@ module HDLRuby::Low
                 end
             end
 
+            # Generate content code.
+            codeC = ""
+
+            # Arrays to initialize.
+            arrays_to_init = []
+
             # Declare "inner".
             self.each_inner do |inner|
                 if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
-                    code << "   reg"
+                    codeC << "   reg"
                 else
-                    code << "   wire"
+                    codeC << "   wire"
                 end
 
                 if inner.type.base? 
                     if inner.type.base.base? 
-                        code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+                        codeC << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
                     else
-                        code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+                        codeC << "#{inner.type.to_verilog} #{inner.to_verilog}"
                     end
                 else
-                    code << " #{inner.type.to_verilog}#{inner.to_verilog}"
+                    codeC << " #{inner.type.to_verilog}#{inner.to_verilog}"
                 end
                 if inner.value then
-                    # There is an initial value.
-                    code << " = #{inner.value.to_verilog}"
+                    val = inner.value
+                    val = val.child while val.is_a?(Cast)
+                    if val.is_a?(Concat) then
+                        arrays_to_init << [inner,val]
+                    else
+                        # There is an initial value.
+                        codeC << " = #{inner.value.to_verilog}"
+                    end
                 end
-                code << ";\n"
+                codeC << ";\n"
             end
 
             # If there is scope in scope, translate it.
             self.each_scope do |scope|
                 scope.each_inner do |inner|
                     if HDLRuby::Low::VERILOG_REGS.include?(inner.to_verilog) then
-                        code << "   reg "
+                        codeC << "   reg "
                     else
-                        code << "   wire "
+                        codeC << "   wire "
                     end
 
                     if inner.type.respond_to? (:base) 
                         if inner.type.base.base?
-                            code << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
+                            codeC << "#{inner.type.base.to_verilog} #{inner.to_verilog} #{inner.type.to_verilog}"
                         else
-                            code << "#{inner.type.to_verilog} #{inner.to_verilog}"
+                            codeC << "#{inner.type.to_verilog} #{inner.to_verilog}"
                         end
                     else
-                        code << "inner #{inner.type.to_verilog} #{inner.to_verilog}"
+                        codeC << "inner #{inner.type.to_verilog} #{inner.to_verilog}"
                     end
                     if inner.value then
                         # There is an initial value.
-                        code << " = #{inner.value.to_verilog}"
+                        codeC << " = #{inner.value.to_verilog}"
                     end
-                    code << ";\n"
+                    codeC << ";\n"
                 end    
 
                 scope.each_connection do |connection|
-                    code << "\n" 
-                    code << "#{connection.to_verilog}"
+                    codeC << "\n" 
+                    codeC << "#{connection.to_verilog}"
                 end
             end
 
-            code << "\n"
+            codeC << "\n"
 
             # puts "For system=#{self.name}"
             # transliation of the instantiation part.
@@ -2003,101 +2325,137 @@ module HDLRuby::Low
             self.each_systemI do |systemI| 
                 # puts "Processing systemI = #{systemI.name}"
                 # Its Declaration.
-                code << " " * 3
+                codeC << " " * 3
                 systemT = systemI.systemT
-                code << name_to_verilog(systemT.name) << " "
+                codeC << name_to_verilog(systemT.name) << " "
                 vname = name_to_verilog(systemI.name)
                 # systemI.properties[:verilog_name] = vname
-                code << vname << "("
+                codeC << vname << "("
                 # Its ports connections
                 # Inputs
                 systemT.each_input do |input|
                     ref = self.extract_port_assign!(systemI,input)
                     if ref then
-                        code << "." << name_to_verilog(input.name) << "(" 
-                        code << ref.to_verilog
-                        code << "),"
+                        codeC << "." << name_to_verilog(input.name) << "(" 
+                        codeC << ref.to_verilog
+                        codeC << "),"
                     end
                 end
                 # Outputs
                 systemT.each_output do |output|
                     ref = self.extract_port_assign!(systemI,output)
                     if ref then
-                        code << "." << name_to_verilog(output.name) << "(" 
-                        code << ref.to_verilog
-                        code << "),"
+                        codeC << "." << name_to_verilog(output.name) << "(" 
+                        codeC << ref.to_verilog
+                        codeC << "),"
                     end
                 end
                 # Inouts
                 systemT.each_inout do |inout|
                     ref = self.extract_port_assign!(systemI,inout)
                     if ref then
-                        code << "." << name_to_verilog(inout.name) << "(" 
-                        code << ref.to_verilog
-                        code << "),"
+                        codeC << "." << name_to_verilog(inout.name) << "(" 
+                        codeC << ref.to_verilog
+                        codeC << "),"
                     end
                 end
-                # Remove the last "," for conforming with Verilog syntax.
-                # and close the port connection.
-                code[-1] = ");\n"
+                # Remove the last "," if any for conforming with Verilog syntax.
+                codeC.chop! if codeC[-1] == ","
+                # And close the port connection.
+                codeC << ");\n"
             end
 
 
 
             # translation of the connection part (assigen).
             self.each_connection do |connection|
-                code << "#{connection.to_verilog}\n"
+                codeC << "#{connection.to_verilog}\n"
             end
 
             # Translation of behavior part (always).
+            $timebeh_shown = false
             self.each_behavior do |behavior|
+                timebeh = false
                 if behavior.block.is_a?(TimeBlock) then
-                    # Extract and translate the TimeRepeat separately.
-                    behavior.each_block_deep do |blk|
-                        code << blk.repeat_to_verilog!
-                    end
+                    # Tell it is a time behavior for further processing.
+                    timebeh = true
+                    # Deprecated with new TimeRepeat.
+                    #
+                    # # Extract and translate the TimeRepeat separately.
+                    # behavior.each_block_deep do |blk|
+                    #     codeC << blk.repeat_to_verilog!
+                    # end
                     # And generate an initial block.
-                    code << "   initial "
+                    codeC << "   initial "
                 else
                     # Generate a standard process.
-                    code << "   always @( "
+                    codeC << "\n   always @( "
                     # If there is no "always" condition, it is always @("*").
                     if behavior.each_event.to_a.empty? then
-                        code << "*"
+                        codeC << "*"
                     else
                         event = behavior.each_event.to_a
                         event[0..-2].each do |event|
                             # If "posedge" or "negedge" does not exist, the variable is set to condition.
                             if (event.type.to_s != "posedge" && event.type.to_s != "negedge") then
-                                code << "#{event.ref.to_verilog}, "
+                                codeC << "#{event.ref.to_verilog}, "
                             else
                                 # Otherwise, it outputs "psoedge" or "negedge" as a condition.
-                                code << "#{event.type.to_s} #{event.ref.to_verilog}, "
+                                codeC << "#{event.type.to_s} #{event.ref.to_verilog}, "
                             end
                         end
                         # Since no comma is necessary at the end, we try not to separate commas separately at the end.
                         if (event.last.type.to_s != "posedge" && event.last.type.to_s != "negedge") then
-                            code << "#{event.last.ref.to_verilog}"
+                            codeC << "#{event.last.ref.to_verilog}"
                         else
-                            code << "#{event.last.type.to_s} #{event.last.ref.to_verilog}"
+                            codeC << "#{event.last.type.to_s} #{event.last.ref.to_verilog}"
                         end
                     end
-                    code << " ) "
+                    codeC << " ) "
                 end
 
-                code << behavior.block.to_verilog
+                if vcd && timebeh && !$timebeh_shown then
+                    codeC << behavior.block.to_verilog(3,name_to_verilog(self.name))
+                    $timebeh_shown = true
+                else
+                    codeC << behavior.block.to_verilog
+                end
 
             end
 
+            # Generate the code for the initialization of the arrays.
+            if arrays_to_init.any? then
+                codeC << "   initial begin\n"
+                arrays_to_init.each do |(sig,val)|
+                    val.each_expression.with_index do |expr,i|
+                        # Initialization, therefore maybe no cast required...
+                        # if sig.value.is_a?(Cast) then
+                        #     expr = Cast.new(sig.value.type,expr.clone)
+                        # end
+                        codeC << "      ";
+                        codeC << "#{sig.to_verilog}[#{i}]=#{expr.to_verilog};\n"
+                    end
+                end
+                codeC << "   end\n"
+            end
+
             # Conclusion.
-            code << "\nendmodule"
+            codeC << "\nendmodule"
+
+            # Adds the truncing functions.
+            code << TruncersI.dump
+            # Adds the indexing functions.
+            code << IndexersI.dump
+            # Adds the content code.
+            code << codeC
             return code
         end
     end
 
 
-    # Enhance StringE with generation of verilog code.
     class StringE
+        ## Enhances stringE with generation of verilog code.
+
         # Converts the system to Verilog code.
         def to_verilog(spc = 3)
             code = "\"#{Low.v_string(self.content)}" +
@@ -2112,8 +2470,8 @@ end
 
 
 
-## Extends the Numeric class with generation of verilog text.
 class ::Numeric
+## Extends the Numeric class with generation of verilog text.
 
     # Generates the text of the equivalent verilog code.
     # +level+ is the hierachical level of the object.

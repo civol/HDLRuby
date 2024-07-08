@@ -5,6 +5,10 @@ module HDLRuby
     class AnyError < ::StandardError
     end
 
+    ## The HDLRuby UI error class.
+    class UIError < ::StandardError
+    end
+
     module High
         ## The HDLRuby::High error class.
         class AnyError < HDLRuby::AnyError
@@ -13,11 +17,20 @@ module HDLRuby
         ## The HDLRuby error class replacing the standard Ruby NoMethodError
         class NotDefinedError < AnyError
         end
+
+        ## The HDLRuby::High UI error class.
+        class UIError < HDLRuby::UIError
+        end
     end
+
 
     module Low
         ## The HDLRuby::Low error class.
         class AnyError < HDLRuby::AnyError
+        end
+
+        ## The HDLRuby::Low UI error class.
+        class UIError < HDLRuby::UIError
         end
     end
 

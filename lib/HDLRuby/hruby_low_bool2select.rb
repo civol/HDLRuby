@@ -14,9 +14,9 @@ module HDLRuby::Low
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for converting booleans
-    #  in assignments to select operators.
     class SystemT
+        ## Extends the SystemT class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -27,9 +27,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with functionality for converting booleans
-    #  in assignments to select operators.
     class Scope
+        ## Extends the Scope class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -48,9 +48,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Transmit class with functionality for converting booleans
-    #  in assignments to select operators.
     class Transmit
+        ## Extends the Transmit class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -63,9 +63,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Print class with functionality for converting booleans
-    #  in assignments to select operators.
     class Print
+        ## Extends the Print class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -75,10 +75,22 @@ module HDLRuby::Low
         end
     end
 
+
+    class TimeTerminate
+        ## Extends the TimeTerminate class with functionality for converting
+        #  booleans in assignments to select operators.
+
+        # Converts booleans in assignments to select operators.
+        def boolean_in_assign2select!
+            # Nothing to do.
+            return self
+        end
+    end
+
     
-    ## Extends the If class with functionality for converting booleans
-    #  in assignments to select operators.
     class If
+        ## Extends the If class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -99,9 +111,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for converting booleans
-    #  in assignments to select operators.
+
     class When
+        ## Extends the When class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -115,9 +128,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with functionality for converting booleans
-    #  in assignments to select operators.
     class Case
+        ## Extends the Case class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -133,9 +146,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with functionality for converting booleans
-    #  in assignments to select operators.
     class TimeWait
+        ## Extends the TimeWait class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
             # Nothing to do.
@@ -143,9 +157,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with functionality for converting booleans
-    #  in assignments to setlect operators.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with functionality for converting
+        #  booleans in assignments to setlect operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
             # Simply recurse on the stamtement.
@@ -155,9 +171,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for converting booleans
-    #  in assignments to select operators.
     class Block
+        ## Extends the Block class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select!
@@ -168,9 +184,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Value class with functionality for converting booleans
-    #  in assignments to select operators.
     class Value
+        ## Extends the Value class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Simple clones.
@@ -179,9 +196,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Cast class with functionality for converting booleans
-    #  in assignments to select operators.
     class Cast
+        ## Extends the Cast class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the child.
@@ -189,9 +207,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Unary class with functionality for converting booleans
-    #  in assignments to select operators.
+
     class Unary
+        ## Extends the Unary class with functionality for converting booleans
+        #  in assignments to select operators.
+
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
@@ -203,9 +223,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Binary class with functionality for converting booleans
-    #  in assignments to select operators.
     class Binary
+        ## Extends the Binary class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
@@ -237,9 +257,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Select class with functionality for converting booleans
-    #  in assignments to select operators.
     class Select
+        ## Extends the Select class with functionality for converting booleans
+        #  in assignments to select operators.
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
@@ -254,9 +274,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Concat class with functionality for converting booleans
-    #  in assignments to select operators.
     class Concat
+        ## Extends the Concat class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the sub expressions.
@@ -267,9 +288,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Ref class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefConcat
+        ## Extends the RefConcat class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the sub references.
@@ -280,9 +302,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefIndex class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefIndex
+        ## Extends the RefIndex class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the sub references.
@@ -293,9 +316,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefRange class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefRange
+        ## Extends the RefRange class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the sub references.
@@ -307,9 +331,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefName class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefName
+        ## Extends the RefName class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Recurse on the sub references.
@@ -320,9 +345,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the RefName class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefThis 
+        ## Extends the RefName class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select
             # Simply clone.
@@ -331,9 +357,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the StringE class with functionality for converting booleans
-    #  in assignments to select operators.
     class StringE
+        ## Extends the StringE class with functionality for converting booleans
+        #  in assignments to select operators.
+
 
         # Converts booleans in assignments to select operators.
         def boolean_in_assign2select

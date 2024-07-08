@@ -57,11 +57,45 @@ module HDLRuby::Low
             end
         end
 
+        # Clears the parent.
+        def no_parent!
+            @parent = nil
+        end
+
         # Get the parent scope.
         def scope
             cur = self.parent
             cur = cur.parent until cur.is_a?(Scope)
             return cur
+        end
+
+        # Get the full parents hierachy.
+        def hierarchy
+            res = []
+            cur = self
+            while(cur) do
+                res << cur
+                cur = cur.parent
+            end
+            return res
+        end
+
+        # Get an absolute reference to the object.
+        def absolute_ref
+            # Get the full hierarchy up to the object.
+            path = self.hierarchy
+            # Create the reference.
+            # return path.reduce(RefThis.new) do |ref,node|
+            return path.reverse_each.reduce(RefThis.new) do |ref,node|
+                # puts "node=#{node}"
+                # puts "name=#{node.name}" if node.respond_to?(:name)
+                if node.respond_to?(:name) then
+                    typ = node.respond_to?(:type) ? node.type : void
+                    RefName.new(typ,ref,node.name)
+                else
+                    ref
+                end
+            end
         end
     end
 
@@ -82,7 +116,8 @@ module HDLRuby::Low
         attr_reader :scope
 
         # Creates a new system type named +name+ with +scope+.
-        def initialize(name,scope)
+        # def initialize(name,scope)
+        def initialize(name,scope = nil)
             # Set the name as a symbol.
             @name = name.to_sym
 
@@ -93,6 +128,13 @@ module HDLRuby::Low
             @interface = []         # The interface signals in order of
                                     # declaration
 
+        #     self.set_scope(scope) if scope
+        # end
+
+        # # Set the scope of the systemT to +scope+.
+        # # Note: cannot override an existing scope.
+        # def set_scope(scope)
+        #     raise(AnyError,"Scope already present") if @scope
             # Check the scope
             unless scope.is_a?(Scope)
                 raise AnyError,
@@ -153,25 +195,48 @@ module HDLRuby::Low
         end
 
 
+        # Handling the (re)configuration.
+
+        # Gets the configuration wrapper if any.
+        def wrapper
+            return defined? @wrapper ? @wrapper : nil
+        end
+
+        # Sets the configuration wrapper to +systemT+.
+        def wrapper=(systemT)
+            unless systemT.is_a?(SystemT) then
+                raise "Invalid class for a wrapper system type: #{systemT}."
+            end
+            @wrapper = systemT
+        end
+
 
         # Handling the signals.
 
         # Adds input +signal+.
         def add_input(signal)
-            # print "add_input with signal: #{signal.name}\n"
+            # print "In #{self} add_input with signal: #{signal.name}\n"
             # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
+            # if @inputs.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             if @inputs.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
+                signal.parent = self
+                # Replace the signal.
+                old_signal = @inputs[signal.name]
+                @inputs.add(signal)
+                @interface[@interface.index(old_signal)] = signal
+            else
+                # Set the parent of the signal.
+                signal.parent = self
+                # And add the signal.
+                @inputs.add(signal)
+                @interface << signal
             end
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @inputs.add(signal)
-            @interface << signal
             return signal
         end
 
@@ -182,14 +247,22 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
+            # if @outputs.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             if @outputs.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
+                signal.parent = self
+                # Replace the signal.
+                old_signal = @outputs[signal.name]
+                @outputs.add(signal)
+                @interface[@interface.index(old_signal)] = signal
+            else
+                # Set the parent of the signal.
+                signal.parent = self
+                # And add the signal.
+                @outputs.add(signal)
+                @interface << signal
             end
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @outputs.add(signal)
-            @interface << signal
             return signal
         end
 
@@ -200,14 +273,22 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
+            # if @inouts.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             if @inouts.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
+                signal.parent = self
+                # Replace the signal.
+                old_signal = @inouts[signal.name]
+                @inouts.add(signal)
+                @interface[@interface.index(old_signal)] = signal
+            else
+                # Set the parent of the signal.
+                signal.parent = self
+                # And add the signal.
+                @inouts.add(signal)
+                @interface << signal
             end
-            # Set the parent of the signal.
-            signal.parent = self
-            # And add the signal.
-            @inouts.add(signal)
-            @interface << signal
             return signal
         end
 
@@ -258,11 +339,13 @@ module HDLRuby::Low
         # Returns an enumerator if no ruby block is given.
         def each_signal_all(&ruby_block)
             # No ruby block? Return an enumerator.
-            return to_enum(:each_signal) unless ruby_block
+            return to_enum(:each_signal_all) unless ruby_block
             # A ruby block? Apply it on each signal instance.
             @inputs.each(&ruby_block)
             @outputs.each(&ruby_block)
             @inouts.each(&ruby_block)
+            # And each signal of the direct scope.
+            @scope.each_signal(&ruby_block)
         end
 
         # Iterates over all the signals of the system type and its scope.
@@ -271,7 +354,8 @@ module HDLRuby::Low
             return to_enum(:each_signal_deep) unless ruby_block
             # A ruby block?
             # First iterate over the current system type's signals.
-            self.each_signal_all(&ruby_block)
+            # self.each_signal_all(&ruby_block)
+            self.each_signal(&ruby_block)
             # Then apply on the behaviors (since in HDLRuby:High, blocks can
             # include signals).
             @scope.each_signal_deep(&ruby_block)
@@ -421,6 +505,27 @@ module HDLRuby::Low
                 end
             end
         end
+
+        # Iterates over the systemT deeply if any in order of reference
+        # to ensure the refered elements are processed first.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_systemT_deep_ref(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_systemT_deep_ref) unless ruby_block
+            # A ruby block? 
+            # Recurse on the systemT accessible through the instances.
+            self.scope.each_scope_deep do |scope|
+                scope.each_systemI do |systemI|
+                    # systemI.systemT.each_systemT_deep(&ruby_block)
+                    systemI.each_systemT do |systemT|
+                        systemT.each_systemT_deep_ref(&ruby_block)
+                    end
+                end
+            end
+            # Finally apply it to current.
+            ruby_block.call(self)
+        end
     end
 
 
@@ -447,6 +552,8 @@ module HDLRuby::Low
             @inners  = HashName.new
             # Initialize the system instances list.
             @systemIs = HashName.new
+            # Initialize the programs list.
+            @programs = []
             # Initialize the non-HDLRuby code chunks list.
             @codes = []
             # Initialize the connections list.
@@ -521,9 +628,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system type: #{systemT.class}"
             end
-            if @systemTs.include?(systemT) then
-                raise AnyError, "SystemT #{systemT.name} already present."
-            end
+            # if @systemTs.include?(systemT) then
+            #     raise AnyError, "SystemT #{systemT.name} already present."
+            # end
             # Set the parent of the instance
             systemT.parent = self
             # puts "systemT = #{systemT}, parent=#{self}"
@@ -573,9 +680,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a type: #{type.class}"
             end
-            if @types.include?(type) then
-                raise AnyError, "Type #{type.name} already present."
-            end
+            # if @types.include?(type) then
+            #     raise AnyError, "Type #{type.name} already present."
+            # end
             # Set the parent of the instance
             type.parent = self
             # puts "type = #{type}, parent=#{self}"
@@ -626,12 +733,14 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system instance: #{scope.class}"
             end
-            if @scopes.include?(scope) then
-                raise AnyError, "Scope #{scope} already present."
-            end
+            # if @scopes.include?(scope) then
+            #     raise AnyError, "Scope #{scope} already present."
+            # end
             # Set the parent of the scope
             scope.parent = self
-            # Add the instance
+            # Remove a former scope with same name if present (override)
+            @scopes.delete_if { |sc| sc.name && sc.name == scope.name }
+            # Add the scope
             @scopes << scope
         end
 
@@ -682,9 +791,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a system instance: #{systemI.class}"
             end
-            if @systemIs.include?(systemI) then
-                raise AnyError, "SystemI #{systemI.name} already present."
-            end
+            # if @systemIs.include?(systemI) then
+            #     raise AnyError, "SystemI #{systemI.name} already present."
+            # end
             # Set the parent of the instance
             systemI.parent = self
             # puts "systemI = #{systemI}, parent=#{self}"
@@ -723,7 +832,40 @@ module HDLRuby::Low
         #     end
         #     systemI
         # end
+        
+
+        # Handling the programs.
+
+        # Adds program +prog+.
+        def add_program(prog)
+            # Check and add the program.
+            unless prog.is_a?(Program)
+                raise AnyError,
+                      "Invalid class for a program: #{prog.class}"
+            end
+            # Set the parent of the program.
+            prog.parent = self
+            # Add the program.
+            @programs << prog
+            prog
+        end
+
+        # Iterates over the programs.
         #
+        # Returns an enumerator if no ruby block is given.
+        def each_program(&ruby_block)
+            # puts "each_program from scope=#{self}"
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_program) unless ruby_block
+            # A ruby block? Apply it on each program.
+            @programs.each(&ruby_block)
+        end
+
+        # Tells if there is any program.
+        def has_program?
+            return !@programs.empty?
+        end
+
         # Handling the non-HDLRuby code chunks.
 
         # Adds code chunk +code+.
@@ -733,9 +875,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a non-hDLRuby code chunk: #{code.class}"
             end
-            if @codes.include?(code) then
-                raise AnyError, "Code #{code.name} already present."
-            end
+            # if @codes.include?(code) then
+            #     raise AnyError, "Code #{code.name} already present."
+            # end
             # Set the parent of the code chunk.
             code.parent = self
             # puts "code = #{code}, parent=#{self}"
@@ -751,7 +893,7 @@ module HDLRuby::Low
             # puts "each_code from scope=#{self}"
             # No ruby block? Return an enumerator.
             return to_enum(:each_code) unless ruby_block
-            # A ruby block? Apply it on each system instance.
+            # A ruby block? Apply it on each code.
             @codes.each(&ruby_block)
         end
 
@@ -769,16 +911,15 @@ module HDLRuby::Low
         
         # Adds inner signal +signal+.
         def add_inner(signal)
+            # puts "adding inner signal: #{signal.name}(#{signal})"
             # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @inners.has_key?(signal.name) then
-            if @inners.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
-            end
-            # @inners[signal.name] = signal
+            # if @inners.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             # Set the parent of the signal.
             signal.parent = self
             # And add the signal.
@@ -1382,6 +1523,10 @@ module HDLRuby::Low
     # The bit type leaf.
     class << ( Bit = Type.new(:bit) )
         include LLeaf
+        # Tells if the type is unsigned.
+        def unsigned?
+            return true
+        end
         # Tells if the type fixed point.
         def fixed?
             return true
@@ -1523,10 +1668,11 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General type comparison.
-            return false unless super(obj)
+            # # General type comparison.
+            # return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(TypeDef)
+            return false unless @name.eql?(obj.name)
             return false unless @def.eql?(obj.def)
             return true
         end
@@ -1547,6 +1693,112 @@ module HDLRuby::Low
         end
 
         alias_method :each_deep, :each_type_deep
+
+        # Tells if the type signed.
+        def signed?
+            return @def.signed?
+        end
+
+        # Tells if the type is unsigned.
+        def unsigned?
+            return @def.unsigned?
+        end
+
+        # Tells if the type is fixed point.
+        def fixed?
+            return @def.fixed?
+        end
+
+        # Tells if the type is floating point.
+        def float?
+            return @def.float?
+        end
+
+        # Tells if the type is a leaf.
+        def leaf?
+            return @def.leaf?
+        end
+
+        # Tells if the type of of vector kind.
+        def vector?
+            return @def.vector?
+        end
+
+        # Gets the bitwidth of the type, by default 0.
+        # Bit, signed, unsigned and Float base have a width of 1.
+        def width
+            return @def.width
+        end
+
+        # Gets the type max value if any.
+        # Default: not defined.
+        def max
+            return @def.max
+        end
+
+        # Gets the type min value if any.
+        # Default: not defined.
+        def min
+            return @def.min
+        end
+
+        # Get the direction of the type, little or big endian.
+        def direction
+            return @def.direction
+        end
+
+        # Tells if the type has a range.
+        def range?
+            return @def.range?
+        end
+
+        # Gets the range of the type, by default range is not defined.
+        def range
+            return @def.range
+        end
+
+        # Tells if the type has a base.
+        def base?
+            return @def.base?
+        end
+
+        # Gets the base type, by default base type is not defined.
+        def base
+            return @def.base
+        end
+
+        # Tells if the type has sub types.
+        def types?
+            return @def.types?
+        end
+
+        # Tells if the type is regular (applies for tuples).
+        def regular?
+            return @def.regular?
+        end
+
+        # Tells if the type has named sub types.
+        def struct?
+            return @def.struct?
+        end
+
+        # Tells if the type is hierarchical.
+        def hierarchical?
+            return @def.hierarchical?
+        end
+
+        # Tell if +type+ is equivalent to current type.
+        #
+        # NOTE: type can be compatible while not being equivalent, please
+        #       refer to `hruby_types.rb` for type compatibility.
+        def equivalent?(type)
+            return @def.equivalent?(type)
+        end
+
+        # Converts to a bit vector.
+        def to_vector
+            return @def.to_vector
+        end
 
     end
 
@@ -1601,8 +1853,8 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General type comparison.
-            return false unless super(obj)
+            # # General type comparison.
+            # return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(TypeVector)
             return false unless @base.eql?(obj.base)
@@ -1728,7 +1980,7 @@ module HDLRuby::Low
     end
 
     ##
-    # Describes a unsigned integer data type.
+    # Describes an unsigned integer data type.
     class TypeUnsigned < TypeVector
 
         # Creates a new vector type named +name+ from +base+ type and with
@@ -1793,8 +2045,9 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General type comparison.
-            return false unless super(obj)
+            # # General type comparison.
+            # return false unless super(obj)
+            return false unless obj.is_a?(TypeTuple)
             # Specific comparison.
             idx = 0
             obj.each_type do |type|
@@ -1840,7 +2093,7 @@ module HDLRuby::Low
         def each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub name/type pair.
             @types.each(&ruby_block)
         end
 
@@ -1850,7 +2103,7 @@ module HDLRuby::Low
         def each_type(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub type.
             @types.each(&ruby_block)
         end
 
@@ -1936,16 +2189,18 @@ module HDLRuby::Low
     ##
     # Describes a structure type.
     class TypeStruct < Type
-        # Creates a new structure type named +name+ with +direction+ and 
+        attr_reader :direction
+
+        # Creates a new structure type named +name+ with direction +dir+ and 
         # whose hierachy is given by +content+.
-        def initialize(name,direction,content)
+        def initialize(name,dir,content)
             # Initialize the type.
             super(name)
 
             # Set the direction.
-            @direction = direction.to_sym
+            @direction = dir.to_sym
             unless [:little, :big].include?(@direction)
-                raise AnyError, "Invalid direction for a type: #{direction}"
+                raise AnyError, "Invalid direction for a type: #{dir}"
             end
 
             # Check and set the content.
@@ -1961,7 +2216,8 @@ module HDLRuby::Low
         # Comparison for hash: structural comparison.
         def eql?(obj)
             # General type comparison.
-            return false unless super(obj)
+            # return false unless super(obj)
+            return false unless obj.is_a?(TypeStruct)
             # Specific comparison.
             idx = 0
             obj.each_key do |name|
@@ -1993,8 +2249,13 @@ module HDLRuby::Low
         end
 
         # Gets a sub type by +name+.
+        # NOTE: +name+ can also be an index.
         def get_type(name)
-            return @types[name.to_sym]
+            if name.respond_to?(:to_sym) then
+                return @types[name.to_sym]
+            else
+                return @types.values[name.to_i]
+            end
         end
 
         # Iterates over the sub name/type pair.
@@ -2003,7 +2264,7 @@ module HDLRuby::Low
         def each(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub name/type pair.
             @types.each(&ruby_block)
         end
 
@@ -2013,8 +2274,18 @@ module HDLRuby::Low
         def each_type(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_type) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each sub type.
             @types.each_value(&ruby_block)
+        end
+
+        # Iterates over the keys.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_key(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_key) unless ruby_block
+            # A ruby block? Apply it on each key.
+            @types.each_key(&ruby_block)
         end
 
         # Iterates over the sub type names.
@@ -2023,7 +2294,7 @@ module HDLRuby::Low
         def each_name(&ruby_block)
             # No ruby block? Return an enumerator.
             return to_enum(:each_name) unless ruby_block
-            # A ruby block? Apply it on each input signal instance.
+            # A ruby block? Apply it on each name.
             @types.each_key(&ruby_block)
         end
 
@@ -2043,7 +2314,11 @@ module HDLRuby::Low
         #
         # NOTE: must be redefined for specific types.
         def width
-            return @types.reduce(0) {|sum,type| sum + type.width }
+            if @types.is_a?(Array) then
+                return @types.reduce(0) {|sum,type| sum + type.width }
+            else
+                return @types.each_value.reduce(0) {|sum,type| sum + type.width }
+            end
         end
 
         # # Checks the compatibility with +type+
@@ -2421,8 +2696,9 @@ module HDLRuby::Low
                 end
                 @value = val
                 val.parent = self
-            else
-                @value = nil
+            # For memory optimization: no  initialization if not used.
+            # else
+            #     @value = nil
             end
         end
 
@@ -2430,6 +2706,40 @@ module HDLRuby::Low
         def immutable?
             # By default, signals are not immutable.
             false
+        end
+
+        # Adds sub signal +sig+
+        def add_signal(sig)
+            # puts "add sub=#{sig.name} in signal=#{self}"
+            # Sets the hash of sub signals if none.
+            @signals = HashName.new unless @signals
+            # Check and add the signal.
+            unless sig.is_a?(SignalI)
+                raise AnyError,
+                      "Invalid class for a signal instance: #{sig.class}"
+            end
+            # if @signals.include?(sig) then
+            #     raise AnyError, "SignalI #{sig.name} already present."
+            # end
+            # Set its parent.
+            sig.parent = self
+            # And add it
+            @signals.add(sig)
+        end
+
+        # Gets a sub signal by name.
+        def get_signal(name)
+            return @signals ? @signals[name] : nil
+        end
+
+        # Iterates over the sub signals.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_signal(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_signal) unless ruby_block
+            # A ruby block? Apply it on each sub signal instance if any.
+            @signals.each(&ruby_block) if @signals
         end
 
         # # Add decorator capability (modifies intialize to put after).
@@ -2449,18 +2759,18 @@ module HDLRuby::Low
             self.value.each_deep(&ruby_block) if self.value
         end
 
-        # Comparison for hash: structural comparison.
-        def eql?(obj)
-            return false unless obj.is_a?(SignalI)
-            return false unless @name.eql?(obj.name)
-            return false unless @type.eql?(obj.type)
-            return true
-        end
+        # # Comparison for hash: structural comparison.
+        # def eql?(obj)
+        #     return false unless obj.is_a?(SignalI)
+        #     return false unless @name.eql?(obj.name)
+        #     return false unless @type.eql?(obj.type)
+        #     return true
+        # end
 
-        # Hash function.
-        def hash
-            return [@name,@type].hash
-        end
+        # # Hash function.
+        # def hash
+        #     return [@name,@type].hash
+        # end
 
         # Gets the bit width.
         def width
@@ -2489,8 +2799,8 @@ module HDLRuby::Low
     # NOTE: an instance can actually represented muliple layers
     #       of systems, the first one being the one actually instantiated
     #       in the final RTL code.
-    #       This layring can be used for describing software or partial
-    #       reconfiguration.
+    #       This layering can be used for describing software or partial
+    #       (re)configuration.
     class SystemI
 
         include Hparent
@@ -2553,13 +2863,16 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
-        ## Adds a system layer.
+        ## Adds a system configuration.
         def add_systemT(systemT)
             # puts "add_systemT #{systemT.name} to systemI #{self.name}"
             # Check and add the systemT.
             if !systemT.is_a?(SystemT) then
                 raise AnyError, "Invalid class for a system type: #{systemT.class}"
             end
+            # Set the base configuration of the added system.
+            systemT.wrapper = self.systemT
+            # Add it.
             @systemTs << systemT
         end
 
@@ -2685,6 +2998,113 @@ module HDLRuby::Low
 
 
     ##
+    # Describes a program.
+    class Program
+
+        include Hparent
+
+        attr_reader :language, :function
+
+        # Creates a new program in language +lang+ with start function
+        # named +func+.
+        def initialize(lang,func)
+            # Sets the language.
+            @language = lang.to_sym
+            # Sets the start function.
+            @function = func.to_s
+            # Initializes the contents.
+            @actports = [] # The activation ports.
+            @codes    = [] # The code files.
+            @inports  = {} # The input ports.
+            @outports = {} # The output ports.
+        end
+
+        # Add a new activation port.
+        def add_actport(ev)
+            unless ev.is_a?(Event) then
+                raise AnyError, "Invalid class for an event: #{ev.class}"
+            end
+            @actports << ev
+        end
+
+        # Add a new code file.
+        def add_code(code)
+            @codes << code.to_s
+        end
+
+        # Add a new input port.
+        def add_inport(name, sig)
+            # Ensure name is a symbol.
+            unless name.is_a?(Symbol) then
+                name = name.to_s.to_sym
+            end
+            # Ensure sig is a signal.
+            unless sig.is_a?(SignalI) then
+                raise AnyError, "Invalid class for a signal: #{sig.class}"
+            end
+            # Add the new port.
+            @inports[name] = sig
+        end
+
+        # Add a new output port.
+        def add_outport(name, sig)
+            # Ensure name is a symbol.
+            unless name.is_a?(Symbol) then
+                name = name.to_s.to_sym
+            end
+            # Ensure sig is a signal.
+            unless sig.is_a?(SignalI) then
+                raise AnyError, "Invalid class for a signal: #{sig.class}"
+            end
+            # Add the new port.
+            @outports[name] = sig
+        end
+
+
+        # Iterates over each activation event.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_actport(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_actport) unless ruby_block
+            # A block is given, apply it.
+            @actports.each(&ruby_block)
+        end
+
+        # Iterates over each code file.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_code(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_code) unless ruby_block
+            # A block is given, apply it.
+            @codes.each(&ruby_block)
+        end
+
+        # Iterate over each input port.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_inport(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_inport) unless ruby_block
+            # A block is given, apply it.
+            @inports.each(&ruby_block)
+        end
+
+        # Iterate over each output port.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_outport(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_outport) unless ruby_block
+            # A block is given, apply it.
+            @outports.each(&ruby_block)
+        end
+
+    end
+
+
+    ##
     # Decribes a set of non-HDLRuby code chunks.
     class Code
 
@@ -2708,10 +3128,9 @@ module HDLRuby::Low
                 raise AnyError,
                       "Invalid class for a code chunk: #{chunk.class}"
             end
-            # if @chunks.has_key?(chunk.name) then
-            if @chunks.include?(chunk) then
-                raise AnyError, "Code chunk #{chunk.name} already present."
-            end
+            # if @chunks.include?(chunk) then
+            #     raise AnyError, "Code chunk #{chunk.name} already present."
+            # end
             # Set its parent.
             chunk.parent = self
             # And add it
@@ -3770,6 +4189,93 @@ module HDLRuby::Low
                 end
             end
         end
+    end
+
+
+    ## 
+    # Describes a system instance (re)configuration statement: not synthesizable!
+    class Configure < Statement
+
+        # attr_reader :systemI, :systemT, :index
+        attr_reader :ref, :index
+
+        # Creates a new (re)configure statement of system instance refered by
+        # +ref+ with system number +index+
+        def initialize(ref,index)
+            super()
+            # Process the arguments.
+            index = index.to_i
+            unless ref.is_a?(Ref) then
+                raise "Invalid class for a reference: #{ref.class}."
+            end
+            # Sets the arguments.
+            @ref = ref
+            ref.parent = self
+            @index = index
+            # @systemT = systemI.each_systemT.to_a[index]
+            # # Check the systemT is valid.
+            # unless @systemT then
+            #     raise "Invalid configuration index: #{index}."
+            # end
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(Configure)
+            return false unless @ref.eql?(obj.ref)
+            return false unless @index.eql?(obj.index)
+            return true
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # Then apply on the reference.
+            @ref.each_deep(&ruby_block)
+        end
+
+        # Hash function.
+        def hash
+            return (@ref.hash + @index.hash).hash
+        end
+
+        # Clones (deeply)
+        def clone
+            return Configure.new(@ref.clone,@index)
+        end
+
+        # Iterates over the nodes deeply if any.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And recurse on the reference.
+            @ref.each_node_deep(&ruby_block)
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A ruby block?
+            # Nothing more to do anyway.
+        end
+
+        # Iterates over all the statements contained in the current block.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply it on self.
+            ruby_block.call(self)
+            # And that's all.
+        end
 
     end
 
@@ -3868,15 +4374,20 @@ module HDLRuby::Low
     ## 
     # Describes a timed loop statement: not synthesizable!
     class TimeRepeat < Statement
-        # The delay until the loop is repeated
-        attr_reader :delay
+        # # The delay until the loop is repeated
+        # attr_reader :delay
+        # The number of interrations.
+        attr_reader :number
 
         # The statement to execute.
         attr_reader :statement
 
-        # Creates a new timed loop statement execute in a loop +statement+ until
-        # +delay+ has passed.
-        def initialize(statement,delay)
+        # # Creates a new timed loop statement execute in a loop +statement+ until
+        # # +delay+ has passed.
+        # def initialize(statement,delay)
+        # Creates a new timed loop statement execute in a loop +statement+ 
+        # +number+ times (negative means inifinity).
+        def initialize(number,statement)
             # Check and set the statement.
             unless statement.is_a?(Statement)
                 raise AnyError,
@@ -3887,13 +4398,15 @@ module HDLRuby::Low
             # And set its parent.
             statement.parent = self
 
-            # Check and set the delay.
-            unless delay.is_a?(Delay)
-                raise AnyError, "Invalid class for a delay: #{delay.class}."
-            end
-            @delay = delay
-            # And set its parent.
-            delay.parent = self
+            # # Check and set the delay.
+            # unless delay.is_a?(Delay)
+            #     raise AnyError, "Invalid class for a delay: #{delay.class}."
+            # end
+            # @delay = delay
+            # Check and set the number.
+            @number = number.to_i
+            # # And set its parent.
+            # delay.parent = self
         end
 
         # Iterates over each object deeply.
@@ -3906,26 +4419,29 @@ module HDLRuby::Low
             ruby_block.call(self)
             # Then apply on the statement.
             self.statement.each_deep(&ruby_block)
-            # Then apply on the delay.
-            self.delay.each_deep(&ruby_block)
+            # # Then apply on the delay.
+            # self.delay.each_deep(&ruby_block)
         end
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(TimeRepeat)
-            return false unless @delay.eql?(obj.delay)
+            # return false unless @delay.eql?(obj.delay)
+            return false unless @number.eql?(obj.number)
             return false unless @statement.eql?(obj.statement)
             return true
         end
 
         # Hash function.
         def hash
-            return [@delay,@statement].hash
+            # return [@delay,@statement].hash
+            return [@number,@statement].hash
         end
 
         # Clones the TimeRepeat (deeply)
         def clone
-            return TimeRepeat.new(@statement.clone,@delay.clone)
+            # return TimeRepeat.new(@statement.clone,@delay.clone)
+            return TimeRepeat.new(@statement.clone,@number)
         end
 
         # Iterates over the expression children if any.
@@ -3976,6 +4492,82 @@ module HDLRuby::Low
         end
         
     end
+
+
+    ## 
+    # Describes a timed terminate statement: not synthesizable!
+    class TimeTerminate < Statement
+
+        # Creates a new timed terminate statement that terminate execution.
+        def initialize
+            super()
+        end
+
+        # Iterates over each object deeply.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_deep) unless ruby_block
+            # A ruby block? First apply it to current.
+            ruby_block.call(self)
+            # And that's all.
+        end
+
+        # Iterates over all the nodes.
+        def each_node(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node) unless ruby_block
+            # A ruby block?
+            # Nothing to do anyway.
+        end
+
+        # Iterates over all the nodes deeply.
+        def each_node_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_node_deep) unless ruby_block
+            # A ruby block?
+            # Apply of current node.
+            ruby_block.call(self)
+            # And that's all.
+        end
+
+        # Iterates over all the statements deeply.
+        def each_statement_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_statement_deep) unless ruby_block
+            # A ruby block?
+            # Apply of current node.
+            ruby_block.call(self)
+            # And that's all.
+        end
+
+        # Iterates over all the blocks contained in the current block.
+        def each_block_deep(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each_block_deep) unless ruby_block
+            # A ruby block?
+            # Nothing to do anyway.
+        end
+
+        # Comparison for hash: structural comparison.
+        def eql?(obj)
+            return false unless obj.is_a?(TimeTerminate)
+            return true
+        end
+
+        # Hash function.
+        def hash
+            return TimeTerminate.hash
+        end
+
+        # Clones the TimeRepeat (deeply)
+        def clone
+            return TimeTerminate.new
+        end
+    end
+
+
 
 
     ## 
@@ -4047,16 +4639,15 @@ module HDLRuby::Low
 
         # Adds inner signal +signal+.
         def add_inner(signal)
+            # puts "add inner=#{signal.name} in block=#{self}"
             # Check and add the signal.
             unless signal.is_a?(SignalI)
                 raise AnyError,
                       "Invalid class for a signal instance: #{signal.class}"
             end
-            # if @inners.has_key?(signal.name) then
-            if @inners.include?(signal) then
-                raise AnyError, "SignalI #{signal.name} already present."
-            end
-            # @inners[signal.name] = signal
+            # if @inners.include?(signal) then
+            #     raise AnyError, "SignalI #{signal.name} already present."
+            # end
             # Set its parent.
             signal.parent = self
             # And add it
@@ -4076,6 +4667,7 @@ module HDLRuby::Low
 
         ## Gets an inner signal by +name+.
         def get_inner(name)
+            # puts "name=#{name}, inners=#{@inners.each_key.to_a}"
             return @inners[name.to_sym]
         end
         alias_method :get_signal, :get_inner
@@ -4355,7 +4947,8 @@ module HDLRuby::Low
                 # Yes so it is also a left value if it is a sub ref.
                 if parent.respond_to?(:ref) then
                     # It might nor be a sub ref.
-                    return parent.ref == self
+                    # return parent.ref.eql?(self)
+                    return parent.ref.equal?(self)
                 else
                     # It is necessarily a sub ref (case of RefConcat for now).
                     return true
@@ -4363,7 +4956,8 @@ module HDLRuby::Low
             end
             # No, therefore maybe it is directly a left value.
             return (parent.is_a?(Transmit) || parent.is_a?(Connection)) &&
-                    parent.left == self
+                # parent.left.eql?(self)
+                parent.left.equal?(self)
         end
 
         # Tells if the expression is a right value.
@@ -4437,21 +5031,41 @@ module HDLRuby::Low
         # Creates a new value typed +type+ and containing +content+.
         def initialize(type,content)
             super(type)
-            unless content then
+            if content.nil? then
                 # Handle the nil content case.
                 unless type.eql?(Void) then
                     raise AnyError, "A value with nil content must have the Void type."
                 end
                 @content = content
+            elsif content.is_a?(FalseClass) then
+                @content = 0
+            elsif content.is_a?(TrueClass) then
+                @content = 1
             else
                 # Checks and set the content: Ruby Numeric and HDLRuby
                 # BitString are supported. Strings or equivalent are
                 # converted to BitString.
                 unless content.is_a?(Numeric) or
                         content.is_a?(HDLRuby::BitString)
-                    content = HDLRuby::BitString.new(content.to_s)
+                    # content = HDLRuby::BitString.new(content.to_s)
+                    content = content.to_s
+                    if self.type.unsigned? && content[0] != "0" then
+                        # content = "0" + content.rjust(self.type.width,content[0])
+                        if content[0] == "1" then
+                            # Do not extend the 1, but 0 instead.
+                            content = "0" + content.rjust(self.type.width,"0")
+                        else
+                            # But extend the other.
+                            content = "0" + content.rjust(self.type.width,content[0])
+                        end
+                    end
+                    content = HDLRuby::BitString.new(content)
                 end
                 @content = content 
+                if (@content.is_a?(Numeric) && self.type.unsigned?) then
+                    # Adjust the bits for unsigned.
+                    @content = @content & (2**self.type.width-1)
+                end
             end
         end
 
@@ -4479,8 +5093,8 @@ module HDLRuby::Low
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
-            # General comparison.
-            return false unless super(obj)
+            # # General comparison.
+            # return false unless super(obj)
             # Specific comparison.
             return false unless obj.is_a?(Value)
             return false unless @content.eql?(obj.content)
@@ -4879,7 +5493,7 @@ module HDLRuby::Low
 
 
     ##
-    # Describes a section operation (generalization of the ternary operator).
+    # Describes a selection operation (generalization of the ternary operator).
     #
     # NOTE: choice is using the value of +select+ as an index.
     class Select < Operation
@@ -5045,6 +5659,7 @@ module HDLRuby::Low
         # def initialize(expressions = [])
         def initialize(type,expressions = [])
             super(type)
+            # puts "Building concat=#{self} with direction=#{type.direction}\n"
             # Initialize the array of expressions that are concatenated.
             @expressions = []
             # Check and add the expressions.
@@ -5331,7 +5946,8 @@ module HDLRuby::Low
         def initialize(type,ref,index)
             super(type)
             # Check and set the accessed reference.
-            unless ref.is_a?(Ref) then
+            # unless ref.is_a?(Ref) then
+            unless ref.is_a?(Expression) then
                 raise AnyError, "Invalid class for a reference: #{ref.class}."
             end
             @ref = ref
@@ -5462,6 +6078,10 @@ module HDLRuby::Low
                 raise AnyError, "Invalid class for a range last: #{last.class}."
             end
             @range = first..last
+            # Clears the parent of first and last that is automatically added
+            # by Ruby when creating a range.
+            first.no_parent! if first.is_a?(Hparent)
+            last.no_parent! if last.is_a?(Hparent)
             # And set their parents.
             first.parent = last.parent = self
         end
@@ -5669,7 +6289,7 @@ module HDLRuby::Low
 
 
     ## 
-    # Describe a this reference.
+    # Describes a this reference.
     #
     # This is the current system.
     class RefThis < Ref 

@@ -1,5 +1,57 @@
 #!/usr/bin/ruby
 
+
+# Check if run in interactive mode.
+if ARGV.include?("-I") || ARGV.include?("--interactive") then
+    # Yes, first check which repl to use.
+    idx = ARGV.index("-I")
+    idx = ARGV.index("--interactive") unless idx
+    if ARGV[idx+1] == "irb" || ARGV[idx+1] == nil then
+        repl = :irb
+    elsif ARGV[idx+1] == "pry" then
+        repl = :pry
+    else 
+        raise "Unknown repl: #{ARGV[idx+1]}"
+    end
+    # Look for the interactive Ruby library.
+    libpath = ""
+    $:.each do |dir|
+        if File.exist?(dir + "/hdrlib.rb") then
+            libpath = dir + "/hdrlib.rb"
+            break
+        end
+    end
+    ARGV.clear
+    ARGV.concat(['-r', libpath])
+    case repl
+    when :irb
+        require 'irb'
+        IRB.start
+    when :pry
+        require 'pry'
+        require libpath
+        # Pry.start(binding)
+        Pry.start()
+    end
+    abort
+end
+
+
+# begin
+#     # We can check the memory.
+#     require 'get_process_mem'
+#     $memory_check = GetProcessMem.new
+#     def show_mem
+#         " | "+$memory_check.bytes.to_s+"B"
+#     end
+# rescue LoadError
+#     # We cannot check the memory.
+    def show_mem
+        ""
+    end
+# end
+
+
 require 'fileutils'
 require 'tempfile'
 require 'HDLRuby'
@@ -8,6 +60,7 @@ require 'HDLRuby/hruby_check.rb'
 require 'HDLRuby/hruby_low2hdr'
 require 'HDLRuby/hruby_low2c'
 require 'HDLRuby/hruby_low2vhd'
+require 'HDLRuby/hruby_low_without_subsignals'
 require 'HDLRuby/hruby_low_fix_types'
 # require 'HDLRuby/hruby_low_expand_types' # For now dormant
 require 'HDLRuby/hruby_low_without_outread'
@@ -30,6 +83,11 @@ require 'HDLRuby/backend/hruby_allocator'
 require 'HDLRuby/backend/hruby_c_allocator'
 
 require 'HDLRuby/version.rb'
+
+# Global flags
+$sim = false     # Tells if hdrcc is in simulation mode
+$gen = false     # Tells if hdrcc is in hardware generation mode
+
 
 ##
 # HDLRuby compiler interface program
@@ -110,7 +168,7 @@ module HDLRuby
                     else
                         # A standard file is found, skip it since it does not
                         # need to be read.
-                        # puts "Standard files: #{founds}"
+                        # show? "Standard files: #{founds}"
                         return false
                     end
                 end
@@ -134,7 +192,7 @@ module HDLRuby
                     file = @top_file_name
                 end
             end
-            # puts "read_all with file=#{file}"
+            # show? "read_all with file=#{file}"
             # Read the file
             # read(file)
             unless read(file) then
@@ -158,7 +216,7 @@ module HDLRuby
 
         # Displays the syntax tree of all the files.
         def show_all(outfile = $stdout)
-            # puts "@checks.size=#{@checks.size}"
+            # show? "@checks.size=#{@checks.size}"
             @checks.each { |check| check.show(outfile) }
         end
 
@@ -166,7 +224,7 @@ module HDLRuby
         def get_top
             # Get all the systems.
             systems = @checks.reduce([]) {|ar,check| ar + check.get_all_systems}
-            # puts "First systems=#{systems}"
+            # show? "First systems=#{systems}"
             # Remove the systems that are instantiated or included
             # (they cannot be tops)
             @checks.each do |check|
@@ -183,7 +241,7 @@ module HDLRuby
                     systems -= check.get_inherit_systems(inherit)
                 end
             end
-            # puts "Now systems=#{systems}"
+            # show? "Now systems=#{systems}"
             # Return the first top of the list.
             return systems[-1]
         end
@@ -195,7 +253,7 @@ module HDLRuby
             if @top_system == "" then
                 # No, look for it.
                 @top_system = get_top
-                # puts "@top_system=#{@top_system}"
+                # show? "@top_system=#{@top_system}"
                 unless @top_system then
                     # Not found? Error.
                     # Maybe it is a parse error, look for it.
@@ -209,6 +267,9 @@ module HDLRuby
             # Initialize the environment for processing the hdr file.
             bind = TOPLEVEL_BINDING.clone
             eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
+            if $options[:std] then
+                eval("require 'std/std.rb'\n\ninclude HDLRuby::High::Std\n\n",bind)
+            end
             # Process it.
             eval(@texts[0],bind,@top_file_name,1)
             # Get the resulting instance
@@ -226,8 +287,8 @@ module HDLRuby
     end
 
 
-    # Extend the Code class with generation of file for the content.
     class HDLRuby::Low::Code
+        ## Extends the Code class with generation of file for the content.
 
         ## Creates a file in +path+ containing the content of the code.
         def to_file(path = "")
@@ -238,7 +299,7 @@ module HDLRuby
                 # Dump to a file.
                 if chunk.name != :sim then 
                     # The chunk is to be dumbed to a file.
-                    # puts "Outputing chunk:#{HDLRuby::Low::Low2C.obj_name(chunk)}"
+                    # show? "Outputing chunk:#{HDLRuby::Low::Low2C.obj_name(chunk)}"
                     outfile = File.open(path + "/" +
                                        HDLRuby::Low::Low2C.obj_name(chunk) + "." +
                                        chunk.name.to_s,"w")
@@ -267,6 +328,9 @@ def which(cmd)
 end
 
 
+# Used standalone, check the files given in the standard input.
+include HDLRuby
+
 
 if __FILE__ == $0 then
     # From hdrcc.rb
@@ -278,11 +342,11 @@ else
 end
 
 require 'optparse'
-# Used standalone, check the files given in the standard input.
-include HDLRuby
-
 # Process the command line options
 $options = {}
+# By default the std libraries are loaded.
+$options[:std] = true
+# Parse the options
 $optparse = OptionParser.new do |opts|
     opts.banner = "Usage: hdrcc.rb [options] <input file> [<output directory or file>]"
 
@@ -293,37 +357,88 @@ $optparse = OptionParser.new do |opts|
     opts.separator "* `<output file>` is the output file"
     opts.separator ""
     opts.separator "Options:"
-    
+
+    opts.on("-I", "--interactive") do |repl|
+        raise "Internal error: the --interactive option should have been processed earlier."
+    end
     opts.on("-y", "--yaml", "Output in YAML format") do |y|
         $options[:yaml] = y
     end
     opts.on("-r", "--hdr","Output in HDLRuby format") do |v|
         $options[:hdr] = v
     end
-    opts.on("-C", "--clang","Output in C format (simulator)") do |v|
+    # opts.on("-C", "--clang","Output in C format (simulator, deprecated)") do |v|
+    #     $options[:clang] = v
+    #     $options[:multiple] = v
+    # end
+    # opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
+    #     $options[:allocate] = v
+    # end
+    opts.on("-S","--sim","Default simulator (hybrid C-Ruby)") do |v|
+        $options[:rcsim] = v
+        $options[:multiple] = v
+        $sim = true
+    end
+    opts.on("--csim","Standalone C-based simulator (deprecated)") do |v|
         $options[:clang] = v
         $options[:multiple] = v
+        $options[:csim] = v
+        $sim = true
     end
-    opts.on("--allocate=LOW,HIGH,WORD","Allocate signals to addresses") do |v|
-        $options[:allocate] = v
-    end
-    opts.on("-S", "--sim","Output in C format (simulator)") do |v|
-        $options[:clang] = v
+    opts.on("--rsim","Ruby-based simulator (deprecated)") do |v|
+        $options[:rsim] = v
         $options[:multiple] = v
-        $options[:sim] = v
+        $sim = true
+    end
+    opts.on("--rcsim","Hybrid C-Ruby-based simulator") do |v|
+        $options[:rcsim] = v
+        $options[:multiple] = v
+        $sim = true
+    end
+    opts.on("--mute", "The simulator will not generate any output") do |v|
+        $options[:mute] = v
     end
     opts.on("--vcd", "The simulator will generate a vcd file") do |v|
         $options[:vcd] = v
     end
+    opts.on("--ch dir", "Generates the files for compiling a software extension") do |dir|
+        # Check the target directory.
+        if !dir or dir.empty? then
+            raise "Need a program name for generating the compiling files."
+        end
+        # Create the source path.
+        src_path = File.dirname(__FILE__) + "/../c/"
+        # Create the target directory.
+        Dir.mkdir(dir) unless File.exist?(dir)
+        # Copy the header files.
+        ## FileUtils.copy(src_path + "cHDL.h",dir)
+        # And update it with any empty initialization function
+        # (not used but required for compiling for windows).
+        lines = nil
+        File.open(src_path + "cHDL.h","r") {|f| lines = f.readlines }
+        lines = ["void Init_#{dir}() {}\n\n"] + lines
+        File.open(dir + "/" + "cHDL.h", "w") {|f| lines.each {|l| f.write(l) } }
+        # Copy and modify the files for rake.
+        ["extconf.rb", "Rakefile"].each do |fname|
+            lines = nil
+            File.open(src_path + fname,"r") {|f| lines = f.readlines }
+            # puts "Checking dir: #{File.dirname(__FILE__)+"/../hruby_sim/"}"
+            lines = ["C_PROGRAM = '#{dir}'\nRCSIM_DIR = '#{File.dirname(__FILE__)+"/../hruby_sim/"}'\n"] + lines
+            File.open(dir + "/" + fname, "w") {|f| lines.each {|l| f.write(l) } }
+        end
+        exit
+    end
     opts.on("-v", "--verilog","Output in Verlog HDL format") do |v|
         $options[:verilog] = v
         $options[:multiple] = v
+        $gen = true
     end
     opts.on("-V", "--vhdl","Output in VHDL format") do |v|
         HDLRuby::Low::Low2VHDL.vhdl08 = false
         $options[:vhdl] = v
         $options[:multiple] = v
         $options[:vhdl08] = false
+        $gen = true
     end
     opts.on("-A", "--alliance","Output in Alliance-compatible VHDL format") do |v|
         HDLRuby::Low::Low2VHDL.vhdl08 = false
@@ -332,12 +447,14 @@ $optparse = OptionParser.new do |opts|
         $options[:alliance] = v
         $options[:multiple] = v
         $options[:vhdl08] = false
+        $gen = true
     end
     opts.on("-U", "--vhdl08","Output in VHDL'08 format") do |v|
         HDLRuby::Low::Low2VHDL.vhdl08 = true
         $options[:vhdl] = v
         $options[:multiple] = v
         $options[:vhdl08] = true
+        $gen = true
     end
     opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
         $options[:syntax] = s
@@ -351,11 +468,20 @@ $optparse = OptionParser.new do |opts|
     opts.on("-D", "--debug","Set the HDLRuby debug mode") do |d|
         $options[:debug] = d
     end
+    opts.on("--verbose","Set verbose mode.") do |d|
+        HDLRuby.verbosity = 2
+    end
+    opts.on("--volubile","Set extreme verbose mode.") do |d|
+        HDLRuby.verbosity = 3
+    end
     opts.on("-T","--test t0,t1,t2","Compile the unit tests named t0,t1,...") do |t|
         $options[:test] = t
     end
     opts.on("--testall","Compile all the available unit tests.") do |t|
         $options[:testall] = t
+    end
+    opts.on("--no-std", "Compile without the standard library.") do |t|
+        $options[:std] = false
     end
     opts.on("-t", "--top system", "Specify the top system to process") do|t|
         $options[:top] = t
@@ -367,8 +493,24 @@ $optparse = OptionParser.new do |opts|
         $options[:dump] = v
         $options[:multiple] = v
     end
-    opts.on("--version", "Shows the version of HDLRuby.") do |v|
+    opts.on("--get-samples", "Copy the sample directory (hdr_samples) to current one, then exit") do
+        FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples","./hdr_samples")
+        FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples/c_program","./hdr_samples/c_program")
+        FileUtils.copy_entry(File.dirname(__FILE__) + "/hdr_samples/ruby_program","./hdr_samples/ruby_program")
+        exit
+    end
+    opts.on("--get-tuto", "Copy the tutorial directory (tuto) to current one, then exit") do
+      FileUtils.copy_entry(File.dirname(__FILE__) + "/../../tuto","./tuto")
+        exit
+    end
+    opts.on("--version", "Show the version of HDLRuby, then exit") do |v|
         puts VERSION
+        exit
+    end
+    opts.on("--path","Shows the path where HDLRuby is install.") do |v|
+        require 'pathname'
+        path = Pathname.new(__FILE__ + "../../../../").cleanpath
+        puts path.to_s
         exit
     end
     # opts.on_tail("-h", "--help", "Show this message") do
@@ -396,7 +538,7 @@ $optparse = OptionParser.new do |opts|
 end
 $optparse.parse!
 
-# puts "options=#{$options}"
+# show? "options=#{$options}"
 
 # Check the compatibility of the options
 if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl].include?(op) } > 1 then
@@ -436,7 +578,7 @@ if ($options[:test] || $options[:testall]) then
     $test_file.write("require 'std/hruby_unit.rb'\nrequire_relative '#{$input}'\n\n" +
                      "HDLRuby::Unit.test(:\"#{$top}\"#{tests})\n")
     # $test_file.rewind
-    # puts $test_file.read
+    # show? $test_file.read
     # exit
     $test_file.rewind
     # It is the new input file.
@@ -480,6 +622,8 @@ if $options[:syntax] then
     $output << $loader.show_all
     exit
 end
+# HDLRuby.show "#{Time.now}#{show_mem}"
+HDLRuby.show "##### Starting parser #####"
 
 if $options[:debug] then
     # Debug mode, no error management.
@@ -491,12 +635,12 @@ end
 
 # Generate the result.
 # Get the top systemT.
-puts Time.now
-$top_system = $top_instance.to_low.systemT
+HDLRuby.show "#{Time.now}#{show_mem}"
+# Ruby simulation uses the HDLRuby::High tree, other the HDLRuby::Lowais used 
+$top_system = ($options[:rsim] || $options[:rcsim]) ? $top_instance.systemT : $top_instance.to_low.systemT
 $top_intance = nil # Free as much memory as possible.
-puts "##### Top system built #####"
-puts Time.now
-
+HDLRuby.show "##### Top system built #####"
+HDLRuby.show "#{Time.now}#{show_mem}"
 
 # # Apply the pre drivers if any.
 # Hdecorator.each_with_property(:pre_driver) do |obj, value|
@@ -562,23 +706,27 @@ elsif $options[:clang] then
     # top_system = $top_system
     # Preprocess the HW description for valid C generation.
     $top_system.each_systemT_deep do |systemT|
-        puts "seq2seq step..."
-        # Coverts the par blocks in seq blocks to seq blocks to match
+        HDLRuby.show? "signal2subs step..."
+        # Ensure there is not implicit assign to sub signals.
+        systemT.signal2subs!
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "seq2seq step..."
+        # Converts the par blocks in seq blocks to seq blocks to match
         # the simulation engine.
         systemT.par_in_seq2seq!
-        puts Time.now
-        puts "connections_to_behaviors step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "connections_to_behaviors step..."
         # Converts the connections to behaviors.
         systemT.connections_to_behaviors!
-        puts Time.now
+        HDLRuby.show? "#{Time.now}#{show_mem}"
         # Break the RefConcat.
-        puts "concat_assigns step..."
+        HDLRuby.show? "concat_assigns step..."
         systemT.break_concat_assigns! 
-        puts Time.now
+        HDLRuby.show? "#{Time.now}#{show_mem}"
         # Explicits the types.
-        puts "explicit_types step..."
+        HDLRuby.show? "explicit_types step..."
         systemT.explicit_types!
-        puts Time.now
+        HDLRuby.show? "#{Time.now}#{show_mem}"
     end
     # Generate the C.
     if $options[:multiple] then
@@ -602,26 +750,29 @@ elsif $options[:clang] then
         $outfile = File.open($hname,"w")
         # Adds the generated globals
         $top_system.each_systemT_deep do |systemT|
-            # For the h file.
-            # hname = $output + "/" +
-            #     HDLRuby::Low::Low2C.c_name(systemT.name) +
-            #     ".h"
-            # hnames << File.basename(hname)
-            # # Open the file for current systemT
-            # output = File.open(hname,"w")
+            # # For the h file.
+            # # hname = $output + "/" +
+            # #     HDLRuby::Low::Low2C.c_name(systemT.name) +
+            # #     ".h"
+            # # hnames << File.basename(hname)
+            # # # Open the file for current systemT
+            # # output = File.open(hname,"w")
             # Generate the H code in to.
-            $outfile << systemT.to_ch
-            # # Close the file.
-            # output.close
-            # # Clears the name.
-            # hname = nil
+            # $outfile << systemT.to_ch
+            systemT.to_ch($outfile)
+            # # # Close the file.
+            # # output.close
+            # # # Clears the name.
+            # # hname = nil
         end
         # Adds the globals from the non-HDLRuby code
         $non_hdlruby.each do |code|
             code.each_chunk do |chunk|
                 if chunk.name == :sim then
-                    $outfile << "extern " + 
-                        HDLRuby::Low::Low2C.prototype(chunk.to_c)
+                    # $outfile << "extern " + 
+                    #     HDLRuby::Low::Low2C.prototype(chunk.to_c)
+                    $outfile << "extern "
+                    $outfile << HDLRuby::Low::Low2C.prototype(chunk.to_c(""))
                 end
             end
         end
@@ -633,15 +784,23 @@ elsif $options[:clang] then
         $main = File.open($name,"w")
 
         # Select the vizualizer depending on the options.
-        init_visualizer = $options[:vcd] ? "init_vcd_visualizer" :
-                                           "init_default_visualizer"
+        init_visualizer = $options[:mute] ? "init_mute_visualizer" :
+                          $options[:vcd]  ? "init_vcd_visualizer" :
+                                            "init_default_visualizer"
 
+        # Gather the system to generate and sort them in the right order
+        # to ensure references are generated before being used.
+        # Base: reverse order of the tree.
+        # Then, multiple configuration of a system instance must be
+        # reverversed so that the base configuration is generated first.
+        c_systems = $top_system.each_systemT_deep_ref
         # Generate the code of the main function.
         # HDLRuby start code
         $main << HDLRuby::Low::Low2C.main("hruby_simulator",
                                          init_visualizer,
                                          $top_system,
-                                         $top_system.each_systemT_deep.to_a.reverse,$hnames)
+                                         c_systems,
+                                         $hnames)
         $main.close
 
         $top_system.each_systemT_deep do |systemT|
@@ -649,11 +808,12 @@ elsif $options[:clang] then
             name = $output + "/" +
                 HDLRuby::Low::Low2C.c_name(systemT.name) +
                 ".c"
-            # puts "for systemT=#{systemT.name} generating: #{name}"
+            # show? "for systemT=#{systemT.name} generating: #{name}"
             # Open the file for current systemT
             outfile = File.open(name,"w")
             # Generate the C code in to.
-            outfile << systemT.to_c(0,*$hnames)
+            # outfile << systemT.to_c(0,*$hnames)
+            systemT.to_c(outfile,0,*$hnames)
             # Close the file.
             outfile.close
             # Clears the name.
@@ -662,18 +822,21 @@ elsif $options[:clang] then
     else
         # Single file generation mode.
         $top_system.each_systemT_deep.reverse_each do |systemT|
-            $output << systemT.to_ch
-            $output << systemT.to_c
+            # $output << systemT.to_ch
+            systemT.to_ch($output)
+            # $output << systemT.to_c
+            systemT.to_c($output)
         end
         # Adds the main code.
         $output << HDLRuby::Low::Low2C.main(top_system,
                                             *top_system.each_systemT_deep.to_a)
     end
-    if $options[:sim] then
+    if $options[:csim] then
         # Simulation mode, compile and exectute.
         # Path of the simulator core files.
-        # simdir = File.dirname(__FILE__) + "/sim/"
-        $simdir = $hdr_dir + "/sim/"
+        # $simdir = $hdr_dir + "sim/"
+        # puts "$hdr_dir=#{$hdr_dir}"
+        $simdir = $hdr_dir + "/../../ext/hruby_sim/"
         # Generate and execute the simulation commands.
         # Kernel.system("cp -n #{simdir}* #{$output}/; cd #{$output}/ ; make -s ; ./hruby_simulator")
         Dir.entries($simdir).each do |filename| 
@@ -694,8 +857,12 @@ elsif $options[:clang] then
                 "   Then execute:\n   hruby_simulator"
         end
         # Use it.
+        HDLRuby.show "Compiling C code of the simulator..."
         Kernel.system("#{cc_cmd} -o3 -o hruby_simulator *.c -lpthread")
+        HDLRuby.show "#{Time.now}#{show_mem}"
+        HDLRuby.show "Executing the simulator..."
         Kernel.system("./hruby_simulator")
+        HDLRuby.show "#{Time.now}#{show_mem}"
     end
 elsif $options[:verilog] then
     # warn("Verilog HDL output is not available yet... but it will be soon, promise!")
@@ -703,26 +870,31 @@ elsif $options[:verilog] then
     # top_system = $top_system
     # Make description compatible with verilog generation.
     $top_system.each_systemT_deep do |systemT|
-        puts "casts_without_expression! step..."
-        systemT.casts_without_expression!
-        puts Time.now
-        puts "to_upper_space! step..."
+        HDLRuby.show? "signal2subs step..."
+        # Ensure there is not implicit assign to sub signals.
+        systemT.signal2subs!(true)
+        # HDLRuby.show "casts_without_expression! step..."
+        # systemT.casts_without_expression!
+        # HDLRuby.show Time.now
+        HDLRuby.show? "to_upper_space! step..."
         systemT.to_upper_space!
-        puts Time.now
-        puts "to_global_space! step..."
-        systemT.to_global_systemTs!
-        puts Time.now
-        # systemT.break_types!
-        # systemT.expand_types!
-        puts "par_in_seq2seq! step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+    end
+    HDLRuby.show? "to_global_space! step (global)..."
+    $top_system.to_global_systemTs!
+    HDLRuby.show? "#{Time.now}#{show_mem}"
+    $top_system.each_systemT_deep do |systemT|
+        ## systemT.break_types!
+        ## systemT.expand_types!
+        HDLRuby.show? "par_in_seq2seq! step..."
         systemT.par_in_seq2seq!
-        puts Time.now
-        puts "initial_concat_to_timed! step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "initial_concat_to_timed! step..."
         systemT.initial_concat_to_timed!
-        puts Time.now
-        puts "with_port! step..."
+        HDLRuby.show? "#{Time.now}#{show_mem}"
+        HDLRuby.show? "with_port! step..."
         systemT.with_port!
-        puts Time.now
+        HDLRuby.show? "#{Time.now}#{show_mem}"
     end
     # # Verilog generation
     # $output << top_system.to_verilog
@@ -747,7 +919,8 @@ elsif $options[:verilog] then
             # Open the file for current systemT
             outfile = File.open($name,"w")
             # Generate the Verilog code in to.
-            outfile << systemT.to_verilog
+            # outfile << systemT.to_verilog
+            outfile << systemT.to_verilog($options[:vcd])
             # Close the file.
             outfile.close
             # Clears the name.
@@ -759,11 +932,53 @@ elsif $options[:verilog] then
             $output << systemT.to_verilog
         end
     end
+elsif $options[:rsim] then
+    HDLRuby.show "Loading Ruby-level simulator..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+    # Ruby-level simulation.
+    require 'HDLRuby/hruby_rsim.rb'
+    # Is mute or VCD output is required.
+    if $options[:mute] then
+        # Yes for mute.
+        require "HDLRuby/hruby_rsim_mute.rb"
+        $top_system.sim($stdout)
+    elsif $options[:vcd] then
+        # Yes for VCD
+        require "HDLRuby/hruby_rsim_vcd.rb"
+        vcdout = File.open($output+"/hruby_simulator.vcd","w")
+        $top_system.sim(vcdout)
+        vcdout.close
+    else
+        # No
+        $top_system.sim($stdout)
+    end
+    HDLRuby.show "End of Ruby-level simulation..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+elsif $options[:rcsim] then
+    HDLRuby.show "Building the hybrid C-Ruby-level simulator..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+    # C-Ruby-level simulation.
+    require 'HDLRuby/hruby_rcsim.rb'
+    # Merge the included from the top system.
+    $top_system.merge_included!
+    # Process par in seq.
+    $top_system.par_in_seq2seq!
+    # Generate the C data structures.
+    $top_system.to_rcsim
+    HDLRuby.show "Executing the hybrid C-Ruby-level simulator..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
+    HDLRuby::High.rcsim($top_system,"hruby_simulator",$output,
+                        ($options[:mute] && 1) || ($options[:vcd] && 2) || 0)
+    HDLRuby.show "End of hybrid C-Ruby-level simulation..."
+    HDLRuby.show "#{Time.now}#{show_mem}"
 elsif $options[:vhdl] then
     # top_system = $top_instance.to_low.systemT
     # top_system = $top_system
     # Make description compatible with vhdl generation.
     $top_system.each_systemT_deep do |systemT|
+        HDLRuby.show? "signal2subs step..."
+        # Ensure there is not implicit assign to sub signals.
+        systemT.signal2subs!
         systemT.outread2inner!            unless $options[:vhdl08] || $options[:alliance]
         systemT.with_boolean!
         systemT.boolean_in_assign2select! unless $options[:alliance]
@@ -811,6 +1026,9 @@ elsif $options[:vhdl] then
         end
     end
 end
+
+HDLRuby.show "##### Code generated #####"
+HDLRuby.show "#{Time.now}#{show_mem}"
 
 # # Apply the post drivers if any.
 # Hdecorator.each_with_property(:post_driver) do |obj, value|

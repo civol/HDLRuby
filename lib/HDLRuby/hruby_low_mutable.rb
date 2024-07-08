@@ -1,6 +1,7 @@
 require "HDLRuby/hruby_error"
 
 
+module HDLRuby::Low
 
 ##
 # Make HDLRuby::Low objects mutable trough "!" methods.
@@ -10,13 +11,10 @@ require "HDLRuby/hruby_error"
 #       * this is a work in progress.
 #
 ########################################################################
-module HDLRuby::Low
-    
-    ##
-    # Describes a system type.
-    #
-    # NOTE: delegates its content-related methods to its Scope object.
+
+
     class SystemT
+        ## Makes SystemT mutable.
 
         # Sets the +name+.
         def set_name!(name)
@@ -97,9 +95,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes scopes of system types.
     class Scope
+        ## Makes Scope mutable.
 
         # Maps on the local types.
         def map_types!(&ruby_block)
@@ -221,6 +218,12 @@ module HDLRuby::Low
             connection
         end
 
+        # Deletes all the connections.
+        def delete_all_connections!
+            @connections.each { |cnx| cnx.parent = nil }
+            @connections = []
+        end
+
         # Deletes a behavior.
         def delete_behavior!(behavior)
             if @behaviors.include?(behavior) then
@@ -229,6 +232,12 @@ module HDLRuby::Low
                 # And remove its parent.
                 behavior.parent = nil
             end
+        end
+
+        # Deletes all the behaviors.
+        def delete_all_behaviors!
+            @behaviors.each { |beh| beh.parent = nil }
+            @behaviors = []
         end
 
         # Deletes the elements related to one of +names+: either they have
@@ -260,9 +269,8 @@ module HDLRuby::Low
     end
 
     
-    ##
-    # Describes a data type.
     class Type
+        ## Makes Type mutable.
 
         # Sets the +name+.
         def set_name!(name)
@@ -271,12 +279,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a high-level type definition.
-    #
-    # NOTE: type definition are actually type with a name refering to another
-    #       type (and equivalent to it).
     class TypeDef
+        ## Makes TypeDef mutable.
 
         # Sets the type definition to +type+.
         def set_def!(type)
@@ -290,10 +294,8 @@ module HDLRuby::Low
     end
 
 
-
-    ##
-    # Describes a vector type.
     class TypeVector
+        ## Makes TypeVector mutable.
         
         # Sets the +base+ type.
         def set_base!(type)
@@ -321,9 +323,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a tuple type.
     class TypeTuple
+        ## Makes TypeTuple mutable.
 
         # Maps on the sub types.
         def map_types!(&ruby_block)
@@ -343,9 +344,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a structure type.
     class TypeStruct
+        ## Makes TypeStruct mutable.
 
         # Maps on the sub types.
         def map_types!(&ruby_block)
@@ -365,10 +365,8 @@ module HDLRuby::Low
     end
 
 
-
-    ##
-    # Describes a behavior.
     class Behavior
+        ## Makes Behavior mutable.
 
         # Sets the block.
         def set_block!(block)
@@ -397,13 +395,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a timed behavior.
-    #
-    # NOTE: 
-    # * this is the only kind of behavior that can include time statements. 
-    # * this kind of behavior is not synthesizable!
     class TimeBehavior
+        ## Makes TimeBehavior mutable.
 
         # Sets the block.
         def set_block!(block)
@@ -418,9 +411,9 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes an event.
     class Event
+        ## Makes Event mutable.
+
         # Sets the type.
         def set_type!(type)
             # Check and set the type.
@@ -470,9 +463,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a signal.
     class SignalI
+        ## Makes SignalI mutable.
 
         # Sets the name.
         def set_name!(name)
@@ -503,9 +495,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a system instance.
     class SystemI
+        ## Makes SystemI mutable.
 
         # Sets the name.
         def set_name!(name)
@@ -525,12 +516,9 @@ module HDLRuby::Low
     end
 
 
-
-    ## 
-    # Describes a statement.
-    #
-    # NOTE: this is an abstract class which is not to be used directly.
     class Statement
+        ## Makes Statement mutable.
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -552,11 +540,9 @@ module HDLRuby::Low
     end
 
 
-
-
-    ## 
-    # Decribes a transmission statement.
     class Transmit
+        ## Makes Transmit mutable.
+
         # Sets the left.
         def set_left!(left)
             # Check and set the left reference.
@@ -587,6 +573,9 @@ module HDLRuby::Low
             @right = ruby_block.call(@right)
             right.parent = self unless right.parent
         end
+
+        alias_method :map_expressions!, :map_nodes!
+
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -626,9 +615,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Decribes a print statement.
     class Print
+        ## Makes Print mutable.
 
         # Maps on the arguments.
         def map_args!(&ruby_block)
@@ -684,9 +672,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes an if statement.
     class If
+        ## Makes If mutable.
 
         # Sets the condition.
         def set_condition!(condition)
@@ -804,9 +791,10 @@ module HDLRuby::Low
         end
     end
 
-    ##
-    # Describes a when for a case statement.
+
     class When
+        ## Makes When mutable.
+
         # Sets the match.
         def set_match!(match)
             # Checks the match.
@@ -878,9 +866,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a case statement.
     class Case
+        ## Makes Case mutable.
 
         # Sets the value.
         def set_value!(value)
@@ -896,6 +883,10 @@ module HDLRuby::Low
         # Sets the default.
         def set_default!(default)
             # Checks and set the default case if any.
+            if self.default then
+                # There is a default first detach it.
+                @default = nil
+            end
             self.default = default
         end
 
@@ -965,9 +956,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a delay: not synthesizable.
     class Delay
+        ## Makes Delay mutable.
 
         # Sets the value.
         def set_value!(value)
@@ -1011,9 +1001,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a wait statement: not synthesizable!
     class TimeWait
+        ## Makes TimeWait mutable.
         
         # Sets the delay.
         def set_delay!(delay)
@@ -1033,9 +1022,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a timed loop statement: not synthesizable!
     class TimeRepeat
+        ## Makes TimeRepeat mutable.
         
         # Sets the statement.
         def set_statement!(statement)
@@ -1083,9 +1071,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a block.
     class Block
+        ## Makes Block mutable.
 
         # Sets the mode.
         def set_mode!(mode)
@@ -1160,7 +1147,11 @@ module HDLRuby::Low
                 raise AnyError, "Invalid type for a statement: #{stmnt.class}"
             end
             idx = @statements.index(org)
-            @statements[idx] = stmnt if idx
+            # @statements[idx] = stmnt if idx
+            if idx then
+                @statements[idx] = stmnt
+                stmnt.parent = self unless stmnt.parent
+            end
         end
 
         # Maps on the statements.
@@ -1251,18 +1242,14 @@ module HDLRuby::Low
     end
 
 
-    # Describes a timed block.
-    #
-    # NOTE: 
-    # * this is the only kind of block that can include time statements. 
-    # * this kind of block is not synthesizable!
     class TimeBlock
+        ## Makes TimeBlock mutable.
     end
 
 
-    ##
-    # Decribes a piece of software code.
     class Code
+        ## Makes Code mutable.
+
         # Sets the type.
         def set_type!(type)
             # Check and set type.
@@ -1278,13 +1265,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a connection.
-    #
-    # NOTE: eventhough a connection is semantically different from a
-    # transmission, it has a common structure. Therefore, it is described
-    # as a subclass of a transmit.
     class Connection
+        ## Makes Connection mutable.
 
         # Replace node by corresponding replacement from +node2reassign+ that
         # is a table whose entries are:
@@ -1322,12 +1304,8 @@ module HDLRuby::Low
     end
 
 
-
-    ## 
-    # Describes an expression.
-    #
-    # NOTE: this is an abstract class which is not to be used directly.
     class Expression
+        ## Makes Expression mutable.
 
         # Sets the type.
         def set_type!(type)
@@ -1359,9 +1337,8 @@ module HDLRuby::Low
     end
 
     
-    ##
-    # Describes a value.
     class Value
+        ## Makes Value mutable.
 
         # Sets the content.
         def set_content!(content)
@@ -1391,6 +1368,8 @@ module HDLRuby::Low
             @child.parent = self unless @child.parent
         end
 
+        alias_method :map_expressions!, :map_nodes!
+
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
         # Returns the actually replaced nodes and their corresponding
@@ -1415,18 +1394,15 @@ module HDLRuby::Low
         end
     end
 
-    ##
-    # Describes a cast.
+
     class Cast
+        ## Makes Cast mutable.
         include OneChildMutable
     end
 
 
-    ##
-    # Describes an operation.
-    #
-    # NOTE: this is an abstract class which is not to be used directly.
     class Operation
+        ## Makes Operation mutable.
 
         # Sets the operator.
         def set_operator!(operator)
@@ -1436,9 +1412,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes an unary operation.
     class Unary
+        ## Makes Unary mutable.
         include OneChildMutable
 
         # Moved to OneChildMutable
@@ -1461,9 +1436,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes an binary operation.
     class Binary
+        ## Makes Binary mutable.
 
         # Sets the left.
         def set_left!(left)
@@ -1494,6 +1468,8 @@ module HDLRuby::Low
             @right = ruby_block.call(@right)
             @right.parent = self unless @right.parent
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1533,11 +1509,8 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a section operation (generalization of the ternary operator).
-    #
-    # NOTE: choice is using the value of +select+ as an index.
     class Select
+        ## Makes Select mutable.
 
         # Sets the select.
         def set_select!(select)
@@ -1577,6 +1550,8 @@ module HDLRuby::Low
             @select.parent = self unless @select.parent
             map_choices!(&ruby_block)
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1656,9 +1631,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a concatenation expression.
     class Concat
+        ## Makes Concat mutable.
         include MutableConcat
 
         # Maps on the expression.
@@ -1686,21 +1660,20 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a reference expression.
-    #
-    # NOTE: this is an abstract class which is not to be used directly.
     class Ref
+        ## Makes Ref mutable.
+
         # Maps on the children.
         def map_nodes!(&ruby_block)
             # Nothing to do.
         end
+
+        alias_method :map_expressions!, :map_nodes!
     end
 
 
-    ##
-    # Describes concatenation reference.
     class RefConcat
+        ## Makes RefConcat mutable.
         include MutableConcat
 
         # Maps on the references.
@@ -1728,9 +1701,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a index reference.
     class RefIndex
+        ## Makes RefIndex mutable.
         
         # Sets the base reference.
         def set_ref!(ref)
@@ -1762,6 +1734,8 @@ module HDLRuby::Low
             @ref   = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1802,9 +1776,8 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describes a range reference.
     class RefRange
+        ## Makes RefRange mutable.
         
         # Sets the base reference.
         def set_ref!(ref)
@@ -1843,6 +1816,8 @@ module HDLRuby::Low
             @ref   = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1896,9 +1871,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    # Describes a name reference.
     class RefName
+        # Makes RefName mutable.
+
         # Sets the base reference.
         def set_ref!(ref)
             # Check and set the accessed reference.
@@ -1921,6 +1896,8 @@ module HDLRuby::Low
             @ref = ruby_block.call(@ref)
             @ref.parent = self unless @ref.parent
         end
+
+        alias_method :map_expressions!, :map_nodes!
 
         # Replaces sub expressions using +node2rep+ table indicating the
         # node to replace and the corresponding replacement.
@@ -1948,15 +1925,35 @@ module HDLRuby::Low
     end
 
 
-    ## 
-    # Describe a this reference.
-    #
-    # This is the current system.
     class RefThis
+        ## Makes RefThis mutable.
 
         # Maps on the children.
         def map_nodes!(&ruby_block)
             # Nothing to do.
         end
+
+        alias_method :map_expressions!, :map_nodes!
+    end
+
+
+    class StringE
+        ## Makes StringE mutable.
+        
+        # Maps on the arguments.
+        def map_args!(&ruby_block)
+            @args.map! do |arg|
+                arg = ruby_block.call(arg)
+                arg.parent = self unless arg.parent
+                arg
+            end
+        end
+
+        # Maps on the children.
+        def map_nodes!(&ruby_block)
+            self.map_args!(&ruby_block)
+        end
+
+        alias_method :map_expressions!, :map_nodes!
     end
 end

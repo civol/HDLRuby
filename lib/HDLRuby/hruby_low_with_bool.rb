@@ -2,6 +2,9 @@ require "HDLRuby/hruby_error"
 require "HDLRuby/hruby_low_mutable"
 
 
+module HDLRuby::Low
+
+
 ##
 # Provides a new boolean type and converts the comparison and operations
 # on it to this new type.
@@ -12,10 +15,11 @@ require "HDLRuby/hruby_low_mutable"
 #       * Boolean is weak in type promotion, e.g.: boolean & bit = bit
 #
 ########################################################################
-module HDLRuby::Low
 
-    # Extend Type with check telling if it is a boolean type.
+
     class Type
+        ## Extend Type with check telling if it is a boolean type.
+
         # Tells if it is a boolean type.
         def boolean?
             return false
@@ -50,9 +54,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemT class for converting types of comparison and
-    #  operations on it to boolean type.
     class SystemT
+        ## Extends the SystemT class for converting types of comparison and
+        #  operations on it to boolean type.
+
         # Converts to a variable-compatible system.
         #
         # NOTE: the result is the same systemT.
@@ -65,9 +70,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Behaviour class for converting types of comparison and
-    #  operations on it to boolean type.
+
     class Behavior
+        ## Extends the Behaviour class for converting types of comparison and
+        #  operations on it to boolean type.
+
         # Converts to a variable-compatible system.
         #
         # NOTE: the result is the same Behaviour.
@@ -76,9 +83,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Statement class for converting types of comparison and
-    #  operations on it to boolean type.
+
     class Statement
+        ## Extends the Statement class for converting types of comparison and
+        #  operations on it to boolean type.
+
         # Converts to a variable-compatible system.
         #
         # NOTE: the result is the same Behaviour.
@@ -91,27 +100,33 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Expression class for checking if it a boolean expression
-    #  or not.
+
     class Expression
+        ## Extends the Expression class for checking if it a boolean expression
+        #  or not.
+
         # Tells if the expression is boolean.
         def boolean?
             return false
         end
     end
 
-    ## Extends the Unary class for checking if it is a boolean expression
-    #  or not.
+
     class Unary
+        ## Extends the Unary class for checking if it is a boolean expression
+        #  or not.
+
         # Tells if the expression is boolean.
         def boolean?
             return self.child.boolean?
         end
     end
 
-    ## Extends the Binary class for checking if it is a boolean expression
-    #  or not.
+
     class Binary
+        ## Extends the Binary class for checking if it is a boolean expression
+        #  or not.
+
         # Tells if the expression is boolean.
         def boolean?
             case(self.operator)
@@ -128,9 +143,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Select class for checking if it a boolean epression
-    #  or not.
+
     class Select
+        ## Extends the Select class for checking if it a boolean epression
+        #  or not.
+
         # Tells if the expression is boolean.
         def boolean?
             # Boolean if all the choices are boolean.

@@ -1,6 +1,8 @@
 require "HDLRuby/hruby_error"
 
 
+module HDLRuby::Low
+
 
 ##
 # Adds methods for finding objects through names.
@@ -8,12 +10,11 @@ require "HDLRuby/hruby_error"
 # NOTE: For now only resolve name reference.
 #
 ########################################################################
-module HDLRuby::Low
 
-    ##
-    #  Extends SystemT with the capability of finding one of its inner object
-    #  by name.
+
     class SystemT
+        ## Extends SystemT with the capability of finding one of its inner
+        #  object by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -31,10 +32,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends Scope with the capability of finding one of its inner object
-    #  by name.
     class Scope
+        ## Extends Scope with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -50,14 +50,30 @@ module HDLRuby::Low
             return found if found
             # Maybe it is a sub scope.
             return self.each_scope.find { |scope| scope.name == name }
+            # Maybe it in the behavior.
+            return self.behavior.get_by_name
         end
     end
 
 
-    ##
-    #  Extends SystemI with the capability of finding one of its inner object
-    #  by name.
+    class Behavior
+        ## Extends Behavior with the capability of finding one of its inner
+        #  object by name.
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            if (self.block.name == name.to_sym) then
+                return self.block
+            end
+            return self.block.get_by_name(name)
+        end
+    end
+
+    
     class SystemI
+        ## Extends SystemI with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -68,10 +84,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends Block with the capability of finding one of its inner object
-    #  by name.
     class Block
+        ## Extends Block with the capability of finding one of its inner object
+        #  by name.
         
         ## Find an inner object by +name+.
         #  NOTE: return nil if not found.
@@ -79,15 +94,37 @@ module HDLRuby::Low
             # Ensure the name is a symbol.
             name = name.to_sym
             # Look in the signals.
-            return self.get_inner(name)
+            found = self.get_inner(name)
+            return found if found
+            # Check the sub blocks names.
+            self.each_block do |block|
+                # puts "block=#{block.name}"
+                if (block.name == name) then
+                    return block
+                end
+            end
+            return nil
         end
     end
 
 
-    ##
-    #  Extends RefIndex with the capability of finding the object it
-    #  refered to.
+    class SignalI
+        ## Extends SignalI with the capability of finding one of its inner object
+        #  by name.
+        
+        ## Find an inner object by +name+.
+        #  NOTE: return nil if not found.
+        def get_by_name(name)
+            return self.get_signal(name)
+        end
+    end
+
+
+
     class Ref
+        ## Extends RefIndex with the capability of finding the object it
+        #  refered to.
+
         ## Resolves the name of the reference (if any) and return the
         #  corresponding object.
         #  NOTE: return nil if could not resolve.
@@ -98,10 +135,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends RefIndex with the capability of finding the object it
-    #  refered to.
     class RefIndex
+        ## Extends RefIndex with the capability of finding the object it
+        #  refered to.
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
@@ -117,10 +153,9 @@ module HDLRuby::Low
     end
 
 
-    ##
-    #  Extends RefRange with the capability of finding the object it
-    #  refered to.
     class RefRange
+        ## Extends RefRange with the capability of finding the object it
+        #  refered to.
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
@@ -136,10 +171,9 @@ module HDLRuby::Low
     end
 
     
-    ##
-    #  Extends RefName with the capability of finding the object it
-    #  refered to.
     class RefName
+        ## Extends RefName with the capability of finding the object it
+        #  refered to.
 
         ## Tells if it is a reference to a systemI signal.
         def from_systemI?
@@ -194,11 +228,12 @@ module HDLRuby::Low
         #  corresponding object.
         #  NOTE: return nil if could not resolve.
         def resolve
-            # puts "Resolve with #{self} and name=#{self.name}"
+            # puts "Resolve with #{self} and name=#{self.name} and ref=#{self.ref.class}"
             # First resolve the sub reference if possible.
             if self.ref.is_a?(RefName) then
-                # puts "ref name=#{self.ref.name}"
                 obj = self.ref.resolve
+                # puts "obj=#{obj}"
+                return obj if obj.name == self.name
                 # Look into the object for the name.
                 return obj.get_by_name(self.name)
             else
@@ -208,12 +243,15 @@ module HDLRuby::Low
                 while parent
                     # puts "parent=#{parent}"
                     if parent.respond_to?(:get_by_name) then
+                        # puts "Going get_by_name with name=#{self.name}"
                         found = parent.get_by_name(self.name)
+                        # puts "found=#{found}" if found
                         return found if found
                     end
                     parent = parent.parent
                 end
                 # Not found.
+                puts "Not found!"
                 return nil
             end
         end

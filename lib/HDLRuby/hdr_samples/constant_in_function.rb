@@ -1,8 +1,9 @@
 # Sample for testing constant declaration in function.
 
 
-function :func do |addr|
-    bit[4][-4].constant tbl: [ _0000, _0001, _0010, _0011 ]
+# function :func do |addr|
+hdef :func do |addr|
+    bit[4][-4].constant tbl: [ _b1000, _b1001, _b1010, _b1011 ]
     
     tbl[addr]
 end
@@ -10,9 +11,11 @@ end
 
 system :with_func do
     [4].inner :addr, :val
+    # bit[4][-4].constant tbl: [ _b1000, _b1001, _b1010, _b1011 ]
 
     val <= func(addr)
     # val <= 1
+    # val <= tbl[addr]
 
     timed do
         addr <= 0

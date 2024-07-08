@@ -3,6 +3,8 @@ require "std/fixpoint.rb"
 require 'std/channel.rb'
 require 'std/connector.rb'
 
+raise "std/channel.rb is deprecated."
+
 include HDLRuby::High::Std
 
 system :channel_connector do
@@ -12,8 +14,8 @@ system :channel_connector do
     address_width = 4 # lutのアドレスのビット幅
     typ = signed[integer_width + decimal_width] # データ型
     
-    inputs_x = _00010011
-    inputs_h = _10100001
+    inputs_x = _b00010011
+    inputs_h = _b10100001
     columns = [2, 2, 1]
 
     inner :clk,   # clock

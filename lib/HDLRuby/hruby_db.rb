@@ -9,7 +9,7 @@ warn "hruby_db.rb (former hruby_low.rb) is deprecated."
 ##
 # Low-level libraries for describing digital hardware.        
 #######################################################
-module HDLRuby::Low
+module HDLRuby::LowDB
 
     Base = HDLRuby::Base
 
@@ -151,7 +151,7 @@ module HDLRuby::Low
     end
 
     ##
-    # Describes a unsigned integer data type.
+    # Describes an unsigned integer data type.
     class TypeUnsigned < Base::TypeUnsigned
         include Ltype
     end

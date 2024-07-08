@@ -1,3 +1,5 @@
+raise "Properties are deprecated in HDLRuby."
+
 # A simple D-FF
 system :dff do
     input :clk, :rst, :d

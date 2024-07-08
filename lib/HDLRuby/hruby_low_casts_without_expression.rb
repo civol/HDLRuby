@@ -15,9 +15,9 @@ module HDLRuby::Low
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for extracting 
-    #  expressions from cast.
     class SystemT
+        ## Extends the SystemT class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
@@ -28,9 +28,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Scope class with functionality for extracting 
-    #  expressions from cast.
     class Scope
+        ## Extends the Scope class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
@@ -49,47 +49,47 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Transmit class with functionality for extracting 
-    #  expressions from cast.
     class Transmit
+        ## Extends the Transmit class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the left value.
-            self.set_left!(self.left.casts_without_expression)
+            self.set_left!(self.left.casts_without_expression!)
             # Apply on the right value.
-            self.set_right!(self.right.casts_without_expression)
+            self.set_right!(self.right.casts_without_expression!)
             return self
         end
     end
 
 
-    ## Extends the Print class with functionality for extracting 
-    #  expressions from cast.
     class Print
+        ## Extends the Print class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the arguments.
-            self.map_args!(&:casts_without_expression)
+            self.map_args!(&:casts_without_expression!)
             return self
         end
     end
 
     
-    ## Extends the If class with functionality for extracting 
-    #  expressions from cast.
     class If
+        ## Extends the If class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the condition.
-            self.set_condition!(self.condition.casts_without_expression)
+            self.set_condition!(self.condition.casts_without_expression!)
             # Apply on the yes.
             self.yes.casts_without_expression!
             # Apply on the noifs.
             @noifs.map! do |cond,stmnt|
-                [cond.casts_without_expression,stmnt.casts_without_expression!]
+                [cond.casts_without_expression!,stmnt.casts_without_expression!]
             end
             # Apply on the no if any.
             self.no.casts_without_expression! if self.no
@@ -97,14 +97,14 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for extracting 
-    #  expressions from cast.
     class When
+        ## Extends the When class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Apply on the match.
-            self.set_match!(self.match.casts_without_expression)
+            self.set_match!(self.match.casts_without_expression!)
             # Apply on the statement.
             self.statement.casts_without_expression!
             return self
@@ -112,15 +112,15 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with functionality for extracting 
-    #  expressions from cast.
     class Case
+        ## Extends the Case class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # No need to apply on the value!
             # Apply on the value.
-            self.set_value!(self.value.casts_without_expression)
+            self.set_value!(self.value.casts_without_expression!)
             # Apply on the whens.
             self.each_when(&:casts_without_expression!)
             # Apply on the default if any.
@@ -130,9 +130,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeWait class with functionality for extracting 
-    #  expressions from cast.
     class TimeWait
+        ## Extends the TimeWait class with functionality for extracting 
+        #  expressions from cast.
+
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Nothing to do.
@@ -140,9 +141,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeRepeat class with functionality for extracting 
-    #  expressions from cast.
+
     class TimeRepeat
+        ## Extends the TimeRepeat class with functionality for extracting 
+        #  expressions from cast.
+
         # Extracts the expressions from the casts.
         def casts_without_expression!
             # Simply recurse on the stamtement.
@@ -152,9 +155,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for extracting 
-    #  expressions from cast.
     class Block
+        ## Extends the Block class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
         def casts_without_expression!
@@ -165,24 +168,28 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Value class with functionality for extracting 
-    #  expressions from cast.
     class Value
+        ## Extends the Value class with functionality for extracting 
+        #  expressions from cast.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Simple clones.
-            return self.clone
+        def casts_without_expression!
+            # # Simple clones.
+            # return self.clone
+            return self
         end
     end
 
 
-    ## Extends the Cast class with functionality for extracting 
-    #  expressions from cast.
     class Cast
+        ## Extends the Cast class with functionality for extracting 
+        #  expressions from cast.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the child.
-            nchild = self.child.casts_without_expression
+            nchild = self.child.casts_without_expression!
+            nchild.parent = nil
             # Process the cast.
             unless (nchild.is_a?(Ref)) then
                 # Need to extract the child.
@@ -216,137 +223,165 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Unary class with functionality for extracting 
-    #  expressions from cast.
+
     class Unary
+        ## Extends the Unary class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Recurse on the sub node.
-            return Unary.new(self.type,self.operator,
-                             self.child.casts_without_expression)
+        def casts_without_expression!
+            # # Recurse on the sub node.
+            # return Unary.new(self.type,self.operator,
+            #                  self.child.casts_without_expression)
+            self.set_child!(self.child.casts_without_expression!)
             return self
         end
     end
 
 
-    ## Extends the Binary class with functionality for extracting 
-    #  expressions from cast.
     class Binary
+        ## Extends the Binary class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Recurse on the sub nodes.
-            return Binary.new(self.type,self.operator,
-                              self.left.casts_without_expression,
-                              self.right.casts_without_expression)
+        def casts_without_expression!
+            # # Recurse on the sub nodes.
+            # return Binary.new(self.type,self.operator,
+            #                   self.left.casts_without_expression,
+            #                   self.right.casts_without_expression)
+            self.set_left!(self.left.casts_without_expression!)
+            self.set_right!(self.right.casts_without_expression!)
+            return self
         end
     end
 
     
 
-    ## Extends the Select class with functionality for extracting 
-    #  expressions from cast.
     class Select
+        ## Extends the Select class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub node.
-            return Select.new(self.type,"?", 
-                              self.select.casts_without_expression,
-                              *self.each_choice.map do |choice|
-                                  choice.casts_without_expression
-                              end )
+            # return Select.new(self.type,"?", 
+            #                   self.select.casts_without_expression,
+            #                   *self.each_choice.map do |choice|
+            #                       choice.casts_without_expression
+            #                   end )
+            self.set_select!(self.select.casts_without_expression!)
+            self.map_choices! { |choice| choice.casts_without_expression! }
             return self
         end
     end
 
 
-    ## Extends the Concat class with functionality for converting booleans
-    #  in assignments to select operators.
     class Concat
+        ## Extends the Concat class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub expressions.
-            return Concat.new(self.type,self.each_expression.map do |expr|
-                expr.casts_without_expression
-            end )
+            # return Concat.new(self.type,self.each_expression.map do |expr|
+            #     expr.casts_without_expression
+            # end )
+            self.map_expressions! {|expr| expr.casts_without_expression! }
+            return self
         end
     end
 
 
-    ## Extends the RefConcat class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefConcat
+        ## Extends the RefConcat class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Recurse on the sub references.
-            return RefConcat.new(self.type,self.each_expression.map do |expr|
-                expr.casts_without_expression
-            end )
+        def casts_without_expression!
+            # # Recurse on the sub references.
+            # return RefConcat.new(self.type,self.each_expression.map do |expr|
+            #     expr.casts_without_expression
+            # end )
+            self.map_expressions! {|expr| expr.casts_without_expression! }
+            return self
         end
     end
 
 
-    ## Extends the RefIndex class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefIndex
+        ## Extends the RefIndex class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub references.
-            return RefIndex.new(self.type,
-                                self.ref.casts_without_expression,
-                                self.index.casts_without_expression)
+            # return RefIndex.new(self.type,
+            #                     self.ref.casts_without_expression,
+            #                     self.index.casts_without_expression)
+            self.set_ref!(self.ref.casts_without_expression!)
+            self.set_index!(self.index.casts_without_expression!)
+            return self
         end
     end
 
 
-    ## Extends the RefRange class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefRange
+        ## Extends the RefRange class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub references.
-            return RefRange.new(self.type,
-                                self.ref.casts_without_expression,
-                                self.range.first.casts_without_expression ..
-                                self.range.last.casts_without_expression)
+            # return RefRange.new(self.type,
+            #                     self.ref.casts_without_expression,
+            #                     self.range.first.casts_without_expression ..
+            #                     self.range.last.casts_without_expression)
+            self.set_ref!(self.ref.casts_without_expression!)
+            self.set_range!(self.range.first.casts_without_expression! ..
+                            self.range.last.casts_without_expression!)
+            return self
         end
     end
 
 
-    ## Extends the RefName class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefName
+        ## Extends the RefName class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
+        def casts_without_expression!
             # Recurse on the sub references.
-            return RefName.new(self.type,
-                               self.ref.casts_without_expression,
-                               self.name)
+            # return RefName.new(self.type,
+            #                    self.ref.casts_without_expression,
+            #                    self.name)
+            self.set_ref!(self.ref.casts_without_expression!)
+            return self
         end
     end
 
 
-    ## Extends the RefThis class with functionality for converting booleans
-    #  in assignments to select operators.
     class RefThis 
+        ## Extends the RefThis class with functionality for converting booleans
+        #  in assignments to select operators.
+
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            # Simply clone.
-            return self.clone
+        def casts_without_expression!
+            # # Simply clone.
+            # return self.clone
+            return self
         end
     end
 
 
-    ## Extends the StringE class with functionality for extracting 
-    #  expressions from cast.
     class StringE
+        ## Extends the StringE class with functionality for extracting 
+        #  expressions from cast.
 
         # Extracts the expressions from the casts.
-        def casts_without_expression
-            return StringE.new(self.content,
-                               *self.each_arg.map(&:cast_without_expression))
+        def casts_without_expression!
+            # return StringE.new(self.content,
+            #                    *self.each_arg.map(&:casts_without_expression))
+            self.map_args! {|arg| arg.casts_without_expression! }
             return self
         end
     end

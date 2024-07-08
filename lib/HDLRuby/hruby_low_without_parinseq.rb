@@ -13,9 +13,9 @@ module HDLRuby::Low
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for converting par blocks
-    #  within seq blocks to seq blocks.
     class SystemT
+        ## Extends the SystemT class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
 
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
@@ -23,9 +23,11 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the Scope class with functionality for breaking assingments
-    #  to concats.
+
     class Scope
+        ## Extends the Scope class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             # Recruse on the sub scopes.
@@ -38,9 +40,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with functionality for breaking assingments
-    #  to concats.
     class Statement
+        ## Extends the Statement class with functionality for converting par 
+        #  blocks within seq blocks to seq blocks.
+ 
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             # By default nothing to do.
@@ -55,9 +58,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the If class with functionality for breaking assingments
-    #  to concats.
     class If
+        ## Extends the If class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             self.yes.par_in_seq2seq!
@@ -78,9 +82,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with functionality for breaking assingments
-    #  to concats.
     class Case
+        ## Extends the Case class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             self.each_when do |w|
@@ -99,9 +104,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for breaking assingments
-    #  to concats.
     class Block
+        ## Extends the Block class with functionality for converting par blocks
+        #  within seq blocks to seq blocks.
+
         # Converts par blocks within seq blocks to seq blocks.
         def par_in_seq2seq!
             # Recurse on the sub blocks.
@@ -122,6 +128,9 @@ module HDLRuby::Low
         def to_seq!
             if self.mode == :par then
                 # Need to convert.
+                # Get which module is it.
+                modul = self.is_a?(HDLRuby::High::Block) ? HDLRuby::High :
+                    HDLRuby::Low
                 # First recurse on the sub blocks.
                 self.each_statement(&:to_seq!)
                 # Now replace each left value by a new signal for
@@ -130,16 +139,23 @@ module HDLRuby::Low
                 self.each_statement do |statement|
                     left = statement.left
                     if statement.is_a?(Transmit) then
-                        sig = SignalI.new(HDLRuby.uniq_name,left.type)
-                        self.add_inner(sig)
-                        diff = RefName.new(left.type,RefThis.new,sig.name)
+                        if modul == HDLRuby::High then
+                            sig = modul::SignalI.new(HDLRuby.uniq_name,left.type,:inner)
+                            self.add_inner(sig)
+                            puts "sig.parent=#{sig.parent}"
+                            diff = modul::RefObject.new(modul::RefThis.new,sig)
+                        else
+                            sig = modul::SignalI.new(HDLRuby.uniq_name,left.type)
+                            self.add_inner(sig)
+                            diff = modul::RefName.new(left.type,modul::RefThis.new,sig.name)
+                        end
                         differeds << [left,diff]
                         statement.set_left!(diff)
                     end
                 end
                 # Adds the differed assignments.
                 differeds.each do |left,diff|
-                    self.add_statement(Transmit.new(left.clone,diff.clone))
+                    self.add_statement(modul::Transmit.new(left.clone,diff.clone))
                 end
                 # Change the mode.
                 self.set_mode!(:seq)

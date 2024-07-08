@@ -6,63 +6,28 @@ module HDLRuby::Verilog
   # This is sample.
   # n = "abc_ABC_いろは"
   # puts n            
-  # name = n.split("") 
+  # name = n.split("")
+
+  @@hdr2verilog = { "buf" => "_v0_buf", "table" => "_v1_table", "time" => "_v2_time" }
 
   # Since it is possible to use $ and numbers other than the beginning of the character string, it is divided.
   def name_to_verilog(name)
-    # ref = ""         # For storing the converted character.
-    # name = name.to_s # Ensure name is a string
-    # 
-    # if (name[0] =~ /[a-zA-Z]/) then
-    #   ref << name[0]
-    #   # _ To convert it to __.
-    # elsif (name[0] == "_") then
-    #   ref << "__"
-    # # If it does not satisfy the above, it is another character.
-    # # In that case, convert it to UTF-8 and convert it to a usable character string.
-    # else
-    #   l = name[0].bytes.map{|v| v.to_s(16)}.join # Conversion to UTF-8 hexadecimal number.
-   
-    #   ref << "_" + l.rjust(6,"0")      # Add an underscore indicating conversion.
-    #                                    # The remainder of 6 digits is filled with 0.
-    # end
-    # 
-    # name[1..-1].each_char do |c|
-    #   # Confirmation of characters in array.
-    #   # If it is a-zA-Z 0 - 9, it is added to ref as it is.
-    #   if (c =~ /[a-zA-Z0-9]|\$/) then
-    #     ref << c
-    #   # _ To convert it to __.
-    #   elsif (c == "_") then
-    #     ref << "__"
-    #   # If it does not satisfy the above, it is another character.
-    #   # In that case, convert it to UTF-8 and convert it to a usable character string.
-    #   else
-    #     l = c.bytes.map{|v| v.to_s(16)}.join # Conversion to UTF-8 hexadecimal number.
-    #  
-    #     ref << "_" + l.rjust(6,"0")      # Add an underscore indicating conversion.
-    #                                      # The remainder of 6 digits is filled with 0.
-    #   end
-    # end
-    # return ref
-
-    
+      # puts "name_to_verilog with name=#{name}"
       name = name.to_s
-      # Convert special characters.
-      name = name.each_char.map do |c|
-          if c=~ /[a-z0-9]/ then
-              c
-          elsif c == "_" then
-              "__"
+      vname = @@hdr2verilog[name]
+      unless vname then
+          # Shall we change the string?
+          if name.match?(/^[_a-zA-Z][_a-zA-Z0-9]*$/) then
+              # No, just clone
+              vname = name.clone
           else
-              "_" + c.ord.to_s
+              # Yes, ensure it is a verilog-compatible name.
+              vname = "_v#{@@hdr2verilog.size}_#{name.split(/[^a-zA-Z_0-9]/)[-1]}"
           end
-      end.join
-      # First character: only letter is possible.
-      unless name[0] =~ /[a-z_]/ then
-          name = "_" + name
+          @@hdr2verilog[name] = vname
       end
-      return name
+      # puts "result vname=#{vname}"
+      return vname
   end
 
   #puts ref

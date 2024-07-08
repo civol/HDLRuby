@@ -42,12 +42,12 @@ module HDLRuby
             elsif type.float? then
                 return type
             elsif self.signed? then
-                return self
+                if type.signed? then
+                    return self.width >= type.width ? self : type
+                else
+                    return self
+                end
             elsif type.signed? then
-                return type
-            elsif self.unsigned? then
-                return self
-            elsif type.unsigned? then
                 return type
             elsif self.width >= type.width then
                 return self

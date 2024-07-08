@@ -31,14 +31,18 @@ module HDLRuby::High::Std
 
         # Creates a new fsm type with +name+.
         # +options+ allows to specify the type of fsm:
-        # synchronous (default) / asynchronous and
-        # mono-front(default) / dual front
+        # - :sync, :synchronous : synchronous (default)
+        # - :async, :asynchronous : asynchronous
+        # - :dual : dual front
+        # - :seq, :blocking : use blocking assignments
         def initialize(name,*options)
             # Check and set the name
             @name = name.to_sym
             # Check and set the type of fsm depending of the options.
             @dual = false
-            @type = :sync
+            @type = :sync      # By default, the FSM is synchronous.
+            @sequential = true # By default, the default next state is the next one in the list.
+            @blocking = false  # By default, use non-blocking assignments (par)
             options.each do |opt|
                 case opt
                 when :sync,:synchronous then
@@ -47,8 +51,23 @@ module HDLRuby::High::Std
                     @type = :async
                 when :dual then
                     @dual = true
+                when :static then
+                    @sequential = false
+                when :seq then
+                    @blocking = true
+                when :blocking then
+                    @blocking = true
                 else
                     raise AnyError, "Invalid option for a fsm: :#{type}"
+                end
+            end
+            if @blocking then
+                define_singleton_method(:fsm_block) do |*args,&ruby_block|
+                    send(:seq,*args,&ruby_block)
+                end
+            else
+                define_singleton_method(:fsm_block) do |*args,&ruby_block|
+                    send(:par,*args,&ruby_block)
                 end
             end
 
@@ -112,6 +131,7 @@ module HDLRuby::High::Std
             mk_rst = @mk_rst
             type = @type
             dual = @dual
+            sequential = @sequential
             extra_syncs   = @extra_syncs
             extra_asyncs  = @extra_asyncs
             default_codes = @default_codes
@@ -120,10 +140,11 @@ module HDLRuby::High::Std
 
             # Enters the current system
             HDLRuby::High.cur_system.open do
-                sub do
+                # sub do
                     HDLRuby::High.space_push(namespace)
                     # Execute the instantiation block
-                    return_value =HDLRuby::High.top_user.instance_exec(&ruby_block)
+                    # return_value = HDLRuby::High.top_user.instance_exec(&ruby_block)
+                    return_value = HDLRuby::High.top_user.instance_exec(&ruby_block) if ruby_block
 
                     # Expands the extra state processing so that al all the
                     # parts of the state machine are in par (clear synthesis).
@@ -167,7 +188,8 @@ module HDLRuby::High::Std
                     # Create the fsm code
 
                     # Control part: update of the state.
-                    par(mk_ev.call) do
+                    # par(mk_ev.call) do
+                    fsm_block(mk_ev.call) do
                         hif(mk_rst.call) do
                             # Reset: current state is to put to 0.
                             this.cur_state_sig <= 0
@@ -190,13 +212,18 @@ module HDLRuby::High::Std
                         event = []
                     end
                     # The process
-                    par(*event) do
+                    # par(*event) do
+                    fsm_block(*event) do
                         # The operative code.
                         oper_code =  proc do
                             # The default code.
                             default_codes.each(&:call)
                             # Depending on the state.
-                            hcase(this.cur_state_sig)
+                            if (type == :sync) then
+                                hcase(this.next_state_sig)
+                            else
+                                hcase(this.cur_state_sig)
+                            end
                             states.each do |st|
                                 # Register the working state (for the gotos)
                                 this.work_state = st
@@ -237,14 +264,15 @@ module HDLRuby::High::Std
                                 st.gotos.each(&:call)
                             else
                                 # No gotos, by default the next step is
-                                # current + 1
-                                # this.next_state_sig <= mux(mk_rst.call , 0, this.cur_state_sig + 1)
-                                this.next_state_sig <=  this.cur_state_sig + 1
+                                if sequential then
+                                    this.next_state_sig <= this.cur_state_sig + 1
+                                end
                             end
                         end
                     end
                     # By default set the next state to 0.
                     helse do
+                        # hprint("Unknow state case: ",this.cur_state_sig,"\n")
                         this.next_state_sig <= 0
                     end
 
@@ -254,7 +282,8 @@ module HDLRuby::High::Std
                         event = mk_ev.call
                         event = event.invert if @dual
                         # The extra code.
-                        par(*event) do
+                        # par(*event) do
+                        fsm_block(*event) do
                             # Build the extra synchronous part.
                             sync_code = proc do
                                 hcase(this.cur_state_sig)
@@ -283,7 +312,8 @@ module HDLRuby::High::Std
 
                     # Extra asynchronous operative part.
                     if extra_asyncs.any? then
-                        par do
+                        # par do
+                        fsm_block do
                             # Build the extra synchronous part.
                             async_code = proc do
                                 hcase(this.cur_state_sig)
@@ -311,7 +341,7 @@ module HDLRuby::High::Std
                     end
 
                     HDLRuby::High.space_pop
-                end
+                # end
             end
 
             return return_value
@@ -319,6 +349,11 @@ module HDLRuby::High::Std
 
 
         ## The interface for building the fsm
+        
+        # Gets the current number of states.
+        def size
+            @states.size
+        end
 
         # Sets the event synchronizing the fsm.
         def for_event(event = nil,&ruby_block)
@@ -404,6 +439,17 @@ module HDLRuby::High::Std
             @extra_asyncs << result
             # Return it
             return result
+        end
+
+        # Get a state by +name+.
+        def get_state(name)
+            name = name.to_sym
+            (@states.detect { |st| st.name == name }).value
+        end
+
+        # Sets the next state by +name+.
+        def next_state(name)
+            @next_state_sig <= get_state(name)
         end
 
         # Sets the next state. Arguments can be:

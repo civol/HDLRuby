@@ -14,9 +14,9 @@ module HDLRuby::Low
 ########################################################################
     
 
-    ## Extends the SystemT class with functionality for cleaning up the
-    #  structure.
     class SystemT
+        ## Extends the SystemT class with functionality for cleaning up the
+        #  structure.
 
         # Cleans up.
         def cleanup!
@@ -29,9 +29,9 @@ module HDLRuby::Low
 
     end
 
-    ## Extends the Scope class with functionality for cleaning up the
-    #  structure.
     class Scope
+        ## Extends the Scope class with functionality for cleaning up the
+        #  structure.
 
         # Cleans up.
         # +keep+ includes the list of names to be kept.
@@ -107,9 +107,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Statement class with functionality for breaking assingments
-    #  to concats.
     class Statement
+        ## Extends the Statement class with functionality for cleaning up the
+        #  structure.
 
         # Removes the signals and corresponding assignments whose name is not
         # in +keep+.
@@ -119,9 +119,8 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the If class with functionality for breaking assingments
-    #  to concats.
     class If
+        ## Extends the If class with functionality for cleaning up the structure
 
         # Removes the signals and corresponding assignments whose name is not
         # in +keep+.
@@ -136,9 +135,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the When class with functionality for breaking assingments
-    #  to concats.
+
     class When
+        ## Extends the When class with functionality for cleaning up the
+        #  structure.
 
         # Removes the signals and corresponding assignments whose name is not
         # in +keep+.
@@ -149,9 +149,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with functionality for breaking assingments
-    #  to concats.
     class Case
+        ## Extends the Case class with functionality for cleaning up the
+        #  structure.
+
         # Removes the signals and corresponding assignments whose name is not
         # in +keep+.
         def delete_unless!(keep)
@@ -163,9 +164,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with functionality for breaking assingments
-    #  to concats.
     class Block
+        ## Extends the Block class with functionality for cleaning up the
+        #  structure.
 
         # Removes the signals and corresponding assignments whose name is not
         # in +keep+.
@@ -189,9 +190,10 @@ module HDLRuby::Low
         end
     end
 
-    ## Extends the TimeBlock class with functionality for breaking assingments
-    #  to concats.
+
     class TimeBlock
+        ## Extends the TimeBlock class with functionality for cleaning up the
+        #  structure.
 
         # Removes the signals and corresponding assignments whose name is not
         # in +keep+.

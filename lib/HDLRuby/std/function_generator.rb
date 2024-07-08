@@ -75,7 +75,7 @@ module HDLRuby::High::Std
         base <= lut[address]
 
         # Assign the next_data discrete value.
-        next_data <= lut[address+1]
+        next_data <= mux(address < lut_size-1,lut[address],lut[address+_b1.as(address.type)])
     end
 
 
@@ -107,13 +107,15 @@ module HDLRuby::High::Std
         end
 
         # Make the interpolation.
-        diff <= (next_data-base).as(diff.type) * remaining
-        if(otyp.signed?) then
-            interpolated_value <= base + 
-                ([[diff[diff.type.width-1]]*shift_bits,
-                  diff[diff.type.width-1..shift_bits]]).to_expr
-        else
-            interpolated_value <= base + (diff >> shift_bits)
+        seq do
+            diff <= (next_data-base).as(diff.type) * remaining
+            if(otyp.signed?) then
+                interpolated_value <= base + 
+                    ([[diff[diff.type.width-1]]*shift_bits,
+                      diff[diff.type.width-1..shift_bits]]).to_expr
+            else
+                interpolated_value <= base + (diff >> shift_bits)
+            end
         end
     end
 

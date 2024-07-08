@@ -4,6 +4,8 @@ require "HDLRuby/hruby_low2sym"
 require "HDLRuby/hruby_low2seq"
 
 
+module HDLRuby::Low
+
 ##
 # Explicitely seperate variables from signals in an HDLRuby::Low
 # description.
@@ -11,10 +13,12 @@ require "HDLRuby/hruby_low2seq"
 # NOTE: variable and signal are to be taken in the VHDL meaning.
 #
 ########################################################################
-module HDLRuby::Low
 
-    ## Extends the SystemT class with separation between signals and variables.
+
     class SystemT
+        ## Extends the SystemT class with separation between signals and
+        #  variables.
+
         # Converts to a variable-compatible system.
         #
         # NOTE: the result is the same systemT.
@@ -25,8 +29,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the SystemI class with separation between signals and variables.
     class SystemI
+        ## Extends the SystemI class with separation between signals and
+        #  variables.
+
         # Converts to a variable-compatible system.
         #
         # NOTE: the result is the same systemT.
@@ -37,8 +43,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Behavior class with separation between signals and variables.
     class Behavior
+        ## Extends the Behavior class with separation between signals and
+        #  variables.
+
         # Converts to a variable-compatible behavior.
         #
         # NOTE: the result is the same systemT.
@@ -50,8 +58,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Block class with separation between signals and variables.
     class Block
+        ## Extends the Block class with separation between signals and variables.
+
 
         # Converts a variable to a reference to it.
         def var2ref(var)
@@ -248,8 +257,10 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the TimeBlock class with separation between signals and variables.
     class TimeBlock
+        ## Extends the TimeBlock class with separation between signals and
+        #  variables.
+
         # Converts to a variable-compatible block where +upper+ is
         # the upper block if any.
         #
@@ -262,8 +273,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the If class with separation between signals and variables.
     class If
+        ## Extends the If class with separation between signals and variables.
+
         # Converts to a variable-compatible if where +upper+ is
         # the upper block if any.
         #
@@ -290,8 +302,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the When class with separation between signals and variables.
     class When
+        ## Extends the When class with separation between signals and variables.
+
         # Converts to a variable-compatible case where +upper+ is
         # the upper block if any.
         #
@@ -302,8 +315,9 @@ module HDLRuby::Low
     end
 
 
-    ## Extends the Case class with separation between signals and variables.
     class Case
+        ## Extends the Case class with separation between signals and variables.
+
         # Converts to a variable-compatible case where +upper+ is
         # the upper block if any.
         #

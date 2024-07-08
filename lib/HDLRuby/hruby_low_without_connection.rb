@@ -29,7 +29,9 @@ module HDLRuby::Low
                 if scope.each_connection.to_a.any? then
                     inputs_blk = Block.new(:par)
                     outputs_blk = Block.new(:par)
-                    timed_blk = TimeBlock.new(:seq)
+                    # Timed block is not necessary anymore for initialization.
+                    # timed_blk = TimeBlock.new(:seq)
+                    timed_blk = Block.new(:seq)
                     scope.each_connection do |connection|
                         # puts "For connection: #{connection}"
                         # Check the left and right of the connection
@@ -92,6 +94,7 @@ module HDLRuby::Low
                             inputs_blk.add_statement(
                                 Transmit.new(right.clone,left.clone))
                         elsif (left_is_o) then
+                            # puts "left=#{left} right=#{right}"
                             outputs_blk.add_statement(
                                 Transmit.new(right.clone,left.clone))
                         elsif (right_is_o) then
@@ -133,7 +136,9 @@ module HDLRuby::Low
                         scope.add_behavior(Behavior.new(outputs_blk))
                     end
                     if timed_blk.each_statement.any? then
-                        scope.add_behavior(TimeBehavior.new(timed_blk))
+                        # No more required to be timed.
+                        # scope.add_behavior(TimeBehavior.new(timed_blk))
+                        scope.add_behavior(Behavior.new(timed_blk))
                     end
                 end
             end

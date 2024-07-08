@@ -4,15 +4,16 @@ system :ram8_16 do
     [7..0].input :addr
     [7..0].inout :data
 
+    [7..0].inner :data_in
+
     bit[7..0][2**8].inner :content
 
-    # Memory enabled?
+    data <= mux(en & rwb, _bzzzzzzzz, content[addr])
+    data_in <= data
+
     par(clk.posedge) do
-        hif(en) do
-            # Read case
-            hif(rwb)   { data <= content[addr] }
-            helse      { content[addr] <= data }
+        hif(en & ~rwb) do
+            content[addr] <= data_in
         end
-        helse { data <= _bZZZZZZZZ }
     end
 end

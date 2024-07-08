@@ -1,3 +1,6 @@
+require 'set'
+
+
 module HDLRuby
 
 ##
@@ -11,16 +14,21 @@ module HDLRuby
 
     @@absoluteCounter = -1 # The absolute name counter.
 
+    @@uniq_names = Set.new(Symbol.all_symbols.map {|sym| sym.to_s})
+
     # Generates an absolute uniq name.
     def self.uniq_name(base = "")
         @@absoluteCounter += 1
         name = base.to_s + ":#{@@absoluteCounter}"
-        if Symbol.all_symbols.find {|symbol| symbol.to_s == name } then
+        # if Symbol.all_symbols.find {|symbol| symbol.to_s == name } then
+        if @@uniq_names.include?(name) then
             # The symbol exists, try again.
             return self.uniq_name
         else
+            @@uniq_names.add(name)
             return name.to_sym
         end
+        # return base.to_s + ":#{@@absoluteCounter}"
     end
 
 
@@ -48,6 +56,30 @@ module HDLRuby
             return self.name + "#"
         end
 
+    end
+
+
+    # Display some messages depending on the verbosity mode.
+    @@verbosity = 1 # The verbosity level: default 1, only critical messages.
+
+    # Sets the verbosity.
+    def self.verbosity=(val)
+        @@verbosity = val.to_i
+    end
+    
+    # Display a critical message.
+    def self.show!(*args)
+        puts(*args) if @@verbosity > 0
+    end
+
+    # Display a common message.
+    def self.show(*args)
+        puts(*args) if @@verbosity > 1
+    end
+
+    # Display a minor message.
+    def self.show?(*args)
+        puts(*args) if @@verbosity > 2
     end
 
 end

@@ -54,7 +54,7 @@ system :mei8 do |prog_file = "./prog.obj"|
         end
 
         # The control part for choosing between 0, add, sub and neg.
-        par do
+        par(opr,x,y) do
             # Default computations
             cf <= 0; vf <= 0; zf <= (z == 0); sf <= z[7]
             add.(0,0,0)
@@ -117,7 +117,7 @@ system :mei8 do |prog_file = "./prog.obj"|
                 # Format 1
                 entry("01oooyyy") { wf <= 1
                                     # Destination is also y in case of inc/dec
-                                    hif (ir[6..4] == _101) { dst <= y }
+                                    hif (ir[6..4] == _b101) { dst <= y }
                                     alu.(o,a,src1) }      # binary alu
                 # Format 1 extended.
                 entry("10000yyy") { wr <= 0; wf <= 1
@@ -128,17 +128,17 @@ system :mei8 do |prog_file = "./prog.obj"|
                 entry("10011yyy") { branch <= 1           # jr y, must inc y
                                     alu.(2,src1) }        # since pc-1 is used
                 # Format 2
-                entry("1010iiii") { alu.(7,[_0000,i]) }   # movl i
+                entry("1010iiii") { alu.(7,[_b0000,i]) }   # movl i
                 entry("1011iiii") { alu.(7,[i,a[3..0]]) } # movh i
                 # Format 4
                 entry("11110110") { branch <= 1           # trap
                                     alu.(7,0xFC)  }       
-                entry("11110ooo") { wf <= 1; alu.([_1,o],a) } # unary alu
+                entry("11110ooo") { wf <= 1; alu.([_b1,o],a) } # unary alu
                 entry("111110os") { st <= s; ld <= ~s     # ++--ld / ++--st
-                                    alu.([_001,o],g); dst <= 6 }
+                                    alu.([_b001,o],g); dst <= 6 }
                 entry("1111110i") { branch <= i
                                     st <= ~i; ld <= i
-                                    alu.([_001,~i],h)
+                                    alu.([_b001,~i],h)
                                     dst <= 7; io_out <= pc } # push / pop pc
                 # Format 3
                 entry("11cccsii") { branch <= cc; wr <= 0
@@ -148,14 +148,14 @@ system :mei8 do |prog_file = "./prog.obj"|
         end
     end
 
+    # Handling of the 3-state data bus
+    dbus <= mux(io_rwb,io_out,_bzzzzzzzz)
+    io_in <= dbus
+
     # The io unit.
     fsm(clk.posedge,rst,:async) do
         default       { io_done <= 0; req <= 0; rwb <= 0; addr <= 0
-                        io_r_done <= 0
-                        # Default handling of the 3-state data bus
-                        hif(io_rwb) { dbus <= _zzzzzzzz }
-                        helse       { dbus <= io_out }
-                        io_in <= dbus }
+                        io_r_done <= 0 }
         reset(:sync)  { data <= 0; }
         state(:wait)  { goto(io_req,:start,:wait) }        # Waiting for an IO
         state(:start) { req <= 1; rwb <= io_rwb; addr <= g # Start an IO
@@ -180,7 +180,7 @@ system :mei8 do |prog_file = "./prog.obj"|
             [a,b,c,d,e,f,g,h,zf,cf,sf,vf,nbr,npc,s].each { |r| r <= 0 }
         end
         # Ensures a is 0 and enable interrupts when starting.
-        helsif(init) { a<= 0; s <= _00000011; } 
+        helsif(init) { a<= 0; s <= _b00000011; } 
         helsif(iq_calc) do
             s[7] <= 1
             hif(iq1) { s[1] <= 0 }
@@ -195,14 +195,14 @@ system :mei8 do |prog_file = "./prog.obj"|
                 zf <= alu.zf; cf <= alu.cf; sf <= alu.sf; vf <= alu.vf
             end
             # Specific cases
-            hif(ir == _11110111) { s <= a; a <= s } # xs
-            hif(ir == _11110110) { s[7] <= 1 }      # trap
+            hif(ir == _b11110111) { s <= a; a <= s } # xs
+            hif(ir == _b11110110) { s[7] <= 1 }      # trap
             hif(branch) { npc <= alu.z; nbr <= 1 }  # Branch
         end
         # Write memory read result to a register if any.
         helsif (io_r_done) do
             hif(branch) { npc <= data; nbr <= 1 }   # pop case  
-            helsif(ir[7..3] == _10001) do           # ld case
+            helsif(ir[7..3] == _b10001) do           # ld case
                 [a,b,c,d,e,f,g,h].hcase(dst) {|r| r <= data }
             end
             helse { a <= data }                     # ld++-- case
@@ -231,8 +231,8 @@ system :mei8 do |prog_file = "./prog.obj"|
                        goto(iq_chk,:iq_s)         # Interrupt / No interrupt
                        goto(branch,:br)           # Branch instruction
                        goto((ld|st) & ~io_done,:ld_st) # ld/st instruction
-                       goto(ir == _11111110,:ht)       # Halt instruction
-                       goto(ir == _11111111,:re) }     # Reset instruction
+                       goto(ir == _b11111110,:ht)       # Halt instruction
+                       goto(ir == _b11111111,:re) }     # Reset instruction
         # Branch state.
         state(:br)   { goto(iq_chk,:iq_s,:fe) }   # Interrupt / No interrupt
         sync(:br)    { hif(nbr) { pc <= npc-1 } } # Next pc is the branch target
