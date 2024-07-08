@@ -3089,10 +3089,21 @@ module HDLRuby::High
          end
 
 
+<<<<<<< HEAD
          # Creates an access to elements of range +rng+ of the signal.
          #
          # NOTE: +rng+ can be a single expression in which case it is an index.
          def [](rng)
+=======
+         # Creates an access to elements of range +rng+ of the signal,
+         # and set the type of elements as +typ+ if given.
+         #
+         # NOTE: +rng+ can be a single expression in which case it is an index.
+         def [](typ,rng=nil)
+             # Treat the number of arguments
+             rng, typ = typ, nil unless rng
+             # Process the range.
+>>>>>>> 0ce41ea (Fixed hdef and verilog generation of reference to signals of sub-blocks.)
              if rng.is_a?(::Range) then
                  first = rng.first
                  if (first.is_a?(::Integer)) then
@@ -3113,14 +3124,33 @@ module HDLRuby::High
              end 
              if rng.is_a?(HDLRuby::Low::Expression) then
                  # Index case
+<<<<<<< HEAD
                  return RefIndex.new(self.type.base,self.to_expr,rng)
+=======
+                 if typ then
+                    return RefIndex.new(typ,self.to_expr,rng)
+                 else
+                    return RefIndex.new(self.type.base,self.to_expr,rng)
+                 end
+>>>>>>> 0ce41ea (Fixed hdef and verilog generation of reference to signals of sub-blocks.)
              else
                  # Range case, ensure it is made among expression.
                  first = rng.first.to_expr
                  last = rng.last.to_expr
+<<<<<<< HEAD
                  # Abd create the reference.
                  return RefRange.new(self.type.slice(first..last),
                                      self.to_expr,first..last)
+=======
+                 # And create the reference.
+                 if typ then
+                    return RefRange.new(typ,
+                                        self.to_expr,first..last)
+                 else
+                    return RefRange.new(self.type.slice(first..last),
+                                        self.to_expr,first..last)
+                 end
+>>>>>>> 0ce41ea (Fixed hdef and verilog generation of reference to signals of sub-blocks.)
              end
          end
 
@@ -4907,6 +4937,14 @@ module HDLRuby::High
         # Gets the bit width
         def width
             return self.bit_length
+<<<<<<< HEAD
+=======
+        end
+
+        # Cast.
+        def as(typ)
+            return self.to_expr.as(typ)
+>>>>>>> 0ce41ea (Fixed hdef and verilog generation of reference to signals of sub-blocks.)
         end
     end
 

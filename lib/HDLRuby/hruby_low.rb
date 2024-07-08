@@ -6078,6 +6078,10 @@ module HDLRuby::Low
                 raise AnyError, "Invalid class for a range last: #{last.class}."
             end
             @range = first..last
+            # Clears the parent of first and last that is automatically added
+            # by Ruby when creating a range.
+            first.no_parent! if first.is_a?(Hparent)
+            last.no_parent! if last.is_a?(Hparent)
             # And set their parents.
             first.parent = last.parent = self
         end

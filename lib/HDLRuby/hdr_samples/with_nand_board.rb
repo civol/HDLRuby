@@ -10,7 +10,11 @@ system :nand_board do
 
     inner :clk
     # Description of the board.
+<<<<<<< HEAD
     # It is updated at each rising edge of +clk2+.
+=======
+    # It is updated at each rising edge of +clk+.
+>>>>>>> 0ce41ea (Fixed hdef and verilog generation of reference to signals of sub-blocks.)
     board(:nand,8080) do
         actport clk.posedge
         sw din0: din0
