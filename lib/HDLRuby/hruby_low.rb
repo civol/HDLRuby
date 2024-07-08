@@ -74,6 +74,7 @@ module HDLRuby::Low
             res = []
             cur = self
             while(cur) do
+                # puts "cur=#{cur} cur.parent=#{cur.parent}"
                 res << cur
                 cur = cur.parent
             end
@@ -82,6 +83,7 @@ module HDLRuby::Low
 
         # Get an absolute reference to the object.
         def absolute_ref
+            # puts "absolute_ref for self=#{self}"
             # Get the full hierarchy up to the object.
             path = self.hierarchy
             # Create the reference.
@@ -2379,7 +2381,7 @@ module HDLRuby::Low
         attr_reader :block
 
         # Creates a new behavior executing +block+.
-        def initialize(block)
+        def initialize(block = nil)
             # Initialize the sensitivity list.
             @events = []
             # Check and set the block.
@@ -2417,7 +2419,7 @@ module HDLRuby::Low
             # And set the block
             @block = block
         end
-        private :block=
+        # private :block=
 
         # Comparison for hash: structural comparison.
         def eql?(obj)

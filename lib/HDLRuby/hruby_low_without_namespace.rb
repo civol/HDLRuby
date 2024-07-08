@@ -88,6 +88,7 @@ module HDLRuby::Low
 
         # Moves the declarations to the upper namespace.
         def to_upper_space!
+            # puts "to_upper_space for scope=#{self}"
             # First recurse.
             # On the sub scopes.
             self.each_scope(&:to_upper_space!)
@@ -472,6 +473,7 @@ module HDLRuby::Low
         # Fix the references names using scopes given in +scopes + list (they
         # are marked to be deleted).
         def fix_scope_refnames!(scopes)
+          # puts "fix_scope_refnames for self=#{self}"
           self.block.fix_scope_refnames!(scopes)
           return self
         end
@@ -834,10 +836,13 @@ module HDLRuby::Low
 
         # Replaces recursively +former+ name by +nname+ until it is redeclared.
         def replace_names!(former,nname)
+            # Already processed with fix_scope_refnames, so nothing to do
+            # here.
+            return
             # Stop here if the name is redeclared.
-            return if self.each_inner.find {|inner| inner.name == former }
+            # return if self.each_inner.find {|inner| inner.name == former }
             # Recurse on the sub scopes and behaviors.
-            replace_names_subs!(former,nname)
+            # replace_names_subs!(former,nname)
         end
 
         # Fix the references names using scopes given in +scopes + list (they
@@ -856,14 +861,16 @@ module HDLRuby::Low
         # are marked to be deleted).
         def fix_scope_refnames!(scopes)
             return self unless self.ref.is_a?(RefName)
-            # puts "fix_scope_refnames! with self.name=#{name} and self.ref=#{self.ref}"
+            # puts "fix_scope_refnames! with self=#{self} self.name=#{name} and self.ref=#{self.ref}"
             # Recurse on the ref.
-            self.set_ref!(self.ref.fix_scope_refnames!(scopes))
+            # self.set_ref!(self.ref.fix_scope_refnames!(scopes))
             # Rename and curt the subref if referening to one of the scopes.
             if scopes.find {|scope| scope.name == self.ref.name } then
                 self.ref.extend_name!(self)
+                # But need to remove the scope reference.
                 self.set_ref!(RefThis.new)
             end
+            # puts "Now self=#{self} self.name=#{self.name} self.ref=#{self.ref}"
             return self
         end
     end
