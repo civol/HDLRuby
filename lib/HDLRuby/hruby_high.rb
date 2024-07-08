@@ -1529,15 +1529,19 @@ module HDLRuby::High
             self.each_program { |prog| scopeL.add_program(prog.to_low) }
             # Adds the code chunks.
             self.each_code { |code| scopeL.add_code(code.to_low) }
+            # Adds the behaviors.
+            self.each_behavior { |behavior|
+                scopeL.add_behavior(behavior.to_low)
+            }
             # Adds the connections.
             self.each_connection { |connection|
                 # puts "connection=#{connection}"
                 scopeL.add_connection(connection.to_low)
             }
-            # Adds the behaviors.
-            self.each_behavior { |behavior|
-                scopeL.add_behavior(behavior.to_low)
-            }
+            # # Adds the behaviors.
+            # self.each_behavior { |behavior|
+            #     scopeL.add_behavior(behavior.to_low)
+            # }
         end
 
         # Converts the scope to HDLRuby::Low.
@@ -2247,17 +2251,21 @@ module HDLRuby::High
         ruby_block = proc {} unless block_given?
         if HDLRuby::High.in_system? then
             define_singleton_method(name.to_sym) do |*args,&other_block|
+                res = nil
                 sub(HDLRuby.uniq_name(name)) do
-                    HDLRuby::High.top_user.instance_exec(*args,*other_block,
-                                                         &ruby_block)
+                    res = HDLRuby::High.top_user.instance_exec(*args,
+                                            *other_block, &ruby_block)
                 end
+                res
             end
         else
             define_method(name.to_sym) do |*args,&other_block|
+                res = nil
                 sub(HDLRuby.uniq_name(name)) do
-                    HDLRuby::High.top_user.instance_exec(*args,*other_block,
-                                                         &ruby_block)
+                    res = HDLRuby::High.top_user.instance_exec(*args,
+                                            *other_block, &ruby_block)
                 end
+                res
             end
         end
     end
@@ -3537,8 +3545,8 @@ module HDLRuby::High
             if @base.is_a?(RefThis) && 
                     (@object.parent != High.top_user) &&
                     (@object.parent != High.cur_system) &&
-                    (@object.parent != High.cur_system.scope) &&
-                    (!@object.parent.name.empty?) then
+                    (@object.parent != High.cur_system.scope) then # &&
+                    # (!@object.parent.name.empty?) then
                 # Need to have a hierachical access.
                 if @object.respond_to?(:low_object) && @object.low_object then
                     # There where already a low object, create the ref from it.
@@ -4400,9 +4408,15 @@ module HDLRuby::High
         end
 
         # Converts the block to HDLRuby::Low.
-        def to_low
+        # def to_low
+        def to_low(low_parent = nil)
             # Create the resulting block
             blockL = HDLRuby::Low::Block.new(self.mode,self.name)
+            # Is there a low parent?
+            if low_parent then
+                # Set it straight away to have correct references.
+                low_parent.block = blockL
+            end
             # # For debugging: set the source high object 
             # blockL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = blockL
@@ -4568,12 +4582,16 @@ module HDLRuby::High
 
         # Converts the time behavior to HDLRuby::Low.
         def to_low
+            # Create an empty low behavior for the result.
+            behaviorL = HDLRuby::Low::Behavior.new
+            # Then fill it.
             # Create the low level block.
-            blockL = self.block.to_low
+            # blockL = self.block.to_low
+            blockL = self.block.to_low(behaviorL)
             # Create the low level events.
             eventLs = self.each_event.map { |event| event.to_low }
-            # Create and return the resulting low level behavior.
-            behaviorL = HDLRuby::Low::Behavior.new(blockL)
+            # # Create and return the resulting low level behavior.
+            # behaviorL = HDLRuby::Low::Behavior.new(blockL)
             # # For debugging: set the source high object 
             # behaviorL.properties[:low2high] = self.hdr_id
             # self.properties[:high2low] = behaviorL
