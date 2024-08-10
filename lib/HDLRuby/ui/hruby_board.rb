@@ -63,7 +63,8 @@ module HDLRuby::High::Std
     end
 
     ## Class describing a digit display.
-    DIGIT = Struct.new(:id, :size, :hread) do
+    #  Need to know the data type since signed is supported.
+    DIGIT = Struct.new(:id, :size, :type, :hread) do
       def to_html
         return '<div class="digitset" id=' + self.id.to_s +
               ' data-width="' + self.size.to_s + '" data-value="0" >' +
@@ -689,7 +690,7 @@ Content-Type: text/html
   function digitset_update(digitset,value) {
     // Update the digiset value.
     digitset.dataset.value = value;
-    // Unsigned case.
+    // Update its display.
     const num = digitset.dataset.width;
     digitset.lastElementChild.innerHTML = String(value).padStart(num,"\u00A0");
   }
@@ -799,7 +800,7 @@ Content-Type: text/html
     xhttp.onreadystatechange = function() {
       // console.log("response=" + this.responseText);
       if (this.readyState == 4 && this.status == 200) {
-        if (/[0-9]+:[0-9]/.test(this.responseText)) {
+        if (/[0-9]+:-?[0-9]/.test(this.responseText)) {
           // There is a real response.
           // Update the interface with the answer.
           const commands = this.responseText.split(';');
@@ -824,8 +825,9 @@ Content-Type: text/html
   // First call of synchronisation.
   hruby_sync();
 
-  // Then periodic synchronize.
-  setInterval(function() { hruby_sync(); }, 100);
+  // Moved to the Ruby constructor to allow setting the time intervals.
+  // // Then periodic synchronize.
+  // setInterval(function() { hruby_sync(); }, 100);
 
 </script>
 
@@ -850,9 +852,14 @@ HTMLRESPONSE
 
     # Create a new board named +name+ accessible on HTTP port +http_port+
     # and whose content is describe in +hdlruby_block+.
-    def initialize(name, http_port = 8000, &hdlruby_block)
+    def initialize(name, http_port: 8000, refresh_rate: 100,
+                   &hdlruby_block)
       # Set the name.
       @name = name.to_s
+      # Set the refresh rate.
+      @refresh_rate = refresh_rate.to_i
+      # Tell the interface is to be built.
+      @first = true
       # Check and set the port.
       http_port = http_port.to_i
       if (@@http_ports.include?(http_port)) then
@@ -936,6 +943,7 @@ HTMLRESPONSE
       # Createthe ui component.
       @elements << DIGIT.new(@elements.size, 
               Math.log10(2**hport[1].type.width - 1).to_i + (sign ? 2 : 1),
+              hport[1].type,
               hport[0])
       @out_elements << @elements[-1]
     end
@@ -1018,9 +1026,13 @@ HTMLRESPONSE
     # Generate a response to a request to the server.
     def make_response(request)
       # puts "request=#{request}"
-      if (request.empty?) then
+      if (@first) then
+        @first = false
         # First or re-connection, generate the UI.
-        return UI_header + "\n<script>\n" + 
+        return UI_header + 
+          "\n<script>\n" + 
+          "// Then periodic synchronize.\n" + 
+          "setInterval(function() { hruby_sync(); }, #{@refresh_rate});\n" + 
           "set_cartouche('#{@name}');\n" +
           @elements.map do |elem|
             "add_element('#{elem.to_html}');"
@@ -1030,6 +1042,7 @@ HTMLRESPONSE
         # This should be an AJAX request, process it.
         commands = request.split(";")
         commands.each do |command|
+          next unless command.include?(":")
           id, val = command.split(":").map {|t| t.to_i}
           self.update_port(id,val)
         end
@@ -1072,8 +1085,11 @@ HTMLRESPONSE
 
   # Create a new board named +name+ accessible on HTTP port +http_port+
   # and whose content is describe in +block+.
-  def board(name, http_port = 8000, &block)
-    return Board.new(name,http_port,&block)
+  def board(name, http_port: 8000, refresh_rate: 100, &block)
+    # puts "name=#{name} http_port=#{http_port} refresh_rate=#{refresh_rate} block=#{block}"
+    return Board.new(name,
+                     http_port: http_port, refresh_rate: refresh_rate,
+                     &block)
   end
 
 end
