@@ -560,6 +560,9 @@ Content-Type: text/html
   const cartouche = document.getElementById("cartouche");
   const panel     = document.getElementById("panel");
 
+  // The current time stamp.
+  var time_stamp = 0;
+
   // The input and output elements' ids.
   const input_ids = [];
   const output_ids = [];
@@ -705,7 +708,9 @@ Content-Type: text/html
   }
 
   // Update an oscilloscope.
-  function scope_update(scope,value) {
+  function scope_update(scope,value,new_time_stamp) {
+    // Compute the advance in time.
+    let diff_time_stamp = new_time_stamp - time_stamp;
     // Get the canvas.
     const canvas = scope.lastElementChild;
     // Shall we set up its size?
@@ -776,21 +781,21 @@ Content-Type: text/html
       // Draw a line to the new position.
       cxt.beginPath();
       cxt.moveTo(toPx(pos),   toPy(previous));
-      cxt.lineTo(toPx(pos+1), toPy(value)); 
+      cxt.lineTo(toPx(pos+diff_time_stamp), toPy(value)); 
       cxt.stroke();
       /* Update the values. */
       scope.dataset.previous = value;
-      scope.dataset.pos = pos + 1;
+      scope.dataset.pos = pos + diff_time_stamp;
     }
   }
 
   // Update a general display element.
-  function element_update(element,value) {
+  function element_update(element,value,new_time_stamp) {
     if(element.classList.contains('ledset'))  { ledset_update(element,value); }
     if(element.classList.contains('digitset')){ digitset_update(element,value); }
     if(element.classList.contains('signedset')){signedset_update(element,value);}
     if(element.classList.contains('hexaset')) { hexaset_update(element,value); }
-    if(element.classList.contains('scope'))   { scope_update(element,value); }
+    if(element.classList.contains('scope'))   { scope_update(element,value,new_time_stamp); }
   }
 
 
@@ -800,19 +805,25 @@ Content-Type: text/html
     xhttp.onreadystatechange = function() {
       // console.log("response=" + this.responseText);
       if (this.readyState == 4 && this.status == 200) {
-        if (/[0-9]+:-?[0-9]/.test(this.responseText)) {
+        if (/^[0-9]+;[0-9]+:-?[0-9]/.test(this.responseText)) {
           // There is a real response.
           // Update the interface with the answer.
           const commands = this.responseText.split(';');
+          // Get the new time stamp.
+          let new_time_stamp = commands.shift();
+          // console.log("new_time_stamp=" + new_time_stamp);
+          // Process the other commands.
           for(command of commands) {
              const toks = command.split(':');
-             element_update(document.getElementById(toks[0]),toks[1]);
+             element_update(document.getElementById(toks[0]),toks[1],new_time_stamp);
           }
+          // Update the time stamp
+          time_stamp = new_time_stamp
         }
       }
     };
     // Builds the action from the state of the input elements.
-    act = '';
+    let act = '';
     for(id of input_ids) {
       act += id + ':' + document.getElementById(id).dataset.value + ';';
     }
@@ -876,13 +887,17 @@ HTMLRESPONSE
       # Initialize the list of board elements to empty.
       @elements = []
       @out_elements = []
+      # Initialize the time stamp.
+      @time_stamp = 0
       # And build the board.
       # Create the namespace for the program.
       @namespace = Namespace.new(self)
       # Build the program object.
       High.space_push(@namespace)
       pr = nil
-      High.top_user.instance_eval { pr = program(:ruby, @name.to_sym) {} }
+      High.top_user.instance_eval do
+        pr = program(:ruby, @name.to_sym) { }
+      end
       @program = pr
       # Fill it.
       High.top_user.instance_eval(&hdlruby_block)
@@ -1047,7 +1062,8 @@ HTMLRESPONSE
           self.update_port(id,val)
         end
         # And generate the response: an update of each board output element.
-        return UI_response + @out_elements.each.map do |e|
+        return UI_response + "#{@time_stamp};" + 
+          @out_elements.each.map do |e|
           # puts "resp=" + "#{e.id}:#{RubyHDL.send(e.hread)}"
           "#{e.id}:#{RubyHDL.send(e.hread)}"
         end.join(";")
@@ -1070,6 +1086,8 @@ HTMLRESPONSE
             session.print self.make_response(path[1..-1])
             # And tell the ui has been connected.
             @connected = true
+            # Then advance the time stamp.
+            @time_stamp += 1
           else
             session.print 'Connection Refuse'
           end
