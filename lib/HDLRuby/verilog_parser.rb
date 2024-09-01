@@ -376,6 +376,7 @@ module VerilogTools
 
     POSEDGE_TOK    = "posedge"
     NEGEDGE_TOK    = "negedge"
+    EVENT_OR_TOK   = "or"
 
     EQUAL_TOK             = "="
     ASSIGN_ARROW_TEX      = "<="
@@ -611,6 +612,7 @@ module VerilogTools
 
     POSEDGE_REX    = /\G#{S}(posedge)/
     NEGEDGE_REX    = /\G#{S}(negedge)/
+    EVENT_OR_REX   = /\G#{S}(or)/
 
     EQUAL_REX             = /\G#{S}(=)/
     ASSIGN_ARROW_REX      = /\G#{S}(<=)/
@@ -2531,7 +2533,7 @@ ___
           if tok == COMMA_TOK then
             mintypmax_expression2 = self.mintypmax_expression_parse
             self.parse_error("min:typical:max delay expression expected") unless mintypmax_expression2
-            self.parse_error("closing parenthesis expected") unless self.get_token == CLOSE_PAR_TOK
+            self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
             return self.delay_hook(mintypmax_expression0,
                                    mintypmax_expression1,
                                    mintypmax_expression2)
@@ -3111,7 +3113,7 @@ ___
         self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
         assignment2 = self.assignment_parse
         self.parse_error("assignment expected") unless assignment2
-        self.parse_error("closing parenthesis expected") unless set.get_token == CLOSE_PAR_TOK
+        self.parse_error("closing parenthesis expected") unless set.get_token(CLOSE_PAR_REX)
         statement = self.parse_statement
         self.parse_error("statement expected") unless statement
         return self.statement_hook(tok,assignment,expression,assignment2,
@@ -6020,26 +6022,26 @@ ___
       if identifier then
         self.delay_hook(identifier,nil,nil)
       end
-      self.parse_error("opening parenthesis expected") unless self.get_token == OPEN_PAR_TOK
+      self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       mintypmax_expression0 = self.mintypmax_expression_parse
       self.parse_error("min:typical:max expression expected") unless mintypmax_expression0
       mintypmax_expression1 = nil
-      if self.get_token == COMMA_TOK then
+      if self.get_token(COMMA_REX) then
         mintypmax_expression1 = self.mintypmax_expression_parse
         self.parse_error("min:typical:max expression expected") unless mintypmax_expression1
       else
-        self.parse_error("closing parenthesis expected") unless self.get_token == CLOSE_PAR_TOK
+        self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
         return self.delay_hook(mintypmax_expression0,nil,nil)
       end
-      if self.get_token == COMMA_TOK then
+      if self.get_token(COMMA_REX) then
         mintypmax_expression2 = self.mintypmax_expression_parse
         self.parse_error("min:typical:max expression expected") unless mintypmax_expression2
       else
-        self.parse_error("closing parenthesis expected") unless self.get_token == CLOSE_PAR_TOK
+        self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
         return self.delay_hook(mintypmax_expression0,
                                mintypmax_expression1,nil)
       end
-      self.parse_error("closing parenthesis expected") unless self.get_token == CLOSE_PAR_TOK
+      self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
       return self.delay_hook(mintypmax_expression0,
                              mintypmax_expression1,
                              mintypmax_expression2)
@@ -6072,10 +6074,10 @@ ___
       if identifier then
         self.delay_hook(identifier,nil,nil)
       end
-      self.parse_error("opening parenthesis expected") unless self.get_token == OPEN_PAR_TOK
+      self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       mintypmax_expression = self.mintypmax_expression_parse
       self.parse_error("min:typical:max expression expected") unless mintypmax_expression
-      self.parse_error("closing parenthesis expected") unless self.get_token == CLOSE_PAR_TOK
+      self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
       return self.delay_hook(mintypmax_expression)
     end
 
@@ -6098,10 +6100,10 @@ ___
       if identifier then
         return self.event_control_hook(identifier)
       end
-      self.parse_error("opening parenthesis expected") unless self.get_token == OPEN_PAR_TOK
+      self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       event_expression = self.event_expression_parse
       self.parse_error("event expression expected") unless event_expression
-      self.parse_error("closing parenthesis expected") unless self.get_token == CLOSE_PAR_TOK
+      self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
       return self.event_control_hook(event_expression)
     end
 
@@ -6119,15 +6121,15 @@ ___
 ___
 
     def event_expression_parse
-      tok = self.get_token
-      if EDGE_IDENTIFIER_TOKS.include?(tok) then
+      tok = self.get_token(EDGE_IDENTIFIER_REX)
+      if tok then
         scalar_event_expression = self.scalar_event_expression_parse
         self.parse_error("scalar event expression expected") unless scalar_event_expression
         return self.event_expression_hook(tok,scalar_event_expression)
       end
       parse_state = self.state
       event_expression0 = self.event_expression_parse
-      if event_expression0 and self.get_token == O_R_TOK then
+      if event_expression0 and self.get_token(EVENT_OR_REX) then
         event_expression1 = self.event_expression_parse
         self.parse_error("event epxression expected") unless event_expression1
         return self.event_expression_hook(event_expression0,
