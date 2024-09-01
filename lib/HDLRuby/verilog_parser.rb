@@ -239,6 +239,7 @@ module VerilogTools
     CASE_TOK       = "case"
     CASEZ_TOK      = "casez"
     CASEX_TOK      = "casex"
+    ENDCASE_TOK    = "endcase"
     FOREVER_TOK    = "forever"
     REPEAT_TOK     = "repeat"
     WHILE_TOK      = "while"
@@ -475,6 +476,7 @@ module VerilogTools
     CASE_REX       = /\G#{S}(case)/
     CASEZ_REX      = /\G#{S}(casez)/
     CASEX_REX      = /\G#{S}(casex)/
+    ENDCASE_REX    = /\G#{S}(endcase)/
     FOREVER_REX    = /\G#{S}(forever)/
     REPEAT_REX     = /\G#{S}(repeat)/
     WHILE_REX      = /\G#{S}(while)/
@@ -1846,6 +1848,9 @@ ___
     end
 
 
+    # Auth: I think there is an error in the BNF for the output,
+    # it should use its own list_of_variables rule.
+    # Changed it to: list_of_output_variables.
     RULES[:output_declaration] = <<-___
 <output_declaration>
 	::= output <range>? <list_of_variables> ;
@@ -1856,13 +1861,38 @@ ___
         return nil
       end
       range = self.range_parse
-      list_of_variables = self.list_of_variables_parse
-      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+      # list_of_variables = self.list_of_variables_parse
+      list_of_variables = self.list_of_output_variables_parse
+      # Auth: semicolon included in list_of_output_variables!
+      # self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return self.output_declaration_hook(range,list_of_variables)
     end
 
     def output_declaration_hook(range, list_of_variables)
       return AST[:output_declaration, range,list_of_variables ]
+    end
+
+    # Auth: rule for the variables declared in output
+    # list_of_output_variables_parse
+    # ::= net_declaration
+    # ||= reg_declaration
+    # ||= list_of_variables
+    def list_of_output_variables_parse
+      net_declaration = self.net_declaration_parse
+      if net_declaration then
+        return list_of_output_variables_hook(net_declaration)
+      end
+      reg_declaration = self.reg_declaration_parse
+      if reg_declaration then
+        return list_of_output_variables_hook(reg_declaration)
+      end
+      list_of_variables = self.list_of_variables_parse
+      return nil unless list_of_variables
+      return list_of_output_variables_hook(list_of_variables)
+    end
+
+    def list_of_output_variables_hook(list)
+      return list
     end
 
 
@@ -1936,11 +1966,10 @@ ___
 
     # Auth: this rule overides the list_of_variables, and is
     # not refered anywhere in the BNF, maybe it is a mistake.
-    # For now deactivated
-    #
+    
     # RULES[:list_of_variables] = <<-___
     # list_of_variables> ;
-	# ||= <NETTYPE> <drive_strength>? <expandrange>? <delay>? <list_of_assignments> ;
+    # ||= <NETTYPE> <drive_strength>? <expandrange>? <delay>? <list_of_assignments> ;
     # ___
 
     # def list_of_variables_parse
@@ -1951,19 +1980,21 @@ ___
     #   delay = self.delay_parse
     #   list_of_assignments = self.list_of_assignments_parse
     #   self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-    #   return self.list_of_variables_hook(nettype,drive_strength,
-    #                                      expandrange,
-    #                                      delay,list_of_assignments)
+    #   return self.list_of_output_variables_hook(nettype,drive_strength,
+    #                                             expandrange,
+    #                                             delay,list_of_assignments)
     # end
 
     # def list_of_variables_hook(nettype, drive_strength, expandrange,
     #                            delay, list_of_assignments)
-    #   return AST[:list_of_variables,
+    #   return AST[:list_of_output_variables,
     #              nettype,drive_strength,expandrange,delay,
     #              list_of_assignments ]
     # end
 
 
+    # Auth: I think NETTYPE should also include 'reg', so added
+    # (see NETTYPE_TOKS)
     RULES[:NETTYPE] = <<-___
 <NETTYPE> is one of the following keywords:
 	wire  tri  tri1  supply0  wand  triand  tri0  supply1  wor  trior  trireg
@@ -3335,6 +3366,7 @@ ___
 ___
 
     def case_item_parse
+      parse_state = self.state
       if self.get_token(DEFAULT_REX) then
         unless self.get_token(COLON_REX) then
         end
@@ -3353,7 +3385,11 @@ ___
         self.parse_error("expression expected") unless cur_expression
         expressions << cur_expression
       end
-      self.parse_error("colon expected") unless self.get_token(COLON_REX)
+      unless self.get_token(COLON_REX) then
+        # It was not an item
+        self.state = parse_state
+        return nil
+      end
       statement_or_null = self.statement_or_null_parse
       self.parse_error("statement or nothing expected") unless statement_or_null
       return self.case_item_hook(expressions,statement_or_null)
