@@ -56,7 +56,7 @@ module VerilogTools
           self.ast_to_s(adjust+2, c)
         end).join("\n") + "\n" + (" " * adjust) + "]"
       else
-        return (" " * adjust) + obj.to_s
+        return (" " * adjust) + "<" + obj.to_s + ">"
       end
     end
   end
@@ -807,8 +807,9 @@ module VerilogTools
     E_TOKS    = [ EE_TOK, Ee_TOK ]
     E_REX     = /\G#{S}(#{E_TOKS.join("|")})/
 
-    DECIMAL_NUMBER_REX  = /\G#{S}([+-]?[_0-9]+)/
-    UNSIGNED_NUMBER_REX = /\G#{S}([_0-9]+)/
+    DECIMAL_NUMBER_REX  = /\G#{S}([+-]?[0-9][_0-9]*)/
+    UNSIGNED_NUMBER_REX = /\G#{S}([_0-9][0-9]*)/
+    NUMBER_REX = /\G#{S}([0-9a-fA-FzZxX\?][_0-9a-fA-FzZxX\?]*)/
 
     BASE_TOKS = [ Q_b_TOK, Q_B_TOK, Q_o_TOK, Q_O_TOK,
                   Q_d_TOK, Q_D_TOK, Q_h_TOK, Q_H_TOK ]
@@ -2240,11 +2241,14 @@ ___
       parse_state = self.state
       name_of_memory = self.name_of_memory_parse
       if self.get_token(OPEN_BRA_REX) then
-        constant_expression = self.constant_expression_parse
+        constant_expression1 = self.constant_expression_parse
+        self.parse_error("constant expression expected") unless constant_expression1
         self.parse_error("colon expected") unless self.get_token(COLON_REX)
         constant_expression2  = self.constant_expression_parse
+        self.parse_error("constant expression expected") unless constant_expression2
+        self.parse_error("closing bracket expected") unless self.get_token(CLOSE_BRA_REX)
         return register_variable_hook(name_of_memory,
-                                      constant_expression, 
+                                      constant_expression1, 
                                       constant_expression2)
       else
         self.state = parse_state
@@ -2254,10 +2258,10 @@ ___
     end
 
     def register_variable_hook(name, 
-                               constant_expression,
+                               constant_expression1,
                                constant_expression2)
       return AST[:register_variable, 
-                 name, constant_expression, constant_expression2 ]
+                 name, constant_expression1, constant_expression2 ]
     end
 
 
@@ -2344,14 +2348,17 @@ ___
 ___
 
     def drive_strength_parse
+      parse_state = self.state
       unless self.get_token(OPEN_PAR_REX) then
-        return
-        nil
+        return nil
       end
       strength0 = self._STRENGTH0_parse
       if !strength0 then
         strength1 = self._STRENGTH1_parse
-        return nil unless strength1
+        unless strength1 then
+          self.state = parse_state
+          return nil
+        end
         self.parse_error("comma expected") unless self.get_token(COMMA_REX)
         strength0 = self._STRENGTH0_parse
         self.parse_error("one of [#{STRENGTH0_TOKS.join(",")}] expected") unless strength0
@@ -3213,6 +3220,7 @@ ___
         return nil
       end
       expression = self.expression_parse
+      # puts "expression=#{expression}"
       self.parse_error("expression expected") unless expression
       return self.assignment_hook(lvalue,expression)
     end
@@ -4943,7 +4951,7 @@ ___
       end
       parse_state = self.state
       constant_expression0 = self.constant_expression_parse
-      if !constant_expression0 or self.get_token(COLON_REX) then
+      if !constant_expression0 or !self.get_token(COLON_REX) then
         # Not constant_expression : constant_expression, rewind.
         self.state = parse_state
         expression = self.expression_parse
@@ -4951,6 +4959,7 @@ ___
         self.parse_error("closing bracket expected") unless self.get_token(CLOSE_BRA_REX)
         return self.lvalue_hook(identifier,expression,nil)
       end
+      self.parse_error("constant expression expected") unless constant_expression0
       constant_expression1 = self.constant_expression_parse
       self.parse_error("constant expression expected") unless constant_expression1
       self.parse_error("closing bracket expected") unless self.get_token(CLOSE_BRA_REX)
@@ -4990,7 +4999,7 @@ ___
 
     def mintypmax_expression_parse
       expression0 = self.expression_parse
-      return nil unless expression
+      return nil unless expression0
       unless self.get_token(COLON_REX) then
         return self.mintypmax_expression_hook(expression0,nil,nil)
       end
@@ -5068,8 +5077,8 @@ ___
     #              expression1,expression2 ]
     # end
 
-    # Auth: this rule has no priority handling and is initelly recurse
-    # fix it to
+    # Auth: this rule has no priority handling and is infinitely recurse
+    # fix it to:
     # expression
     # ::= condition_term ('?' expression ':' expression)*
     # ||= <STRING>
@@ -5124,6 +5133,9 @@ ___
         condition_terms << cur_condition_term
         self.parse_error("colon expected") unless self.get_token(COLON_REX)
         condition_terms << COLON_TOK
+        cur_condition_term = self.condition_term_parse
+        self.parse_error("expression expected") unless cur_condition_term
+        condition_terms << cur_condition_term
       end
       return expression_hook(condition_terms)
     end
@@ -5495,7 +5507,7 @@ ___
           return nil
         end
         self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
-        return self.primary_hook(mintypmax_expression)
+        return self.primary_hook(mintypmax_expression,nil,nil)
       end
       identifier = self.identifier_parse
       return nil unless identifier
@@ -5549,9 +5561,9 @@ ___
       unsigned_number = self._UNSIGNED_NUMBER_parse
       base = self._BASE_parse
       if base then
-        unsigned_number = self._NUMBER_parse(base)
-        self.parse_error("unsigned number expected") unless unsigned_number
-        return self.number_hook(unsigned_number,base,unsigned_number)
+        number = self._NUMBER_parse(base[0])
+        self.parse_error("number expected") unless number
+        return self.number_hook(unsigned_number,base,number)
       end
       # Not a based number, rewind.
       self.state = parse_state
@@ -5629,41 +5641,38 @@ ___
 	0123456789abcdefABCDEFxXzZ?
 ___
 
+    # Auth: contrary to what the rule says, NUMBER should also accept '_',
+    # added to the regular expression.
+    # Also, there is no sign (+ or -) in the number, removed.
     def _NUMBER_parse(base)
-      # *BNF*: Numbers can be specified in decimal, hexadecimal, octal or
-      # binary, and may optionally start with a + or -. 
-      # The <BASE> token controls what number digits are legal. 
-      # <BASE> must be one of d, h, o, or b, for the bases decimal,
-      # hexadecimal, octal, and binary respectively.
-      # A number can contain any set of the following characters that is
-      # consistent with <BASE>: 0123456789abcdefABCDEFxXzZ?
-      tok = self.get_token(BASE_REX)
-      case(tok)
+      tok = self.get_token(NUMBER_REX)
+      case(base)
       when Q_b_TOK, Q_B_TOK
         # Binary case.
-        if tok =~ /^[+-]?[xXz?0-1]+$/ then
+        if tok =~ /^[0-1xXzZ\?][_0-1xXzZ\?]*$/ then
           return self._NUMBER_hook(tok)
         end
         self.parse_error("malformed number")
       when Q_o_TOK, Q_O_TOK
         # Octal case.
-        if tok =~ /^[+-]?[xXz?0-7]+$/ then
+        if tok =~ /^[0-7xXzZ\?][_0-7xXzZ\?]*$/ then
           return self._NUMBER_hook(tok)
         end
         self.parse_error("malformed number")
       when Q_d_TOK, Q_D_TOK
         # Decimal case.
-        if tok =~ /^[+-]?[xXz?0-9]+$/ then
+        if tok =~ /^[0-9xXzZ\?][_0-9xXzZ\?]*$/ then
           return self._NUMBER_hook(tok)
         end
         self.parse_error("malformed number")
       when Q_h_TOK, Q_H_TOK
         # hexecimal case.
-        if tok =~ /^[+-]?[xXz?0-9a-fA-F]+$/ then
+        if tok =~ /^[0-9a-fA-FxXzZ\?][_0-9a-fA-FxXzZ\?]*$/ then
           return self._NUMBER_hook(tok)
         end
         self.parse_error("malformed number")
       end
+      raise "Internal error: should not be there!"
     end
 
     def _NUMBER_hook(tok)
@@ -6120,35 +6129,92 @@ ___
 	||= <event_expression> or <event_expression>
 ___
 
+    # Auth: old version compatible with the bfn rules, but not
+    # parsable. Also, the case of @ (*) is not present, so need
+    # to add it too.
+    #
+    # def event_expression_parse
+    #   tok = self.get_token(EDGE_IDENTIFIER_REX)
+    #   if tok then
+    #     scalar_event_expression = self.scalar_event_expression_parse
+    #     self.parse_error("scalar event expression expected") unless scalar_event_expression
+    #     return self.event_expression_hook(tok,scalar_event_expression)
+    #   end
+    #   parse_state = self.state
+    #   event_expression0 = self.event_expression_parse
+    #   if event_expression0 and self.get_token(EVENT_OR_REX) then
+    #     event_expression1 = self.event_expression_parse
+    #     self.parse_error("event epxression expected") unless event_expression1
+    #     return self.event_expression_hook(event_expression0,
+    #                                       event_expression1)
+    #   else
+    #     # Rewind and try expression.
+    #     self.state = parse_state
+    #     expression = self.expression_parse
+    #     return nil unless expression
+    #     return self.event_expression_hook(expression,nil)
+    #   end
+    # end
+
+    # def event_expression_hook(tok__expression__event_expression,
+    #                           event_expression)
+    #   return AST[:event_expression,
+    #              tok__expression__event_expression,
+    #              event_expression ]
+    # end
+    #
+    # Auth: this rule is infinitely recurse and do not support @ *
+    # fix it to:
+    # event_expression
+    # ::= <event_primary> ( or <event_primary> )*
+    #
+    # event_primary
+    # ::= '*'
+    # ||= <expression>
+    # ||= posedge <scalar_event_expression>
+	# ||= negedge <scalar_event_expression>
+
     def event_expression_parse
+      cur_event_primary = self.event_primary_parse
+      return nil unless cur_event_primary
+      event_primaries = [ cur_event_primary ]
+      loop do
+        break unless self.get_token(EVENT_OR_REX)
+        cur_event_primary = self.event_primary_parse
+        self.parse_error("event expression expected") unless cur_event_primary
+        event_primaries << cur_event_primary
+      end
+      return event_expression_hook(event_primaries)
+    end
+
+    def event_expression_hook(event_primaries)
+      if event_primaries.size == 1 then
+        return event_primaries[0]
+      else
+        return AST[:event_expression, *event_primaries ]
+      end
+    end
+
+    def event_primary_parse
+      if self.get_token(MUL_REX) then
+        return event_primary_hook(MUL_TOK,nil)
+      end
       tok = self.get_token(EDGE_IDENTIFIER_REX)
       if tok then
         scalar_event_expression = self.scalar_event_expression_parse
         self.parse_error("scalar event expression expected") unless scalar_event_expression
-        return self.event_expression_hook(tok,scalar_event_expression)
+        return self.event_primary_hook(tok,scalar_event_expression)
       end
-      parse_state = self.state
-      event_expression0 = self.event_expression_parse
-      if event_expression0 and self.get_token(EVENT_OR_REX) then
-        event_expression1 = self.event_expression_parse
-        self.parse_error("event epxression expected") unless event_expression1
-        return self.event_expression_hook(event_expression0,
-                                          event_expression1)
-      else
-        # Rewind and try expression.
-        self.state = parse_state
-        expression = self.expression_parse
-        return nil unless expression
-        return self.event_expression_hook(expression,nil)
-      end
+      expression = self.expression_parse
+      return nil unless expression
+      return self.event_primary_hook(expression,nil)
     end
 
-    def event_expression_hook(tok__expression__event_expression,
-                              event_expression)
+    def event_primary_hook(tok__expression, event_expression)
       return AST[:event_expression,
-                 tok__expression__event_expression,
-                 event_expression ]
+                 tok__expression, event_expression ]
     end
+
 
 
     RULES[:scalar_event] = <<-___
