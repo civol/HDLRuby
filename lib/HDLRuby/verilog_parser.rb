@@ -2587,11 +2587,11 @@ ___
           self.parse_error("closing parenthesis expected")
         end
       end
-      number = self.parse_number
+      number = self.number_parse
       if number then
         return self.delay_hook(number,nil,nil)
       end
-      identifier = self.parse_identifier
+      identifier = self.identifier_parse
       if identifier then
         return self.delay_hook(identifier)
       end
@@ -6059,11 +6059,11 @@ ___
       unless self.get_token(SHARP_REX) then
         return nil
       end
-      number = self.parse_number
+      number = self.number_parse
       if number then
         self.delay_hook(number,nil,nil)
       end
-      identifier = self.parse_identifier
+      identifier = self.identifier_parse
       if identifier then
         self.delay_hook(identifier,nil,nil)
       end
@@ -6111,13 +6111,13 @@ ___
       unless self.get_token(SHARP_REX) then
         return nil
       end
-      number = self.parse_number
+      number = self.number_parse
       if number then
-        self.delay_hook(number,nil,nil)
+        return self.delay_hook(number)
       end
-      identifier = self.parse_identifier
+      identifier = self.identifier_parse
       if identifier then
-        self.delay_hook(identifier,nil,nil)
+        return self.delay_hook(identifier)
       end
       self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       mintypmax_expression = self.mintypmax_expression_parse
