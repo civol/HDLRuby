@@ -94,7 +94,7 @@ module VerilogTools
       # Create the parse state.
       @state = Struct.new(:text,
                           :index, :prev_index,
-                          :line,  :prev_line,
+                          # :line,  :prev_line,
                           :lpos,  :prev_lpos,
                           :cpos,  :prev_cpos).new("",0,0)
     end
@@ -108,7 +108,7 @@ module VerilogTools
     def state=(state)
       @state.index = state.index
       @state.prev_index = state.prev_index
-      @state.line = state.index
+      # @state.line = state.index
       @state.lpos = state.lpos
       @state.cpos = state.cpos
     end
@@ -117,8 +117,8 @@ module VerilogTools
     def parse(text)
       # Initialize the state.
       @state.text = text
-      @state.line = ""
-      @state.prev_line = ""
+      # @state.line = ""
+      # @state.prev_line = ""
       @state.index = 0
       @state.prev_index = 0
       @state.lpos = 1
@@ -135,8 +135,8 @@ module VerilogTools
     # capture for the token. Also assumes spaces are taken into account
     # in the regexp.
     def get_token(rex)
-      # puts "get_token at index=#{@state.index} with rex=#{rex}"
-      # puts "text should start with #{@state.text[@state.index]}"
+      # puts "get_token at index=#{@state.index} and lpos=#{@state.lpos} with rex=#{rex}"
+      # puts "text line is #{@state.text.match(/\G[^\n]*/,@state.index).to_s}"
       match = @state.text.match(rex,@state.index)
       if match then
         # There is a match, get the blanks and the token
@@ -148,10 +148,9 @@ module VerilogTools
         # puts "match.end(0)=#{match.end(0)}"
         # Advance the position.
         @state.prev_index = @state.index
-        @state.prev_line = @state.line
+        # @state.prev_line = @state.line
         @state.prev_lpos = @state.lpos
         @state.prev_cpos = @state.cpos
-        # @state.index += match.end(0)
         @state.index = match.end(0)
         @state.lpos += bls.scan(/\n/).size
         spcs = bls.match(/[ \t]*\z/)
@@ -180,9 +179,16 @@ module VerilogTools
 
     # Generate a parse error with message indicated by +code+
     def parse_error(msg)
+      # Get the line where the error was.
+      # First locate the position of the begining and the end of the line.
+      blpos = @state.index-@state.cpos
+      elpos = @state.index + 
+        @state.text.match(/[^\n]*/,@state.index).to_s.size
+      # The get the line.
+      line_txt = @state.text[blpos...elpos]
       # Raise an exception containing an error message made of msg,
       # the line number , its number, and the column where error happended.
-      raise ParseError.new(msg,@state.line,@state.lpos,@state.cpos)
+      raise ParseError.new(msg,line_txt,@state.lpos,@state.cpos)
     end
     
     # Definition of the tokens
@@ -197,6 +203,7 @@ module VerilogTools
     OPEN_CUR_TOK   = "{"
     CLOSE_CUR_TOK  = "}"
     SHARP_TOK      = "#"
+    AT_TOK         = "@"
     DOT_TOK        = "."
     EE_TOK         = "E"
     Ee_TOK         = "e"
@@ -371,6 +378,7 @@ module VerilogTools
     NEGEDGE_TOK    = "negedge"
 
     EQUAL_TOK             = "="
+    ASSIGN_ARROW_TEX      = "<="
 
     EQUAL_EQUAL_TOK       = "=="
     EQUAL_EQUAL_EQUAL_TOK = "==="
@@ -430,6 +438,7 @@ module VerilogTools
     OPEN_CUR_REX   = /\G#{S}(\{)/
     CLOSE_CUR_REX  = /\G#{S}(\})/
     SHARP_REX      = /\G#{S}(#)/
+    AT_REX         = /\G#{S}(@)/
     DOT_REX        = /\G#{S}(\.)/
     EE_REX         = /\G#{S}(E)/
     Ee_REX         = /\G#{S}(e)/
@@ -604,6 +613,7 @@ module VerilogTools
     NEGEDGE_REX    = /\G#{S}(negedge)/
 
     EQUAL_REX             = /\G#{S}(=)/
+    ASSIGN_ARROW_REX      = /\G#{S}(<=)/
 
     EQUAL_EQUAL_REX       = /\G#{S}(==)/
     EQUAL_EQUAL_EQUAL_REX = /\G#{S}(===)/
@@ -1248,7 +1258,7 @@ ___
       output_terminal_name = self.output_terminal_name_parse
       self.parse_error("equal expected") unless self.get_token(EQUAL_REX)
       init_val = self.init_val_parse
-      self.parse_error("semicolon expected") unless self.get_token(SEMI_COLON_REX)
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return self.udp_initial_statement_hook(output_terminal_name,init_val)
     end
 
@@ -1991,8 +2001,8 @@ ___
       return expandrange_hook(:"", range)
     end
 
-    def expand_range_hook(type, range)
-      return AST[:expand_range, type,range ]
+    def expandrange_hook(type, range)
+      return AST[:expandrange, type,range ]
     end
 
 
@@ -2026,7 +2036,7 @@ ___
         return nil
       end
       list_of_register_variables = self.list_of_register_variables_parse
-      self.parse_error("semicolon expected") unless self.get_token(SEMI_COLON_REX)
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return time_declaration_hook(list_of_register_variables)
     end
 
@@ -2045,7 +2055,7 @@ ___
         return nil
       end
       list_of_register_variables = self.list_of_register_variables_parse
-      self.parse_error("semicolon expected") unless self.get_token(SEMI_COLON_REX)
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return integer_declaration_hook(list_of_register_variables)
     end
 
@@ -2064,7 +2074,7 @@ ___
         return nil
       end
       list_of_register_variables = self.list_of_register_variables_parse
-      self.parse_error("semicolon expected") unless self.get_token(SEMI_COLON_REX)
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return real_declaration_hook(list_of_register_variables)
     end
 
@@ -3171,7 +3181,7 @@ ___
         self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
         return self.statement_hook(blocking_assignment,nil,nil,nil,nil)
       end
-      non_blocking_assignment = self.non_block_assignment_parse
+      non_blocking_assignment = self.non_blocking_assignment_parse
       if non_blocking_assignment then
         self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
         return self.statement_hook(non_blocking_assignment,nil,nil,nil,nil)
@@ -3389,7 +3399,7 @@ ___
 
     def seq_block_hook(statements__name_of_block,
                        block_declarations, statements)
-      return AST[:seq_block, satements__name_of_block,
+      return AST[:seq_block, statements__name_of_block,
                  block_declarations,statements ]
     end
 
@@ -3509,11 +3519,23 @@ ___
 	||= <name_of_task> ( <expression> <,<expression>>* ) ;
 ___
 
+    # Auth: there seems ot be a mistake in this rule:
+    # there should be a semi colon and after name_of_task.
+    # So use the following rule:
+    # <task_enable>
+    # ::= <name_of_task> ;
+    # ||= <name_of_task ( <expression, <,<expression>>* ) ;
     def task_enable_parse
+      parse_state = self.state
       name_of_task = self.name_of_task_parse
       return nil unless name_of_task
       unless self.get_token(OPEN_PAR_REX) then
-        return self.task_enable_hook(name_of_task,nil)
+        if self.get_token(SEMICOLON_REX) then
+          return self.task_enable_hook(name_of_task,nil)
+        else
+          self.state = parse_state
+          return nil
+        end
       end
       cur_expression = self.expression_parse
       self.parse_error("expression expected") unless cur_expression
@@ -3527,7 +3549,7 @@ ___
         expressions << cur_expression
       end
       self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
-      self.parse_error("semicolon expected") unless self.get_token(SEMI_COLON_REX)
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return self.task_enable_hook(name_of_task,expressions)
     end
 
@@ -3543,10 +3565,16 @@ ___
 ___
 
     def system_task_enable_parse
+      parse_state = self.state
       name_of_system_task = self.name_of_system_task_parse
       return nil unless name_of_system_task
       unless self.get_token(OPEN_PAR_REX) then
-        return self.system_task_enable_hook(name_of_system_task,nil)
+        if self.get_token(SEMICOLON_REX) then
+          return self.system_task_enable_hook(name_of_system_task,nil)
+        else
+          self.state = parse_state
+          return nil
+        end
       end
       cur_expression = self.expression_parse
       self.parse_error("expression expected") unless cur_expression
@@ -3560,7 +3588,7 @@ ___
         expressions << cur_expression
       end
       self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
-      self.parse_error("semicolon expected") unless self.get_token(SEMI_COLON_REX)
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       return self.system_task_enable_hook(name_of_system_task,expressions)
     end
 
@@ -3596,7 +3624,8 @@ ___
       if tok then
         return self.system_identifier_hook(tok)
       end
-      self.parse_error("dollar-starting identifier expected")
+      return nil
+      # self.parse_error("dollar-starting identifier expected")
     end
 
     def system_identifier_hook(tok)
@@ -5080,7 +5109,7 @@ ___
     def expression_parse
       string = self._STRING_parse
       if string then
-        return self.expression_hook(string,nil,nil,nil)
+        return self.expression_hook(string)
       end
       cur_condition_term = self.condition_term_parse
       return nil unless cur_condition_term
@@ -5677,7 +5706,7 @@ ___
           break
         end
         cur_expression = self.expression_parse
-        self.parse_error("expression expected") unless expression
+        self.parse_error("expression expected") unless cur_expression
         expressions << cur_expression
       end
       unless self.get_token(CLOSE_CUR_REX) then
@@ -5786,7 +5815,7 @@ ___
                            expressions)
       return AST[:function_call,
                  name_of_function__name_of_system_function,
-                 expression ]
+                 expressions ]
     end
 
 
@@ -6032,7 +6061,7 @@ ___
 ___
 
     def delay_control_parse
-      if self.get_token != SHARP_TOK then
+      unless self.get_token(SHARP_REX) then
         return nil
       end
       number = self.parse_number
@@ -6062,7 +6091,7 @@ ___
 ___
     
     def event_control_parse
-      if self.get_token != AT_TOK then
+      unless self.get_token(AT_REX) then
         return nil
       end
       identifier = self.identifier_parse
