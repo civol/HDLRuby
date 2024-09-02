@@ -208,10 +208,19 @@ module VerilogTools
     EE_TOK         = "E"
     Ee_TOK         = "e"
 
+    SLASH_TOK          = "/"
     SLASH_SLASH_TOK    = "//"
     SLASH_ASTERISK_TOK = "/*"
     ASTERISK_SLASH_TOK = "*/"
     EOL_TOK            = "\n"
+
+    TIMESCALE_TOK   = "`timescale"
+    SECOND_TOK      = "s"
+    MILLISECOND_TOK = "ms"
+    MICROSECOND_TOK = "us"
+    NANOSECOND_TOK  = "ns"
+    PICOSECOND_TOK  = "ps"
+    FENTOSECOND_TOK = "fs"
 
     MODULE_TOK     = "module"
     MACROMODULE_TOK= "macromodule"
@@ -445,10 +454,19 @@ module VerilogTools
     EE_REX         = /\G#{S}(E)/
     Ee_REX         = /\G#{S}(e)/
 
+    SLASH_REX          = /\G#{S}(\/)/
     SLASH_SLASH_REX    = /\G#{S}(\/\/)/
     SLASH_ASTERISK_REX = /\G#{S}(\/\*)/
     ASTERISK_SLASH_REX = /\G#{S}(\*\/)/
     EOL_REX            = /\G#{S}(\n)/
+
+    TIMESCALE_REX   = /\G#{S}(`timescale)/
+    SECOND_REX      = /\G#{S}(s)/
+    MILLISECOND_REX = /\G#{S}(ms)/
+    MICROSECOND_REX = /\G#{S}(us)/
+    NANOSECOND_REX  = /\G#{S}(ns)/
+    PICOSECOND_REX  = /\G#{S}(ps)/
+    FENTOSECOND_REX = /\G#{S}(fs)/
 
     MODULE_REX     = /\G#{S}(module)/
     MACROMODULE_REX= /\G#{S}(macromodule)/
@@ -660,6 +678,10 @@ module VerilogTools
     # Definition of the groups of tokens and corresponding regular
     # expressions.
     
+    TIME_UNIT_TOKS  = [ SECOND_TOK, MILLISECOND_TOK, MICROSECOND_TOK,
+                        NANOSECOND_TOK, PICOSECOND_TOK, FENTOSECOND_TOK ]
+    TIME_UNIT_REX   = /\G#{S}(#{TIME_UNIT_TOKS.join("|")})/
+    
     MODULE_MACROMODULE_TOKS = [ MODULE_TOK, MACROMODULE_TOK ]
     MODULE_MACROMODULE_REX  = /\G#{S}(#{MODULE_MACROMODULE_TOKS.join("|")})/
     
@@ -847,6 +869,17 @@ ___
     end
 
 
+    # Auth: the timescale compiler directive is not preprocessed,
+    # so it is added as a rule and produce an AST:
+    # ||= <timescale>
+    #
+    # <timescale>
+    # ::= `timescale <time> / <time> #{S}
+    #
+    # <time>
+    # ::= <UNSIGNED_NUMBER> <TIME_UNIT>
+    #
+    # <TIME_UNIT> is one of 's', 'ms', 'us', 'ns', 'ps', 'fs'
     RULES[:description] = <<-___
 <description>
 	::= <module>
@@ -859,6 +892,9 @@ ___
         elem = self.udp_parse
       end
       if !elem then
+        elem = self.timescale_parse
+      end
+      if !elem then
         return nil if self.eof?
         self.parse_error("this is probably not a Verilog HDL file")
       end
@@ -867,6 +903,34 @@ ___
 
     def description_hook(elem)
       return AST[:description, elem]
+    end
+
+    def timescale_parse
+      return nil unless self.get_token(TIMESCALE_REX)
+      time_unit = self.timevalue_parse
+      self.parse_error("time value expected") unless time_unit
+      self.parse_error("slash expected") unless self.get_token(SLASH_REX)
+      time_precision = self.timevalue_parse
+      self.parse_error("time value expected") unless time_precision
+      # Skip to end of line.
+      self.parse_error("new line expected") unless self.get_token(/\G(\s*)(\n)/)
+      return timescale_hook(time_unit,time_precision)
+    end
+
+    def timescale_hook(time_unit,time_precision)
+      return AST[:timescale, time_unit,time_precision ]
+    end
+
+    def timevalue_parse
+      value = self._UNSIGNED_NUMBER_parse
+      return nil unless value
+      unit = self.get_token(TIME_UNIT_REX)
+      self.parse_error("time unit expected") unless unit
+      return timevalue_hook(value,unit)
+    end
+
+    def timevalue_hook(value,unit)
+      return AST[:timevalue, value,unit ]
     end
 
 
@@ -3056,7 +3120,7 @@ ___
 
     def statement_or_null_parse
       if self.get_token(SEMICOLON_REX) then
-        return statement_or_null_parse(self.null_hook)
+        return statement_or_null_hook(self._NULL_hook)
       end
       statement = self.statement_parse
       return nil unless statement
