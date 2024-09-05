@@ -1,4 +1,6 @@
-# A set of tools for parsing Verilog generati
+require 'strscan'
+
+# A set of tools for parsing Verilog generation
 
 module VerilogTools
 
@@ -61,17 +63,27 @@ module VerilogTools
     end
   end
 
+  # The class describing errors in files.
+  class FileError < StandardError
+    # Create a new file error at line +lpos+ with sub error +error+.
+    def initialize(error,lpos)
+      super("File error from line #{lpos}: #{error}")
+    end
+  end
+
 
   # The class describing parse errors.
   class ParseError < StandardError
     
-    # Create a new parse error with message +msg+, faulty line +line+
-    # with number +lpos+ and column +cpos+
-    def initialize(msg,line,lpos,cpos)
+    # Create a new parse error with message +msg+, faulty line text
+    # +line_text+, line number +lpos+, column +cpos+, and possibly
+    # file name +filename+.
+    def initialize(msg,line,lpos,cpos,filename)
       @msg  = msg.to_s
       @line = line.to_s.gsub(/\t/," ")
       @lpos = lpos.to_i
       @cpos = cpos.to_i
+      @filename = filename.to_s if filename
       super(self.make_message)
     end
 
@@ -79,7 +91,12 @@ module VerilogTools
     # NOTE: if you want to translate the error message, please
     # redefine the function.
     def make_message
-      return "Parse error line #{@lpos}: " + @msg + ".\n" + "#{@line}\n" +
+      if @filename then
+        head = "Parse error in file '#{@filename}' "
+      else
+        head = "Parse error "
+      end
+      return head + "line #{@lpos}: " + @msg + ".\n" + "#{@line}\n" +
         ("-" * (@cpos)) + "^"
     end
   end
@@ -92,41 +109,397 @@ module VerilogTools
     # Create a new parser.
     def initialize
       # Create the parse state.
-      @state = Struct.new(:text,
-                          :index, :prev_index,
-                          # :line,  :prev_line,
-                          :lpos,  :prev_lpos,
-                          :cpos,  :prev_cpos).new("",0,0)
+      # It includes:
+      # +text+: the text to parse
+      # +filename+: the origin file name (if any)
+      # +lprop+: the properties of each line.
+      @state = Struct.new(:text, :filename, :path,
+                          :lprop,
+                          :index, :lpos, :cpos).new("","",[],0,0)
+      # Create the list of known module names.
+      @module_names = []
+      # Create the list of known UDP names.
+      @udp_names = []
     end
 
-    # Get the current state.
+
+    # Runs the full preprocesser and parser for  text to parse +text+
+    # and/or origin file named +filename+
+    def run(text: nil, filename: "")
+      self.setup(text: text, filename: filename)
+      self.preprocess
+      self.parse
+    end
+
+
+    # Set up the parser with text to parse +text+ and/or origin file named
+    # +filename+
+    def setup(text: nil, filename: "")
+      # Shall we load the file?
+      if text then
+        # The text is provided, so do not load it.
+        @state.text = text.to_s
+        @state.filename = filename.to_s
+      else
+        # Yes, load from filename.
+        @state.filename = filename.to_s
+        @state.text = File.read(@state.filename)
+      end
+      @state.path = File.dirname(@state.filename) + "/"
+    end
+
+
+    private
+    # Merge lines ending by "\"
+    # Only for the preprocess method!
+    def process_merge_line(line,scanner,lpos)
+      line = "" unless line # For the first line, line is nil.
+      ljump = 1
+      while line[-2] == "\\" do
+        line = line.chomp("\\\n") + scanner.scan(/[^\n]*\n/)
+        ljump += 1
+      end
+      unless @state.lprop[lpos+1] then
+        # Get the properties from the previous line.
+        @state.lprop[lpos+1] = @state.lprop[lpos].clone
+        # But not the freeze state.
+        @state.lprop[lpos+1].delete(:lfreeze)
+      end
+      unless @state.lprop[lpos+1].key?(:lfreeze) then
+        # The line position is not freezed, so update it.
+        @state.lprop[lpos+1][:lpos] += ljump
+      end
+      return line, ljump
+    end
+
+    public
+
+    # The table of time conversion.
+    FS_TIME = {
+      "s"  => 1_000_000_000_000_000,
+      "ms" => 1_000_000_000_000,
+      "us" => 1_000_000_000,
+      "ns" => 1_000_000,
+      "ps" => 1_000,
+      "fs" => 1
+    }
+
+    # Preprocess the Verilog HDL text with directives.
+    def preprocess
+      # Initialize the preprocessing variables.
+      macro_cons = {}    # The set of macro constants.
+      macro_func = {}    # The set of macro functions.
+      lpos = 1           # Current line number in text.
+      cur_timescale = "" # The Current time scale
+      # The initial text becomes the text to preprocesses whereas
+      # the text to parse is cleared.
+      pre_text = @state.text
+      @state.text = ""
+      # Initialize the line jump (1 if no line merge).
+      ljump = 1
+      # Initialize the lines properties.
+      @state.lprop = [ { lpos: 0, timescale: "", celldefine: "" }]
+      # Initialize the line skip mode for handling the `ifdef and `ifndef
+      # directives.
+      skip_mode = [ [:start, false] ]
+      # Preprocessing is grammatically straight foward, so use
+      # a StringScanner.
+      scanner = StringScanner.new(pre_text)
+      while(!scanner.eos?) do
+        # Set the default propery of the line if none.
+        if !@state.lprop[lpos] then
+          @state.lprop[lpos] = @state.lprop[lpos-1].clone
+          # But not the freeze state.
+          @state.lprop[lpos].delete(:lfreeze)
+          @state.lprop[lpos][:lpos] = @state.lprop[lpos-1][:lpos] + 1
+        else
+          # Still need to update the timescale and celldefine properties.
+          @state.lprop[lpos][:timescale] = @state.lprop[lpos-1][:timescale]
+          @state.lprop[lpos][:celldefine] = @state.lprop[lpos-1][:celldefine]
+        end
+        # puts "lpos=#{lpos} @state.lprop[lpos]=#{@state.lprop[lpos]}"
+        # Is it a directive line?
+        line = scanner.scan(/[ \t]*`[^\n]*\n/)
+        if line then
+          # Yes, process it.
+          # But, first, are there any line merge?
+          line,jump = self.process_merge_line(line,scanner,lpos)
+          # Get the kind of macro and its arguments.
+          type,code = line.scan(/^\s*`[a-zA-Z]+|[^`]*$/)
+          type.gsub!(/\s/,"")
+          # Add the skip mode: X at the end if skipped.
+          type += "X" if skip_mode[-1][1]
+          # Depending of the kind of macro.
+          case type
+          when "`timescaleX" # Skip
+          when "`timescale"
+            # Process and check to code.
+            code = code.gsub(/\s/,"")
+            mcode = code.match(/^([0-9]+)(s|ms|us|ns|ps|fs)\/([0-9]+)(s|ms|us|ns|ps|fs)/)
+            # Compute the position of the code, used in case of error.
+            cpos = line.scan(/\s*`timescale\s*/)[0].size
+            unless mcode then
+              self.parse_error("invalid timescale format",
+                               line.chomp,lpos,cpos)
+            end
+            unit = mcode.captures[0].to_i * FS_TIME[mcode.captures[1]]
+            prec = mcode.captures[2].to_i * FS_TIME[mcode.captures[3]]
+            unless unit > prec then
+              self.parse_error(
+                "in timescale, unit shoud be greater than precision",
+                               line.chomp,lpos,cpos)
+            end
+            # puts "unit=#{unit} precision=#{prec}"
+            @state.lprop[lpos][:timescale] = AST[:timescale, unit, prec ]
+          when "`celldefineX" # Skip
+          when "`celldefine"
+            @state.lprop[lpos][:celldefine] = AST[:celldefine]
+          when "`endcelldefineX" # Skip
+          when "`endcelldefine"
+            @state.lprop[lpos][:celldefine] = ""
+          when "`defineX" # Skip
+          when "`define"
+            # Get the macro name, arguments and replacement.
+            name,args,replace = 
+              code.scan(/^\s*[_a-zA-Z][_a-zA-Z0-9]*|\(.*\)|.*$/)
+            # Process the name.
+            unless name =~ /^\s*[_a-zA-Z][_a-zA-Z0-9]*/ then
+              cpos = line.scan(/\s*`define\s*/)[0].size
+              self.parse_error("invalid macro name",line.chomp,lpos,cpos)
+            end
+            name.gsub!(/\s/,"")
+            # Process the arguments if any.
+            if args[0] == "(" then
+              # There are indeed arguments, it is a macro function.
+              args = args.split(/[\(\),]/).reject { |arg| arg.empty? }
+              # Process the arguments.
+              cpos = line.index("(")
+              args.map! do |arg|
+                cpos += 1
+                unless arg =~ /^\s*[_a-zA-Z][_a-zA-Z0-9]*\s*$/ then
+                  self.parse_error("invalid macro argument",
+                                   line.chomp,lpos,cpos)
+                end
+                cpos += arg.size
+                /#{arg.gsub(/\s/,"")}(?=[^_a-zA-Z0-9])/
+              end
+              # Add the macro function.
+              macro_func[name] = [ /`#{name}\([^\(]*\)/, args, replace ]
+              # Remove the macro constant if any to avoid conflict.
+              macro_cons.delete(name)
+            else
+              # There are no arguments, it is a macro constant.
+              macro_cons[name] = [ /`#{name}(?=[^_a-zA-Z0-9])/, args ]
+              # Remove the macro function if any to avoid conflict.
+              macro_func.delete(name)
+            end
+          when "`undefX" # Skip
+          when "`undef"
+            # Get the macro name, arguments and replacement.
+            name = code.scan(/^\s*[_a-zA-Z][_a-zA-Z0-9]*\s*$/)[0]
+            # Process the name.
+            name.gsub!(/\s/,"")
+            # Remove the macro.
+            macro_cons.delete(name)
+            macro_func.delete(name)
+          when "`ifdefX" # Skip
+          when "`ifdef"
+            # Get the macro name, arguments and replacement.
+            name = code.scan(/^\s*[_a-zA-Z][_a-zA-Z0-9]*\s*$/)[0]
+            unless name =~ /^\s*[_a-zA-Z][_a-zA-Z0-9]*/ then
+              cpos = line.scan(/\s*`ifdef\s*/)[0].size
+              self.parse_error("invalid macro name",line.chomp,lpos,cpos)
+            end
+            # Process the name.
+            name.gsub!(/\s/,"")
+            # Set the the skip mode on if there is no such macro.
+            if macro_cons.key?(name) or macro_func.key?(name)
+              skip_mode << [ :ifdef, false ]
+            else
+              skip_mode << [ :ifdef, true ]
+            end
+          when "`ifndefX" # Skip
+          when "`ifndef"
+            # Get the macro name, arguments and replacement.
+            name = code.scan(/^\s*[_a-zA-Z][_a-zA-Z0-9]*\s*$/)[0]
+            unless name =~ /^\s*[_a-zA-Z][_a-zA-Z0-9]*/ then
+              cpos = line.scan(/\s*`ifndef\s*/)[0].size
+              self.parse_error("invalid macro name",line.chomp,lpos,cpos)
+            end
+            # Process the name.
+            name.gsub!(/\s/,"")
+            # Set the the skip mode on if there is such macro.
+            if macro_cons.key?(name) or macro_func.key?(name)
+              skip_mode << [ :ifndef, true ]
+            else
+              skip_mode << [ :ifndef, false ]
+            end
+          when "`else", "`elseX"
+            # Invert the last skip mode if any, otherwise, error.
+            if skip_mode.size < 2 then
+              self.parse_error("misplaced `else directive",
+                                   line.chomp,lpos,0)
+            end
+            skip_mode[-1] = [:else, !skip_mode[-1][1] ]
+          when "`elsif", "`elsifX"
+            # Get the macro name, arguments and replacement.
+            name = code.scan(/^\s*[_a-zA-Z][_a-zA-Z0-9]*\s*$/)[0]
+            unless name =~ /^\s*[_a-zA-Z][_a-zA-Z0-9]*/ then
+              cpos = line.scan(/\s*`elsifX?\s*/)[0].size
+              self.parse_error("invalid macro name",line.chomp,lpos,cpos)
+            end
+            # Process the name.
+            name.gsub!(/\s/,"")
+            # Depending of the skip mode.
+            if (skip_mode[-1][0]==:ifdef or skip_mode[-1][0]==:ifndef) and
+                skip_mode[-1][1] then
+              # Set the the skip mode on if there is such macro.
+              if macro_cons.key?(name) or macro_func.key?(name)
+                # This is an elsif so replace the last skip mode.
+                skip_mode[-1] = [ :ifdef, false ]
+              else
+                # This is an elsif so replace the last skip mode.
+                skip_mode[-1] [ :ifdef, true ]
+              end
+            else
+              self.parse_error("misplaced `elsif directive",
+                                   line.chomp,lpos,0)
+            end
+          when "`endif", "`endifX"
+            # Remove the last skip mode if any, otherwise, error.
+            if skip_mode.size < 2 then
+              self.parse_error("misplaced `endif directive",
+                                   line.chomp,lpos,0)
+            end
+            skip_mode.pop
+          when "`includeX"
+          when "`include"
+            # Get the file name to include.
+            filename = code.scan(/^\s*"[^\\"]*"\s*$/)[0]
+            filename.gsub!(/^\s*/,"")
+            filename.gsub!(/"\s*$/,"\"")
+            filename = filename[1..-2]
+            # Reads the file.
+            included_text = ""
+            begin
+              included_text = File.read(@state.path + filename)
+            rescue => error
+              self.file_error(error,lpos+ljump)
+            end
+            # Insert it in pre_text and not in final text so that it
+            # is processed again, and setup again the scanner.
+            new_pos = scanner.pos-line.size+1
+            pre_text = pre_text[0...new_pos] + 
+                       included_text + 
+                       pre_text[scanner.pos..-1]
+            scanner = StringScanner.new(pre_text)
+            scanner.pos = new_pos
+            # Also update the line numbering and file reference.
+            included_jump = included_text.lines.count
+            # puts "included_jump=#{included_jump} ljump=#{ljump}"
+            idx = 0
+            included_jump.times do |i|
+              idx = lpos+i+ljump-1
+              @state.lprop[idx] = @state.lprop[idx-1].clone
+              @state.lprop[idx][:lpos] = i+1
+              @state.lprop[idx][:filename] = filename
+            end
+            # puts "lpos=#{lpos} @state.lprop[lpos]=#{@state.lprop[lpos]}"
+            next_lpos = lpos+included_jump
+            @state.lprop[next_lpos] = @state.lprop[lpos-1].clone
+            @state.lprop[next_lpos][:lpos] += ljump
+            @state.lprop[next_lpos][:lfreeze] = true
+          when "`resetallX" # Skip
+          when "`resetall"
+            # Clears the macro.
+            # Auth: that what it should do right?
+            macro_cons.clear
+            macro_func.clear
+          else
+            cpos = line.index("`")
+            self.parse_error("unknown directive",line.chomp,lpos,cpos)
+          end
+          # And add an empty line instead to the final text.
+          @state.text << "\n"
+        else
+          # No, get it as a normal line.
+          line = scanner.scan(/[^\n]*\n/)
+          # But, first, are there any line merge?
+          line,ljump = self.process_merge_line(line,scanner,lpos)
+          # Shall we skip?
+          if skip_mode[-1][1] then
+            # Yes, the line is empty.
+            line = "\n"
+          else
+            # Also, this time, there will be some line position adjustment.
+            # And apply the known macros.
+            macro_cons.each_value do |rex,replace|
+              line.gsub!(rex,replace)
+            end
+            macro_func.each_value do |rex,formal_args,replace|
+              # Extract all the macro function call
+              macro_calls = line.scan(rex)
+              # Process them to replacements.
+              macro_calls.each do |mc|
+                real_args = mc.split(/[\(\),]/)[1..-1]
+                # puts "real_args=#{real_args} formal_args=#{formal_args}"
+                formal_args.each_with_index do |formal_arg,i|
+                  replace = replace.gsub(formal_arg,real_args[i])
+                end
+                line.sub!(mc,replace)
+              end
+            end
+          end
+          # Write the line to the final text.
+          @state.text << line
+        end
+        # Next line.
+        lpos += ljump
+      end
+      # Are all the `ifdef and `ifndef directive closed?
+      if skip_mode.size > 1 then
+        # No, error.
+        self.parse_error("`endif directive missing",line.chomp,lpos,0)
+      end
+      # puts "Result: #{@state.text}"
+      # puts "lprops=#{@state.lprop.join("\n")}"
+    end
+
+
+    # Parse the Verilog HDL text.
+    # NOTE: does not support compiler directives, they must be
+    #       preprocessed first using preprocess method.
+    def parse
+      # Initialize the state.
+      @state.index = 0
+      @state.lpos = 1
+      @state.cpos = 1
+      # Initialize the list of known module names.
+      @module_names = []
+      # Initialize the list of known UDP names.
+      @udp_names = []
+      # Execute the parsing.
+      return self.source_text_parse
+    end
+
+    # Get a copy of the current state.
     def state
       return @state.clone
     end
 
     # Sets the current state.
     def state=(state)
-      @state.index = state.index
-      @state.prev_index = state.prev_index
-      # @state.line = state.index
-      @state.lpos = state.lpos
-      @state.cpos = state.cpos
+      # @state.index = state.index
+      # @state.lpos = state.lpos
+      # @state.cpos = state.cpos
+      @state = state
     end
 
-    # Parse Verilog from text.
-    def parse(text)
-      # Initialize the state.
-      @state.text = text
-      # @state.line = ""
-      # @state.prev_line = ""
-      @state.index = 0
-      @state.prev_index = 0
-      @state.lpos = 1
-      @state.prev_lpos = 1
-      @state.cpos = 1
-      @state.prev_cpos = 1
-      # Excute the parsing.
-      return self.source_text_parse
+    # Check the token matching regexp +rex+ from current position.
+    # Returns the match in case of success and nil otherwise but do not
+    # change the state of the parser.
+    def peek_token(rex)
+      return @state.text.match(rex,@state.index)
     end
 
     # Get the token matching regexp +rex+ if any from current position.
@@ -135,60 +508,94 @@ module VerilogTools
     # capture for the token. Also assumes spaces are taken into account
     # in the regexp.
     def get_token(rex)
-      # puts "get_token at index=#{@state.index} and lpos=#{@state.lpos} with rex=#{rex}"
-      # puts "text line is #{@state.text.match(/\G[^\n]*/,@state.index).to_s}"
-      match = @state.text.match(rex,@state.index)
+      # puts "get_token at index=#{@state.index} and lpos=#{@state.lpos} with rex=#{rex} and char is #{@state.text[@state.index]}"
+      # puts "text line is #{@state.text[(@state.index-@state.cpos)..@state.index]}"
+      begin
+        match = @state.text.match(rex,@state.index)
+      rescue => error
+        self.file_error(error)
+      end
       if match then
         # There is a match, get the blanks and the token
         bls = match.captures[0]
         tok = match.captures[1]
-        # puts "bls=#{bls}"
-        # puts "tok=#{tok}"
-        # puts "match=#{match.to_s}"
-        # puts "match.end(0)=#{match.end(0)}"
-        # Advance the position.
-        @state.prev_index = @state.index
-        # @state.prev_line = @state.line
-        @state.prev_lpos = @state.lpos
-        @state.prev_cpos = @state.cpos
         @state.index = match.end(0)
         @state.lpos += bls.scan(/\n/).size
-        spcs = bls.match(/[ \t]*\z/)
-        @state.cpos = spcs.end(0) - spcs.begin(0)+tok.length
+        # spcs = bls.match(/[ \t]*\z/)
+        # @state.cpos = spcs.end(0) - spcs.begin(0)+tok.length
+        @state.cpos = 0
+        while @state.index > @state.cpos and
+            !(@state.text[@state.index-@state.cpos] =~ /\n/) do
+          @state.cpos += 1
+        end
         return tok
       else
         return nil
       end
     end
 
-    # Check is the end of file is reached (ignores the spaces and
+    # Tells if the end of file/string is reached (ignores the spaces and
     # comments for this check)
     def eof?
-      return @state.text.match(/\G#{S}$/,@state.index) != nil
+      return (@state.text.match(/\G#{S}\z/,@state.index) != nil)
     end
 
-    # Undo getting the previous token.
-    # NOTE: effective only once after calling +get_token+
-    def unget_token
-      @state.index = @state.prev_index
-      @state.line  = @state.prev_line
-      @state.lpos  = @state.prev_lpos
-      @state.cpos  = @state.prev_cpos
+    # Add a known module name.
+    def add_module_name(name)
+      @module_names << name.to_s
     end
 
+    # Add a known UDP name.
+    def add_udp_name(name)
+      @udp_names << name.to_s
+    end
 
-    # Generate a parse error with message indicated by +code+
-    def parse_error(msg)
+    # Tells if a name is a known module name.
+    def module_name?(name)
+      return @module_names.include?(name)
+    end
+
+    # Tells if a name is a known UDP name.
+    def udp_name?(name)
+      return @udp_names.include?(name)
+    end
+
+    # Generate a file error with origin indicated in +error+
+    def file_error(error, lpos=@state.lpos)
+      raise FileError.new(error,lpos)
+    end
+
+    # Generate a parse error with message indicated by +msg+ and possible
+    # line text +line_text+, line number +lpos+, column +cpos+ and
+    # origin file name +filename+.
+    def parse_error(msg, line_txt=nil, lpos=@state.lpos, cpos=@state.cpos,
+                    filename=@state.lprop[lpos][:filename])
+      # Maybe it was the main file.
+      filename = @state.filename unless filename
       # Get the line where the error was.
       # First locate the position of the begining and the end of the line.
-      blpos = @state.index-@state.cpos
-      elpos = @state.index + 
-        @state.text.match(/[^\n]*/,@state.index).to_s.size
-      # The get the line.
-      line_txt = @state.text[blpos...elpos]
+      puts "lpos=#{lpos} line_txt=#{line_txt.class}"
+      unless line_txt then
+        blpos = @state.index-@state.cpos
+        elpos = @state.index + 
+          @state.text.match(/[^\n]*/,@state.index).to_s.size
+        # Address the case of invalid end of line (e.g., semicolon missing)
+        if elpos == blpos then
+          count = 1
+          while(@state.text[@state.index-count] =~ /[^\n]/) do
+            count += 1
+          end
+          cpos = count-1
+          blpos = elpos-count+1
+        end
+        # The get the line.
+        line_txt = @state.text[blpos...elpos]
+      end
       # Raise an exception containing an error message made of msg,
-      # the line number , its number, and the column where error happended.
-      raise ParseError.new(msg,line_txt,@state.lpos,@state.cpos)
+      # the adjusted line number, its number, and the column where error
+      # happended.
+      raise ParseError.new(msg,line_txt,@state.lprop[lpos][:lpos],cpos,
+                          filename)
     end
     
     # Definition of the tokens
@@ -213,14 +620,6 @@ module VerilogTools
     SLASH_ASTERISK_TOK = "/*"
     ASTERISK_SLASH_TOK = "*/"
     EOL_TOK            = "\n"
-
-    TIMESCALE_TOK   = "`timescale"
-    SECOND_TOK      = "s"
-    MILLISECOND_TOK = "ms"
-    MICROSECOND_TOK = "us"
-    NANOSECOND_TOK  = "ns"
-    PICOSECOND_TOK  = "ps"
-    FENTOSECOND_TOK = "fs"
 
     MODULE_TOK     = "module"
     MACROMODULE_TOK= "macromodule"
@@ -267,6 +666,7 @@ module VerilogTools
     FORK_TOK       = "fork"
     JOIN_TOK       = "join"
 
+    SIGNED_TOK     = "signed"
     REG_TOK        = "reg"
     TIME_TOK       = "time"
     INTEGER_TOK    = "integer"
@@ -284,6 +684,8 @@ module VerilogTools
     SKEW_TOK       = "$skew"
     RECOVERY_TOK   = "$recovery"
     SETUPHOLD_TOK  = "$setuphold"
+
+    HYPHEN_TOK     = "-"
 
     ZERO_TOK       = "0"
     ONE_TOK        = "1"
@@ -434,7 +836,7 @@ module VerilogTools
     LONG_COMMENT_REX  = /([^\*]\/|\*[^\/]|[^\/\*])*/
 
     # Comments and spaces with capture in one regular expression
-    COMMENT_SPACE_REX = /((?:(?:\/\/[^\n]*)|(?:\/\*(?:[^\*]\/|\*[^\/]|[^\/\*])*\*\/)|\s)*)/
+    COMMENT_SPACE_REX = /((?:(?:\/\/[^\n]*\n)|(?:\/\*(?:[^\*]\/|\*[^\/]|[^\/\*])*\*\/)|\s)*)/
     # Shortcut for combining with other regex
     S = COMMENT_SPACE_REX.source
     
@@ -459,14 +861,6 @@ module VerilogTools
     SLASH_ASTERISK_REX = /\G#{S}(\/\*)/
     ASTERISK_SLASH_REX = /\G#{S}(\*\/)/
     EOL_REX            = /\G#{S}(\n)/
-
-    TIMESCALE_REX   = /\G#{S}(`timescale)/
-    SECOND_REX      = /\G#{S}(s)/
-    MILLISECOND_REX = /\G#{S}(ms)/
-    MICROSECOND_REX = /\G#{S}(us)/
-    NANOSECOND_REX  = /\G#{S}(ns)/
-    PICOSECOND_REX  = /\G#{S}(ps)/
-    FENTOSECOND_REX = /\G#{S}(fs)/
 
     MODULE_REX     = /\G#{S}(module)/
     MACROMODULE_REX= /\G#{S}(macromodule)/
@@ -513,6 +907,7 @@ module VerilogTools
     FORK_REX       = /\G#{S}(fork)/
     JOIN_REX       = /\G#{S}(join)/
 
+    SIGNED_REX     = /\G#{S}(signed)/
     REG_REX        = /\G#{S}(reg)/
     TIME_REX       = /\G#{S}(time)/
     INTEGER_REX    = /\G#{S}(integer)/
@@ -531,6 +926,8 @@ module VerilogTools
     SKEW_REX       = /\G#{S}($skew)/
     RECOVERY_REX   = /\G#{S}($recovery)/
     SETUPHOLD_REX  = /\G#{S}($setuphold)/
+
+    HYPHEN_REX     = /\G#{S}(-)/
 
     ZERO_REX       = /\G#{S}(0)/
     ONE_REX        = /\G#{S}(1)/
@@ -678,9 +1075,9 @@ module VerilogTools
     # Definition of the groups of tokens and corresponding regular
     # expressions.
     
-    TIME_UNIT_TOKS  = [ SECOND_TOK, MILLISECOND_TOK, MICROSECOND_TOK,
-                        NANOSECOND_TOK, PICOSECOND_TOK, FENTOSECOND_TOK ]
-    TIME_UNIT_REX   = /\G#{S}(#{TIME_UNIT_TOKS.join("|")})/
+    # TIME_UNIT_TOKS  = [ SECOND_TOK, MILLISECOND_TOK, MICROSECOND_TOK,
+    #                     NANOSECOND_TOK, PICOSECOND_TOK, FENTOSECOND_TOK ]
+    # TIME_UNIT_REX   = /\G#{S}(#{TIME_UNIT_TOKS.join("|")})/
     
     MODULE_MACROMODULE_TOKS = [ MODULE_TOK, MACROMODULE_TOK ]
     MODULE_MACROMODULE_REX  = /\G#{S}(#{MODULE_MACROMODULE_TOKS.join("|")})/
@@ -713,6 +1110,19 @@ module VerilogTools
                      SUPPLY1_TOK, WOR_TOK, TRIOR_TOK, TRIREG_TOK ]
     NETTYPE_REX = /\G#{S}(#{NETTYPE_TOKS.join("|")})/
 
+    INPUTTYPE_TOKS = [ WIRE_TOK ]
+    INPUTTYPE_REX  = /\G#{S}(#{INPUTTYPE_TOKS.join("|")})/
+
+    # Note: the only difference between OUTPUTTYPE and NETTYPE is that
+    # the first one has reg, and the second trireg.
+    OUTPUTTYPE_TOKS = [ WIRE_TOK, TRI_TOK, TRI1_TOK, 
+                        SUPPLY0_TOK, WAND_TOK, TRIAND_TOK, TRI0_TOK, 
+                        SUPPLY1_TOK, WOR_TOK, TRIOR_TOK, REG_TOK ]
+    OUTPUTTYPE_REX  = /\G#{S}(#{OUTPUTTYPE_TOKS.join("|")})/
+
+    INOUTTYPE_TOKS = [ WIRE_TOK ]
+    INOUTTYPE_REX  = /\G#{S}(#{INOUTTYPE_TOKS.join("|")})/
+
     CHARGE_STRENGTH_TOKS = [ SMALL_TOK, MEDIUM_TOK, LARGE_TOK ]
     CHARGE_STRENGTH_REX = /\G#{S}(#{CHARGE_STRENGTH_TOKS.join("|")})/
 
@@ -736,7 +1146,7 @@ module VerilogTools
                        GATE_TRAN_TOK, GATE_RTRAN_TOK, 
                        GATE_TRANIF0_TOK, GATE_RTRANIF0_TOK, 
                        GATE_TRANIF1_TOK, GATE_RTRANIF1_TOK ]
-    GATETYPE_REX = /\G#{S}(#{GATETYPE_TOKS.join("|")})/
+    GATETYPE_REX = /\G#{S}(#{GATETYPE_TOKS.join("|")})[^_a-zA-Z0-9]/
 
     COMMA_CLOSE_PAR_TOKS = [ COMMA_TOK, "\\" + CLOSE_PAR_TOK ]
     COMMA_CLOSE_PAR_REX = /\G#{S}(#{COMMA_CLOSE_PAR_TOKS.join("|")})/
@@ -783,13 +1193,15 @@ module VerilogTools
     EDGE_IDENTIFIER_REX = /\G#{S}(#{EDGE_IDENTIFIER_TOKS.join("|")})/
 
     OR_OPERATOR_TOKS = [ "\\" + OR_TOK, TILDE_TOK + "\\" + OR_TOK ]
-    OR_OPERATOR_REX = /\G#{S}(#{OR_OPERATOR_TOKS.join("|")})/
+    OR_OPERATOR_REX = /\G#{S}(#{OR_OPERATOR_TOKS.join("|")})[^\|]/
 
     XOR_OPERATOR_TOKS = [ "\\" + XOR_TOK, TILDE_TOK + "\\" + XOR_TOK ]
     XOR_OPERATOR_REX = /\G#{S}(#{XOR_OPERATOR_TOKS.join("|")})/
 
     AND_OPERATOR_TOKS = [ AND_TOK, TILDE_AND_TOK ]
-    AND_OPERATOR_REX = /\G#{S}(#{AND_OPERATOR_TOKS.join("|")})/
+    AND_OPERATOR_REX = /\G#{S}(#{AND_OPERATOR_TOKS.join("|")})[^&]/
+
+    # BEFORE_AND_OPERATOR_TOKS = [
 
     EQUAL_OPERATOR_TOKS = [ EQUAL_EQUAL_TOK, NOT_EQUAL_TOK,
                           EQUAL_EQUAL_EQUAL_TOK, NOT_EQUAL_EQUAL_TOK ]
@@ -828,6 +1240,9 @@ module VerilogTools
                              RIGHT_SHIFT_TOK, LEFT_SHIFT_TOK ]
     BINARY_OPERATOR_REX = /\G#{S}(#{BINARY_OPERATOR_TOKS.join("|")})/
 
+    EVENT_OR_COMMA_TOKS = [ EVENT_OR_TOK, COMMA_TOK ]
+    EVENT_OR_COMMA_REX  = /\G#{S}(#{EVENT_OR_COMMA_TOKS.join("|")})/
+
     E_TOKS    = [ EE_TOK, Ee_TOK ]
     E_REX     = /\G#{S}(#{E_TOKS.join("|")})/
 
@@ -838,6 +1253,24 @@ module VerilogTools
     BASE_TOKS = [ Q_b_TOK, Q_B_TOK, Q_o_TOK, Q_O_TOK,
                   Q_d_TOK, Q_D_TOK, Q_h_TOK, Q_H_TOK ]
     BASE_REX  = /\G#{S}(#{BASE_TOKS.join("|")})/
+
+
+    # The set of keywords.
+
+    KEYWORD_SET = Set[ MODULE_TOK, MACROMODULE_TOK, ENDMODULE_TOK, 
+                       PRIMITIVE_TOK, ENDPRIMITIVE_TOK, TASK_TOK,
+                       ENDTASK_TOK, FUNCTION_TOK, ENDFUNCTION_TOK,
+                       TABLE_TOK, ENDTABLE_TOK, SPECIFY_TOK,
+                       ENDSPECIFY_TOK, INPUT_TOK, OUTPUT_TOK, INOUT_TOK,
+                       INITIAL_TOK, SPECPARAM_TOK, IF_TOK, ELSE_TOK,
+                       CASE_TOK, CASEZ_TOK, CASEX_TOK, ENDCASE_TOK,
+                       FOREVER_TOK, REPEAT_TOK, WHILE_TOK, FOR_TOK,
+                       WAIT_TOK, RIGHT_ARROW_TOK, DISABLE_TOK,
+                       ASSIGN_TOK, DEASSIGN_TOK, FORCE_TOK, RELEASE_TOK,
+                       ALWAYS_TOK, DEFAULT_TOK, BEGIN_TOK, END_TOK,
+                       FORK_TOK, JOIN_TOK, SIGNED_TOK, REG_TOK, TIME_TOK,
+                       INTEGER_TOK, REAL_TOK, EVENT_TOK, DEFPARAM_TOK,
+                       PARAMETER_TOK, SCALARED_TOK, VECTORED_TOK ]
 
     # The parsing rules: obtained directly from the BNF description of
     # Verilog
@@ -869,17 +1302,17 @@ ___
     end
 
 
-    # Auth: the timescale compiler directive is not preprocessed,
-    # so it is added as a rule and produce an AST:
-    # ||= <timescale>
-    #
-    # <timescale>
-    # ::= `timescale <time> / <time> #{S}
-    #
-    # <time>
-    # ::= <UNSIGNED_NUMBER> <TIME_UNIT>
-    #
-    # <TIME_UNIT> is one of 's', 'ms', 'us', 'ns', 'ps', 'fs'
+    # # Auth: the timescale compiler directive is not preprocessed,
+    # # so it is added as a rule and produce an AST:
+    # # ||= <timescale>
+    # #
+    # # <timescale>
+    # # ::= `timescale <time> / <time> #{S}
+    # #
+    # # <time>
+    # # ::= <UNSIGNED_NUMBER> <TIME_UNIT>
+    # #
+    # # <TIME_UNIT> is one of 's', 'ms', 'us', 'ns', 'ps', 'fs'
     RULES[:description] = <<-___
 <description>
 	::= <module>
@@ -892,9 +1325,6 @@ ___
         elem = self.udp_parse
       end
       if !elem then
-        elem = self.timescale_parse
-      end
-      if !elem then
         return nil if self.eof?
         self.parse_error("this is probably not a Verilog HDL file")
       end
@@ -905,35 +1335,15 @@ ___
       return AST[:description, elem]
     end
 
-    def timescale_parse
-      return nil unless self.get_token(TIMESCALE_REX)
-      time_unit = self.timevalue_parse
-      self.parse_error("time value expected") unless time_unit
-      self.parse_error("slash expected") unless self.get_token(SLASH_REX)
-      time_precision = self.timevalue_parse
-      self.parse_error("time value expected") unless time_precision
-      # Skip to end of line.
-      self.parse_error("new line expected") unless self.get_token(/\G(\s*)(\n)/)
-      return timescale_hook(time_unit,time_precision)
-    end
 
-    def timescale_hook(time_unit,time_precision)
-      return AST[:timescale, time_unit,time_precision ]
-    end
-
-    def timevalue_parse
-      value = self._UNSIGNED_NUMBER_parse
-      return nil unless value
-      unit = self.get_token(TIME_UNIT_REX)
-      self.parse_error("time unit expected") unless unit
-      return timevalue_hook(value,unit)
-    end
-
-    def timevalue_hook(value,unit)
-      return AST[:timevalue, value,unit ]
-    end
-
-
+    # Auth: Verilog also supports declaration of parameters after
+    # name of module as #(parameter <list_of_param_assignments>)
+    # so added it as follows:
+    # <module>
+    # ::= module <name_of_module> <pre_parameter_declaration>? <list_of_ports>? ;
+    # ...
+    # <pre_parameter_declaration>
+    # ::= # ( parameter list_of_param_assignments )
     RULES[:module] = <<-___
 <module>
 	::= module <name_of_module> <list_of_ports>? ;
@@ -946,7 +1356,15 @@ ___
 
     def module_parse
       if self.get_token(MODULE_MACROMODULE_REX) then
+        # Before parsing the module, get the timescale and celldefine 
+        # properties from current position.
+        timescale = @state.lprop[@state.lpos][:timescale]
+        timescale = nil if timescale == ""
+        celldefine = @state.lprop[@state.lpos][:celldefine]
+        celldefine = nil if celldefine == ""
+        # No parse
         name = self.name_of_module_parse
+        pre_parameter_declaration = self.pre_parameter_declaration_parse
         ports = self.list_of_ports_parse
         self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
         elems = []
@@ -957,14 +1375,34 @@ ___
           elems << cur_elem
         end
         self.parse_error("'endmodule' expected") unless self.get_token(ENDMODULE_REX)
-        return module_hook(name,ports,elems)
+        # Add a know module name.
+        self.add_module_name(name)
+        # And return the AST.
+        return module_hook(name,pre_parameter_declaration,ports,elems,
+                           timescale,celldefine)
       else
         return nil
       end
     end
 
-    def module_hook(name,ports,elems)
-      return AST[:module, name,ports,elems]
+    def module_hook(name, pre_parameter_declaration, ports, elems,
+                    timescale, celldefine)
+      return AST[:module, name,pre_parameter_declaration,ports,elems,
+                          timescale,celldefine]
+    end
+
+    def pre_parameter_declaration_parse
+      return nil unless self.get_token(SHARP_REX)
+      self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
+      self.parse_error("parameter expected") unless self.get_token(PARAMETER_REX)
+      list_of_param_assignments = self.list_of_param_assignments_parse
+      self.parse_error("paramter assignment expected") unless list_of_param_assignments
+      self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
+      return pre_parameter_declaration_hook(list_of_param_assignments)
+    end
+
+    def pre_parameter_declaration_hook(list_of_param_assignments)
+      return AST[:parameter_declaration, list_of_param_assignments ]
     end
 
 
@@ -1046,6 +1484,26 @@ ___
     end
 
 
+    # Auth: port_expression can also be a single port declaration,
+    # so modified the rule as follows:
+    # <port_expression>
+    # ::= <single_input_declaration>
+    # ||= <single_output_declaration>
+    # ||= <single_inout_declaration>
+    # ||= <port_reference>
+	# ||= { <port_reference> <,<port_reference>>* }
+    #
+    # <input_port_declaration>
+    # ::= input INPUTTYPE? <range>? <name_of_variable> ;
+    #
+    # <output_port_declaration>
+    # ::= output OUTPUTTYPE? <range>? <name_of_variable> ;
+    #
+    # <inout_port_declaration>
+    # ::= inout INOUTTYPE? <range>? <name_of_variable> ;
+    #
+    # <single_net_declaration>
+	# ::= <NETTYPE> <expandrange>? <delay>? <name_of_variable> ;
     RULES[:port_expression] = <<-___
 <port_expression>
 	::= <port_reference>
@@ -1053,6 +1511,19 @@ ___
 ___
 
     def port_expression_parse
+      input_port_declaration = self.input_port_declaration_parse
+      if input_port_declaration then
+        return port_expression_hook(input_port_declaration)
+      end
+      output_port_declaration = self.output_port_declaration_parse
+      if output_port_declaration then
+        return port_expression_hook(output_port_declaration)
+      end
+      inout_port_declaration = self.inout_port_declaration_parse
+      if inout_port_declaration then
+        return port_expression_hook(inout_port_declaration)
+      end
+
       parse_state = self.state
       port_refs = [ ]
       cur_port_ref = self.port_reference_parse
@@ -1085,9 +1556,49 @@ ___
       return self.port_expression_hook(port_refs)
     end
 
-    def port_expression_hook(port_refs)
-      return AST[:port_expression, port_refs]
+    def port_expression_hook(port_declaration__port_refs)
+      return AST[:port_expression, port_declaration__port_refs]
     end
+
+    def input_port_declaration_parse
+      return nil unless self.get_token(INPUT_REX)
+      type = self.get_token(INPUTTYPE_REX)
+      range = self.range_parse
+      name_of_variable = self.name_of_variable_parse
+      self.parse_error("identifier expected") unless name_of_variable
+      return input_port_declaration_hook(type,range,name_of_variable)
+    end
+
+    def input_port_declaration_hook(type, range, name_of_variable)
+      return AST[:input_port_declaration, type,range,name_of_variable ]
+    end
+
+    def output_port_declaration_parse
+      return nil unless self.get_token(OUTPUT_REX)
+      type = self.get_token(OUTPUTTYPE_REX)
+      range = self.range_parse
+      name_of_variable = self.name_of_variable_parse
+      self.parse_error("identifier expected") unless name_of_variable
+      return output_port_declaration_hook(type,range,name_of_variable)
+    end
+
+    def output_port_declaration_hook(type, range, name_of_variable)
+      return AST[:output_port_declaration, type,range,name_of_variable ]
+    end
+
+    def inout_port_declaration_parse
+      return nil unless self.get_token(INOUT_REX)
+      type = self.get_token(INOUTTYPE_REX)
+      range = self.range_parse
+      name_of_variable = self.name_of_variable_parse
+      self.parse_error("identifier expected") unless name_of_variable
+      return inout_port_declaration_hook(type,range,name_of_variable)
+    end
+
+    def inout_port_declaration_hook(type, range, name_of_variable)
+      return AST[:inout_port_declaration, type,range,name_of_variable ]
+    end
+
 
 
     RULES[:port_reference] = <<-___
@@ -1196,9 +1707,9 @@ ___
       return self.module_item_hook(item) if item
       item = self.gate_declaration_parse
       return self.module_item_hook(item) if item
-      item = self.udp_instantiation_parse
-      return self.module_item_hook(item) if item
       item = self.module_instantiation_parse
+      return self.module_item_hook(item) if item
+      item = self.udp_instantiation_parse
       return self.module_item_hook(item) if item
       item = self.parameter_override_parse
       return self.module_item_hook(item) if item
@@ -1239,21 +1750,16 @@ ___
       name = self.name_of_udp_parse
       self.parse_error("name of UDP expected") unless name
       self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
-      cur_var_name = self.variable_name_parse
-      self.parse_error("variable name expected") unless cur_var_name
-      var_names = [ cur_var_name ]
+      cur_name_of_variable = self.name_of_variable_parse
+      self.parse_error("variable name expected") unless cur_name_of_variable
+      name_of_variables = [ cur_name_of_variable ]
       loop do
-        if self.get_token(COMMMA_REX) then
-          cur_var_name = self.variable_name_parse
-        end
-        if self.get_token(CLOSE_PAR_REX) then
-          cur_var_name = nil
-        else
-          self.parse_error("comma or closing parenthesis expected")
-        end
-        break unless cur_var_name
-        var_names << cur_var_name
+        break unless self.get_token(COMMA_REX)
+        cur_name_of_variable = self.name_of_variable_parse
+        self.parse_error("identifier expected") unless cur_name_of_variable
+        name_of_variables << cur_name_of_variable
       end
+      self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
       self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
       udp_declarations = []
       cur_udp_declaration = nil
@@ -1267,14 +1773,17 @@ ___
       table_definition = self.table_definition_parse
       self.parse_error("'endprimitive' expected") unless self.get_token(ENDPRIMITIVE_REX)
 
-      return self.udp_hook(name_of_variables,udp_declarations,
+      # Add a know udp name.
+      self.add_udp_name(name)
+      # And return the corresponding AST
+      return self.udp_hook(name,name_of_variables,udp_declarations,
                            udp_initial_statement, table_definition)
     end
 
-    def udp_hook(name_of_variables, udp_declarations,
+    def udp_hook(name, name_of_variables, udp_declarations,
                  udp_initial_statement, table_definition)
       return AST[:UDP, 
-                 name_of_variables,udp_declarations,
+                 name,name_of_variables,udp_declarations,
                  udp_initial_statement,table_definition ]
     end
 
@@ -1286,7 +1795,13 @@ ___
 
     def name_of_udp_parse
       name = self._IDENTIFIER_parse
-      self.parse_error("name of UDP identifier expected") if !name
+      # self.parse_error("name of UDP identifier expected") if !name
+      return nil unless name
+      if self.module_name?(identifier) then
+        # This is a module name, not an UDP one.
+        self.state = parse_state
+        return nil
+      end
       return name_of_udp_hook(name)
     end
 
@@ -1367,7 +1882,7 @@ ___
 ___
 
     def output_terminal_name_parse
-      name_of_variable = self.name_of_variable
+      name_of_variable = self.name_of_variable_parse
       return nil unless name_of_variable
       return self.output_terminal_name_hook(name_of_variable)
     end
@@ -1436,8 +1951,8 @@ ___
 ___
 
     def combinational_entry_parse
-      parse_parse_state = self.state
-      level_input_list = self.level_input_parse
+      parse_state = self.state
+      level_input_list = self.level_input_list_parse
       if !level_input_list or !self.get_token(COLON_REX) then
         self.state = parse_state
         return nil
@@ -1461,14 +1976,15 @@ ___
 ___
 
     def sequential_entry_parse
-      parse_parse_state = self.state
+      parse_state = self.state
       input_list = self.input_list_parse
       if !input_list or !self.get_token(COLON_REX) then
         self.state = parse_state
         return nil
       end
-      parse_state = self.state_parse
-      if !state or !self.get_token(COLON_REX) then
+      parse_state = self.state
+      _state = self.state_parse
+      if !_state or !self.get_token(COLON_REX) then
         self.state = parse_state
         return nil
       end
@@ -1477,11 +1993,11 @@ ___
         self.state = parse_state
         return nil
       end
-      return self.sequential_entry_hook(input_list,state,next_state)
+      return self.sequential_entry_hook(input_list,_state,next_state)
     end
 
-    def sequential_entry_hook(input_list, state, next_state)
-      return AST[:sequential_entry, input_list,state,next_state ]
+    def sequential_entry_hook(input_list, _state, next_state)
+      return AST[:sequential_entry, input_list,_state,next_state ]
     end
 
 
@@ -1515,8 +2031,8 @@ ___
       return nil unless cur_level_symbol
       level_symbols = [ cur_level_symbol ]
       loop do
-        cur_level_symbol = self.level_symbol_parse
-        rbeak unless cur_level_symbol
+        cur_level_symbol = self._LEVEL_SYMBOL_parse
+        break unless cur_level_symbol
         level_symbols << cur_level_symbol
       end
       return self.level_input_list_hook(level_symbols)
@@ -1533,7 +2049,7 @@ ___
 ___
 
     def edge_input_list_parse
-      parse_parse_state = self.state
+      parse_state = self.state
       level_symbols0 = []
       cur_level_symbol = nil
       loop do
@@ -1737,7 +2253,7 @@ ___
         loop do
           cur_tf_declaration = self.tf_declaration_parse
           break unless cur_tf_declaration
-          tf_declaration << cur_tf_declaration
+          tf_declarations << cur_tf_declaration
         end
         statement = self.statement_parse
         self.parse_error("'endfunction' expected") unless self.get_token(ENDFUNCTION_REX)
@@ -1749,7 +2265,7 @@ ___
     def function_hook(range_or_type, name_of_function,
                       tf_declarations, statement)
       return AST[:function, 
-                 range_or_type,name_of_functiom,tf_declaration,statement ]
+                 range_or_type,name_of_function,tf_declarations,statement ]
     end
 
 
@@ -1838,6 +2354,7 @@ ___
 ___
 
     def parameter_declaration_parse
+      # puts "parameter_declaration_parse"
       unless self.get_token(PARAMETER_REX) then
         return nil
       end
@@ -1891,95 +2408,118 @@ ___
     end
 
 
+    # Auth: Verilog HDL also supports input wire and signed so modified the
+    # rule as follows:
+    # <input_declaration>
+    # ::= input INPUTTYPE? SIGNED? <range>? <list_of_variables> ;
     RULES[:input_declaration] = <<-___
 <input_declaration>
 	::= input <range>? <list_of_variables> ;
 ___
 
     def input_declaration_parse
+      # puts "input_declaration_parse"
       unless self.get_token(INPUT_REX) then
         return nil
       end
+      type = self.get_token(INPUTTYPE_REX) 
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       list_of_variables = self.list_of_variables_parse
       self.parse_error("identifier expected") unless list_of_variables
       self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-      return self.input_declaration_hook(range,list_of_variables)
+      return self.input_declaration_hook(type,sign,range,list_of_variables)
     end
 
-    def input_declaration_hook(range, list_of_variables)
-      return AST[:input_declaration, range,list_of_variables ]
+    def input_declaration_hook(type, sign, range, list_of_variables)
+      return AST[:input_declaration, type,sign,range,list_of_variables ]
     end
 
 
-    # Auth: I think there is an error in the BNF for the output,
-    # it should use its own list_of_variables rule.
-    # Changed it to: list_of_output_variables.
+    # Auth: Verilog HDL also supports output wire, reg and so on as well
+    # as signed, so modified the rule as follows:
+    # <output_declaration>
+    # ::= output OUTPUTTYPE? SIGNED? <range>? <list_of_variables> ;
     RULES[:output_declaration] = <<-___
 <output_declaration>
 	::= output <range>? <list_of_variables> ;
 ___
 
     def output_declaration_parse
+      # puts "output_declaration_parse"
       unless self.get_token(OUTPUT_REX) then
         return nil
       end
+      type = self.get_token(OUTPUTTYPE_REX)
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
-      # list_of_variables = self.list_of_variables_parse
-      list_of_variables = self.list_of_output_variables_parse
-      # Auth: semicolon included in list_of_output_variables!
-      # self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-      return self.output_declaration_hook(range,list_of_variables)
-    end
-
-    def output_declaration_hook(range, list_of_variables)
-      return AST[:output_declaration, range,list_of_variables ]
-    end
-
-    # Auth: rule for the variables declared in output
-    # list_of_output_variables_parse
-    # ::= net_declaration
-    # ||= reg_declaration
-    # ||= list_of_variables
-    def list_of_output_variables_parse
-      net_declaration = self.net_declaration_parse
-      if net_declaration then
-        return list_of_output_variables_hook(net_declaration)
-      end
-      reg_declaration = self.reg_declaration_parse
-      if reg_declaration then
-        return list_of_output_variables_hook(reg_declaration)
-      end
       list_of_variables = self.list_of_variables_parse
-      return nil unless list_of_variables
-      return list_of_output_variables_hook(list_of_variables)
+      # list_of_variables = self.list_of_output_variables_parse
+      # # Auth: semicolon included in list_of_output_variables!
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+      return self.output_declaration_hook(type,sign,range,list_of_variables)
     end
 
-    def list_of_output_variables_hook(list)
-      return list
+    def output_declaration_hook(type, sign, range, list_of_variables)
+      return AST[:output_declaration, type,sign,range,list_of_variables ]
     end
 
+    # # Auth: rule for the variables declared in output
+    # # list_of_output_variables_parse
+    # # ::= net_declaration
+    # # ||= reg_declaration
+    # # ||= list_of_variables
+    # def list_of_output_variables_parse
+    #   net_declaration = self.net_declaration_parse
+    #   if net_declaration then
+    #     return list_of_output_variables_hook(net_declaration)
+    #   end
+    #   reg_declaration = self.reg_declaration_parse
+    #   if reg_declaration then
+    #     return list_of_output_variables_hook(reg_declaration)
+    #   end
+    #   list_of_variables = self.list_of_variables_parse
+    #   return nil unless list_of_variables
+    #   self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+    #   return list_of_output_variables_hook(list_of_variables)
+    # end
 
+    # def list_of_output_variables_hook(list)
+    #   return list
+    # end
+
+
+    # Auth: Verilog HDL also supports inout wire and signed so modified the
+    # rule as follows:
+    # <inout_declaration>
+    # ::= inout INOUTTYPE? SIGNED? <range>? <list_of_variables> ;
     RULES[:inout_declaration] = <<-___
 <inout_declaration>
 	::= inout <range>? <list_of_variables> ;
 ___
 
     def inout_declaration_parse
+      # puts "inout_declaration_parse"
       unless self.get_token(INOUT_REX) then
         return nil
       end
+      type = self.get_token(INOUTTYPE_REX)
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       list_of_variables = self.list_of_variables_parse
       self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-      return self.inout_declaration_hook(range,list_of_variables)
+      return self.inout_declaration_hook(type,sign,range,list_of_variables)
     end
 
-    def inout_declaration_hook(range, list_of_variables)
-      return AST[:inout_declaration, range,list_of_variables ]
+    def inout_declaration_hook(type, sign, range, list_of_variables)
+      return AST[:inout_declaration, type,sign,range,list_of_variables ]
     end
 
 
+    # Auth: net declaration also support signed, so modified as follows:
+    # <net_declaration>
+    # ::= <NETTYPE> SIGNED? <expandrange>? <delay>? <list_of_variables> ;
+    # ||= trireg <charget_strength>? SIGNED? <expandrange>? <delay>?
     RULES[:net_declaration] = <<-___
 <net_declaration>
 	::= <NETTYPE> <expandrange>? <delay>? <list_of_variables> ;
@@ -1987,22 +2527,25 @@ ___
 ___
 
     def net_declaration_parse
+      # puts "net_declaration_parse"
       nettype = self._NETTYPE_parse
       if nettype then
         drive_strength = self.drive_strength_parse
         if !drive_strength then
+          sign = self.get_token(SIGNED_REX)
           expandrange = self.expandrange_parse
           delay = self.delay_parse
           list_of_variables = self.list_of_variables_parse
           self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-          return net_declaration_hook(nettype,expandrange,delay,
+          return net_declaration_hook(nettype,sign,expandrange,delay,
                                       list_of_variables)
         else
+          sign = self.get_token(SIGNED_REX)
           expandrange = self.expandrange_parse
           delay = self.delay_parse
           list_of_assignments = self.list_of_assignments_parse
           self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-          return net_declaration_hook(nettype,expandrange,delay,
+          return net_declaration_hook(nettype,sign,expandrange,delay,
                                       list_of_assignments)
         end
       else
@@ -2010,20 +2553,21 @@ ___
           return nil
         end
         charge_strength = self.charge_strength_parse
+        sign = self.get_token(SIGNED_REX)
         expandrange = self.expandrange_parse
         delay = self.delay_parse
         list_of_variables = self.list_of_variables_parse
         self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-        return net_declaration_hook(charge_strength,expandrange,delay,
+        return net_declaration_hook(charge_strength,sign,expandrange,delay,
                                     list_of_variables)
       end
     end
 
     def net_declaration_hook(nettype_or_charge_strength, 
-                             expandrange, delay,
+                             sign, expandrange, delay,
                              list_of_variables_or_list_of_assignments)
       return AST[:net_declaration, 
-                 nettype_or_charge_strength,expandrange,delay,
+                 nettype_or_charge_strength,sign,expandrange,delay,
                  list_of_variables_or_list_of_assignments ]
     end
 
@@ -2095,7 +2639,7 @@ ___
         return expandrange_hook(VECTORED_TOK.to_sym, range)
       end
       range = self.range_parse
-      self.parse_error("range expected") unless range
+      return nil unless range
       return expandrange_hook(:"", range)
     end
 
@@ -2104,23 +2648,28 @@ ___
     end
 
 
+    # Auth: reg declaration also support signed, so modified as follows:
+    # <reg_declaration>
+    # ::= reg SIGNED? <range>? <list_of_register_variables> ;
     RULES[:reg_declaration] = <<-___
 <reg_declaration>
 	::= reg <range>? <list_of_register_variables> ;
 ___
 
     def reg_declaration_parse
+      # puts "reg_declaration_parse"
       unless self.get_token(REG_REX) then
         return nil
       end
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       list_of_register_variables = self.list_of_register_variables_parse
       self.parse_error("semicolon exptected") unless self.get_token(SEMICOLON_REX)
-      return reg_declaration_hook(range,list_of_register_variables)
+      return reg_declaration_hook(sign,range,list_of_register_variables)
     end
 
-    def reg_declaration_hook(range, list_of_register_variables)
-      return AST[:reg_declaration, range,list_of_register_variables ]
+    def reg_declaration_hook(sign, range, list_of_register_variables)
+      return AST[:reg_declaration, sign,range,list_of_register_variables ]
     end
 
 
@@ -2130,6 +2679,7 @@ ___
 ___
 
     def time_declaration_parse
+      # puts "time_declaration_parse"
       unless self.get_token(TIME_REX) then
         return nil
       end
@@ -2149,6 +2699,7 @@ ___
 ___
 
     def integer_declaration_parse
+      # puts "integer_declaration_parse"
       unless self.get_token(INTEGER_REX) then
         return nil
       end
@@ -2168,6 +2719,7 @@ ___
 ___
 
     def real_declaration_parse
+      # puts "real_declaration_parse"
       unless self.get_token(REAL_REX) then
         return nil
       end
@@ -2187,6 +2739,7 @@ ___
 ___
 
     def event_declaration_parse
+      # puts "event_declaration_parse"
       unless self.get_token(EVENT_REX) then
         return nil
       end
@@ -2567,18 +3120,17 @@ ___
 ___
 
     def gate_declaration_parse
+      # puts "gate_declaration_parse"
       gatetype = self._GATETYPE_parse
       return nil unless gatetype
       drive_strength = self.drive_strength_parse
       delay = self.delay_parse
-      cur_gate_instance = self.get_instance_parse
+      cur_gate_instance = self.gate_instance_parse
       self.parse_error("gate instance expected") unless cur_gate_instance
       gate_instances = [ cur_gate_instance ]
       loop do
-      unless self.get_token(COMMA_REX) then
-          break
-        end
-        cur_gate_instance = self.get_instance_parse
+        break unless self.get_token(COMMA_REX)
+        cur_gate_instance = self.gate_instance_parse
         self.parse_error("gate instance expected") unless cur_gate_instance
         gate_instances << cur_gate_instance
       end
@@ -2687,13 +3239,12 @@ ___
       end
       terminals = [ cur_terminal ]
       loop do
-        unless self.get_token(COMMA_REX) then
-          break
-        end
+        break unless self.get_token(COMMA_REX)
         cur_terminal = self.terminal_parse
         self.parse_error("terminal expected") unless cur_terminal
         terminals << cur_terminal
       end
+      self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
       return gate_instance_hook(name_of_gate_instance,terminals)
     end
 
@@ -2726,6 +3277,7 @@ ___
 ___
 
     def udp_instantiation_parse
+      # puts "udp_instantiation_parse"
       parse_state = self.state
       name_of_udp = self.name_of_udp_parse
       return nil unless name_of_udp
@@ -2738,13 +3290,12 @@ ___
       end
       udp_instances = [ cur_udp_instance ]
       loop do
-        unless self.get_token(COMMA_REX) then
-          break
-        end
+        break unless self.get_token(COMMA_REX)
         cur_udp_instance = self.udp_instance_parse
-        self.parse_error("UDP instantce expected") unless cur_udp_instance
+        self.parse_error("UDP instance expected") unless cur_udp_instance
         udp_instances << cur_udp_instance
       end
+      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON)
       return udp_instantiation_hook(name_of_udp,drive_strength,delay,
                                     udp_instances)
     end
@@ -2752,7 +3303,7 @@ ___
     def udp_instantiation_hook(name_of_udp, drive_strength, delay,
                                udp_instances)
       return AST[:udp_instantiation,
-                 name_of_udp,drive_strength,delya,udp_instances ]
+                 name_of_udp,drive_strength,delay,udp_instances ]
     end
 
 
@@ -2855,6 +3406,7 @@ ___
 ___
 
     def module_instantiation_parse
+      # puts "module_instantiation_parse"
       parse_state = self.state
       name_of_module = self.name_of_module_parse
       return nil unless name_of_module
@@ -2894,8 +3446,14 @@ ___
 ___
 
     def name_of_module_parse
+      parse_state = self.state
       identifier = self._IDENTIFIER_parse
       return nil unless identifier
+      if self.udp_name?(identifier) then
+        # This is an UDP name, not a module one.
+        self.state = parse_state
+        return nil
+      end
       return name_of_module_hook(identifier)
     end
 
@@ -2983,14 +3541,14 @@ ___
 ___
 
     def list_of_module_connections_parse
-      cur_named_port_connection = self.named_port_connection
+      cur_named_port_connection = self.named_port_connection_parse
       if cur_named_port_connection then
         named_port_connections = [ cur_named_port_connection ]
         loop do
           unless self.get_token(COMMA_REX) then
             break
           end
-          cur_named_port_connection = self.cur_named_port_connection
+          cur_named_port_connection = self.named_port_connection_parse
           self.parse_error("named port connection expected") unless cur_named_port_connection
           named_port_connections << cur_named_port_connection
         end
@@ -3099,9 +3657,7 @@ ___
 ___
 
     def always_statement_parse
-      unless self.get_token(ALWAYS_REX) then
-        return nil
-      end
+      return nil unless self.get_token(ALWAYS_REX)
       statement = self.statement_parse
       self.parse_error("statement expected") unless statement
       return self.always_statement_hook(statement)
@@ -3172,7 +3728,7 @@ ___
         self.parse_error("statement or nothing expected") unless statement_or_null
         if self.get_token(ELSE_REX) then
           statement_or_null2 = self.statement_or_null_parse
-          self.parse_error("statement or nothing expected") unless statemeent_or_null2
+          self.parse_error("statement or nothing expected") unless statement_or_null2
           return statement_hook(IF_TOK,expression,statement_or_null,
                                 statement_or_null2,nil)
         else
@@ -3215,8 +3771,8 @@ ___
         self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
         assignment2 = self.assignment_parse
         self.parse_error("assignment expected") unless assignment2
-        self.parse_error("closing parenthesis expected") unless set.get_token(CLOSE_PAR_REX)
-        statement = self.parse_statement
+        self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
+        statement = self.statement_parse
         self.parse_error("statement expected") unless statement
         return self.statement_hook(tok,assignment,expression,assignment2,
                                   statement)
@@ -3315,7 +3871,6 @@ ___
         return nil
       end
       expression = self.expression_parse
-      # puts "expression=#{expression}"
       self.parse_error("expression expected") unless expression
       return self.assignment_hook(lvalue,expression)
     end
@@ -3432,14 +3987,17 @@ ___
     def case_item_parse
       parse_state = self.state
       if self.get_token(DEFAULT_REX) then
-        unless self.get_token(COLON_REX) then
-        end
+        self.get_token(COLON_REX)
         statement_or_null = self.statement_or_null_parse
         self.parse_error("statement or nothing expected") unless statement_or_null
         return self.case_item_hook(DEFAULT_TOK,statement_or_null)
       end
       cur_expression = self.expression_parse
-      self.syntax_error unless cur_expression
+      # self.parse_error("expression expected") unless cur_expression
+      unless cur_expression then
+        self.state = parse_state
+        return nil
+      end
       expressions = [ cur_expression ]
       loop do
         unless self.get_token(COMMA_REX) then
@@ -3687,7 +4245,14 @@ ___
         end
       end
       cur_expression = self.expression_parse
-      self.parse_error("expression expected") unless cur_expression
+      # self.parse_error("expression expected") unless cur_expression
+      if !cur_expression then
+        # No arguments, check for closing parenthsis and semicolon 
+        # then return.
+        self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
+        self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+        return self.system_task_enable_hook(name_of_system_task,[])
+      end
       expressions = [ cur_expression ]
       loop do
         unless self.get_token(COMMA_REX) then
@@ -3844,13 +4409,13 @@ ___
     def list_of_param_assignments_parse
       cur_param_assignment = self.param_assignment_parse
       return nil unless cur_param_assignment
-      param_assigments = [ cur_param_assignment ]
+      param_assignments = [ cur_param_assignment ]
       loop do
         unless self.get_token(COMMA_REX) then
           break
         end
         cur_param_assignment = self.param_assignment_parse
-        param_assigments << cur_param_assignment
+        param_assignments << cur_param_assignment
       end
       return self.list_of_param_assignments_hook(param_assignments)
     end
@@ -5180,44 +5745,45 @@ ___
     # Auth: this rule has no priority handling and is infinitely recurse
     # fix it to:
     # expression
-    # ::= condition_term ('?' expression ':' expression)*
+    # ::= condition_term ('?' condition_term ':' condition_term)*
     # ||= <STRING>
     #
     # condition_term
-    # ::= logic_or_term ('||' expression)*
+    # ::= logic_or_term ('||' logic_or_term)*
     #
     # logic_or_term
-    # ::= logic_and_term ('&&' expression)*
+    # ::= logic_and_term ('&&' logic_and_term)*
     #
     # logic_and_term
-    # ::= bit_or_term ('|' | '~|' expression)*
+    # ::= bit_or_term ('|' | '~|' bit_or_term)*
     #
     # bit_or_term
-    # ::= bit_xor_term ('^' | '~^' expression)*
+    # ::= bit_xor_term ('^' | '~^' bit_xor_term)*
     #
     # bit_xor_term
-    # ::= bit_and_term ('&' | '~&' expression)*
+    # ::= bit_and_term ('&' | '~&' bit_and_term)*
     #
     # bit_and_term 
-    # ::= equal_term '==' | '!=' | '===' | '!==' expression
+    # ::= equal_term '==' | '!=' | '===' | '!==' equal_term
     #
     # equal_term
-    # ::= comparison_term '<' | '<=' | '>' | '>=' expression
+    # ::= comparison_term '<' | '<=' | '>' | '>=' comparison_term
     #
     # comparison_term
-    # ::= shift_term ('<<' | '>>' | '<<<' |'>>>' expression)*
+    # ::= shift_term ('<<' | '>>' | '<<<' |'>>>' shift_term)*
     #
     # shift_term
-    # ::= add_term ('+' | '-' expression)*
+    # ::= add_term ('+' | '-' add_term)*
     #
     # add_term
-    # ::= mul_term ('*' | '/' | '%' | '**' expression)*
+    # ::= mul_term ('*' | '/' | '%' | '**' mul_term)*
     #
     # mul_term
     # ::= '+' | '-' | '!' | '~' primary
     # ||= primary
 
     def expression_parse
+      # puts "expression_parse"
       string = self._STRING_parse
       if string then
         return self.expression_hook(string)
@@ -5250,6 +5816,7 @@ ___
     end
 
     def condition_term_parse
+      # puts "condition_term_parse"
       cur_logic_or_term = self.logic_or_term_parse
       return nil unless cur_logic_or_term
       logic_or_terms = [ cur_logic_or_term ]
@@ -5272,6 +5839,7 @@ ___
     end
 
     def logic_or_term_parse
+      # puts "logic_or_term_parse"
       cur_logic_and_term = self.logic_and_term_parse
       return nil unless cur_logic_and_term
       logic_and_terms = [ cur_logic_and_term ]
@@ -5294,6 +5862,7 @@ ___
     end
 
     def logic_and_term_parse
+      # puts "logic_and_term_parse"
       cur_bit_or_term = self.bit_or_term_parse
       return nil unless cur_bit_or_term
       bit_or_terms = [ cur_bit_or_term ]
@@ -5318,6 +5887,7 @@ ___
     end
 
     def bit_or_term_parse
+      # puts "bit_or_term_parse"
       cur_bit_xor_term = self.bit_xor_term_parse
       return nil unless cur_bit_xor_term
       bit_xor_terms = [ cur_bit_xor_term ]
@@ -5342,6 +5912,8 @@ ___
     end
 
     def bit_xor_term_parse
+      # puts "bit_xor_term_parse"
+      parse_state = self.state
       cur_bit_and_term = self.bit_and_term_parse
       return nil unless cur_bit_and_term
       bit_and_terms = [ cur_bit_and_term ]
@@ -5366,6 +5938,7 @@ ___
     end
 
     def bit_and_term_parse
+      # puts "bit_and_term_parse"
       cur_equal_term = self.equal_term_parse
       return nil unless cur_equal_term
       equal_terms = [ cur_equal_term ]
@@ -5390,6 +5963,7 @@ ___
     end
 
     def equal_term_parse
+      # puts "equal_term_parse"
       cur_comparison_term = self.comparison_term_parse
       return nil unless cur_comparison_term
       comparison_terms = [ cur_comparison_term ]
@@ -5414,6 +5988,7 @@ ___
     end
 
     def comparison_term_parse
+      # puts "comparison_parse"
       cur_shift_term = self.shift_term_parse
       return nil unless cur_shift_term
       shift_terms = [ cur_shift_term ]
@@ -5438,6 +6013,7 @@ ___
     end
 
     def shift_term_parse
+      # puts "shift_term_parse"
       cur_add_term = self.add_term_parse
       return nil unless cur_add_term
       add_terms = [ cur_add_term ]
@@ -5462,6 +6038,7 @@ ___
     end
 
     def add_term_parse
+      # puts "add_term_parse"
       cur_mul_term = self.mul_term_parse
       return nil unless cur_mul_term
       mul_terms = [ cur_mul_term ]
@@ -5486,6 +6063,8 @@ ___
     end
 
     def mul_term_parse
+      # puts "mul_term_parse"
+      parse_state = self.state
       tok = self.get_token(UNARY_OPERATOR_REX)
       if tok then
         primary = self.primary_parse
@@ -6099,11 +6678,16 @@ ___
 ___
 
     def _IDENTIFIER_parse
+      parse_state = self.state
       tok = self.get_token(IDENTIFIER_REX)
-      if tok then
-        return self._IDENTIFIER_hook(tok)
+      # puts "tok=#{tok}"
+      return nil unless tok
+      if KEYWORD_SET.include?(tok) then
+        # An identifier cannot be a keyword!
+        self.state = parse_state
+        return nil
       end
-      return nil
+      return self._IDENTIFIER_hook(tok)
     end
 
     def _IDENTIFIER_hook(tok)
@@ -6120,16 +6704,17 @@ ___
 ___
 
     def delay_parse
+      parse_state = self.state
       unless self.get_token(SHARP_REX) then
         return nil
       end
       number = self.number_parse
       if number then
-        self.delay_hook(number,nil,nil)
+        return self.delay_hook(number,nil,nil)
       end
       identifier = self.identifier_parse
       if identifier then
-        self.delay_hook(identifier,nil,nil)
+        return self.delay_hook(identifier,nil,nil)
       end
       self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       mintypmax_expression0 = self.mintypmax_expression_parse
@@ -6177,21 +6762,21 @@ ___
       end
       number = self.number_parse
       if number then
-        return self.delay_hook(number)
+        return self.delay_control_hook(number)
       end
       identifier = self.identifier_parse
       if identifier then
-        return self.delay_hook(identifier)
+        return self.delay_control_hook(identifier)
       end
       self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       mintypmax_expression = self.mintypmax_expression_parse
       self.parse_error("min:typical:max expression expected") unless mintypmax_expression
       self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
-      return self.delay_hook(mintypmax_expression)
+      return self.delay_control_hook(mintypmax_expression)
     end
 
-    def delay_hook(number__identifier__mintypmax_expression)
-      return AST[:delay, number__identifier__mintypmax_expression ]
+    def delay_control_hook(number__identifier__mintypmax_expression)
+      return AST[:delay_control, number__identifier__mintypmax_expression ]
     end
 
 
@@ -6231,7 +6816,8 @@ ___
 
     # Auth: old version compatible with the bfn rules, but not
     # parsable. Also, the case of @ (*) is not present, so need
-    # to add it too.
+    # to add it too. Finally, comma can be used instead of or so fix it 
+    # too.
     #
     # def event_expression_parse
     #   tok = self.get_token(EDGE_IDENTIFIER_REX)
@@ -6263,10 +6849,10 @@ ___
     #              event_expression ]
     # end
     #
-    # Auth: this rule is infinitely recurse and do not support @ *
-    # fix it to:
+    # Auth: this rule is infinitely recurse and do not support @ * nor
+    # comma instead of 'or', fix it to:
     # event_expression
-    # ::= <event_primary> ( or <event_primary> )*
+    # ::= <event_primary> ( or|',' <event_primary> )*
     #
     # event_primary
     # ::= '*'
@@ -6279,7 +6865,7 @@ ___
       return nil unless cur_event_primary
       event_primaries = [ cur_event_primary ]
       loop do
-        break unless self.get_token(EVENT_OR_REX)
+        break unless self.get_token(EVENT_OR_COMMA_REX)
         cur_event_primary = self.event_primary_parse
         self.parse_error("event expression expected") unless cur_event_primary
         event_primaries << cur_event_primary

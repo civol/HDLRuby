@@ -1,10 +1,14 @@
 require "../verilog_parser.rb"
 
-# Read a verilog file.
-verilog = File.read(ARGV[0])
-
 parser = VerilogTools::Parser.new
 
-ast = parser.parse(verilog)
+ast = nil
+
+begin
+  ast = parser.run(filename: ARGV[0])
+rescue => error
+  puts error
+  exit
+end
 
 puts ast
