@@ -198,7 +198,8 @@ module VerilogTools
       # Initialize the line jump (1 if no line merge).
       ljump = 1
       # Initialize the lines properties.
-      @state.lprop = [ { lpos: 0, timescale: "", celldefine: "" }]
+      # @state.lprop = [ { lpos: 0, timescale: "", celldefine: "" }]
+      @state.lprop = [ { lpos: 0 }]
       # Initialize the line skip mode for handling the `ifdef and `ifndef
       # directives.
       skip_mode = [ [:start, false] ]
@@ -217,9 +218,45 @@ module VerilogTools
           @state.lprop[lpos][:timescale] = @state.lprop[lpos-1][:timescale]
           @state.lprop[lpos][:celldefine] = @state.lprop[lpos-1][:celldefine]
         end
+        # Set the default filename if none.
+        unless @state.lprop[lpos][:filename] then
+          @state.lprop[lpos][:filename] = @state.filename
+        end
         # puts "lpos=#{lpos} @state.lprop[lpos]=#{@state.lprop[lpos]}"
         # Is it a directive line?
-        line = scanner.scan(/[ \t]*`[^\n]*\n/)
+        begin
+          line = scanner.scan(/[ \t]*`[^\n]*\n/)
+        rescue => error
+          # Problem in the text, so fix it first.
+          estr = scanner.string.scrub("\uFFFD")
+          # And locate the error.
+          elpos = 1
+          ecpos = nil
+          eline = nil
+          estr.lines do |line|
+            elpos = elpos + 1
+            unless @state.lprop[elpos] then
+              if elpos > 1 then
+                @state.lprop[elpos] = @state.lprop[elpos-1]
+              else
+                @state.lprop[elpos] = { :lpos => 1, 
+                                        :filename => @state.filename }
+              end
+              @state.lprop[elpos][:lpos] += 1
+            end
+            eline = line
+            ecpos = line.index("\uFFFD")
+            break if ecpos
+          end
+          if ecpos then
+            # It was an invalid, non-UTF8, character.
+            self.parse_error("non UTF-8 character",
+                             eline.chomp,elpos,ecpos)
+          else
+            # It was another kind of error.
+            self.file_error(error,@state.lprop[lpos][:lpos])
+          end
+        end
         if line then
           # Yes, process it.
           # But, first, are there any line merge?
@@ -250,13 +287,15 @@ module VerilogTools
                                line.chomp,lpos,cpos)
             end
             # puts "unit=#{unit} precision=#{prec}"
-            @state.lprop[lpos][:timescale] = AST[:timescale, unit, prec ]
+            # @state.lprop[lpos][:timescale] = AST[:timescale, unit, prec ]
+            @state.lprop[lpos][:timescale] = [ unit, prec ]
           when "`celldefineX" # Skip
           when "`celldefine"
-            @state.lprop[lpos][:celldefine] = AST[:celldefine]
+            # @state.lprop[lpos][:celldefine] = AST[:celldefine]
+            @state.lprop[lpos][:celldefine] = true
           when "`endcelldefineX" # Skip
           when "`endcelldefine"
-            @state.lprop[lpos][:celldefine] = ""
+            @state.lprop[lpos][:celldefine] = false
           when "`defineX" # Skip
           when "`define"
             # Get the macro name, arguments and replacement.
@@ -401,8 +440,9 @@ module VerilogTools
             included_jump.times do |i|
               idx = lpos+i+ljump-1
               @state.lprop[idx] = @state.lprop[idx-1].clone
-              @state.lprop[idx][:lpos] = i+1
-              @state.lprop[idx][:filename] = filename
+              # i-1 to compenstate the later line increase.
+              @state.lprop[idx][:lpos] = i-1
+              @state.lprop[idx][:filename] = @state.path + filename
             end
             # puts "lpos=#{lpos} @state.lprop[lpos]=#{@state.lprop[lpos]}"
             next_lpos = lpos+included_jump
@@ -574,7 +614,7 @@ module VerilogTools
       filename = @state.filename unless filename
       # Get the line where the error was.
       # First locate the position of the begining and the end of the line.
-      puts "lpos=#{lpos} line_txt=#{line_txt.class}"
+      # puts "lpos=#{lpos} line_txt=#{line_txt.class}"
       unless line_txt then
         blpos = @state.index-@state.cpos
         elpos = @state.index + 
@@ -1279,6 +1319,13 @@ module VerilogTools
 
     RULES = {}
 
+
+    # Hook for the properties of the current line.
+    # (No syntax rule required).
+    def property_hook
+      return AST[:property, @state.lprop[@state.lpos].select {|k,v| v} ]
+    end
+
     # 1. Source text
 
     RULES[:source_text] = <<-___
@@ -1298,7 +1345,7 @@ ___
     end
 
     def source_text_hook(elems)
-      return AST[:source_text, elems]
+      return AST[:source_text, elems, self.property_hook ]
     end
 
 
@@ -1332,7 +1379,7 @@ ___
     end
 
     def description_hook(elem)
-      return AST[:description, elem]
+      return AST[:description, elem, self.property_hook ]
     end
 
 
@@ -1356,12 +1403,12 @@ ___
 
     def module_parse
       if self.get_token(MODULE_MACROMODULE_REX) then
-        # Before parsing the module, get the timescale and celldefine 
-        # properties from current position.
-        timescale = @state.lprop[@state.lpos][:timescale]
-        timescale = nil if timescale == ""
-        celldefine = @state.lprop[@state.lpos][:celldefine]
-        celldefine = nil if celldefine == ""
+        # # Before parsing the module, get the timescale and celldefine 
+        # # properties from current position.
+        # timescale = @state.lprop[@state.lpos][:timescale]
+        # timescale = nil if timescale == ""
+        # celldefine = @state.lprop[@state.lpos][:celldefine]
+        # celldefine = nil if celldefine == ""
         # No parse
         name = self.name_of_module_parse
         pre_parameter_declaration = self.pre_parameter_declaration_parse
@@ -1378,17 +1425,17 @@ ___
         # Add a know module name.
         self.add_module_name(name)
         # And return the AST.
-        return module_hook(name,pre_parameter_declaration,ports,elems,
-                           timescale,celldefine)
+        return module_hook(name,pre_parameter_declaration,ports,elems) #,
+                           # timescale,celldefine)
       else
         return nil
       end
     end
 
-    def module_hook(name, pre_parameter_declaration, ports, elems,
-                    timescale, celldefine)
-      return AST[:module, name,pre_parameter_declaration,ports,elems,
-                          timescale,celldefine]
+    def module_hook(name, pre_parameter_declaration, ports, elems) #,
+                    # timescale, celldefine)
+      return AST[:module, name,pre_parameter_declaration,ports,elems, self.property_hook ]#,
+                          # timescale,celldefine]
     end
 
     def pre_parameter_declaration_parse
@@ -1402,7 +1449,7 @@ ___
     end
 
     def pre_parameter_declaration_hook(list_of_param_assignments)
-      return AST[:parameter_declaration, list_of_param_assignments ]
+      return AST[:parameter_declaration, list_of_param_assignments, self.property_hook ]
     end
 
 
@@ -1419,7 +1466,7 @@ ___
     end
 
     def name_of_module_hook(name)
-      return AST[:name_of_module, name]
+      return AST[:name_of_module, name, self.property_hook ]
     end
 
 
@@ -1452,7 +1499,7 @@ ___
     end
 
     def list_of_ports_hook(ports)
-      return AST[:list_of_ports, ports]
+      return AST[:list_of_ports, ports, self.property_hook ]
     end
 
 
@@ -1480,7 +1527,7 @@ ___
     end
 
     def port_hook(port_expression__name_of_port, port_expression)
-      return AST[:port, port_expression__name_of_port,port_expression ]
+      return AST[:port, port_expression__name_of_port,port_expression, self.property_hook ]
     end
 
 
@@ -1557,7 +1604,7 @@ ___
     end
 
     def port_expression_hook(port_declaration__port_refs)
-      return AST[:port_expression, port_declaration__port_refs]
+      return AST[:port_expression, port_declaration__port_refs, self.property_hook ]
     end
 
     def input_port_declaration_parse
@@ -1570,7 +1617,7 @@ ___
     end
 
     def input_port_declaration_hook(type, range, name_of_variable)
-      return AST[:input_port_declaration, type,range,name_of_variable ]
+      return AST[:input_port_declaration, type,range,name_of_variable, self.property_hook ]
     end
 
     def output_port_declaration_parse
@@ -1583,7 +1630,7 @@ ___
     end
 
     def output_port_declaration_hook(type, range, name_of_variable)
-      return AST[:output_port_declaration, type,range,name_of_variable ]
+      return AST[:output_port_declaration, type,range,name_of_variable, self.property_hook ]
     end
 
     def inout_port_declaration_parse
@@ -1596,7 +1643,7 @@ ___
     end
 
     def inout_port_declaration_hook(type, range, name_of_variable)
-      return AST[:inout_port_declaration, type,range,name_of_variable ]
+      return AST[:inout_port_declaration, type,range,name_of_variable, self.property_hook ]
     end
 
 
@@ -1624,7 +1671,7 @@ ___
     end
 
     def port_reference_hook(name,const0,const1)
-      return AST[:port_reference, name,const0,const1 ]
+      return AST[:port_reference, name,const0,const1, self.property_hook ]
     end
 
 
@@ -1640,7 +1687,7 @@ ___
     end
 
     def name_of_port_hook(name)
-      return AST[:name_of_port, name]
+      return AST[:name_of_port, name, self.property_hook ]
     end
 
 
@@ -1656,7 +1703,7 @@ ___
     end
 
     def name_of_variable_hook(name)
-      return AST[:name_of_variable, name]
+      return AST[:name_of_variable, name, self.property_hook ]
     end
 
 
@@ -1729,7 +1776,7 @@ ___
     end
 
     def module_item_hook(item)
-      return AST[:module_item, item]
+      return AST[:module_item, item, self.property_hook ]
     end
 
 
@@ -1784,7 +1831,7 @@ ___
                  udp_initial_statement, table_definition)
       return AST[:UDP, 
                  name,name_of_variables,udp_declarations,
-                 udp_initial_statement,table_definition ]
+                 udp_initial_statement,table_definition, self.property_hook ]
     end
 
 
@@ -1806,7 +1853,7 @@ ___
     end
 
     def name_of_udp_hook(name)
-      return AST[:name_of_UDP, name]
+      return AST[:name_of_UDP, name, self.property_hook ]
     end
 
 
@@ -1828,7 +1875,7 @@ ___
     end
 
     def udp_declaration_hook(declaration)
-      return AST[:UDP_declaration, declaration]
+      return AST[:UDP_declaration, declaration, self.property_hook ]
     end
 
 
@@ -1847,7 +1894,7 @@ ___
     end
 
     def udp_initial_statement_hook(output_terminal_name,init_val)
-      return AST[:UDP_initial_statement, output_terminal_name,init_val ]
+      return AST[:UDP_initial_statement, output_terminal_name,init_val, self.property_hook ]
     end
 
 
@@ -1872,7 +1919,7 @@ ___
     end
 
     def init_val_hook(val)
-      return AST[:init_val, val]
+      return AST[:init_val, val, self.property_hook ]
     end
 
 
@@ -1888,7 +1935,7 @@ ___
     end
 
     def output_terminal_name_hook(name_of_variable)
-      return AST[:output_terminal_name, name_of_variable]
+      return AST[:output_terminal_name, name_of_variable, self.property_hook]
     end
 
 
@@ -1907,7 +1954,7 @@ ___
     end
 
     def table_definition_hook(table_entries)
-      return AST[:table_definition, table_entries]
+      return AST[:table_definition, table_entries, self.property_hook ]
     end
 
 
@@ -1941,7 +1988,7 @@ ___
     end
 
     def table_entries_hook(entries)
-      return AST[:table_entries, entries]
+      return AST[:table_entries, entries, self.property_hook ]
     end
 
 
@@ -1966,7 +2013,7 @@ ___
     end
 
     def combinational_entry_hook(level_input_list, output_symbol)
-      return AST[:combinational_entry, level_input_list,output_symbol ]
+      return AST[:combinational_entry, level_input_list,output_symbol, self.property_hook ]
     end
 
 
@@ -1997,7 +2044,7 @@ ___
     end
 
     def sequential_entry_hook(input_list, _state, next_state)
-      return AST[:sequential_entry, input_list,_state,next_state ]
+      return AST[:sequential_entry, input_list,_state,next_state, self.property_hook ]
     end
 
 
@@ -2017,7 +2064,7 @@ ___
     end
 
     def input_list_hook(input_list)
-      return AST[:input_list, input_list]
+      return AST[:input_list, input_list, self.property_hook ]
     end
 
 
@@ -2039,7 +2086,7 @@ ___
     end
 
     def level_input_list_hook(level_symbols)
-      return AST[:level_input_list, level_symbols]
+      return AST[:level_input_list, level_symbols, self.property_hook ]
     end
 
 
@@ -2072,7 +2119,7 @@ ___
     end
 
     def edge_input_list_hook(level_symbols0, edge, level_symbols1)
-      return AST[:edge_input_list, level_symbols0,edge,level_symbols1 ]
+      return AST[:edge_input_list, level_symbols0,edge,level_symbols1, self.property_hook ]
     end
 
 
@@ -2095,7 +2142,7 @@ ___
     end
 
     def edge_hook(edge)
-      return AST[:edge, edge]
+      return AST[:edge, edge, self.property_hook ]
     end
 
 
@@ -2111,7 +2158,7 @@ ___
     end
 
     def state_hook(level_symbol)
-      return AST[:state, level_symbol]
+      return AST[:state, level_symbol, self.property_hook ]
     end
 
 
@@ -2131,7 +2178,7 @@ ___
     end
 
     def next_state_hook(symbol)
-      return AST[:next_state, symbol]
+      return AST[:next_state, symbol, self.property_hook ]
     end
 
 
@@ -2147,7 +2194,7 @@ ___
     end
 
     def _OUTPUT_SYMBOL_hook(symbol)
-      return AST[:OUTPUT_SYMBOL, symbol]
+      return AST[:OUTPUT_SYMBOL, symbol, self.property_hook ]
     end
 
 
@@ -2163,7 +2210,7 @@ ___
     end
 
     def _LEVEL_SYMBOL_hook(symbol)
-      return AST[:LEVEL_SYMBOL, symbol]
+      return AST[:LEVEL_SYMBOL, symbol, self.property_hook ]
     end
 
 
@@ -2179,7 +2226,7 @@ ___
     end
 
     def _EDGE_SYMBOL_hook(symbol)
-      return AST[:EDGE_SYMBOL, symbol]
+      return AST[:EDGE_SYMBOL, symbol, self.property_hook ]
     end
 
 
@@ -2212,7 +2259,7 @@ ___
     end
 
     def task_hook(name_of_task, tf_declaration, statement_or_null)
-      return AST[:task, name_of_task,tf_declaration,statement_or_null ]
+      return AST[:task, name_of_task,tf_declaration,statement_or_null, self.property_hook ]
     end
 
 
@@ -2228,7 +2275,7 @@ ___
     end
 
     def name_of_task_hook(name_of_task)
-      return AST[:name_of_task, name_of_task]
+      return AST[:name_of_task, name_of_task, self.property_hook ]
     end
 
 
@@ -2265,7 +2312,7 @@ ___
     def function_hook(range_or_type, name_of_function,
                       tf_declarations, statement)
       return AST[:function, 
-                 range_or_type,name_of_function,tf_declarations,statement ]
+                 range_or_type,name_of_function,tf_declarations,statement, self.property_hook ]
     end
 
 
@@ -2288,7 +2335,7 @@ ___
     end
 
     def range_or_type_hook(range_or_type)
-      return AST[:range_or_type, range_or_type]
+      return AST[:range_or_type, range_or_type, self.property_hook ]
     end
 
 
@@ -2304,7 +2351,7 @@ ___
     end
 
     def name_of_function_hook(name_of_function)
-      return AST[:name_of_function, name_of_function]
+      return AST[:name_of_function, name_of_function, self.property_hook ]
     end
 
 
@@ -2341,7 +2388,7 @@ ___
     end
 
     def tf_declaration_hook(declaration)
-      return AST[:tf_declaration, declaration]
+      return AST[:tf_declaration, declaration, self.property_hook ]
     end
 
 
@@ -2364,7 +2411,7 @@ ___
     end
 
     def parameter_declaration_hook(list_of_param_assignments)
-      return AST[:parameter_declaration, list_of_param_assignments]
+      return AST[:parameter_declaration, list_of_param_assignments, self.property_hook ]
     end
 
 
@@ -2387,7 +2434,7 @@ ___
     end
 
     def list_of_param_assignments_hook(param_assignments)
-      return AST[:list_of_param_assignments, param_assignments]
+      return AST[:list_of_param_assignments, param_assignments, self.property_hook ]
     end
 
 
@@ -2404,7 +2451,7 @@ ___
     end
 
     def param_assignment_hook(identifier, constant_expression)
-      return AST[:param_assignment, identifier,constant_expression ]
+      return AST[:param_assignment, identifier,constant_expression, self.property_hook ]
     end
 
 
@@ -2432,7 +2479,7 @@ ___
     end
 
     def input_declaration_hook(type, sign, range, list_of_variables)
-      return AST[:input_declaration, type,sign,range,list_of_variables ]
+      return AST[:input_declaration, type,sign,range,list_of_variables, self.property_hook ]
     end
 
 
@@ -2461,7 +2508,7 @@ ___
     end
 
     def output_declaration_hook(type, sign, range, list_of_variables)
-      return AST[:output_declaration, type,sign,range,list_of_variables ]
+      return AST[:output_declaration, type,sign,range,list_of_variables, self.property_hook ]
     end
 
     # # Auth: rule for the variables declared in output
@@ -2512,7 +2559,7 @@ ___
     end
 
     def inout_declaration_hook(type, sign, range, list_of_variables)
-      return AST[:inout_declaration, type,sign,range,list_of_variables ]
+      return AST[:inout_declaration, type,sign,range,list_of_variables, self.property_hook ]
     end
 
 
@@ -2568,7 +2615,7 @@ ___
                              list_of_variables_or_list_of_assignments)
       return AST[:net_declaration, 
                  nettype_or_charge_strength,sign,expandrange,delay,
-                 list_of_variables_or_list_of_assignments ]
+                 list_of_variables_or_list_of_assignments, self.property_hook ]
     end
 
 
@@ -2597,7 +2644,7 @@ ___
     #                            delay, list_of_assignments)
     #   return AST[:list_of_output_variables,
     #              nettype,drive_strength,expandrange,delay,
-    #              list_of_assignments ]
+    #              list_of_assignments, self.property_hook ]
     # end
 
 
@@ -2616,7 +2663,7 @@ ___
     end
 
     def _NETTYPE_hook(type)
-      return AST[:NETTYPE, type]
+      return AST[:NETTYPE, type, self.property_hook ]
     end
 
 
@@ -2644,7 +2691,7 @@ ___
     end
 
     def expandrange_hook(type, range)
-      return AST[:expandrange, type,range ]
+      return AST[:expandrange, type,range, self.property_hook ]
     end
 
 
@@ -2669,7 +2716,7 @@ ___
     end
 
     def reg_declaration_hook(sign, range, list_of_register_variables)
-      return AST[:reg_declaration, sign,range,list_of_register_variables ]
+      return AST[:reg_declaration, sign,range,list_of_register_variables, self.property_hook ]
     end
 
 
@@ -2689,7 +2736,7 @@ ___
     end
 
     def time_declaration_hook(list_of_register_variables)
-      return AST[:time_declaration, list_of_register_variables]
+      return AST[:time_declaration, list_of_register_variables, self.property_hook ]
     end
 
 
@@ -2709,7 +2756,7 @@ ___
     end
 
     def integer_declaration_hook(list_of_register_variables)
-      return AST[:integer_declaration, list_of_register_variables]
+      return AST[:integer_declaration, list_of_register_variables, self.property_hook ]
     end
    
 
@@ -2729,7 +2776,7 @@ ___
     end
 
     def real_declaration_hook(list_of_register_variables)
-      return AST[:real_declaration, list_of_register_variables]
+      return AST[:real_declaration, list_of_register_variables, self.property_hook ]
     end
 
 
@@ -2757,7 +2804,7 @@ ___
     end
 
     def event_declaration_hook(name_of_events)
-      return AST[:event_declaration, name_of_events]
+      return AST[:event_declaration, name_of_events, self.property_hook ]
     end
 
 
@@ -2794,7 +2841,7 @@ ___
                                    delay, list_of_assignments)
       return AST[:continuous_assignment, 
                  nettype,drive_strength,expandrange,delay,
-                 list_of_assignments ]
+                 list_of_assignments, self.property_hook ]
     end
 
 
@@ -2813,7 +2860,7 @@ ___
     end
 
     def parameter_override_hook(list_of_param_assignments)
-      return AST[:parameter_override, list_of_param_assignments]
+      return AST[:parameter_override, list_of_param_assignments, self.property_hook ]
     end
 
 
@@ -2836,7 +2883,7 @@ ___
     end
 
     def list_of_variables_hook(name_of_variables)
-      return AST[:list_of_variables, name_of_variables]
+      return AST[:list_of_variables, name_of_variables, self.property_hook ]
     end
 
 
@@ -2852,7 +2899,7 @@ ___
     end
 
     def name_of_variable_hook(identifier)
-      return AST[:name_of_variable, identifier]
+      return AST[:name_of_variable, identifier, self.property_hook ]
     end
 
 
@@ -2875,7 +2922,7 @@ ___
     end
 
     def list_of_register_variables_hook(register_variables)
-      return AST[:list_of_register_variables, register_variables]
+      return AST[:list_of_register_variables, register_variables, self.property_hook ]
     end
 
 
@@ -2909,7 +2956,7 @@ ___
                                constant_expression1,
                                constant_expression2)
       return AST[:register_variable, 
-                 name, constant_expression1, constant_expression2 ]
+                 name, constant_expression1, constant_expression2, self.property_hook ]
     end
 
 
@@ -2925,7 +2972,7 @@ ___
     end
 
     def name_of_register_hook(identifier)
-      return AST[:name_of_register, identifier]
+      return AST[:name_of_register, identifier, self.property_hook ]
     end
 
 
@@ -2941,7 +2988,7 @@ ___
     end
 
     def name_of_memory_hook(identifier)
-      return AST[:name_of_memory, identifier]
+      return AST[:name_of_memory, identifier, self.property_hook ]
     end
 
 
@@ -2957,7 +3004,7 @@ ___
     end
 
     def name_of_event_hook(identifier)
-      return AST[:name_of_event, identifier]
+      return AST[:name_of_event, identifier, self.property_hook ]
     end
 
 
@@ -2985,7 +3032,7 @@ ___
     end
 
     def charge_strength_hook(type)
-      return AST[:char_strength, type]
+      return AST[:char_strength, type, self.property_hook ]
     end
 
 
@@ -3022,7 +3069,7 @@ ___
     end
 
     def drive_strength_hook(strengthL, strengthR)
-      return AST[:drive_strength, strengthL,strengthR ]
+      return AST[:drive_strength, strengthL,strengthR, self.property_hook ]
     end
 
 
@@ -3040,7 +3087,7 @@ ___
     end
 
     def _STRENGTH0_hook(strength0)
-      return AST[:STRENGTH0, strength0]
+      return AST[:STRENGTH0, strength0, self.property_hook ]
     end
 
 
@@ -3058,7 +3105,7 @@ ___
     end
 
     def _STRENGTH1_hook(strength1)
-      return AST[:STRENGTH1, strength1]
+      return AST[:STRENGTH1, strength1, self.property_hook ]
     end
 
 
@@ -3082,7 +3129,7 @@ ___
     end
 
     def range_hook(constant_expression0, constant_expression1)
-      return AST[:range, constant_expression0,constant_expression1 ]
+      return AST[:range, constant_expression0,constant_expression1, self.property_hook ]
     end
 
 
@@ -3107,7 +3154,7 @@ ___
     end
 
     def list_of_assignments_hook(assignments)
-      return AST[:list_of_assigments, assignments]
+      return AST[:list_of_assigments, assignments, self.property_hook ]
     end
 
 
@@ -3142,7 +3189,7 @@ ___
     def gate_declaration_hook(gatetype, drive_strength, delay,
                               gate_instances)
       return AST[:gate_declaration,
-                 gatetype,drive_strength,delay,gate_instances ]
+                 gatetype,drive_strength,delay,gate_instances, self.property_hook ]
     end
 
 
@@ -3161,7 +3208,7 @@ ___
     end
 
     def _GATETYPE_hook(type)
-      return AST[:GATETYPE, type]
+      return AST[:GATETYPE, type, self.property_hook ]
     end
 
 
@@ -3217,7 +3264,7 @@ ___
     def delay_hook(mintypmax_expression__number,
                    mintypmax_expression1, mintypexpression2)
       return AST[:delay, mintypmax_expression__number,
-                 mintypmax_expression1,mintypexpression2 ]
+                 mintypmax_expression1,mintypexpression2, self.property_hook ]
     end
 
 
@@ -3249,7 +3296,7 @@ ___
     end
 
     def gate_instance_hook(name_of_gate_instance, terminals)
-      return AST[:gate_instance, name_of_gate_instance,terminals ]
+      return AST[:gate_instance, name_of_gate_instance,terminals, self.property_hook ]
     end
 
 
@@ -3266,7 +3313,7 @@ ___
     end
 
     def name_of_gate_instance_hook(identifier, range)
-      return AST[:name_of_gate_instance, identifier,range ]
+      return AST[:name_of_gate_instance, identifier,range, self.property_hook ]
     end
 
 
@@ -3303,7 +3350,7 @@ ___
     def udp_instantiation_hook(name_of_udp, drive_strength, delay,
                                udp_instances)
       return AST[:udp_instantiation,
-                 name_of_udp,drive_strength,delay,udp_instances ]
+                 name_of_udp,drive_strength,delay,udp_instances, self.property_hook ]
     end
 
 
@@ -3319,7 +3366,7 @@ ___
     end
     
     def name_of_udp_hook(identifier)
-      return AST[:name_of_UDP, identifier]
+      return AST[:name_of_UDP, identifier, self.property_hook ]
     end
 
 
@@ -3354,7 +3401,7 @@ ___
     end
 
     def udp_instance_hook(name_of_udp_instance, terminals)
-      return AST[:UDP_instance, name_of_udp_instance,terminals]
+      return AST[:UDP_instance, name_of_udp_instance,terminals, self.property_hook ]
     end
 
 
@@ -3371,7 +3418,7 @@ ___
     end
 
     def name_of_udp_instance_hook(identifier,range)
-      return AST[:name_of_UDP_instance, identifier,range ]
+      return AST[:name_of_UDP_instance, identifier,range, self.property_hook ]
     end
 
 
@@ -3392,7 +3439,7 @@ ___
     end
 
     def terminal_hook(terminal)
-      return AST[:terminal, terminal]
+      return AST[:terminal, terminal, self.property_hook ]
     end
 
 
@@ -3436,7 +3483,7 @@ ___
                                   module_instances)
       return AST[:module_instantiation, 
                  name_of_module,parameter_value_assignment,
-                 module_instances ]
+                 module_instances, self.property_hook ]
     end
 
 
@@ -3458,7 +3505,7 @@ ___
     end
 
     def name_of_module_hook(identifier)
-      return AST[:name_of_module, identifier]
+      return AST[:name_of_module, identifier, self.property_hook ]
     end
 
 
@@ -3488,7 +3535,7 @@ ___
     end
 
     def parameter_value_assignment_hook(expressions)
-      return AST[:parameter_value_assignment, expressions]
+      return AST[:parameter_value_assignment, expressions, self.property_hook ]
     end
 
 
@@ -3513,7 +3560,7 @@ ___
 
     def module_instance_hook(name_of_instance, list_of_module_connections)
       return AST[:module_instance, 
-                 name_of_instance,list_of_module_connections ]
+                 name_of_instance,list_of_module_connections, self.property_hook ]
     end
 
 
@@ -3530,7 +3577,7 @@ ___
     end
 
     def name_of_instance_hook(identifier, range)
-      return AST[:name_of_instance, identifier,range ]
+      return AST[:name_of_instance, identifier,range, self.property_hook ]
     end
 
 
@@ -3570,7 +3617,7 @@ ___
     end
 
     def list_of_module_connections_hook(connections)
-      return AST[:list_of_module_connections, connections]
+      return AST[:list_of_module_connections, connections, self.property_hook ]
     end
 
 
@@ -3590,7 +3637,7 @@ ___
     end
 
     def module_port_connection_hook(expression)
-      return AST[:module_port_connection, expression]
+      return AST[:module_port_connection, expression, self.property_hook ]
     end
 
 
@@ -3602,7 +3649,7 @@ ___
 
     # *Auth*: No parse of NULL, since it is literally nothing.
     def _NULL_hook
-      return AST[:NULL]
+      return AST[:NULL, self.property_hook ]
     end
 
 
@@ -3625,7 +3672,7 @@ ___
     end
 
     def named_port_connection_hook(identifier, expression)
-      return AST[:named_port_connection, identifier,expression ]
+      return AST[:named_port_connection, identifier,expression, self.property_hook ]
     end
 
 
@@ -3647,7 +3694,7 @@ ___
     end
 
     def initial_statement_hook(statement)
-      return AST[:initial_statement, statement]
+      return AST[:initial_statement, statement, self.property_hook ]
     end
 
 
@@ -3664,7 +3711,7 @@ ___
     end
 
     def always_statement_hook(statement)
-      return AST[:always_statement, statement]
+      return AST[:always_statement, statement, self.property_hook ]
     end
 
 
@@ -3684,7 +3731,7 @@ ___
     end
 
     def statement_or_null_hook(statement)
-      return AST[:statement_or_null, statement]
+      return AST[:statement_or_null, statement, self.property_hook ]
     end
 
 
@@ -3850,7 +3897,7 @@ ___
     end
 
     def statement_hook(base,arg0,arg1,arg2,arg3)
-      return AST[:statement, base,arg0,arg1,arg2,arg3 ]
+      return AST[:statement, base,arg0,arg1,arg2,arg3, self.property_hook ]
     end
 
 
@@ -3876,7 +3923,7 @@ ___
     end
 
     def assignment_hook(lvalue,expression)
-      return AST[:assignment, lvalue,expression ]
+      return AST[:assignment, lvalue,expression, self.property_hook ]
     end
 
 
@@ -3907,7 +3954,7 @@ ___
     def blocking_assignment_hook(lvalue, delay_or_event_control,
                                  expression)
       return AST[:blocking_assignment,
-                 lvalue,delay_or_event_control,expression ]
+                 lvalue,delay_or_event_control,expression, self.property_hook ]
     end
 
 
@@ -3939,7 +3986,7 @@ ___
     def non_blocking_assignment_hook(lvalue, delay_or_event_control,
                                  expression)
       return AST[:non_blocking_assignment,
-                 lvalue,delay_or_event_control,expression ]
+                 lvalue,delay_or_event_control,expression, self.property_hook ]
     end
 
 
@@ -3973,7 +4020,7 @@ ___
     end
 
     def delay_or_event_control_hook(base,arg0,arg1)
-      return AST[:delay_or_event_control, base,arg0,arg1 ]
+      return AST[:delay_or_event_control, base,arg0,arg1, self.property_hook ]
     end
 
 
@@ -4018,7 +4065,7 @@ ___
     end
 
     def case_item_hook(cas, statement_or_null)
-      return AST[:case_item, cas,statement_or_null ]
+      return AST[:case_item, cas,statement_or_null, self.property_hook ]
     end
 
 
@@ -4068,7 +4115,7 @@ ___
     def seq_block_hook(statements__name_of_block,
                        block_declarations, statements)
       return AST[:seq_block, statements__name_of_block,
-                 block_declarations,statements ]
+                 block_declarations,statements, self.property_hook ]
     end
 
 
@@ -4118,7 +4165,7 @@ ___
     def par_block_hook(statements__name_of_block,
                        block_declarations, statements)
       return AST[:name_of_block, statements__name_of_block,
-                 block_declarations,statements ]
+                 block_declarations,statements, self.property_hook ]
     end
 
 
@@ -4134,7 +4181,7 @@ ___
     end
 
     def name_of_block_hook(identifier)
-      return AST[:name_of_block, identifier]
+      return AST[:name_of_block, identifier, self.property_hook ]
     end
 
 
@@ -4177,7 +4224,7 @@ ___
     end
 
     def block_declaration_hook(declaration)
-      return AST[:block_declaration, declaration]
+      return AST[:block_declaration, declaration, self.property_hook ]
     end
 
 
@@ -4222,7 +4269,7 @@ ___
     end
 
     def task_enable_hook(name_of_task,expressions)
-      return AST[:task_enable, name_of_task,expressions ]
+      return AST[:task_enable, name_of_task,expressions, self.property_hook ]
     end
 
 
@@ -4268,7 +4315,7 @@ ___
     end
 
     def system_task_enable_hook(name_of_system_task,expressions)
-      return AST[:system_task_enable, name_of_system_task,expressions ]
+      return AST[:system_task_enable, name_of_system_task,expressions, self.property_hook ]
     end
 
 
@@ -4285,7 +4332,7 @@ ___
     end
 
     def name_of_system_task_hook(identifier)
-      return AST[:name_of_system_task, identifier]
+      return AST[:name_of_system_task, identifier, self.property_hook ]
     end
 
 
@@ -4304,7 +4351,7 @@ ___
     end
 
     def system_identifier_hook(tok)
-      AST[:system_identifier, tok]
+      AST[:system_identifier, tok, self.property_hook ]
     end
 
 
@@ -4332,7 +4379,7 @@ ___
     end
 
     def specify_block_hook(specify_items)
-      return AST[:specify_block, specify_items]
+      return AST[:specify_block, specify_items, self.property_hook ]
     end
 
 
@@ -4377,7 +4424,7 @@ ___
     end
 
     def specify_item_hook(declaration)
-      return AST[:specify_item, declaration]
+      return AST[:specify_item, declaration, self.property_hook ]
     end
 
 
@@ -4397,7 +4444,7 @@ ___
     end
 
     def specparam_declaration_hook(list_of_param_assignments)
-      return AST[:specparam_declaration, list_of_param_assignments]
+      return AST[:specparam_declaration, list_of_param_assignments, self.property_hook ]
     end
 
 
@@ -4421,7 +4468,7 @@ ___
     end
 
     def list_of_param_assignments_hook(param_assignments)
-      return AST[:list_of_param_assignments, param_assignments]
+      return AST[:list_of_param_assignments, param_assignments, self.property_hook ]
     end
 
 
@@ -4440,7 +4487,7 @@ ___
     end
 
     def param_assignment_hook(identifier, constant_expression)
-      return AST[:param_assignment, identifier,constant_expression ]
+      return AST[:param_assignment, identifier,constant_expression, self.property_hook ]
     end
 
 
@@ -4460,7 +4507,7 @@ ___
     end
 
     def path_declaration_hook(path_description, path_delay_value)
-      return AST[:path_declaration, path_description,path_delay_value ]
+      return AST[:path_declaration, path_description,path_delay_value, self.property_hook ]
     end
 
 
@@ -4504,7 +4551,7 @@ ___
     end
 
     def path_description_hook(type, input, output)
-      return AST[:path_description, type,input,output ]
+      return AST[:path_description, type,input,output, self.property_hook ]
     end
 
 
@@ -4533,7 +4580,7 @@ ___
 
     def list_of_path_inputs_hook(specify_input_terminal_descriptors)
       return AST[:list_of_path_inputs,
-                 specify_input_terminal_descriptors ]
+                 specify_input_terminal_descriptors, self.property_hook ]
     end
 
 
@@ -4562,7 +4609,7 @@ ___
 
     def list_of_path_outputs_hook(specify_output_terminal_descriptors)
       return AST[:list_of_path_outputs,
-                 specify_output_terminal_descriptors ]
+                 specify_output_terminal_descriptors, self.property_hook ]
     end
 
 
@@ -4602,7 +4649,7 @@ ___
                                                constant_expression2)
       return AST[:specify_input_terminal_descriptor,
                  input_identifier,
-                 constant_expression,constant_expression2 ]
+                 constant_expression,constant_expression2, self.property_hook ]
     end
 
 
@@ -4642,7 +4689,7 @@ ___
                                                constant_expression2)
       return AST[:specify_output_terminal_descriptor,
                  output_identifier,
-                 constant_expression,constant_expression2 ]
+                 constant_expression,constant_expression2, self.property_hook ]
     end
 
 
@@ -4659,7 +4706,7 @@ ___
     end
 
     def input_identifier_hook(identifier)
-      return AST[:input_identifier, identifier ]
+      return AST[:input_identifier, identifier, self.property_hook ]
     end
 
 
@@ -4676,7 +4723,7 @@ ___
     end
 
     def output_identifier_hook(identifier)
-      return AST[:output_identifier, identifier ]
+      return AST[:output_identifier, identifier, self.property_hook ]
     end
 
 
@@ -4752,7 +4799,7 @@ ___
                  path_delay_expression8,
                  path_delay_expression9,
                  path_delay_expression10,
-                 path_delay_expression11 ]
+                 path_delay_expression11, self.property_hook ]
     end
 
 
@@ -4768,7 +4815,7 @@ ___
     end
 
     def path_delay_expression_hook(mintypmax_expression)
-      return AST[:path_delay_expression, mintypmax_expression]
+      return AST[:path_delay_expression, mintypmax_expression, self.property_hook ]
     end
 
 
@@ -4939,7 +4986,7 @@ ___
 
     def system_timing_check_hook(tok,arg0,arg1,arg2,arg3,arg4)
       return AST[:system_timing_check,
-                 tok,arg0,arg1,arg2,arg3,arg4 ]
+                 tok,arg0,arg1,arg2,arg3,arg4, self.property_hook ]
     end
 
 
@@ -4974,7 +5021,7 @@ ___
                                 timing_check_condition)
       return AST[:timing_check_event, timing_check_event_control,
                  specify_terminal_descriptor,
-                 timing_check_condition ]
+                 timing_check_condition, self.property_hook ]
     end
 
 
@@ -5001,7 +5048,7 @@ ___
     end
 
     def specify_terminal_descriptor_hook(specify_terminal_descriptor)
-      return AST[:specify_terminal_descriptor, specify_terminal_descriptor]
+      return AST[:specify_terminal_descriptor, specify_terminal_descriptor, self.property_hook ]
     end
 
 
@@ -5041,7 +5088,7 @@ ___
       return AST[:controlled_timing_check_event,
                  timing_check_event_control,
                  specify_terminal_descriptor,
-                 timing_check_condition ]
+                 timing_check_condition, self.property_hook ]
     end
 
 
@@ -5063,7 +5110,7 @@ ___
     end
 
     def timing_check_event_control_hook(edge_control_specifier)
-      return AST[:timing_check_event_control, event_control_specifier ]
+      return AST[:timing_check_event_control, event_control_specifier, self.property_hook ]
     end
 
 
@@ -5093,7 +5140,7 @@ ___
     end
 
     def edge_control_specifier_hook(edge_descriptors)
-      return AST[:edge_control_specifier, edge_descriptors ]
+      return AST[:edge_control_specifier, edge_descriptors, self.property_hook ]
     end
 
 
@@ -5116,7 +5163,7 @@ ___
     end
 
     def edge_descriptor_hook(tok)
-      return AST[:edge_descriptor, tok ]
+      return AST[:edge_descriptor, tok, self.property_hook ]
     end
 
 
@@ -5145,7 +5192,7 @@ ___
 
     def timing_check_condition_hook(scalar_timing_check_condition)
       return AST[:timing_check_condition,
-                 scalar_timing_check_condition ]
+                 scalar_timing_check_condition, self.property_hook ]
     end
 
 
@@ -5186,7 +5233,7 @@ ___
                                            scalar_constant)
       return AST[:scalar_timing_check_condition,
                  scalar_expression__tok,
-                 scalar_expression,scalar_constant ]
+                 scalar_expression,scalar_constant, self.property_hook ]
     end
 
 
@@ -5206,7 +5253,7 @@ ___
     end
 
     def scalar_expression_hook(expression)
-      return AST[:scalar_expression, expression ]
+      return AST[:scalar_expression, expression, self.property_hook ]
     end
 
 
@@ -5222,7 +5269,7 @@ ___
     end
 
     def timing_check_list_hook(expression)
-      return AST[:timing_check_list, expression ]
+      return AST[:timing_check_list, expression, self.property_hook ]
     end
 
 
@@ -5249,7 +5296,7 @@ ___
     end
 
     def scalar_constant_hook(tok)
-      return AST[:scalar_constant, tok ]
+      return AST[:scalar_constant, tok, self.property_hook ]
     end
 
 
@@ -5265,7 +5312,7 @@ ___
     end
 
     def notify_register_hook(identifier)
-      return AST[:notify_register, identifier ]
+      return AST[:notify_register, identifier, self.property_hook ]
     end
 
 
@@ -5334,7 +5381,7 @@ ___
       conditional_port_expression,
       input, polarity_operator, tok, output, path_delay_value)
       return AST[:level_sensitive_path_declaration,
-                 input, polarity_operator, tok, output, path_delay_value ]
+                 input, polarity_operator, tok, output, path_delay_value, self.property_hook ]
     end
 
 
@@ -5375,7 +5422,7 @@ ___
       return AST[:conditional_port_expression,
                  port_reference__unary_operator,
                  binary_operator,
-                 port_reference ]
+                 port_reference, self.property_hook ]
     end
 
 
@@ -5395,7 +5442,7 @@ ___
     end
 
     def polarity_operator_hook(tok)
-      return AST[:polarity_operator, tok ]
+      return AST[:polarity_operator, tok, self.property_hook ]
     end
 
 
@@ -5477,7 +5524,7 @@ ___
                  expression,edge_identifier,
                  specify_input_terminal_descriptor,tok,
                  spcify_output_terminal_descriptor__list_of_path_outputs,
-                 polarity_operator,data_source_expression,path_delay_value]
+                 polarity_operator,data_source_expression,path_delay_value, self.property_hook ]
     end
 
 
@@ -5497,7 +5544,7 @@ ___
     end
 
     def data_source_hook(expression)
-      return AST[:data_source, expression ]
+      return AST[:data_source, expression, self.property_hook ]
     end
 
 
@@ -5517,7 +5564,7 @@ ___
     end
 
     def edge_identifier_hook(tok)
-      return AST[:edge_identifier, tok ]
+      return AST[:edge_identifier, tok, self.property_hook ]
     end
 
 
@@ -5553,7 +5600,7 @@ ___
                   path_delay_value)
       return AST[:sdpd, 
                  sdpd_conditional_expression,path_description,
-                 path_delay_value ]
+                 path_delay_value, self.property_hook ]
     end
 
 
@@ -5589,7 +5636,7 @@ ___
       return AST[:sdpd_conditionla_expression,
                  unary_operator__expression,
                  expression__binary_operator,
-                 expression ]
+                 expression, self.property_hook ]
     end
 
 
@@ -5636,7 +5683,7 @@ ___
                     expression__constant_expression, constant_expression)
       return AST[:lvalue, 
                  identifier__concatenation,
-                 expression__constant_expression,constant_expression ]
+                 expression__constant_expression,constant_expression, self.property_hook ]
     end
 
 
@@ -5652,7 +5699,7 @@ ___
     end
 
     def constant_expression_hook(expression)
-      return AST[:constant_expression, expression ]
+      return AST[:constant_expression, expression, self.property_hook ]
     end
 
 
@@ -5679,7 +5726,7 @@ ___
 
     def mintypmax_expression_hook(expression0, expression1, expression2)
       return AST[:mintypmax_expression,
-                 expression0,expression1,expression2 ]
+                 expression0,expression1,expression2, self.property_hook ]
     end
 
 
@@ -5739,7 +5786,7 @@ ___
     #   return AST[:expression,
     #              string__primary__unary_operator__expression,
     #              primary__binary_operator__question_mark,
-    #              expression1,expression2 ]
+    #              expression1,expression2, self.property_hook ]
     # end
 
     # Auth: this rule has no priority handling and is infinitely recurse
@@ -5811,7 +5858,7 @@ ___
           string__condition_terms.size == 1 then
         return string__condition_terms[0]
       else
-        return AST[:expression, *string__condition_terms ]
+        return AST[:expression, *string__condition_terms, self.property_hook ]
       end
     end
 
@@ -5834,7 +5881,7 @@ ___
       if logic_or_terms.size == 1 then
         return logic_or_terms[0]
       else
-        return AST[:expression, *logic_or_terms ]
+        return AST[:expression, *logic_or_terms, self.property_hook ]
       end
     end
 
@@ -5857,7 +5904,7 @@ ___
       if logic_and_terms.size == 1 then
         return logic_and_terms[0]
       else
-        return AST[:expression, *logic_and_terms ]
+        return AST[:expression, *logic_and_terms, self.property_hook ]
       end
     end
 
@@ -5882,7 +5929,7 @@ ___
       if (bit_or_terms.size == 1) then
         return bit_or_terms[0]
       else
-        return AST[:expression, *bit_or_terms ]
+        return AST[:expression, *bit_or_terms, self.property_hook ]
       end
     end
 
@@ -5907,7 +5954,7 @@ ___
       if bit_xor_terms.size == 1 then
         return bit_xor_terms[0]
       else
-        return AST[:expression, *bit_xor_terms ]
+        return AST[:expression, *bit_xor_terms, self.property_hook ]
       end
     end
 
@@ -5933,7 +5980,7 @@ ___
       if bit_and_terms.size == 1 then
         return bit_and_terms[0]
       else
-        return AST[:expression, *bit_and_terms ]
+        return AST[:expression, *bit_and_terms, self.property_hook ]
       end
     end
 
@@ -5958,7 +6005,7 @@ ___
       if equal_terms.size == 1 then
         return equal_terms[0]
       else
-        return AST[:expression, *equal_terms ]
+        return AST[:expression, *equal_terms, self.property_hook ]
       end
     end
 
@@ -5983,7 +6030,7 @@ ___
       if comparison_terms.size == 1 then
         return comparison_terms[0]
       else
-        return AST[:expression, *comparison_terms ]
+        return AST[:expression, *comparison_terms, self.property_hook ]
       end
     end
 
@@ -6008,7 +6055,7 @@ ___
       if shift_terms.size == 1 then
         return shift_terms[0]
       else
-        return AST[:expression, *shift_terms ]
+        return AST[:expression, *shift_terms, self.property_hook ]
       end
     end
 
@@ -6033,7 +6080,7 @@ ___
       if add_terms.size == 1 then
         return add_terms[0]
       else
-        return AST[:expression, *add_terms ]
+        return AST[:expression, *add_terms, self.property_hook ]
       end
     end
 
@@ -6058,7 +6105,7 @@ ___
       if mul_terms.size == 1 then
         return mul_terms[0]
       else
-        return AST[:expression, *mul_terms ]
+        return AST[:expression, *mul_terms, self.property_hook ]
       end
     end
 
@@ -6078,7 +6125,7 @@ ___
     end
 
     def mul_term_hook(unary_terms)
-      return AST[:expression, *unary_terms ]
+      return AST[:expression, *unary_terms, self.property_hook ]
     end
 
 
@@ -6096,7 +6143,7 @@ ___
     end
 
     def _UNARY_OPERATOR_hook(tok)
-      return AST[:UNARY_OPERATOR, tok ]
+      return AST[:UNARY_OPERATOR, tok, self.property_hook ]
     end
 
 
@@ -6114,7 +6161,7 @@ ___
     end
 
     def _BINARY_OPERATOR_hook(tok)
-      return AST[:BINARY_OPERATOR, tok ]
+      return AST[:BINARY_OPERATOR, tok, self.property_hook ]
     end
 
 
@@ -6130,7 +6177,7 @@ ___
     end
 
     def _QUESTION_MARK_hook(tok)
-      return AST[:QUESTION_MARK, tok ]
+      return AST[:QUESTION_MARK, tok, self.property_hook ]
     end
 
 
@@ -6147,7 +6194,7 @@ ___
     end
 
     def _STRING_hook(string)
-      return AST[:STRING, string ]
+      return AST[:STRING, string, self.property_hook ]
     end
 
 
@@ -6215,7 +6262,7 @@ ___
                      constant_expression)
       return AST[:primary,
                  base, expression__constant_expression,
-                 constant_expression ]
+                 constant_expression, self.property_hook ]
     end
 
 
@@ -6268,7 +6315,7 @@ ___
       return AST[:number,
                  unsigned_number__decimal_number,
                  base__unsigned_number,
-                 decimal_number ]
+                 decimal_number, self.property_hook ]
     end
 
 
@@ -6287,7 +6334,7 @@ ___
     end
 
     def _DECIMAL_NUMBER_hook(tok)
-      return AST[:DECIMAL_NUMBER, tok ]
+      return AST[:DECIMAL_NUMBER, tok, self.property_hook ]
     end
 
 
@@ -6306,7 +6353,7 @@ ___
     end
 
     def _UNSIGNED_NUMBER_hook(tok)
-      return AST[:UNSIGNED_NUMBER, tok ]
+      return AST[:UNSIGNED_NUMBER, tok, self.property_hook ]
     end
 
 
@@ -6355,7 +6402,7 @@ ___
     end
 
     def _NUMBER_hook(tok)
-      return AST[:NUMBER, tok ]
+      return AST[:NUMBER, tok, self.property_hook ]
     end
 
 
@@ -6373,7 +6420,7 @@ ___
     end
 
     def _BASE_hook(tok)
-      return AST[:BASE, tok]
+      return AST[:BASE, tok, self.property_hook]
     end
 
 
@@ -6408,7 +6455,7 @@ ___
     end
 
     def concatenation_hook(expressions)
-      return AST[:concatenation, expressions ]
+      return AST[:concatenation, expressions, self.property_hook ]
     end
 
 
@@ -6447,7 +6494,7 @@ ___
     end
 
     def multiple_concatenation_hook(expression, expressions)
-      return AST[:multiple_concatenation, expression,expressions ]
+      return AST[:multiple_concatenation, expression,expressions, self.property_hook ]
     end
 
 
@@ -6505,7 +6552,7 @@ ___
                            expressions)
       return AST[:function_call,
                  name_of_function__name_of_system_function,
-                 expressions ]
+                 expressions, self.property_hook ]
     end
 
 
@@ -6521,7 +6568,7 @@ ___
     end
 
     def name_of_function_hook(identifier)
-      return AST[:name_of_function, identifier ]
+      return AST[:name_of_function, identifier, self.property_hook ]
     end
 
 
@@ -6541,7 +6588,7 @@ ___
     end
 
     def name_of_system_function_hook(identifier)
-      return AST[:name_of_system_function, identifier ]
+      return AST[:name_of_system_function, identifier, self.property_hook ]
     end
 
 
@@ -6567,7 +6614,7 @@ ___
     end
 
     def comment_hook(comment)
-      return AST[:comment, comment ]
+      return AST[:comment, comment, self.property_hook ]
     end
 
 
@@ -6589,7 +6636,7 @@ ___
     end
 
     def short_comment_hook(comment_text)
-      return AST[:short_comment, comment_text ]
+      return AST[:short_comment, comment_text, self.property_hook ]
     end
 
 
@@ -6612,7 +6659,7 @@ ___
     end
 
     def long_comment_hook(comment_text)
-      return AST[:long_comment, comment_text ]
+      return AST[:long_comment, comment_text, self.property_hook ]
     end
 
 
@@ -6634,7 +6681,7 @@ ___
     end
 
     def comment_text_hook(tok)
-      return AST[:comment_text, tok ]
+      return AST[:comment_text, tok, self.property_hook ]
     end
 
 
@@ -6660,7 +6707,7 @@ ___
     end
 
     def identifier_hook(identifiers)
-      return AST[:identifier, *identifiers ]
+      return AST[:identifier, *identifiers, self.property_hook ]
     end
 
 
@@ -6691,7 +6738,7 @@ ___
     end
 
     def _IDENTIFIER_hook(tok)
-      return AST[:_IDENTIFIER, tok ]
+      return AST[:_IDENTIFIER, tok, self.property_hook ]
     end
 
 
@@ -6745,7 +6792,7 @@ ___
                    mintypmax_expression1, mintypmax_expression2)
       return AST[:delay,
                  number__identifier__mintypmax_expression,
-                 mintypmax_expression1,mintypmax_expression2 ]
+                 mintypmax_expression1,mintypmax_expression2, self.property_hook ]
     end
 
 
@@ -6776,7 +6823,7 @@ ___
     end
 
     def delay_control_hook(number__identifier__mintypmax_expression)
-      return AST[:delay_control, number__identifier__mintypmax_expression ]
+      return AST[:delay_control, number__identifier__mintypmax_expression, self.property_hook ]
     end
 
 
@@ -6802,7 +6849,7 @@ ___
     end
 
     def event_control_hook(identifier__event_control)
-      return AST[:event_control, identifier__event_control ]
+      return AST[:event_control, identifier__event_control, self.property_hook ]
     end
 
 
@@ -6846,7 +6893,7 @@ ___
     #                           event_expression)
     #   return AST[:event_expression,
     #              tok__expression__event_expression,
-    #              event_expression ]
+    #              event_expression, self.property_hook ]
     # end
     #
     # Auth: this rule is infinitely recurse and do not support @ * nor
@@ -6877,7 +6924,7 @@ ___
       if event_primaries.size == 1 then
         return event_primaries[0]
       else
-        return AST[:event_expression, *event_primaries ]
+        return AST[:event_expression, *event_primaries, self.property_hook ]
       end
     end
 
@@ -6898,7 +6945,7 @@ ___
 
     def event_primary_hook(tok__expression, event_expression)
       return AST[:event_expression,
-                 tok__expression, event_expression ]
+                 tok__expression, event_expression, self.property_hook ]
     end
 
 
@@ -6919,7 +6966,7 @@ ___
     end
 
     def scalar_event_expression_hook(scalar_event_expression)
-      return AST[:scalar_event_expression, scalar_event_expression ]
+      return AST[:scalar_event_expression, scalar_event_expression, self.property_hook ]
     end
 
 
