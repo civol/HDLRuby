@@ -1235,8 +1235,10 @@ module HDLRuby::High
         end
 
         # Declares a high-level sequential behavior activated on a list of
-        # +events+, and built by executing +ruby_block+.
-        def seq(*events, &ruby_block)
+        # +events+, with possible name +name+ and built by executing
+        # +ruby_block+.
+        # def seq(*events, &ruby_block)
+        def seq(*events, name: nil, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             # Preprocess the events.
@@ -1244,12 +1246,16 @@ module HDLRuby::High
                 event.respond_to?(:to_event) ? event.to_event : event
             end
             # Create and add the resulting behavior.
-            self.add_behavior(Behavior.new(:seq,*events,&ruby_block))
+            # self.add_behavior(Behavior.new(:seq,*events,&ruby_block))
+            self.add_behavior(Behavior.new(:seq,*events,name: name,
+                                           &ruby_block))
         end
 
         # Declares a high-level parallel behavior activated on a list of
-        # +events+, and built by executing +ruby_block+.
-        def par(*events, &ruby_block)
+        # +events+, with possible name +name+ and built by executing
+        # +ruby_block+.
+        # def par(*events, &ruby_block)
+        def par(*events, name: nil, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             # Preprocess the events.
@@ -1257,7 +1263,8 @@ module HDLRuby::High
                 event.respond_to?(:to_event) ? event.to_event : event
             end
             # Create and add the resulting behavior.
-            self.add_behavior(Behavior.new(:par,*events,&ruby_block))
+            self.add_behavior(Behavior.new(:par,*events,name: name,
+                                           &ruby_block))
         end
 
         # Declares a high-level timed behavior built by executing +ruby_block+.
@@ -4558,20 +4565,19 @@ module HDLRuby::High
         High = HDLRuby::High
 
         # Creates a new behavior executing +block+ activated on a list of
-        # +events+, and built by executing +ruby_block+.
+        # +events+, possible name (of main block) +name+ and built by
+        # executing +ruby_block+.
         # +mode+ can be either :seq or :par for respectively sequential or
         # parallel.
-        def initialize(mode,*events,&ruby_block)
+        # def initialize(mode, *events, name: nil, &ruby_block)
+        def initialize(mode, *events, &ruby_block)
             # Initialize the behavior with it.
             super(nil)
-            # # Save the Location for debugging information
-            # @location = caller_locations
-            # # Sets the current behavior
-            # @@cur_behavior = self
             # Add the events (they may be hierarchical to flatten)
             events.flatten.each { |event| self.add_event(event) }
             # Create and add the block.
-            self.block = High.make_block(mode,&ruby_block)
+            # self.block = High.make_block(mode,&ruby_block)
+            self.block = High.make_block(mode,*name,&ruby_block)
             # # Unset the current behavior
             # @@cur_behavior = nil
         end
