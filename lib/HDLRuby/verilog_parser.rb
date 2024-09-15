@@ -7,8 +7,23 @@ module VerilogTools
   # A very basic AST representing the parsed Verilog code.
   # Can be replaced with any other structure by redefining the hook
   # methods.
+  #
+  # There are two versions of the AST:
+  # the normal AST where each syntax rules is represented by an AST node
+  # and the compressed version where each AST node whose type does not
+  # bring any information and whose signle child is another AST node
+  # is omitted.
+  #
+  # An AST consiste of a type, which is a symbol corresponding to a
+  # syntax rule, and one or more children which can be:
+  # * nil: for a child which is not present (optional in the syntax)
+  # * a string: for a terminal element (e.g., identifier, operator)
+  # * an AST node
+  # * an array: for reprenting an iterative rule like:
+  #              mul_term ( '+' mult_term )*
+  # The position of each child corresponds exactly to the represented
+  # syntax rule.
   class AST
-
     # Create a new AST.
     def self.[](type,*children)
       return AST.new(type,*children)
@@ -110,12 +125,14 @@ module VerilogTools
     def initialize
       # Create the parse state.
       # It includes:
+      # +compress+: is the compressed version of the AST to generate.
       # +text+: the text to parse
       # +filename+: the origin file name (if any)
       # +lprop+: the properties of each line.
-      @state = Struct.new(:text, :filename, :path,
+      @state = Struct.new(:compress, 
+                          :text, :filename, :path,
                           :lprop,
-                          :index, :lpos, :cpos).new("","",[],0,0)
+                          :index, :lpos, :cpos).new(false,"","",[],0,0)
       # Create the list of known module names.
       @module_names = []
       # Create the list of known UDP names.
@@ -124,9 +141,11 @@ module VerilogTools
 
 
     # Runs the full preprocesser and parser for  text to parse +text+
-    # and/or origin file named +filename+
-    def run(text: nil, filename: "")
-      self.setup(text: text, filename: filename)
+    # and/or origin file named +filename+.
+    # If +compress+ is true the compressed version of the AST will
+    # be generated.
+    def run(text: nil, filename: "", compress: false)
+      self.setup(text: text, filename: filename, compress: compress)
       self.preprocess
       self.parse
     end
@@ -134,7 +153,7 @@ module VerilogTools
 
     # Set up the parser with text to parse +text+ and/or origin file named
     # +filename+
-    def setup(text: nil, filename: "")
+    def setup(text: nil, filename: "", compress: false)
       # Shall we load the file?
       if text then
         # The text is provided, so do not load it.
@@ -145,7 +164,10 @@ module VerilogTools
         @state.filename = filename.to_s
         @state.text = File.read(@state.filename)
       end
+      # Set the path the the files.
       @state.path = File.dirname(@state.filename) + "/"
+      # Set the compress mode.
+      @state.compress = compress ? true : false
     end
 
 
@@ -1319,6 +1341,43 @@ module VerilogTools
 
     RULES = {}
 
+    # The origin rules (from https://www.verilog.com/VerilogBNF.html)
+    # that differs from the ones used in this parser.
+    ORIGIN_RULES = {}
+
+    # Get a rule by +name+.
+    def rule(name)
+      return RULES[name.to_sym]
+    end
+
+    # Get an origin rule by +name+.
+    def origin_rule(name)
+      name = name.to_sym
+      res = ORIGIN_RULES[name]
+      res = RULES[name] unless res
+      return res
+    end
+
+    # Access each rule.
+    def each_rule(&ruby_block)
+      # No ruby block? Return an enumerator.
+      return to_enum(:each_rule) unless ruby_block
+      # A ruby block? Apply it on each rule value.
+      RULES.each_value(&ruby_block)
+    end
+
+    # Access each origin rule.
+    def each_origin_rule(&ruby_block)
+      # No ruby block? Return an enumerator.
+      return to_enum(:each_origin_rule) unless ruby_block
+      # A ruby block? Apply it on each rule value.
+      orig = nil
+      RULES.each do |k,v|
+        orig = ORIGIN_RULES[k]
+        orig ? ruby_block.(orig) : ruby_block.(v)
+      end
+    end
+
 
     # Hook for the properties of the current line.
     # (No syntax rule required).
@@ -1349,17 +1408,6 @@ ___
     end
 
 
-    # # Auth: the timescale compiler directive is not preprocessed,
-    # # so it is added as a rule and produce an AST:
-    # # ||= <timescale>
-    # #
-    # # <timescale>
-    # # ::= `timescale <time> / <time> #{S}
-    # #
-    # # <time>
-    # # ::= <UNSIGNED_NUMBER> <TIME_UNIT>
-    # #
-    # # <TIME_UNIT> is one of 's', 'ms', 'us', 'ns', 'ps', 'fs'
     RULES[:description] = <<-___
 <description>
 	::= <module>
@@ -1379,7 +1427,11 @@ ___
     end
 
     def description_hook(elem)
-      return AST[:description, elem, self.property_hook ]
+      if self.state.compress then
+        return elem
+      else
+        return AST[:description, elem, self.property_hook ]
+      end
     end
 
 
@@ -1391,9 +1443,18 @@ ___
     # ...
     # <pre_parameter_declaration>
     # ::= # ( parameter list_of_param_assignments )
-    RULES[:module] = <<-___
+    ORIGIN_RULES[:module] = <<-___
 <module>
 	::= module <name_of_module> <list_of_ports>? ;
+		<module_item>*
+		endmodule
+	||= macromodule <name_of_module> <list_of_ports>? ;
+		<module_item>*
+		endmodule
+___
+    RULES[:module] = <<-___
+<module>
+	::= module <name_of_module> <pre_parameter_declaration>? <list_of_ports>? ;
 		<module_item>*
 		endmodule
 	||= macromodule <name_of_module> <list_of_ports>? ;
@@ -1437,6 +1498,13 @@ ___
       return AST[:module, name,pre_parameter_declaration,ports,elems, self.property_hook ]#,
                           # timescale,celldefine]
     end
+
+
+    RULES[:pre_parameter_declaration] = <<-___
+<pre_parameter_declaration>
+	::= # ( parameter <list_of_param_assignments> )
+___
+    ORIGIN_RULES[:pre_parameter_declaration] = ""
 
     def pre_parameter_declaration_parse
       return nil unless self.get_token(SHARP_REX)
@@ -1534,9 +1602,9 @@ ___
     # Auth: port_expression can also be a single port declaration,
     # so modified the rule as follows:
     # <port_expression>
-    # ::= <single_input_declaration>
-    # ||= <single_output_declaration>
-    # ||= <single_inout_declaration>
+    # ::= <input_port_declaration>
+    # ||= <output_port_declaration>
+    # ||= <inout_port_declaration>
     # ||= <port_reference>
 	# ||= { <port_reference> <,<port_reference>>* }
     #
@@ -1552,6 +1620,15 @@ ___
     # <single_net_declaration>
 	# ::= <NETTYPE> <expandrange>? <delay>? <name_of_variable> ;
     RULES[:port_expression] = <<-___
+<port_expression>
+	::= <input_port_declaration>
+	||= <output_port_declaration>
+	||= <inout_port_declaration>
+	||= <port_reference>
+	||= { <port_reference> <,<port_reference>>* }
+___
+
+    ORIGIN_RULES[:port_expression] = <<-___
 <port_expression>
 	::= <port_reference>
 	||= { <port_reference> <,<port_reference>>* }
@@ -1607,43 +1684,69 @@ ___
       return AST[:port_expression, port_declaration__port_refs, self.property_hook ]
     end
 
+
+    RULES[:input_port_declaration] = <<-___
+<input_port_declaration>
+	::= input INPUTTYPE? SIGNED? <range>? <name_of_variable> ;
+___
+
+    ORIGIN_RULES[:input_port_declaration] = ""
+
     def input_port_declaration_parse
       return nil unless self.get_token(INPUT_REX)
       type = self.get_token(INPUTTYPE_REX)
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       name_of_variable = self.name_of_variable_parse
       self.parse_error("identifier expected") unless name_of_variable
-      return input_port_declaration_hook(type,range,name_of_variable)
+      return input_port_declaration_hook(type,sign,range,name_of_variable)
     end
 
-    def input_port_declaration_hook(type, range, name_of_variable)
-      return AST[:input_port_declaration, type,range,name_of_variable, self.property_hook ]
+    def input_port_declaration_hook(type, sign, range, name_of_variable)
+      return AST[:input_port_declaration, type,sign,range,name_of_variable, self.property_hook ]
     end
+
+    RULES[:output_port_declaration] = <<-___
+<output_port_declaration>
+	::= output OUTPUTTYPE? SIGNED? <range>? <name_of_variable> ;
+___
+    
+    ORIGIN_RULES[:output_port_declaration] = ""
 
     def output_port_declaration_parse
       return nil unless self.get_token(OUTPUT_REX)
       type = self.get_token(OUTPUTTYPE_REX)
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       name_of_variable = self.name_of_variable_parse
       self.parse_error("identifier expected") unless name_of_variable
-      return output_port_declaration_hook(type,range,name_of_variable)
+      return output_port_declaration_hook(type,sign,range,name_of_variable)
     end
 
-    def output_port_declaration_hook(type, range, name_of_variable)
-      return AST[:output_port_declaration, type,range,name_of_variable, self.property_hook ]
+    def output_port_declaration_hook(type, sign, range, name_of_variable)
+      return AST[:output_port_declaration, type,sign,range,name_of_variable, self.property_hook ]
     end
+
+
+    RULES[:inout_port_declaration] = <<-___
+<inout_port_declaration>
+	::= inout INOUTTYPE? SIGNED? <range>? <name_of_variable> ;
+___
+
+    ORIGIN_RULES[:inout_port_declaration] = ""
 
     def inout_port_declaration_parse
       return nil unless self.get_token(INOUT_REX)
       type = self.get_token(INOUTTYPE_REX)
+      sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       name_of_variable = self.name_of_variable_parse
       self.parse_error("identifier expected") unless name_of_variable
-      return inout_port_declaration_hook(type,range,name_of_variable)
+      return inout_port_declaration_hook(type,sign,range,name_of_variable)
     end
 
-    def inout_port_declaration_hook(type, range, name_of_variable)
-      return AST[:inout_port_declaration, type,range,name_of_variable, self.property_hook ]
+    def inout_port_declaration_hook(type, sign, range, name_of_variable)
+      return AST[:inout_port_declaration, type,sign,range,name_of_variable, self.property_hook ]
     end
 
 
@@ -1776,7 +1879,11 @@ ___
     end
 
     def module_item_hook(item)
-      return AST[:module_item, item, self.property_hook ]
+      if self.state.compress then
+        return item
+      else
+        return AST[:module_item, item, self.property_hook ]
+      end
     end
 
 
@@ -1875,7 +1982,11 @@ ___
     end
 
     def udp_declaration_hook(declaration)
-      return AST[:UDP_declaration, declaration, self.property_hook ]
+      if self.state.compress then
+        return declaration
+      else
+        return AST[:UDP_declaration, declaration, self.property_hook ]
+      end
     end
 
 
@@ -1935,7 +2046,11 @@ ___
     end
 
     def output_terminal_name_hook(name_of_variable)
-      return AST[:output_terminal_name, name_of_variable, self.property_hook]
+      if self.state.compress then
+        return name_of_variable
+      else
+        return AST[:output_terminal_name, name_of_variable, self.property_hook]
+      end
     end
 
 
@@ -2064,7 +2179,11 @@ ___
     end
 
     def input_list_hook(input_list)
-      return AST[:input_list, input_list, self.property_hook ]
+      if self.state.compress then
+        return input_list
+      else
+        return AST[:input_list, input_list, self.property_hook ]
+      end
     end
 
 
@@ -2335,7 +2454,11 @@ ___
     end
 
     def range_or_type_hook(range_or_type)
-      return AST[:range_or_type, range_or_type, self.property_hook ]
+      if self.state.compress then
+        return range_or_type
+      else
+        return AST[:range_or_type, range_or_type, self.property_hook ]
+      end
     end
 
 
@@ -2388,7 +2511,11 @@ ___
     end
 
     def tf_declaration_hook(declaration)
-      return AST[:tf_declaration, declaration, self.property_hook ]
+      if self.state.compress then
+        return declaration
+      else
+        return AST[:tf_declaration, declaration, self.property_hook ]
+      end
     end
 
 
@@ -2461,6 +2588,11 @@ ___
     # ::= input INPUTTYPE? SIGNED? <range>? <list_of_variables> ;
     RULES[:input_declaration] = <<-___
 <input_declaration>
+	::= input INPUTTYPE? SIGNED? <range>? <list_of_variables> ;
+___
+
+    ORIGIN_RULES[:input_declaration] = <<-___
+<input_declaration>
 	::= input <range>? <list_of_variables> ;
 ___
 
@@ -2489,6 +2621,11 @@ ___
     # ::= output OUTPUTTYPE? SIGNED? <range>? <list_of_variables> ;
     RULES[:output_declaration] = <<-___
 <output_declaration>
+	::= output OUTPUTTYPE? SIGNED? <range>? <list_of_variables> ;
+___
+
+    ORIGIN_RULES[:output_declaration] = <<-___
+<output_declaration>
 	::= output <range>? <list_of_variables> ;
 ___
 
@@ -2511,36 +2648,17 @@ ___
       return AST[:output_declaration, type,sign,range,list_of_variables, self.property_hook ]
     end
 
-    # # Auth: rule for the variables declared in output
-    # # list_of_output_variables_parse
-    # # ::= net_declaration
-    # # ||= reg_declaration
-    # # ||= list_of_variables
-    # def list_of_output_variables_parse
-    #   net_declaration = self.net_declaration_parse
-    #   if net_declaration then
-    #     return list_of_output_variables_hook(net_declaration)
-    #   end
-    #   reg_declaration = self.reg_declaration_parse
-    #   if reg_declaration then
-    #     return list_of_output_variables_hook(reg_declaration)
-    #   end
-    #   list_of_variables = self.list_of_variables_parse
-    #   return nil unless list_of_variables
-    #   self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
-    #   return list_of_output_variables_hook(list_of_variables)
-    # end
-
-    # def list_of_output_variables_hook(list)
-    #   return list
-    # end
-
 
     # Auth: Verilog HDL also supports inout wire and signed so modified the
     # rule as follows:
     # <inout_declaration>
     # ::= inout INOUTTYPE? SIGNED? <range>? <list_of_variables> ;
     RULES[:inout_declaration] = <<-___
+<inout_declaration>
+	::= inout INOUTTYPE? SIGNED? <range>? <list_of_variables> ;
+___
+
+    ORIGIN_RULES[:inout_declaration] = <<-___
 <inout_declaration>
 	::= inout <range>? <list_of_variables> ;
 ___
@@ -2568,6 +2686,12 @@ ___
     # ::= <NETTYPE> SIGNED? <expandrange>? <delay>? <list_of_variables> ;
     # ||= trireg <charget_strength>? SIGNED? <expandrange>? <delay>?
     RULES[:net_declaration] = <<-___
+<net_declaration>
+	::= <NETTYPE> SIGNED? <expandrange>? <delay>? <list_of_variables> ;
+	||= trireg <charge_strength>? SIGNED? <expandrange>? <delay>?
+___
+
+    ORIGIN_RULES[:net_declaration] = <<-___
 <net_declaration>
 	::= <NETTYPE> <expandrange>? <delay>? <list_of_variables> ;
 	||= trireg <charge_strength>? <expandrange>? <delay>?
@@ -2621,11 +2745,13 @@ ___
 
     # Auth: this rule overides the list_of_variables, and is
     # not refered anywhere in the BNF, maybe it is a mistake.
+
+    RULES[:"^list_of_variables"] = ""
     
-    # RULES[:list_of_variables] = <<-___
-    # list_of_variables> ;
-    # ||= <NETTYPE> <drive_strength>? <expandrange>? <delay>? <list_of_assignments> ;
-    # ___
+    ORIGIN_RULES[:"^list_of_variables"] = <<-___
+    list_of_variables> ;
+    ||= <NETTYPE> <drive_strength>? <expandrange>? <delay>? <list_of_assignments> ;
+    ___
 
     # def list_of_variables_parse
     #   return nil if self.get_token(SEMICOLON_REX)
@@ -2648,8 +2774,6 @@ ___
     # end
 
 
-    # Auth: I think NETTYPE should also include 'reg', so added
-    # (see NETTYPE_TOKS)
     RULES[:NETTYPE] = <<-___
 <NETTYPE> is one of the following keywords:
 	wire  tri  tri1  supply0  wand  triand  tri0  supply1  wor  trior  trireg
@@ -2699,6 +2823,11 @@ ___
     # <reg_declaration>
     # ::= reg SIGNED? <range>? <list_of_register_variables> ;
     RULES[:reg_declaration] = <<-___
+<reg_declaration>
+	::= reg SIGNED? <range>? <list_of_register_variables> ;
+___
+
+    ORIGIN_RULES[:reg_declaration] = <<-___
 <reg_declaration>
 	::= reg <range>? <list_of_register_variables> ;
 ___
@@ -3731,7 +3860,11 @@ ___
     end
 
     def statement_or_null_hook(statement)
-      return AST[:statement_or_null, statement, self.property_hook ]
+      if self.state.compress then
+        return statement
+      else
+        return AST[:statement_or_null, statement, self.property_hook ]
+      end
     end
 
 
@@ -4108,13 +4241,13 @@ ___
           statements << cur_statement
         end
         self.parse_error("'end' expected") unless self.get_token(END_REX)
-        return self.seq_block_hook(statements,nil,nil)
+        return self.seq_block_hook(nil,nil,statements)
       end
     end
 
-    def seq_block_hook(statements__name_of_block,
+    def seq_block_hook(name_of_block,
                        block_declarations, statements)
-      return AST[:seq_block, statements__name_of_block,
+      return AST[:seq_block, name_of_block,
                  block_declarations,statements, self.property_hook ]
     end
 
@@ -4224,22 +4357,32 @@ ___
     end
 
     def block_declaration_hook(declaration)
-      return AST[:block_declaration, declaration, self.property_hook ]
+      if self.state.compress then
+        return declaration
+      else
+        return AST[:block_declaration, declaration, self.property_hook ]
+      end
     end
 
-
-    RULES[:task_enable] = <<-___
-<task_enable>
-	::= <name_of_task>
-	||= <name_of_task> ( <expression> <,<expression>>* ) ;
-___
 
     # Auth: there seems ot be a mistake in this rule:
     # there should be a semi colon and after name_of_task.
     # So use the following rule:
     # <task_enable>
     # ::= <name_of_task> ;
-    # ||= <name_of_task ( <expression, <,<expression>>* ) ;
+    # ||= <name_of_task ( <expression <,<expression>>* ) ;
+    ORIGIN_RULES[:task_enable] = <<-___
+<task_enable>
+	::= <name_of_task> ;
+	||= <name_of_task> ( <expression> <,<expression>>* ) ;
+___
+
+    ORIGIN_RULES[:task_enable] = <<-___
+<task_enable>
+	::= <name_of_task>
+	||= <name_of_task> ( <expression> <,<expression>>* ) ;
+___
+
     def task_enable_parse
       parse_state = self.state
       name_of_task = self.name_of_task_parse
@@ -4424,7 +4567,11 @@ ___
     end
 
     def specify_item_hook(declaration)
-      return AST[:specify_item, declaration, self.property_hook ]
+      if self.state.compress then
+        return declaration
+      else
+        return AST[:specify_item, declaration, self.property_hook ]
+      end
     end
 
 
@@ -4815,7 +4962,11 @@ ___
     end
 
     def path_delay_expression_hook(mintypmax_expression)
-      return AST[:path_delay_expression, mintypmax_expression, self.property_hook ]
+      if self.state.compress then
+        return mintypmax_expression
+      else
+        return AST[:path_delay_expression, mintypmax_expression, self.property_hook ]
+      end
     end
 
 
@@ -5039,7 +5190,7 @@ ___
           specify_input_terminal_descriptor)
       end
       specify_output_terminal_descriptor = 
-        self.specify_otuput_terminal_descriptor_parse
+        self.specify_output_terminal_descriptor_parse
       unless specify_output_terminal_descriptor then
         return nil
       end
@@ -5048,7 +5199,11 @@ ___
     end
 
     def specify_terminal_descriptor_hook(specify_terminal_descriptor)
-      return AST[:specify_terminal_descriptor, specify_terminal_descriptor, self.property_hook ]
+      if self.state.compress then
+        return specify_terminal_descriptor
+      else
+        return AST[:specify_terminal_descriptor, specify_terminal_descriptor, self.property_hook ]
+      end
     end
 
 
@@ -5109,8 +5264,8 @@ ___
       return self.timing_check_event_control_hook(edge_control_specifier)
     end
 
-    def timing_check_event_control_hook(edge_control_specifier)
-      return AST[:timing_check_event_control, event_control_specifier, self.property_hook ]
+    def timing_check_event_control_hook(tok__edge_control_specifier)
+      return AST[:timing_check_event_control, tok__event_control_specifier, self.property_hook ]
     end
 
 
@@ -5191,8 +5346,12 @@ ___
     end
 
     def timing_check_condition_hook(scalar_timing_check_condition)
-      return AST[:timing_check_condition,
-                 scalar_timing_check_condition, self.property_hook ]
+      if self.state.compress then
+        return scalar_timing_check_condition
+      else
+        return AST[:timing_check_condition,
+                   scalar_timing_check_condition, self.property_hook ]
+      end
     end
 
 
@@ -5730,7 +5889,7 @@ ___
     end
 
 
-    RULES[:expression] = <<-___
+    ORIGIN_RULES[:expression] = <<-___
 <expression>
 	::= <primary>
 	||= <UNARY_OPERATOR> <primary>
@@ -5791,43 +5950,48 @@ ___
 
     # Auth: this rule has no priority handling and is infinitely recurse
     # fix it to:
-    # expression
-    # ::= condition_term ('?' condition_term ':' condition_term)*
+    # <expression>
+    # ::= <condition_term> ('?' <condition_term> ':' <condition_term>)*
     # ||= <STRING>
     #
-    # condition_term
-    # ::= logic_or_term ('||' logic_or_term)*
+    # <condition_term>
+    # ::= <logic_or_term> ('||' <logic_or_term>)*
     #
-    # logic_or_term
-    # ::= logic_and_term ('&&' logic_and_term)*
+    # <logic_or_term>
+    # ::= <logic_and_term> ('&&' <logic_and_term>)*
     #
-    # logic_and_term
-    # ::= bit_or_term ('|' | '~|' bit_or_term)*
+    # <logic_and_term>
+    # ::= <bit_or_term> ('|' | '~|' <bit_or_term>)*
     #
-    # bit_or_term
-    # ::= bit_xor_term ('^' | '~^' bit_xor_term)*
+    # <bit_or_term>
+    # ::= <bit_xor_term> ('^' | '~^' <bit_xor_term>)*
     #
-    # bit_xor_term
-    # ::= bit_and_term ('&' | '~&' bit_and_term)*
+    # <bit_xor_term>
+    # ::= <bit_and_term> ('&' | '~&' <bit_and_term>)*
     #
-    # bit_and_term 
-    # ::= equal_term '==' | '!=' | '===' | '!==' equal_term
+    # <bit_and_term>
+    # ::= <equal_term> '==' | '!=' | '===' | '!==' <equal_term>
     #
-    # equal_term
-    # ::= comparison_term '<' | '<=' | '>' | '>=' comparison_term
+    # <equal_term>
+    # ::= <comparison_term> '<' | '<=' | '>' | '>=' <comparison_term>
     #
-    # comparison_term
-    # ::= shift_term ('<<' | '>>' | '<<<' |'>>>' shift_term)*
+    # <comparison_term>
+    # ::= <shift_term> ('<<' | '>>' | '<<<' |'>>>' <shift_term>)*
     #
-    # shift_term
-    # ::= add_term ('+' | '-' add_term)*
+    # <shift_term>
+    # ::= <add_term> ('+' | '-' <add_term>)*
     #
-    # add_term
-    # ::= mul_term ('*' | '/' | '%' | '**' mul_term)*
+    # <add_term>
+    # ::= <mul_term> ('*' | '/' | '%' | '**' <mul_term>)*
     #
-    # mul_term
-    # ::= '+' | '-' | '!' | '~' primary
-    # ||= primary
+    # <mul_term>
+    # ::= '+' | '-' | '!' | '~' <primary>
+    # ||= <primary>
+    RULES[:expression] = <<-___
+<expression>
+	::= <condition_term> ('?' <condition_term> ':' <condition_term>)*
+	||= <STRING>
+___
 
     def expression_parse
       # puts "expression_parse"
@@ -5854,13 +6018,21 @@ ___
     end
 
     def expression_hook(string__condition_terms)
-      if string__condition_terms.is_a?(Array) and 
+      if self.state.compress and string__condition_terms.is_a?(Array) and 
           string__condition_terms.size == 1 then
-        return string__condition_terms[0]
+        return AST[:expression, string__condition_terms[0] ]
       else
-        return AST[:expression, *string__condition_terms, self.property_hook ]
+        return AST[:expression, string__condition_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:condition_term] = <<-___
+<condition_term>
+	::= <logic_or_term> ('||' <logic_or_term>)*
+___
+
+    ORIGIN_RULES[:condition_term] = ""
 
     def condition_term_parse
       # puts "condition_term_parse"
@@ -5878,12 +6050,20 @@ ___
     end
 
     def condition_term_hook(logic_or_terms)
-      if logic_or_terms.size == 1 then
+      if self.state.compress and logic_or_terms.size == 1 then
         return logic_or_terms[0]
       else
-        return AST[:expression, *logic_or_terms, self.property_hook ]
+        return AST[:condition_term, logic_or_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:logic_or_term] = <<-___
+<logic_or_term>
+	::= <logic_and_term> ('&&' <logic_and_term>)*
+___
+
+    ORIGIN_RULES[:logic_or_term] = ""
 
     def logic_or_term_parse
       # puts "logic_or_term_parse"
@@ -5901,12 +6081,20 @@ ___
     end
 
     def logic_or_term_hook(logic_and_terms)
-      if logic_and_terms.size == 1 then
+      if self.state.compress and logic_and_terms.size == 1 then
         return logic_and_terms[0]
       else
-        return AST[:expression, *logic_and_terms, self.property_hook ]
+        return AST[:logic_or_term, logic_and_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:logic_and_term] = <<-___
+<logic_and_term>
+	::= <bit_or_term> ('|' | '~|' <bit_or_term>)*
+___
+
+    ORIGIN_RULES[:logic_and_term] = ""
 
     def logic_and_term_parse
       # puts "logic_and_term_parse"
@@ -5926,12 +6114,20 @@ ___
     end
 
     def logic_and_term_hook(bit_or_terms)
-      if (bit_or_terms.size == 1) then
+      if self.state.compress and bit_or_terms.size == 1 then
         return bit_or_terms[0]
       else
-        return AST[:expression, *bit_or_terms, self.property_hook ]
+        return AST[:logic_and_term, bit_or_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:bit_or_term] = <<-___
+<bit_or_term>
+	::= <bit_xor_term> ('^' | '~^' <bit_xor_term>)*
+___
+
+    ORIGIN_RULES[:bit_or_term] = ""
 
     def bit_or_term_parse
       # puts "bit_or_term_parse"
@@ -5951,12 +6147,20 @@ ___
     end
 
     def bit_or_term_hook(bit_xor_terms)
-      if bit_xor_terms.size == 1 then
+      if self.state.compress and bit_xor_terms.size == 1 then
         return bit_xor_terms[0]
       else
-        return AST[:expression, *bit_xor_terms, self.property_hook ]
+        return AST[:bit_or_term, bit_xor_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:bit_xor_term] = <<-___
+<bit_xor_term>
+	::= <bit_and_term> ('&' | '~&' <bit_and_term>)*
+___
+
+    ORIGIN_RULES[:bit_xor_term] = ""
 
     def bit_xor_term_parse
       # puts "bit_xor_term_parse"
@@ -5977,12 +6181,20 @@ ___
     end
 
     def bit_xor_term_hook(bit_and_terms)
-      if bit_and_terms.size == 1 then
+      if self.state.compress and bit_and_terms.size == 1 then
         return bit_and_terms[0]
       else
-        return AST[:expression, *bit_and_terms, self.property_hook ]
+        return AST[:bit_xor_term, bit_and_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:bit_and_term] = <<-___
+<bit_and_term>
+	::= <equal_term> '==' | '!=' | '===' | '!==' <equal_term>
+___
+
+    ORIGIN_RULES[:bit_and_term] = ""
 
     def bit_and_term_parse
       # puts "bit_and_term_parse"
@@ -6002,12 +6214,20 @@ ___
     end
 
     def bit_and_term_hook(equal_terms)
-      if equal_terms.size == 1 then
+      if self.state.compress and equal_terms.size == 1 then
         return equal_terms[0]
       else
-        return AST[:expression, *equal_terms, self.property_hook ]
+        return AST[:bit_and_term, equal_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:equal_term] = <<-___
+<equal_term>
+	::= <comparison_term> '<' | '<=' | '>' | '>=' <comparison_term>
+___
+
+    ORIGIN_RULES[:equal_term] = ""
 
     def equal_term_parse
       # puts "equal_term_parse"
@@ -6027,12 +6247,20 @@ ___
     end
 
     def equal_term_hook(comparison_terms)
-      if comparison_terms.size == 1 then
+      if self.state.compress and comparison_terms.size == 1 then
         return comparison_terms[0]
       else
-        return AST[:expression, *comparison_terms, self.property_hook ]
+        return AST[:equal_term, comparison_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:comparison_term] = <<-___
+<comparison_term>
+	::= <shift_term> ('<<' | '>>' | '<<<' |'>>>' <shift_term>)*
+___
+
+    ORIGIN_RULES[:comparison_term] = ""
 
     def comparison_term_parse
       # puts "comparison_parse"
@@ -6052,12 +6280,20 @@ ___
     end
 
     def comparison_term_hook(shift_terms)
-      if shift_terms.size == 1 then
+      if self.state.compress and shift_terms.size == 1 then
         return shift_terms[0]
       else
-        return AST[:expression, *shift_terms, self.property_hook ]
+        return AST[:comparison_term, shift_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:shift_term] = <<-___
+<shift_term>
+	::= <add_term> ('+' | '-' <add_term>)*
+___
+
+    ORIGIN_RULES[:shift_term] = ""
 
     def shift_term_parse
       # puts "shift_term_parse"
@@ -6077,12 +6313,20 @@ ___
     end
 
     def shift_term_hook(add_terms)
-      if add_terms.size == 1 then
+      if self.state.compress and add_terms.size == 1 then
         return add_terms[0]
       else
-        return AST[:expression, *add_terms, self.property_hook ]
+        return AST[:shift_term, add_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:add_term] = <<-___
+<add_term>
+	::= <mul_term> ('*' | '/' | '%' | '**' <mul_term>)*
+___
+
+    ORIGIN_RULES[:add_term] = ""
 
     def add_term_parse
       # puts "add_term_parse"
@@ -6102,12 +6346,21 @@ ___
     end
 
     def add_term_hook(mul_terms)
-      if mul_terms.size == 1 then
+      if self.state.compress and mul_terms.size == 1 then
         return mul_terms[0]
       else
-        return AST[:expression, *mul_terms, self.property_hook ]
+        return AST[:and_term, mul_terms, self.property_hook ]
       end
     end
+
+
+    RULES[:mul_term] = <<-___
+<mul_term>
+	::= '+' | '-' | '!' | '~' <primary>
+	||= <primary>
+___
+
+    ORIGIN_RULES[:mul_term] = ""
 
     def mul_term_parse
       # puts "mul_term_parse"
@@ -6125,7 +6378,11 @@ ___
     end
 
     def mul_term_hook(unary_terms)
-      return AST[:expression, *unary_terms, self.property_hook ]
+      if self.state.compress and unary_terms.size == 1 then
+        return unary_terms[0]
+      else
+        return AST[:mul_term, unary_terms, self.property_hook ]
+      end
     end
 
 
@@ -6266,7 +6523,23 @@ ___
     end
 
 
+    # *Auth*: I think there is a mistake in the BNF:
+    # <UNSIGNED_NUMBER>? <BASE> <UNSIGNED_NUMBER> should be:
+    # <UNSIGNED_NUMBER>? <BASE> <NUMBER>
     RULES[:number] = <<-___
+<number>
+	::= <DECIMAL_NUMBER>
+	||= <UNSIGNED_NUMBER>? <BASE> <NUMBER>
+	||= <DECIMAL_NUMBER>.<UNSIGNED_NUMBER>
+	||= <DECIMAL_NUMBER><.<UNSIGNED_NUMBER>>?
+		E<DECIMAL_NUMBER>
+	||= <DECIMAL_NUMBER><.<UNSIGNED_NUMBER>>?
+		e<DECIMAL_NUMBER>
+	(Note: embedded spaces are illegal in Verilog numbers, but embedded underscore
+	characters can be used for spacing in any type of number.)
+___
+
+    ORIGIN_RULES[:number] = <<-___
 <number>
 	::= <DECIMAL_NUMBER>
 	||= <UNSIGNED_NUMBER>? <BASE> <UNSIGNED_NUMBER>
@@ -6280,9 +6553,6 @@ ___
 ___
 
     def number_parse
-      # *Auth*: I think there is a mistake in the BNF:
-      # <UNSIGNED_NUMBER>? <BASE> <UNSIGNED_NUMBER> should be:
-      # <UNSIGNED_NUMBER>? <BASE> <NUMBER>
       parse_state = self.state
       unsigned_number = self._UNSIGNED_NUMBER_parse
       base = self._BASE_parse
@@ -6357,7 +6627,20 @@ ___
     end
 
 
+    # Auth: contrary to what the rule says, NUMBER should also accept '_',
+    # added to the regular expression.
+    # Also, there is no sign (+ or -) in the number, removed.
     RULES[:NUMBER] = <<-___
+<NUMBER>
+    Numbers can be specified in decimal, hexadecimal, octal or binary.
+    The <BASE> token controls what number digits
+	are legal.  <BASE> must be one of d, h, o, or b, for the bases decimal,
+	hexadecimal, octal, and binary respectively. A number can contain any set of
+	the following characters that is consistent with <BASE>:
+	_0123456789abcdefABCDEFxXzZ?
+___
+
+    ORIGIN_RULES[:NUMBER] = <<-___
 <NUMBER>
 	Numbers can be specified in decimal, hexadecimal, octal or binary, and may
 	optionally start with a + or -.  The <BASE> token controls what number digits
@@ -6367,9 +6650,6 @@ ___
 	0123456789abcdefABCDEFxXzZ?
 ___
 
-    # Auth: contrary to what the rule says, NUMBER should also accept '_',
-    # added to the regular expression.
-    # Also, there is no sign (+ or -) in the number, removed.
     def _NUMBER_parse(base)
       tok = self.get_token(NUMBER_REX)
       case(base)
@@ -6618,7 +6898,14 @@ ___
     end
 
 
+    # *Auth*: long and short comment are separated while in the
+    # BNF the are the same rule.
     RULES[:short_comment] = <<-___
+<short_comment>
+	::= // <short_comment_text> <END-OF-LINE>
+___
+
+    ORIGIN_RULES[:short_comment] = <<-___
 <short_comment>
 	::= // <comment_text> <END-OF-LINE>
 ___
@@ -6640,7 +6927,14 @@ ___
     end
 
 
+    # *Auth*: long and short comment are separated while in the
+    # BNF the are the same rule.
     RULES[:long_comment] = <<-___
+<long_comment>
+	::= /* <long_comment_text> */
+___
+
+    ORIGIN_RULES[:long_comment] = <<-___
 <long_comment>
 	::= /* <comment_text> */
 ___
@@ -6663,16 +6957,31 @@ ___
     end
 
 
-    RULES[:comment_text] = <<-___
+    ORIGIN_RULES[:comment_text] = <<-___
 <comment_text>
 	::= The comment text is zero or more ASCII characters
 ___
+
+    RULES[:short_comment_text] = <<-___
+<short_comment_text>
+	::= The short comment text is zero of more ASCII a characters ending
+	    by a end of line.
+___
+
+    ORIGIN_RULES[:short_comment_text] = ""
     
     def short_comment_text_parse
       # *Auth*: long and short comment are separated while in the
       # BNF the are the same rule.
       return comment_text_hook(self.get_token(SHORT_COMMENT_TEXT_REX))
     end
+
+
+    RULES[:long_comment_text] = <<-___
+<short_comment_text>
+	::= The long comment text is zero of more ASCII a characters ending
+	    by '*/'.
+___
     
     def long_comment_text_parse
       # *Auth*: long and short comment are separated while in the
@@ -6692,8 +7001,6 @@ ___
 ___
 
     def identifier_parse
-      # *BNF*: (Note: the period may not be preceded or followed by a
-      #         space.)
       cur_identifier = self._IDENTIFIER_parse
       return nil unless cur_identifier
       identifiers = [ cur_identifier ]
@@ -6853,7 +7160,7 @@ ___
     end
 
 
-    RULES[:event_expression] = <<-___
+    ORIGIN_RULES[:event_expression] = <<-___
 <event_expression>
 	::= <expression>
 	||= posedge <scalar_event_expression>
@@ -6901,11 +7208,15 @@ ___
     # event_expression
     # ::= <event_primary> ( or|',' <event_primary> )*
     #
-    # event_primary
+    # <event_primary>
     # ::= '*'
     # ||= <expression>
     # ||= posedge <scalar_event_expression>
 	# ||= negedge <scalar_event_expression>
+    RULES[:event_expression] = <<-___
+<event_expression>
+	::= <event_primary> ( or|',' <event_primary> )*
+___
 
     def event_expression_parse
       cur_event_primary = self.event_primary_parse
@@ -6921,12 +7232,19 @@ ___
     end
 
     def event_expression_hook(event_primaries)
-      if event_primaries.size == 1 then
-        return event_primaries[0]
-      else
-        return AST[:event_expression, *event_primaries, self.property_hook ]
-      end
+      return AST[:event_expression, event_primaries, self.property_hook ]
     end
+
+
+    RULES[:event_primary] = <<-___
+<event_primary>
+	::= '*'
+	||= <expression>
+	||= posedge <scalar_event_expression>
+	||= negedge <scalar_event_expression>
+___
+
+    ORIGIN_RULES[:event_primary] = ""
 
     def event_primary_parse
       if self.get_token(MUL_REX) then
@@ -6944,7 +7262,7 @@ ___
     end
 
     def event_primary_hook(tok__expression, event_expression)
-      return AST[:event_expression,
+      return AST[:event_primary,
                  tok__expression, event_expression, self.property_hook ]
     end
 
@@ -6956,8 +7274,6 @@ ___
 ___
 
     def scalar_event_expression_parse
-      # *BNF*: Scalar event expression is an expression that resolves to
-      # a one bit value.
       # *Auth*: we use a simple expression here. The check is left to
       # the AST.
       expression = self.expression_parse
