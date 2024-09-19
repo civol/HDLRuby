@@ -505,7 +505,7 @@ module VerilogTools
       ast[2][0].each do |reg|
         if reg[0].type == :name_of_memory then
           # It is a memory, it must be declared.
-          sign = "bit" unless sign
+          sign = "bit" if sign.empty?
           res_txt += state.indent + sign + range[0..-2] + 
             "[" + reg[1].to_HDLRuby(state) + ".." + 
             reg[2].to_HDLRuby(state)  + "].inner :" +
