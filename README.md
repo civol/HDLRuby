@@ -17,6 +17,17 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.4.0:
+
+ * Improved synchronization of the browser-base graphical interface with the HDLRuby simulator.
+
+ * Added a Verilog HDL parsing library for Ruby. This library will be released separately once it is fully stabilized."
+
+ * Added a HDLRuby generating library from the a Verilog HDL AST provided by the above-mentioned library.
+
+ * Added a standalone tool for converting Verilog HDL files to HDLRuby called [v2hdr](#converting-verilog-hdl-to-hdlruby). This tool is still experimental though.
+
+
 For HDLRuby version 3.3.0:
  
  * Remade the description of software components using the program construct.
@@ -3929,6 +3940,20 @@ The naming convention of the samples is the following:
 * `<name>_bench.rb`: sample including a simulation benchmark, these are the only samples that can be simulated using `hdrcc -S`. Please notice that such a sample cannot be converted to VHDL or Verilog HDL yet.
 * `with_<name>.rb`: sample illustrating a single aspect of HDLRuby or one of its libraries, usually includes a benchmark.
 
+# Converting Verilog HDL to HDLRuby
+
+While the HDLRuby framwork does not support Verilog HDL files as input yet, a standalone tool is provided for converting those files to HDLRuby. For that please use the following command:
+
+```bash
+v2hdr <input Verilog HDL file> <output HDLRuby file>
+```
+
+For example, assuming that you have a Verilog ddHDL named 'adder.v' describing and adder circuit, you can convert it to HDLRuby as follows:
+
+```bash
+v2hdr adder.v adder.rb
+```
+
 
 # Contributing
 
@@ -3938,7 +3963,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/civol/
 # To do
 
  * Find and fix the (maybe) terrifying number of bugs.
- * Add a GUI (any volunteer to do it?).
 
 
 # License

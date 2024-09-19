@@ -156,6 +156,20 @@ __Note__: VHDL generation is also possible using the following command.
  hdrcc --vhdl <input file> <output directory>
  ```
 
+In its current version, the HDLRuby framework only support HDLRuby descriptions for hardware. While being able to convert HDLRuby to Verilog HDL may usually be enough to design a cricuits, it may also sometimes be useful to be able to do the reverse: converting a Verilog HDL file to HDLRuby.
+To do this, you can use the following command:
+
+```bash
+v2hdr <input Verilog HDL file> <output HDLRuby file>
+```
+
+For example, assuming that you have a Verilog ddHDL named 'adder.v' describing and adder circuit, you can convert it to HDLRuby as follows:
+
+```bash
+v2hdr adder.v adder.rb
+```
+
+
 And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.
 
 
