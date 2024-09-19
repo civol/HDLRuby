@@ -9,6 +9,11 @@ unless ARGV.size == 2 or ARGV[0] == "--help" then
   exit
 end
 
+if ARGV[0] == ARGV[1] then
+  puts "Error: input and output files are identical."
+  exit(1)
+end
+
 begin
   ast = parser.run(filename: ARGV[0], compress: true)
 rescue => error
