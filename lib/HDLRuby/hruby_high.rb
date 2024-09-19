@@ -4872,6 +4872,11 @@ module HDLRuby::High
             to_expr
         end
 
+        # Converts to a new dealy in fentoseconds.
+        def fs
+          return Delay.new(self,:fs)
+        end
+
         # Converts to a new delay in picoseconds.
         def ps
             return Delay.new(self,:ps)
