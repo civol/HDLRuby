@@ -24,6 +24,9 @@ module VerilogTools
   # The position of each child corresponds exactly to the represented
   # syntax rule.
   class AST
+
+    include Enumerable
+
     # Create a new AST.
     def self.[](type,*children)
       return AST.new(type,*children)
@@ -1285,7 +1288,8 @@ module VerilogTools
     MUL_OPERATOR_REX = /\G#{S}(#{MUL_OPERATOR_TOKS.join("|")})/
 
     UNARY_OPERATOR_TOKS =  [ "\\" + ADD_TOK, SUB_TOK, NOT_TOK, TILDE_TOK,
-                             AND_TOK, TILDE_AND_TOK, "\\" + OR_TOK, 
+                             AND_TOK, TILDE_AND_TOK, 
+                             "\\" + OR_TOK, TILDE_TOK + "\\" + OR_TOK, 
                              "\\" + XOR_TOK  + "\\" + OR_TOK,
                              "\\" + XOR_TOK, TILDE_TOK + "\\" + XOR_TOK ]
     UNARY_OPERATOR_REX = /\G#{S}(#{UNARY_OPERATOR_TOKS.join("|")})/
@@ -1517,7 +1521,7 @@ ___
     end
 
     def pre_parameter_declaration_hook(list_of_param_assignments)
-      return AST[:parameter_declaration, list_of_param_assignments, self.property_hook ]
+      return AST[:pre_parameter_declaration, list_of_param_assignments, self.property_hook ]
     end
 
 
@@ -3047,7 +3051,7 @@ ___
         cur_register_variable = self.register_variable_parse
         register_variables << cur_register_variable
       end
-      return list_of_variables_hook(register_variables)
+      return list_of_register_variables_hook(register_variables)
     end
 
     def list_of_register_variables_hook(register_variables)
@@ -3238,7 +3242,7 @@ ___
     end
 
 
-    RULES[:range_parse] = <<-___
+    RULES[:range] = <<-___
 <range>
 	::= [ <constant_expression> : <constant_expression> ]
 ___
@@ -3860,11 +3864,7 @@ ___
     end
 
     def statement_or_null_hook(statement)
-      if self.state.compress then
-        return statement
-      else
-        return AST[:statement_or_null, statement, self.property_hook ]
-      end
+      return AST[:statement_or_null, statement, self.property_hook ]
     end
 
 
@@ -6356,7 +6356,7 @@ ___
 
     RULES[:mul_term] = <<-___
 <mul_term>
-	::= '+' | '-' | '!' | '~' <primary>
+	::= '+' | '-' | '!' | '~' | '^' | '&' | '|' <primary>
 	||= <primary>
 ___
 
