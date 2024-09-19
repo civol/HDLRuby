@@ -1,4 +1,5 @@
-# require "HDLRuby/verilog_parser.rb"
+$LOAD_PATH << "#{__dir__}/../../"
+
 require "HDLRuby/verilog_hruby.rb"
 
 parser = VerilogTools::Parser.new
@@ -7,9 +8,9 @@ ast = nil
 
 begin
   ast = parser.run(filename: ARGV[0], compress: ARGV[1] == "--compress" )
-# rescue => error
-#   puts error
-#   exit
+rescue => error
+  puts error
+  exit
 end
 
 puts "#################################"
@@ -21,10 +22,10 @@ puts ast
 
 hdlruby = ""
 begin
-  hdlruby= ast.to_HDLRuby
-# rescue => error
-#   puts error
-#   exit
+  hdlruby = ast.to_HDLRuby
+rescue => error
+  puts error
+  exit
 end
 
 puts "\n"
@@ -32,4 +33,4 @@ puts "#################################"
 puts "##           HDLRuby           ##"
 puts "#################################"
 
-puts ast
+puts hdlruby
