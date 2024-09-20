@@ -2283,9 +2283,9 @@ module HDLRuby::High
     # Require a verilog file.
     def require_verilog(filename)
       # Converts the file to HDLRuby.
-      if system("v2hdr", "#{filename}", "#{filename}.rb") then
+      if Kernel.system("v2hdr", "#{filename}", "#{filename}.rb") then
         # Success, require the resulting file.
-        require "#{filename}.rb"
+        require "#{Dir.pwd}/#{filename}.rb"
       else
         # Failure.
         raise AnyError, 

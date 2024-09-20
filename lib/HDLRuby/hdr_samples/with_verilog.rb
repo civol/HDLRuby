@@ -3,7 +3,7 @@
 require_verilog "adder8.v"
 
 system :verilog_bench do
-  [8].inner a,b,c
+  [8].inner :a, :b, :c
 
   # Instantiate the adder.
   adder8(:my_adder8).(a,b,c)
@@ -19,6 +19,6 @@ system :verilog_bench do
       end
       a <= a + 1
     end
+    !10.ns
   end
-  !10.ns
 end
