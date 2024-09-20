@@ -4585,8 +4585,8 @@ module HDLRuby::High
         # executing +ruby_block+.
         # +mode+ can be either :seq or :par for respectively sequential or
         # parallel.
-        # def initialize(mode, *events, name: nil, &ruby_block)
-        def initialize(mode, *events, &ruby_block)
+        # def initialize(mode, *events, &ruby_block)
+        def initialize(mode, *events, name: nil, &ruby_block)
             # Initialize the behavior with it.
             super(nil)
             # Add the events (they may be hierarchical to flatten)
