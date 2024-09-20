@@ -7,6 +7,18 @@ module HDLRuby
 # General tools for handling HDLRuby objects
 #######################################################
 
+    # Require a verilog file.
+    def self.require_verilog(filename)
+      # Converts the file to HDLRuby.
+      if system("v2hdr", "#{filename}", "#{filename}.rb") then
+        # Success, require the resulting file.
+        require "#{filename}.rb"
+      else
+        # Failure.
+        raise AnyError, 
+          "Could not load Verilog HDL file: #{filename}."
+      end
+    end
 
     # Method and attribute for generating an absolute uniq name.
     # Such names cannot be used in HDLRuby::High code, but can be used
