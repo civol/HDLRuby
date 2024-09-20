@@ -4,9 +4,16 @@ parser = VerilogTools::Parser.new
 
 ast = nil
 
-unless ARGV.size == 2 or ARGV[0] == "--help" then
-  puts "Usage: v2hdr <input verilog file name> <output HDLRuby file name>"
+HELP = "Usage: v2hdr <input verilog file name> <output HDLRuby file name>" 
+
+if  ARGV[0] == "--help" then
+  puts HELP
   exit
+end
+
+unless ARGV.size == 2 then
+  puts HELP
+  exit(1)
 end
 
 if ARGV[0] == ARGV[1] then
@@ -18,7 +25,7 @@ begin
   ast = parser.run(filename: ARGV[0], compress: true)
 rescue => error
   puts error
-  exit
+  exit(1)
 end
 
 hdlruby = ""
@@ -26,7 +33,7 @@ begin
   hdlruby = ast.to_HDLRuby
 rescue => error
   puts error
-  exit
+  exit(1)
 end
 
 File.open(ARGV[1],"w") { |f| f.write(hdlruby) }
