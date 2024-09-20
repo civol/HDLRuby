@@ -2278,6 +2278,22 @@ module HDLRuby::High
     end
 
 
+    ## Methods for loading external files.
+
+    # Require a verilog file.
+    def require_verilog(filename)
+      # Converts the file to HDLRuby.
+      if system("v2hdr", "#{filename}", "#{filename}.rb") then
+        # Success, require the resulting file.
+        require "#{filename}.rb"
+      else
+        # Failure.
+        raise AnyError, 
+          "Could not load Verilog HDL file: #{filename}."
+      end
+    end
+
+
 
     # Classes describing harware instances.
 
