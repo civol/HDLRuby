@@ -1,3 +1,5 @@
+raise "Deprecated code."
+
 require 'std/handshakes.rb'
 
 include HDLRuby::High::Std

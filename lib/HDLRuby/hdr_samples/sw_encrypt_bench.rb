@@ -1,3 +1,5 @@
+raise "Deprecated code."
+
 # require "../hruby_low2c.rb"
 
 # An 8-bit register with C encrypting.

@@ -1,3 +1,5 @@
+raise "Deprecated code."
+
 require 'HDLRuby/backend/allocator'
 
 ## A generic CPU description
