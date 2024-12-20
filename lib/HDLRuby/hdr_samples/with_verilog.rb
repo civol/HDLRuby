@@ -1,4 +1,4 @@
-# Sample HDLRuby instantiating a Verilog HDL-described adder (adder.v)
+# Sample HDLRuby instantiating a Verilog HDL-described adder (adder8.v)
 
 require_verilog "adder8.v"
 

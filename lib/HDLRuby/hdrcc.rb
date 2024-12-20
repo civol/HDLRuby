@@ -352,13 +352,13 @@ $options = {}
 $options[:std] = true
 # Parse the options
 $optparse = OptionParser.new do |opts|
-    opts.banner = "Usage: hdrcc.rb [options] <input file> [<output directory or file>]"
+    opts.banner = "Usage: hdrcc.rb [options] [<input file>] [<output/working directory>]"
 
     opts.separator ""
     opts.separator "Where:"
     opts.separator "* `options` is a list of options"
-    opts.separator "* `<input file>` is the initial file to compile (mandatory)"
-    opts.separator "* `<output file>` is the output file"
+    opts.separator "* `<input file>` is the initial file to compile"
+    opts.separator "* `<output/working directory>` is the directory where to put temporary and output files"
     opts.separator ""
     opts.separator "Options:"
 
@@ -614,7 +614,10 @@ if $output then
     end
 else
     if $options[:multiple] then
-        raise "Need a target directory in multiple files generation mode."
+        # raise "Need a target directory in multiple files generation mode."
+        warn("Need a output/working directory.")
+        warn($optparse.banner)
+        exit
     end
     $output = $stdout
 end
