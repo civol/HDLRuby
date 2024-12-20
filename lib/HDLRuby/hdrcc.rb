@@ -254,15 +254,15 @@ module HDLRuby
                 # No, look for it.
                 @top_system = get_top
                 # show? "@top_system=#{@top_system}"
-                unless @top_system then
-                    # Not found? Error.
-                    # Maybe it is a parse error, look for it.
-                    bind = TOPLEVEL_BINDING.clone
-                    eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
-                    eval(@texts[0],bind,@top_file_name,1)
-                    # No parse error found.
-                    raise "Cannot find a top system." unless @top_system
-                end
+                # unless @top_system then
+                #     # Not found? Error.
+                #     # Maybe it is a parse error, look for it.
+                #     bind = TOPLEVEL_BINDING.clone
+                #     eval("require 'HDLRuby'\n\nconfigure_high\n\n",bind)
+                #     eval(@texts[0],bind,@top_file_name,1)
+                #     # No parse error found.
+                #     raise "Cannot find a top system." unless @top_system
+                # end
             end
             # Initialize the environment for processing the hdr file.
             bind = TOPLEVEL_BINDING.clone
@@ -272,16 +272,20 @@ module HDLRuby
             end
             # Process it.
             eval(@texts[0],bind,@top_file_name,1)
-            # Get the resulting instance
-            if @params.empty? then
+            # Get the resulting instance if any.
+            if @top_system then
+              if @params.empty? then
                 # There is no generic parameter
                 @top_instance = 
-                    eval("#{@top_system} :#{@top_name}\n#{@top_name}",bind)
-            else
+                  eval("#{@top_system} :#{@top_name}\n#{@top_name}",bind)
+              else
                 # There are generic parameters
                 @top_instance = 
-                    # eval("#{@top_system} :#{@top_name},#{@params.join(",")}\n#{@top_name}",bind)
-                    eval("#{@top_system}(#{@params.join(",")}).(:#{@top_name})\n#{@top_name}",bind)
+                  eval("#{@top_system}(#{@params.join(",")}).(:#{@top_name})\n#{@top_name}",bind)
+              end
+            else
+              # No top instance.
+              @top_instance = nil
             end
         end
     end
@@ -456,6 +460,11 @@ $optparse = OptionParser.new do |opts|
         $options[:vhdl08] = true
         $gen = true
     end
+    opts.on("--svg","Output is vizualizable netlist (SVG format)") do |v|
+      $options[:svg] = v
+      $options[:multiple] = v
+      $gen = true
+    end
     opts.on("-s", "--syntax","Output the Ruby syntax tree") do |s|
         $options[:syntax] = s
     end
@@ -541,15 +550,15 @@ $optparse.parse!
 # show? "options=#{$options}"
 
 # Check the compatibility of the options
-if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl].include?(op) } > 1 then
-    warn("Please choose either YAML, HDLRuby, Verilog HDL, or VHDL output.")
+if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl,:svg].include?(op) } > 1 then
+    warn("Please choose either YAML, HDLRuby, Verilog HDL, VHDL, SVG (visualize) output.")
     puts $optparse.help()
 end
 
 # Get the the input and the output files.
 $input,$output = $*
-    # Get the top system name if name.
-    $top = $options[:top].to_s
+# Get the top system name if name.
+$top = $options[:top].to_s
 unless $top == "" || (/^[_[[:alpha:]]][_\w]*$/ =~ $top) then
     warn("Please provide a valid top system name.")
     exit
@@ -593,8 +602,15 @@ if $output then
             FileUtils.mkdir_p($output)
         end
     else
-        # Open the file.
-        $output = File.open($output,"w")
+        # Now, nothing to do: specified output files are not to be
+        # handled by hdrcc directly with handles output directories only.
+        # 
+        # # Open the file if it is one, otherwise use a string.
+        # if File.file?($output) then
+        #     $output = File.open($output,"w")
+        # else
+        #     $output = StringIO.new
+        # end
     end
 else
     if $options[:multiple] then
@@ -637,7 +653,13 @@ end
 # Get the top systemT.
 HDLRuby.show "#{Time.now}#{show_mem}"
 # Ruby simulation uses the HDLRuby::High tree, other the HDLRuby::Lowais used 
-$top_system = ($options[:rsim] || $options[:rcsim]) ? $top_instance.systemT : $top_instance.to_low.systemT
+if $top_instance then
+  $top_system = ($options[:rsim] || $options[:rcsim]) ? $top_instance.systemT : $top_instance.to_low.systemT
+else
+  # No top system, end here.
+  HDLRuby.show "##### End here since not top system #####"
+  exit
+end
 $top_intance = nil # Free as much memory as possible.
 HDLRuby.show "##### Top system built #####"
 HDLRuby.show "#{Time.now}#{show_mem}"
@@ -1025,6 +1047,21 @@ elsif $options[:vhdl] then
             $output << systemT.to_vhdl
         end
     end
+elsif $options[:svg] then
+    # Requires the viz library.
+    require "HDLRuby/hruby_viz.rb"
+    # Generate the viz structure.
+    viz = $top_system.to_viz
+    # Do the place and route.
+    viz.place_and_route_deep
+    viz.scale = 30.0
+    # Get the base name of the input file, it will be used for
+    # generating the main name of the multiple result files.
+    $basename = File.basename($input,File.extname($input))
+    $basename = $output + "/" + $basename
+    $name = $basename + ".svg"
+    # Generate the svg file.
+    File.open($name,"w") { |file| file.write(viz.to_svg) }
 end
 
 HDLRuby.show "##### Code generated #####"

@@ -6194,6 +6194,10 @@ module HDLRuby::Low
         # Create a new named reference with +type+ accessing +ref+ with +name+.
         # def initialize(ref,name)
         def initialize(type,ref,name)
+            # puts "new RefName with name=#{name}"
+            if !name or name.empty? then
+              raise "Internal error: Creating a RefName without a name."
+            end
             super(type)
             # Check and set the accessed reference.
             unless ref.is_a?(Ref) then

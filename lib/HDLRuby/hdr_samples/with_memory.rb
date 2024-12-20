@@ -1,3 +1,5 @@
+raise "Deprecated code."
+
 require 'std/memory.rb'
 
 include HDLRuby::High::Std

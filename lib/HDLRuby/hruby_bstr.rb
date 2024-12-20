@@ -70,7 +70,7 @@ module HDLRuby
                 # Content is not a numeric nor a BitString.
                 @content = []
                 # Ensure it is a string.
-                val = val.to_s.downcase
+                val = val.to_s.chomp.downcase
                 val.each_byte.reverse_each do |c|
                     case c
                     when 48  # "0"
@@ -82,7 +82,7 @@ module HDLRuby
                     when 122 # "z"
                         @content << 2
                     else
-                        raise "Invalid bit: #{b.chr}"
+                      raise "Invalid bit '#{c.chr}' in #{val}"
                     end
                 end
             end

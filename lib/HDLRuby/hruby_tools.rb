@@ -7,7 +7,6 @@ module HDLRuby
 # General tools for handling HDLRuby objects
 #######################################################
 
-
     # Method and attribute for generating an absolute uniq name.
     # Such names cannot be used in HDLRuby::High code, but can be used
     # to generate such code.

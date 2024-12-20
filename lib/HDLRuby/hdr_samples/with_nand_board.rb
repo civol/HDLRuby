@@ -11,7 +11,7 @@ system :nand_board do
     inner :clk
     # Description of the board.
     # It is updated at each rising edge of +clk+.
-    board(:nand,8080) do
+    board(:nand,http_port: 8080) do
         actport clk.posedge
         sw din0: din0
         sw din1: din1

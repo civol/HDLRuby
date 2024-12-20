@@ -10,7 +10,7 @@ In this tutorial, you will learn the basics about the description of digital cir
 
  4. [How to add parallelism to your algorithms.](#4-how-to-add-parallelism-to-your-algorithms)
 
-Then, the following section will introduce advanced concepts about hardware design and HDLruby:
+Then, the following section will introduce advanced concepts about hardware design and HDLRuby:
 
  5. [Toward lower level hardware design: the processes.](#5-toward-lower-level-hardware-design-the-processes)
 
@@ -19,6 +19,8 @@ Then, the following section will introduce advanced concepts about hardware desi
  7. [How to mix hardware and software.](#7-how-to-mix-hardware-and-softwware)
 
  8. [How to interact with the simulator.](#8-how-to-interact-with-the-simulator)
+
+ 9. [What about using Verilog HDL instead?](#9-what-about-using-Verilog-hdl-instead)
 
 Within these topics, you will also have an explanation of how the following high-level concepts can be used in HDLRuby:
 
@@ -155,6 +157,20 @@ __Note__: VHDL generation is also possible using the following command.
  ```bash
  hdrcc --vhdl <input file> <output directory>
  ```
+
+While being able to convert HDLRuby to Verilog HDL may usually be enough to design a cricuits, it may also sometimes be useful to be able to do the reverse: converting a Verilog HDL file to HDLRuby.
+To do this, you can use the following command:
+
+```bash
+v2hdr <input Verilog HDL file> <output HDLRuby file>
+```
+
+For example, assuming that you have a Verilog ddHDL named 'adder.v' describing and adder circuit, you can convert it to HDLRuby as follows:
+
+```bash
+v2hdr adder.v adder.rb
+```
+
 
 And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.
 
@@ -3776,7 +3792,62 @@ A more complete example can be found among the HDLRuby samples: `with_board.rb`,
 </p>
 
 
-## 9. What next?
+## 9. What about using Verilog HDL instead?
+
+I won’t claim how good HDLRuby is, but it’s clear that Verilog HDL (/ SystemVerilog) and VHDL are currently the leading languages in hardware design, and it would be unrealistic to expect this to change anytime soon. This means that for HDLRuby to offer any real benefit, the framework must be able to support one or both of these languages in some way. This is no easy task, but as a starting point, we now provide a tool for converting Verilog HDL files into HDLRuby files.
+For that please use the following command:
+
+```bash
+v2hdr <input Verilog HDL file> <output HDLRuby file>
+```
+
+For example, assuming that you have a Verilog ddHDL named 'adder.v' describing and adder circuit, you can convert it to HDLRuby as follows:
+
+```bash
+v2hdr adder.v adder.v.rb
+```
+
+
+Another possibility is to directly load the Verilog HDL file from a HDLRuby description using the command `require_verilog`.
+For example, assuming `adder.v` contains the following code:
+
+```verilog
+module adder(x,y,z);
+  input[7:0] x,y;
+  output[7:0] z;
+  
+  assign z = x + y;
+endmodule
+```
+
+It can be loaded the be instantiated like any other module in HDLRuby as follows:
+
+```ruby
+require_verilog "adder.v"
+
+system :my_IC do
+   [8].inner :a, :b, :c
+
+   adder(:my_adder).(a,b,c)
+
+   ...
+end
+```
+
+
+__Notes__:
+
+* Verilog HDL accepts signal and module names in any letter case, while HDLRuby reserves identifiers starting with a capital letter for constants. To avoid conflicts, Verilog HDL names that begin with a capital letter are prefixed with an underscore (`_`) in HDLRuby. For example, if the Verilog HDL module name in the previous example were `ADDER`, it would be renamed to `_ADDER` in HDLRuby. Instantiating such a module would be done as follows:
+
+  ```ruby
+  _ADDER(:my_add).(a,b,c)
+  ```
+
+* With the current version of HDLRuby, the Verilog HDL files are first converted to HDLRuby before being loaded using the standalone `v2hdr` tool.
+
+
+
+## 10. What next?
 
 There are still many aspects of HDLRuby that have not been addressed in this tutorial. For example, finite state machines (FSM) and decoders are crucial hardware components that you should learn about, and HDLRuby provides specific constructs for easier design. So from now on, please consult the main documentation of HDLRuby, and have a look at the code samples provided in the HDLRuby distribution. They can be copied to your working directory using the following command:
 

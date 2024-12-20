@@ -1,3 +1,5 @@
+raise "Deprecated code."
+
 require 'HDLRuby/backend/allocator'
 require 'HDLRuby/hdr_samples/mei8'
 

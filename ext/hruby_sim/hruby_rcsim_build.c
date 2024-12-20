@@ -554,6 +554,7 @@ VALUE rcsim_make_timeWait(VALUE mod, VALUE unitV, VALUE delayV) {
     /* Adjust the delay depending on the unit. */
     const char* unit = rb_id2name(SYM2ID(unitV));
     switch(unit[0]) {
+        case 'f': delay /= 1000;          break;
         case 'p': /* Ok as is. */         break;
         case 'n': delay *= 1000;          break;
         case 'u': delay *= 1000000;       break;

@@ -17,6 +17,19 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.4.0:
+
+ * Improved synchronization of the browser-base graphical interface with the HDLRuby simulator.
+
+ * Added a Verilog HDL parsing library for Ruby. This library will be released separately once it is fully stabilized."
+
+ * Added a HDLRuby generating library from the a Verilog HDL AST provided by the above-mentioned library.
+
+ * Added a standalone tool for converting Verilog HDL files to HDLRuby called [v2hdr](#converting-verilog-hdl-to-hdlruby). This tool is still experimental though.
+
+ * Added a HDLRuby command for [loading a Verilog HDL file from a HDLRuby description](#loading-verilog-hdl-from-hdlruby).
+
+
 For HDLRuby version 3.3.0:
  
  * Remade the description of software components using the program construct.
@@ -3929,6 +3942,57 @@ The naming convention of the samples is the following:
 * `<name>_bench.rb`: sample including a simulation benchmark, these are the only samples that can be simulated using `hdrcc -S`. Please notice that such a sample cannot be converted to VHDL or Verilog HDL yet.
 * `with_<name>.rb`: sample illustrating a single aspect of HDLRuby or one of its libraries, usually includes a benchmark.
 
+# Converting Verilog HDL to HDLRuby
+
+While the HDLRuby framwork does not support Verilog HDL files as input yet, a standalone tool is provided for converting those files to HDLRuby. For that please use the following command:
+
+```bash
+v2hdr <input Verilog HDL file> <output HDLRuby file>
+```
+
+For example, assuming that you have a Verilog ddHDL named 'adder.v' describing and adder circuit, you can convert it to HDLRuby as follows:
+
+```bash
+v2hdr adder.v adder.v.rb
+```
+
+Another possibility is to directly load the Verilog HDL file from a HDLRuby description using the command `require_verilog`.
+For example, assuming `adder.v` contains the following code:
+
+```verilog
+module adder(x,y,z);
+  input[7:0] x,y;
+  output[7:0] z;
+  
+  assign z = x + y;
+endmodule
+```
+
+It can be loaded the be instantiated like any other module in HDLRuby as follows:
+
+```ruby
+require_verilog "adder.v"
+
+system :my_IC do
+   [8].inner :a, :b, :c
+
+   adder(:my_adder).(a,b,c)
+
+   ...
+end
+```
+
+
+__Notes__:
+
+* Verilog HDL accepts signal and module names in any letter case, while HDLRuby reserves identifiers starting with a capital letter for constants. To avoid conflicts, Verilog HDL names that begin with a capital letter are prefixed with an underscore (`_`) in HDLRuby. For example, if the Verilog HDL module name in the previous example were `ADDER`, it would be renamed to `_ADDER` in HDLRuby. Instantiating such a module would be done as follows:
+
+  ```ruby
+  _ADDER(:my_add).(a,b,c)
+  ```
+
+* With the current version of HDLRuby, the Verilog HDL files are first converted to HDLRuby before being loaded using the standalone `v2hdr` tool.
+
 
 # Contributing
 
@@ -3938,7 +4002,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/civol/
 # To do
 
  * Find and fix the (maybe) terrifying number of bugs.
- * Add a GUI (any volunteer to do it?).
 
 
 # License

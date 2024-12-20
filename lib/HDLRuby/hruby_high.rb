@@ -420,6 +420,7 @@ module HDLRuby::High
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
         def make_inputs(type, *names)
+            # puts "for inputs=#{names} top_user=#{High.top_user}(#{High.top_user.name}) @scope=#{@scope}(#{@scope.name})"
             # Check if called within the top scope of the block.
             if High.top_user != @scope then
                 # No, cannot make an input from here.
@@ -874,6 +875,7 @@ module HDLRuby::High
 
         # Converts the system to HDLRuby::Low and set its +name+.
         def to_low(name = self.name)
+            # puts "to_low for system=#{name}"
             name = name.to_s
             if name.empty? then
                 raise AnyError, 
@@ -1235,8 +1237,10 @@ module HDLRuby::High
         end
 
         # Declares a high-level sequential behavior activated on a list of
-        # +events+, and built by executing +ruby_block+.
-        def seq(*events, &ruby_block)
+        # +events+, with possible name +name+ and built by executing
+        # +ruby_block+.
+        # def seq(*events, &ruby_block)
+        def seq(*events, name: nil, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             # Preprocess the events.
@@ -1244,12 +1248,16 @@ module HDLRuby::High
                 event.respond_to?(:to_event) ? event.to_event : event
             end
             # Create and add the resulting behavior.
-            self.add_behavior(Behavior.new(:seq,*events,&ruby_block))
+            # self.add_behavior(Behavior.new(:seq,*events,&ruby_block))
+            self.add_behavior(Behavior.new(:seq,*events,name: name,
+                                           &ruby_block))
         end
 
         # Declares a high-level parallel behavior activated on a list of
-        # +events+, and built by executing +ruby_block+.
-        def par(*events, &ruby_block)
+        # +events+, with possible name +name+ and built by executing
+        # +ruby_block+.
+        # def par(*events, &ruby_block)
+        def par(*events, name: nil, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             # Preprocess the events.
@@ -1257,7 +1265,8 @@ module HDLRuby::High
                 event.respond_to?(:to_event) ? event.to_event : event
             end
             # Create and add the resulting behavior.
-            self.add_behavior(Behavior.new(:par,*events,&ruby_block))
+            self.add_behavior(Behavior.new(:par,*events,name: name,
+                                           &ruby_block))
         end
 
         # Declares a high-level timed behavior built by executing +ruby_block+.
@@ -2271,6 +2280,22 @@ module HDLRuby::High
     end
 
 
+    ## Methods for loading external files.
+
+    # Require a verilog file.
+    def require_verilog(filename)
+      # Converts the file to HDLRuby.
+      if Kernel.system("v2hdr", "#{filename}", "#{filename}.rb") then
+        # Success, require the resulting file.
+        require "#{Dir.pwd}/#{filename}.rb"
+      else
+        # Failure.
+        raise AnyError, 
+          "Could not load Verilog HDL file: #{filename}."
+      end
+    end
+
+
 
     # Classes describing harware instances.
 
@@ -2284,6 +2309,11 @@ module HDLRuby::High
 
         # Creates a new system instance of system type +systemT+ named +name+.
         def initialize(name, systemT)
+            # Check the validity of the name.
+            unless name.is_a?(String) or name.is_a?(Symbol)
+                raise AnyError, 
+                  "Missing instance name for system instantiation."
+            end
             # Initialize the system instance structure.
             super(name,systemT)
 
@@ -2338,7 +2368,16 @@ module HDLRuby::High
                 end
             else
                 # No, perform a connection is order of declaration
+                # But first check if there are not too many of them.
+              if connects.size > 
+                self.systemT.each_signal_with_included.to_a.size then
+                    raise AnyError, "Too many connections to instance " +
+                      "#{self.name}: got #{connects.size} " +
+                      "but expecting at most " +
+                      "#{self.systemT.each_signal_with_included.to_a.size}"
+                end
                 connects.each.with_index do |csig,i|
+                # Now do the connection.
                     # puts "systemT inputs=#{systemT.each_input.to_a.size}"
                     # Gets i-est signal to connect
                     ssig = self.systemT.get_interface_with_included(i)
@@ -3540,12 +3579,21 @@ module HDLRuby::High
 
         # Converts the name reference to a HDLRuby::Low::RefName.
         def to_low
-            # puts "to_low with base=#{@base} @object=#{@object}"
-            # puts "@object.name=#{@object.name} @object.parent=#{@object.parent.name}"
+            # puts "to_low with base=#{@base} @object=#{@object} @object.parent=#{@object.parent} High.cur_system=#{High.cur_system}"
+            # puts "@object.name=#{@object.name}"
+            # puts "@object.parent.name=#{@object.parent.name}" if @object.parent
+            # Check if a direct access is possible or not.
+            # It is possible if the object parent is the top level,
+            # or if it is a system or the first scope of a system.
+            # (NOTE: previously we ensured that it was only for the
+            # current system, however, this did not support the case
+            # of object within included systems).
             if @base.is_a?(RefThis) && 
                     (@object.parent != High.top_user) &&
-                    (@object.parent != High.cur_system) &&
-                    (@object.parent != High.cur_system.scope) then # &&
+                    # (@object.parent != High.cur_system) &&
+                    (!@object.parent.is_a?(SystemT)) &&
+                    # (@object.parent != High.cur_system.scope) then # &&
+                    (!(@object.parent.is_a?(Scope) && @object.parent.parent.is_a?(SystemT))) then
                     # (!@object.parent.name.empty?) then
                 # Need to have a hierachical access.
                 if @object.respond_to?(:low_object) && @object.low_object then
@@ -4558,20 +4606,19 @@ module HDLRuby::High
         High = HDLRuby::High
 
         # Creates a new behavior executing +block+ activated on a list of
-        # +events+, and built by executing +ruby_block+.
+        # +events+, possible name (of main block) +name+ and built by
+        # executing +ruby_block+.
         # +mode+ can be either :seq or :par for respectively sequential or
         # parallel.
-        def initialize(mode,*events,&ruby_block)
+        # def initialize(mode, *events, &ruby_block)
+        def initialize(mode, *events, name: nil, &ruby_block)
             # Initialize the behavior with it.
             super(nil)
-            # # Save the Location for debugging information
-            # @location = caller_locations
-            # # Sets the current behavior
-            # @@cur_behavior = self
             # Add the events (they may be hierarchical to flatten)
             events.flatten.each { |event| self.add_event(event) }
             # Create and add the block.
-            self.block = High.make_block(mode,&ruby_block)
+            # self.block = High.make_block(mode,&ruby_block)
+            self.block = High.make_block(mode,*name,&ruby_block)
             # # Unset the current behavior
             # @@cur_behavior = nil
         end
@@ -4813,6 +4860,11 @@ module HDLRuby::High
     # Registers hardware referencing method +name+ to the current namespace.
     def self.space_reg(name,&ruby_block)
         # print "registering #{name} in #{Namespaces[-1]}\n"
+        # Check the name class. 
+        unless name.is_a?(String) or name.is_a?(Symbol) then
+          raise AnyError, 
+            "Invalid class for a name, string or symbol expected but got: #{name.class}"
+        end
         Namespaces[-1].add_method(name,&ruby_block)
     end
 
@@ -4864,6 +4916,11 @@ module HDLRuby::High
         # Converts to a new high-level value.
         def to_value
             to_expr
+        end
+
+        # Converts to a new dealy in fentoseconds.
+        def fs
+          return Delay.new(self,:fs)
         end
 
         # Converts to a new delay in picoseconds.

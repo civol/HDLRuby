@@ -2018,7 +2018,8 @@ module HDLRuby::High::Std
 
         # Create a new sequencer for +size+ elements as +typ+ with an HW
         # array-like accesser +access+.
-        def initialize(typ,size,&access)
+        # def initialize(typ,size,&access)
+        def initialize(typ,size = nil,&access)
             # Sets the size.
             @size = size
             # Sets the type.
@@ -2029,12 +2030,19 @@ module HDLRuby::High::Std
             width = @size.respond_to?(:width) ? @size.width : 
                     @size.respond_to?(:type) ? size.type.width : 32
             # puts "width=#{width}"
-            # Create the index and the iteration result.
+            # # Create the index and the iteration result.
+            # Create the index (if relevant) and the iteration result.
             idx = nil
             result = nil
+            # HDLRuby::High.cur_system.open do
+            #     idx = [width].inner({
+            #         HDLRuby.uniq_name("enum_idx") => 0 })
+            #     result = typ.inner(HDLRuby.uniq_name("enum_res"))
+            # end
+            idx_required = @size ? true : false
             HDLRuby::High.cur_system.open do
                 idx = [width].inner({
-                    HDLRuby.uniq_name("enum_idx") => 0 })
+                    HDLRuby.uniq_name("enum_idx") => 0 }) if idx_required
                 result = typ.inner(HDLRuby.uniq_name("enum_res"))
             end
             @index = idx
@@ -2060,26 +2068,32 @@ module HDLRuby::High::Std
         # Get the next element.
         def snext
             @result <= @access.call(@index)
-            @index <= @index + 1
+            # @index <= @index + 1
+            @index <= @index + 1 if @index
             return @result
         end
 
         # Tell if there is a next element.
         def snext?
-            # puts "@index=#{index}, @size=#{@size}"
-            return @index < @size
+            # return @index < @size
+            return @index ? @index < @size : true
         end
 
-        # Set the next element.
+        # Set the next element, also return the access result so that
+        # it can be used as bidirectional transaction.
         def snext!(val)
-            @access.call(@index,val)
-            @index <= @index + 1
-            return val
+            # @access.call(@index,val)
+            # @index <= @index + 1
+            # return val
+            res = @access.call(@index,val)
+            @index <= @index + 1 if @index
+            return res
         end
 
         # Restart the iteration.
         def srewind
-            @index <= 0
+            # @index <= 0
+            @index <= 0 if @index
         end
     end
 
@@ -2325,9 +2339,10 @@ module HDLRuby::High::Std
 
     # Creates an sequencer enumerator using a specific block access.
     # - +typ+ is the data type of the elements.
-    # - +size+ is the number of elements.
+    # - +size+ is the number of elements, nil if not relevant.
     # - +access+ is the block implementing the access method.
-    def senumerator(typ,size,&access)
+    # def senumerator(typ,size,&access)
+    def senumerator(typ,size = nil,&access)
         return SEnumeratorBase.new(typ,size,&access)
     end
 
