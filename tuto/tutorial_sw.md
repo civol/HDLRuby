@@ -48,7 +48,7 @@ To use HDLRuby the following software is required:
 
 The following software is also recommended:
 
- * A wave viewer supporting *vcd* files (e.g., [GTKWave](https://gtkwave.sourceforge.net/).)
+ * A wave viewer supporting *vcd* files (e.g., [GTKWave](https://gtkwave.sourceforge.net/), or, [HTMLWave](https://civol.github.io/htmlwave/htmlwave.html))
 
 ## 1. What is HDLRuby and how to use its framework
 
@@ -131,10 +131,10 @@ Up to now, we said that HDLRuby is a language, it is in truth a complete framewo
 Basically, `hdrcc` is used as follows:
 
 ```bash
-hdrcc <options> <input file> <output directory>
+hdrcc <options> <input file> <output/working directory>
 ```
 
-Where `options` specifies the action to be performed, `input file` specifies the input HDLRuby file, and `output directory` specifies the directory where the command results will be saved. As a general rule, when an input file is specified, an output directory must also be specified.
+Where `options` specifies the action to be performed, `input file` specifies the input HDLRuby file, and `output/working directory` specifies the directory where the command results will be saved. As a general rule, when an input file is specified, an output directory must also be specified.
 
 Several actions are possible using `hdrcc`, the main ones being the following:
 
@@ -143,6 +143,11 @@ Several actions are possible using `hdrcc`, the main ones being the following:
  ```bash
  hdrcc --sim <input file> <output directory>
  ```
+
+ * Generate a graphical representation of the RTL code in SVG format:
+
+ ```bash
+ hdrcc --svg <input file> <output directory>
 
  * Generate the equivalent Verilog HDL code:  
 
@@ -170,6 +175,14 @@ For example, assuming that you have a Verilog ddHDL named 'adder.v' describing a
 ```bash
 v2hdr adder.v adder.rb
 ```
+
+It is also possible to directly use a Verilog file as input to 'hdrcc', but its top module must be specified. For example, to directly simulate the previous 'adder.v', and assuming its top module is 'adder' you can do as follows:
+
+```bash
+hdrcc --sim -t adder adder.v adder
+```
+
+__Note__: for the command above, it is assumed that 'adder.v' contains a simulation benchmark.
 
 
 And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.

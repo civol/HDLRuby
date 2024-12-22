@@ -462,7 +462,7 @@ $optparse = OptionParser.new do |opts|
         $options[:vhdl08] = true
         $gen = true
     end
-    opts.on("--svg","Output is vizualizable netlist (SVG format)") do |v|
+    opts.on("--svg","Output a graphical representation of the RTL (SVG format)") do |v|
       $options[:svg] = v
       $options[:multiple] = v
       $gen = true

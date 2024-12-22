@@ -17,6 +17,13 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.5.0:
+
+ * Added direct support for Verilog HDL files as input to 'hdrcc'.
+
+ * Added the ability to generate a graphical representation of the RTL code in SVG format using the '--svg' option for 'hdrcc'.
+
+
 For HDLRuby version 3.4.0:
 
  * Improved synchronization of the browser-base graphical interface with the HDLRuby simulator.
@@ -106,14 +113,14 @@ __Warning__:
 __Usage__:
 
 ```
-hdrcc [options] <input file> <output directory>
+hdrcc [options] <input file> <output/working directory>
 ```
 
 Where:
 
  * `options` is a list of options
  * `<input file>` is the initial file to compile (mandatory)
- *  `<output directory>` is the directory where the generated files will be put
+ *  `<output/working directory>` is the directory where the output and temporary files will be put
 
 |  Options         |          |
 |:------------------|:-----------------------------------------------------|
@@ -128,6 +135,7 @@ Where:
 | `--rsim`          | Perform the simulation with the Ruby engine          |
 | `--rcsim`         | Perform the simulation with the Hybrid engine        |
 | `--vcd`           | Make the simulator generate a VCD file               |
+| `--svg`           | Output a graphical representation of the RTL (SVG format) |
 | `-d, --directory` | Specify the base directory for loading the HDLRuby files |
 | `-D, --debug`     | Set the HDLRuby debug mode |
 | `-t, --top system`| Specify the top system describing the circuit to compile |
@@ -151,16 +159,16 @@ __Notes__:
 
 __Examples__:
 
-* Compile system named `adder` from `adder.rb` input file and generate a low-level YAML description into directory `adder`:
-
-```bash
-hdrcc --yaml --top adder adder.rb adder
-```
-
 * Compile `adder.rb` input file and generate a low-level Verilog HDL description into the directory `adder`:
 
 ```bash
 hdrcc -v adder.rb adder
+```
+
+* Compile `adder8.v` input Verilog HDL file with `adder8` as top module, and generate a graphical representation of its RTL in the `view` directory:
+
+```bash
+hdrcc adder8.v -t adder8 --svg view
 ```
   
 * Compile system `adder` whose bit width is generic from `adder_gen.rb` input file to a 16-bit circuit low-level VHDL description into directory `adder`:
