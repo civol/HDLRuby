@@ -4522,17 +4522,16 @@ module HDLRuby::High
             self.add_statement(TimeWait.new(delay))
         end
 
-        # # Adds a loop until +delay+ statement in the block in +mode+ whose
-        # # loop content is built using +ruby_block+.
-        # def repeat(delay, mode = nil, &ruby_block)
-        # Adds a +number+ times loop statement in the block in +mode+ whose
+        # # Adds a +number+ times loop statement in the block in +mode+ whose
+        # def repeat(number = -1, mode = nil, &ruby_block)
+        # Adds a +number+ times loop statement in the block whose
         # loop content is built using +ruby_block+.
         # NOTE: if +number+ is negative, the number of iteration is infinite.
-        def repeat(number = -1, mode = nil, &ruby_block)
+        def repeat(number = -1, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
-            # Build the content block.
-            content = High.make_block(mode,&ruby_block)
+            # Build the content block: necessarily seq since timed.
+            content = High.make_block(:seq,&ruby_block)
             # Create and add the statement.
             # self.add_statement(TimeRepeat.new(content,delay))
             self.add_statement(TimeRepeat.new(number,content))
