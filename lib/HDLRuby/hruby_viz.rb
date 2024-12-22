@@ -4163,18 +4163,42 @@ SVG
    Types of elements:
    </text>
    #{
+   # ic = IC.new("Instance",:instance)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+15/fit) / ic.scale
+   # ic.ypos = 330/fit / ic.scale
+   # ic.width = 300/fit / ic.scale
+   # ic.height = 100/fit / ic.scale
+   # ic.instance_svg(ic)
    ic = IC.new("Instance",:instance)
-   ic.scale = 35.0
-   ic.xpos = (x0+15/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+15)/fit / ic.scale
    ic.ypos = 330/fit / ic.scale
    ic.width = 300/fit / ic.scale
    ic.height = 100/fit / ic.scale
    ic.instance_svg(ic)
    }
    #{
+   # ic = IC.new("Continuous assignment",:alu)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+(15+300+15)/fit) / ic.scale
+   # ic.ypos = 305/fit / ic.scale
+   # ic.width = 300/fit / ic.scale
+   # ic.height = 150/fit / ic.scale
+   # p0 = Port.new("in0",ic,:input)
+   # p0.side = LEFT
+   # ic.ports << p0
+   # p1 = Port.new("in1",ic,:input)
+   # p1.side = LEFT
+   # ic.ports << p1
+   # p2 = Port.new("out",ic,:output)
+   # p2.side = RIGHT
+   # ic.alu_svg(ic)
+   # ic.ports << p2
+   # ic.alu_svg(ic)
    ic = IC.new("Continuous assignment",:alu)
-   ic.scale = 35.0
-   ic.xpos = (x0+(15+300+15)/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+(15+300+15))/fit / ic.scale
    ic.ypos = 305/fit / ic.scale
    ic.width = 300/fit / ic.scale
    ic.height = 150/fit / ic.scale
@@ -4191,45 +4215,80 @@ SVG
    ic.alu_svg(ic)
    }
    #{
+   # ic = IC.new("Combinatorial process",:process)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+15/fit) / ic.scale
+   # ic.ypos = 480/fit / ic.scale
+   # ic.width = 300/fit / ic.scale
+   # ic.height = 100/fit / ic.scale
+   # ic.process_svg(ic)
    ic = IC.new("Combinatorial process",:process)
-   ic.scale = 35.0
-   ic.xpos = (x0+15/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+15)/fit / ic.scale
    ic.ypos = 480/fit / ic.scale
    ic.width = 300/fit / ic.scale
    ic.height = 100/fit / ic.scale
    ic.process_svg(ic)
    }
    #{
+   # ic = IC.new("Clocked process",:clocked_process)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+(15+300+15)/fit) / ic.scale
+   # ic.ypos = 480/fit / ic.scale
+   # ic.width = 300/fit / ic.scale
+   # ic.height = 100/fit / ic.scale
+   # ic.clocked_process_svg(ic)
    ic = IC.new("Clocked process",:clocked_process)
-   ic.scale = 35.0
-   ic.xpos = (x0+(15+300+15)/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+(15+300+15))/fit / ic.scale
    ic.ypos = 480/fit / ic.scale
    ic.width = 300/fit / ic.scale
    ic.height = 100/fit / ic.scale
    ic.clocked_process_svg(ic)
    }
    #{
+   # ic = IC.new("Time process",:timed_process)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+(15+300+15+300+15)/fit) / ic.scale
+   # ic.ypos = 480/fit / ic.scale
+   # ic.width = 300/fit / ic.scale
+   # ic.height = 100/fit / ic.scale
+   # ic.timed_process_svg(ic)
    ic = IC.new("Time process",:timed_process)
-   ic.scale = 35.0
-   ic.xpos = (x0+(15+300+15+300+15)/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+(15+300+15+300+15))/fit / ic.scale
    ic.ypos = 480/fit / ic.scale
    ic.width = 300/fit / ic.scale
    ic.height = 100/fit / ic.scale
    ic.timed_process_svg(ic)
    }
    #{
+   # ic = IC.new("Signal",:register)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+15/fit) / ic.scale
+   # ic.ypos = 600/fit / ic.scale
+   # ic.width = 150/fit / ic.scale
+   # ic.height = 75/fit / ic.scale
+   # ic.register_svg(ic)
    ic = IC.new("Signal",:register)
-   ic.scale = 35.0
-   ic.xpos = (x0+15/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+15)/fit / ic.scale
    ic.ypos = 600/fit / ic.scale
    ic.width = 150/fit / ic.scale
    ic.height = 75/fit / ic.scale
    ic.register_svg(ic)
    }
    #{
+   # ic = IC.new("Memory",:memory)
+   # ic.scale = 35.0
+   # ic.xpos = (x0+(15+200+15)/fit) / ic.scale
+   # ic.ypos = 600/fit / ic.scale
+   # ic.width = 200/fit / ic.scale
+   # ic.height = 100/fit / ic.scale
+   # ic.memory_svg(ic)
    ic = IC.new("Memory",:memory)
-   ic.scale = 35.0
-   ic.xpos = (x0+(15+200+15)/fit) / ic.scale
+   ic.scale = 35.0/fit
+   ic.xpos = (x0+(15+200+15))/fit / ic.scale
    ic.ypos = 600/fit / ic.scale
    ic.width = 200/fit / ic.scale
    ic.height = 100/fit / ic.scale
