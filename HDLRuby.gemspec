@@ -8,6 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = HDLRuby::VERSION
   spec.authors       = ["Lovic Gauthier"]
   spec.email         = ["lovic@ariake-nct.ac.jp"]
+  spec.platform      = "ruby"
 
   spec.summary       = %q{HDLRuby is a library for describing and simulating digital electronic systems.}
   spec.description   = %q{HDLRuby is a library for describing and simulating digital electronic systems. With this library it will possible to describe synthesizable hardware using all the features of the Ruby language, e.g., object orientation, duck typing, closure. This library is also usable through irb for interactive design and simulation.}
