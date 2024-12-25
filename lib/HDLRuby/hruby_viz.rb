@@ -1,6 +1,6 @@
 # An IC netlist mrdel and SVG-based vizualizer for HDLRuby 
 
-require 'stackprof'
+# require 'stackprof'
 
 
 module HDLRuby::Viz
