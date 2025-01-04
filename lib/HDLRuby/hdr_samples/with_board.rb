@@ -10,6 +10,7 @@ system :with_board do
     inner rst: 0
     [8].inner :sw_a, :sw_b
     [9].inner :led_z
+    [8].inner :expr, :show
     [16].inner counter: 0
     [8].inner :counter8
     signed[8].inner :scounter8
@@ -24,6 +25,9 @@ system :with_board do
         sw  sw_b:     sw_b
         led led_z:    led_z
         row
+        text expr:    expr
+        digit show:   show
+        row
         digit cnt_d:  counter
         hexa  cnt_h:  counter
         digit cnt_s:  scounter8
@@ -34,6 +38,9 @@ system :with_board do
 
     # The adder.
     led_z <= sw_a.as(bit[9]) + sw_b
+
+    # The text input and result.
+    show <= expr
 
     # The counters and the generation of +clk2+.
     counter8 <= counter[7..0]
@@ -52,7 +59,7 @@ system :with_board do
         clk <= 0
         clk2 <= 0
         !10.ns
-        repeat(1000) do
+        repeat(10000) do
             clk <= 1
             !10.ns
             clk <= 0

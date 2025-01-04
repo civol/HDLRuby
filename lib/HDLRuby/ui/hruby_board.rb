@@ -20,6 +20,9 @@ module HDLRuby::High::Std
     include Hmissing
 
     attr_reader :namespace
+
+    ## Suffix telling a text is an expression to compute.
+    TO_COMPUTE = "="
     
     ## Class describing a row of slide switches.
     SW = Struct.new(:id, :size, :hwrite) do
@@ -47,6 +50,20 @@ module HDLRuby::High::Std
                      (self.size-i-1).to_s + '" ' +
                      'onmousedown="bt_click(this)" onmouseup="bt_release(this)" onmouseleave="bt_release(this)"><i class="bt_off"></i></button>\n'
            end.join + "</div>\\n"
+      end
+    end
+
+    ## Class describing a text-based input.
+    TEXT = Struct.new(:id, :size, :hwrite) do
+      def to_html
+        return "<div class=\"textset\" id=\"#{self.id}\" data-value=\"0\">\\n" + 
+          '<form onSubmit="text_submit(this); return false">\\n' +
+          '<span class="name">' + self.hwrite.to_s.chop + '</span>' +
+          '<span>&nbsp;&nbsp;</span>' + 
+             '<input class="matrix_in" type="text" name="text" ' +
+               'placeholder="Enter an expression">' +
+          "</form>\\n" +
+        "</div>\\n"
       end
     end
 
@@ -476,6 +493,17 @@ Content-Type: text/html
     -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
   }
 
+  .matrix_in {
+    font-size: 26px;
+    font-family: "Lucida Console", "Courier New", monospace;
+    color: #0B190B;
+    background-color: #9BBC0F;
+    border: solid 2px #505050;
+    box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
+    -moz-box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
+    -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
+  }
+
   .bt {
     background-color: #ccc;
     border: solid 2px #505050;
@@ -586,7 +614,8 @@ Content-Type: text/html
     const element = prow.lastElementChild;
     // Depending of the kind of element.
     if (element.classList.contains('swset') ||
-      element.classList.contains('btset')) {
+        element.classList.contains('btset') ||
+        element.classList.contains('textset') ) {
       // Input element.
       input_ids.push(element.id);
     } else {
@@ -658,6 +687,16 @@ Content-Type: text/html
     const bit = bt.dataset.bit;
     // Update its value.
     btset.dataset.value = btset.dataset.value & ~(1 << bit);
+  }
+
+  
+  // Handler of the text submit
+  function text_submit(form) {
+     // Get the et holding the form.
+     const textset = form.parentElement;
+     // Update the value, suffixed with #{TO_COMPUTE} for telling it is a
+     // text expression to compute.
+     textset.dataset.value = form.elements.text.value + "#{TO_COMPUTE}"
   }
 
 
@@ -933,6 +972,18 @@ HTMLRESPONSE
       @elements << BT.new(@elements.size,hport[1].type.width,:"#{hport[0]}=")
     end
 
+    # Add a new text input element attached to HDLRuby port +hport+
+    def text(hport)
+      if !hport.is_a?(Hash) or hport.size != 1 then
+        raise UIError.new("Malformed HDLRuby port declaration: #{hport}")
+      end
+      # Create the HDLRuby program port.
+      @program.outport(hport)
+      hport = hport.first
+      # Create the ui component.
+      @elements << TEXT.new(@elements.size,hport[1].type.width,:"#{hport[0]}=")
+    end
+
     # Add a new LED element attached to HDLRuby port +hport+.
     def led(hport)
       if !hport.is_a?(Hash) or hport.size != 1 then
@@ -1032,6 +1083,22 @@ HTMLRESPONSE
     end
 
 
+    # Compute a value.
+    def compute(val)
+      # Preprocess val to match Ruby syntax.
+      val = "0" unless val
+      val = val.gsub("%20"," ")
+      # Replace the names by the corresponding ports read result.
+      val = val.gsub(/([^0-9][_a-z][_a-zA-Z0-9]*)/) do |str|
+        RubyHDL.send(Regexp.last_match[1]).to_s rescue 0
+      end
+      # Compute.
+      begin
+        return eval(val)
+      rescue SyntaxError => se
+        return 0
+      end
+    end
 
     # Update port number +id+ with value +val+.
     def update_port(id,val)
@@ -1057,8 +1124,17 @@ HTMLRESPONSE
         # This should be an AJAX request, process it.
         commands = request.split(";")
         commands.each do |command|
-          next unless command.include?(":")
-          id, val = command.split(":").map {|t| t.to_i}
+          # next unless command.include?(":")
+          # id, val = command.split(":").map {|t| t.to_i}
+          id, val = command.split(":")
+          next unless val
+          id = id.to_i
+          if val[-1] == "=" then
+            # This is an expression to compute.
+            val = self.compute(val.chop)
+          else
+            val = val.to_i
+          end
           self.update_port(id,val)
         end
         # And generate the response: an update of each board output element.
