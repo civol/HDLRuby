@@ -67,6 +67,13 @@ module HDLRuby::High::Std
       end
     end
 
+    ## Class describing a hook (invisible display element).
+    HOOK = Struct.new(:id, :size, :hread) do
+      def to_html
+        return "<div id=\"#{self.id}\" data-value=\"0\"/>\\n"
+      end
+    end
+
     ## Class describing a row of LEDs.
     LED = Struct.new(:id, :size, :hread) do
       def to_html
@@ -955,7 +962,7 @@ HTMLRESPONSE
       end
       # Create the HDLRuby program port.
       @program.outport(hport)
-      # Create the ui component.
+      # Create the UI component.
       hport = hport.first
       @elements << SW.new(@elements.size,hport[1].type.width,:"#{hport[0]}=")
     end
@@ -968,7 +975,7 @@ HTMLRESPONSE
       # Create the HDLRuby program port.
       @program.outport(hport)
       hport = hport.first
-      # Create the ui component.
+      # Create the UI component.
       @elements << BT.new(@elements.size,hport[1].type.width,:"#{hport[0]}=")
     end
 
@@ -980,8 +987,23 @@ HTMLRESPONSE
       # Create the HDLRuby program port.
       @program.outport(hport)
       hport = hport.first
-      # Create the ui component.
+      # Create the UI component.
       @elements << TEXT.new(@elements.size,hport[1].type.width,:"#{hport[0]}=")
+    end
+
+    # Add a new hook element attached to HDLRuby port +hport+.
+    # NOTE: a hook element is not displayed on the board but can be used
+    # in the `text` expression.
+    def hook(hport)
+      if !hport.is_a?(Hash) or hport.size != 1 then
+        raise UIError.new("Malformed HDLRuby port declaration: #{hport}")
+      end
+      # Create the HDLRuby program port.
+      @program.inport(hport)
+      hport = hport.first
+      # Createthe UI component (invisible)
+      @elements << HOOK.new(@elements.size,hport[1].type.width,hport[0])
+      @out_elements << @elements[-1]
     end
 
     # Add a new LED element attached to HDLRuby port +hport+.
@@ -992,7 +1014,7 @@ HTMLRESPONSE
       # Create the HDLRuby program port.
       @program.inport(hport)
       hport = hport.first
-      # Createthe ui component.
+      # Createthe UI component.
       @elements << LED.new(@elements.size,hport[1].type.width,hport[0])
       @out_elements << @elements[-1]
     end
@@ -1089,15 +1111,28 @@ HTMLRESPONSE
       val = "0" unless val
       val = val.gsub("%20"," ")
       # Replace the names by the corresponding ports read result.
-      val = val.gsub(/([^0-9][_a-z][_a-zA-Z0-9]*)/) do |str|
-        RubyHDL.send(Regexp.last_match[1]).to_s rescue 0
+      # val = val.gsub(/([^0-9\.A-Z][_a-z][_a-zA-Z0-9]*)/) do |str|
+      #   RubyHDL.send(Regexp.last_match[1]).to_s rescue 0
+      # end
+      val = val.gsub(/([\._a-zA-Z0-9]+)/) do |str|
+        if str[0] >= "a" && str[0] <= "z" then
+          # Variable identifier, process it if recognized.
+          RubyHDL.send(Regexp.last_match[1]).to_s rescue str
+        else
+          # Other token leave it as is.
+          str
+        end
       end
       # Compute.
+      res = 0
+      safe = $SAFE
       begin
-        return eval(val)
+        $SAFE = 2
+        res = eval(val).to_i
       rescue SyntaxError => se
-        return 0
       end
+      $SAFE = safe
+      return res
     end
 
     # Update port number +id+ with value +val+.
@@ -1126,7 +1161,7 @@ HTMLRESPONSE
         commands.each do |command|
           # next unless command.include?(":")
           # id, val = command.split(":").map {|t| t.to_i}
-          id, val = command.split(":")
+          id, val = command.split(":",2)
           next unless val
           id = id.to_i
           if val[-1] == "=" then

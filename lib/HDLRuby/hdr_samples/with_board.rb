@@ -20,6 +20,8 @@ system :with_board do
     board(:some_board) do
         actport clk2.posedge
         bt  reset:    rst
+        hook sw_ai: sw_a
+        hook sw_bi: sw_b
         row
         sw  sw_a:     sw_a
         sw  sw_b:     sw_b
