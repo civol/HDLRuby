@@ -3750,6 +3750,10 @@ And the comprise the following:
 
  * `led`: represents a set of LEDs, their number is set to match the bit-width of the attached signal.
 
+ * `text`: Represents a text input box whose content is interpreted as an expression. The syntax of the expression follows Ruby, and the available variables include the board's display objects. For example, if a set of LEDs is named `leds`, it will be accessible as a variable.
+
+ * `hook`: Attaches a signal to the board without displaying. It can be used as a variable in `text` expressions, similar to display objects.
+
  * `hexa`: represents a hexadecimal number display, its character width is set to match the width of the largest possible value of the attached signal.
 
  * `digit`: represents a decimal number display, its character width is set to match the width of the largest possible positive or the smallest possible negative value of the attached signal.
