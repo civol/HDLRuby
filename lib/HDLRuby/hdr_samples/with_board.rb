@@ -15,6 +15,12 @@ system :with_board do
     [8].inner :counter8
     signed[8].inner :scounter8
 
+    bit[8][-256].inner :mem
+    [8].inner :addr, :din, :dout
+
+    mem[addr] <= din
+    dout <= mem[addr]
+
     # Description of the board.
     # It is updated at each rising edge of +clk2+.
     board(:some_board) do
@@ -29,6 +35,10 @@ system :with_board do
         row
         text expr:    expr
         digit show:   show
+        row
+        text addr:    addr
+        hexa dout:    dout
+        text din:     din
         row
         digit cnt_d:  counter
         hexa  cnt_h:  counter
