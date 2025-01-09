@@ -34,7 +34,7 @@ module HDLRuby::High::Std
              '<label class="sw"><input type="checkbox" data-bit="' + 
                      (self.size-i-1).to_s + '" ' +
                      'onchange="sw_change(this)">' +
-             '<span class="slider"></span></label>\n'
+             '<span class="sw_slider"></span></label>\n'
            end.join + "</div>\\n"
       end
     end
@@ -50,6 +50,22 @@ module HDLRuby::High::Std
                      (self.size-i-1).to_s + '" ' +
                      'onmousedown="bt_click(this)" onmouseup="bt_release(this)" onmouseleave="bt_release(this)"><i class="bt_off"></i></button>\n'
            end.join + "</div>\\n"
+      end
+    end
+    
+    ## Class describing an "analog" slide switch.
+    SLIDER = Struct.new(:id, :min, :max, :hwrite) do
+      def to_html
+        # Prepare the min, max and blank strings.
+        min = self.min.to_s
+        max = self.max.to_s
+        return "<div class=\"sliderset\" id=\"#{self.id}\" data-value=\"0\">\\n" + 
+          '<span class="name">' + self.hwrite.to_s.chop + '</span>' +
+          '<span>&nbsp;&nbsp;</span>' +
+          '<input type="range" min="' + min + '" max="' + max + 
+            '" value="' + min + '" ' +
+            'class="slider" oninput="slider_change(this)">' +
+           "</div>\\n"
       end
     end
 
@@ -272,6 +288,16 @@ Content-Type: text/html
     height: 40px;
   }
 
+  .sliderset {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left:  8px;
+    margin-right: 8px;
+    height: 40px;
+  }
+
   .ledset {
     display: flex;
     flex-direction: row;
@@ -454,7 +480,7 @@ Content-Type: text/html
     height: 0;
   }
   
-  .slider {
+  .sw_slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -467,7 +493,7 @@ Content-Type: text/html
     border: solid 2px #505050;  
   }
   
-  .slider:before {
+  .sw_slider:before {
     position: absolute;
     content: "";
     height: 16px;
@@ -479,14 +505,46 @@ Content-Type: text/html
     transition: .2s;
   }
   
-  input:checked + .slider {
+  input:checked + .sw_slider {
     background-color: yellow;
   }
   
-  input:checked + .slider:before {
+  input:checked + .sw_slider:before {
     -webkit-transform: translateY(-16px);
     -ms-transform: translateY(-16px);
     transform: translateY(-16px);
+  }
+
+  .slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 25px;
+    background-color: #ccc;
+    -webkit-transition: .2s;
+    transition: .2s;
+    border: solid 2px #505050;  
+    margin: 2px;
+    box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
+    -moz-box-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
+    -webkit-shadow: -1px -1px 1px white, 1px 1px 1px #101010;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    background: black;
+    border: solid 2px #505050;  
+    cursor: pointer;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    background: black;
+    border: solid 2px #505050;  
+    cursor: pointer;
   }
 
   .matrix {
@@ -622,6 +680,7 @@ Content-Type: text/html
     // Depending of the kind of element.
     if (element.classList.contains('swset') ||
         element.classList.contains('btset') ||
+        element.classList.contains('sliderset') ||
         element.classList.contains('textset') ) {
       // Input element.
       input_ids.push(element.id);
@@ -662,6 +721,14 @@ Content-Type: text/html
       swset.dataset.value = swset.dataset.value & ~(1 << bit);
     }
     // console.log("sw value=" + swset.dataset.value);
+  }
+
+  // Handler of slider change.
+  function slider_change(slider) {
+    // Get the set holding slider.
+    const sliderset = slider.parentElement;
+    sliderset.dataset.value = slider.value;
+    // console.log("slider value=" + sliderset.dataset.value);
   }
 
   // Set the aspect of a button to clicked.
@@ -979,6 +1046,27 @@ HTMLRESPONSE
       @elements << BT.new(@elements.size,hport[1].type.width,:"#{hport[0]}=")
     end
 
+    # Add a new slider element attached to HDLRuby port +hport+
+    def slider(hport)
+      if !hport.is_a?(Hash) or hport.size != 1 then
+        raise UIError.new("Malformed HDLRuby port declaration: #{hport}")
+      end
+      # Create the HDLRuby program port.
+      @program.outport(hport)
+      hport = hport.first
+      # Compute the min and max values.
+      width = hport[1].type.width
+      if hport[1].type.signed? then
+        min = -2**(width-1)
+        max = 2**(width-1) - 1
+      else
+        min = 0
+        max = 2**width - 1
+      end
+      # Create the UI component.
+      @elements << SLIDER.new(@elements.size,min,max,:"#{hport[0]}=")
+    end
+
     # Add a new text input element attached to HDLRuby port +hport+
     def text(hport)
       if !hport.is_a?(Hash) or hport.size != 1 then
@@ -1111,9 +1199,6 @@ HTMLRESPONSE
       val = "0" unless val
       val = val.gsub("%20"," ")
       # Replace the names by the corresponding ports read result.
-      # val = val.gsub(/([^0-9\.A-Z][_a-z][_a-zA-Z0-9]*)/) do |str|
-      #   RubyHDL.send(Regexp.last_match[1]).to_s rescue 0
-      # end
       val = val.gsub(/([\._a-zA-Z0-9]+)/) do |str|
         if str[0] >= "a" && str[0] <= "z" then
           # Variable identifier, process it if recognized.
@@ -1130,6 +1215,7 @@ HTMLRESPONSE
         $SAFE = 2
         res = eval(val).to_i
       rescue SyntaxError => se
+      rescue StandardError => se
       end
       $SAFE = safe
       return res

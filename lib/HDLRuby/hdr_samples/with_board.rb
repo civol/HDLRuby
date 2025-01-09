@@ -30,7 +30,7 @@ system :with_board do
         hook sw_bi: sw_b
         row
         sw  sw_a:     sw_a
-        sw  sw_b:     sw_b
+        slider sw_b:  sw_b
         led led_z:    led_z
         row
         text expr:    expr

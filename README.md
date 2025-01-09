@@ -17,9 +17,11 @@ hdrcc --get-tuto
 
 __What's new__
 
-For HDLRuby version 3.6.0:
+For HDLRuby version 3.6.x:
 
  * Added a new element for the GUI board that allows to assign an expression to a signal on the fly while simulating.
+
+ * Added a new slider element for the GUI board (from 3.6.1).
 
 For HDLRuby version 3.5.0:
 
@@ -2224,9 +2226,11 @@ The list of possible elements is as follows:
 
  * `bt`: represents a set of push buttons, their number is set to match the bit-width of the attached signal.
 
- * `text`: Represents a text input box whose content is interpreted as an expression. The syntax of the expression follows Ruby, and the available variables include the board's display objects. For example, if a set of LEDs is named `leds`, it will be accessible as a variable.
+ * `slider`: represents an horizontal slider.
 
- * `hook`: Attaches a signal to the board without displaying. It can be used as a variable in `text` expressions, similar to display objects.
+ * `text`: represents a text input box whose content is interpreted as an expression. The syntax of the expression follows Ruby, and the available variables include the board's display objects. For example, if a set of LEDs is named `leds`, it will be accessible as a variable.
+
+ * `hook`: attaches a signal to the board without displaying. It can be used as a variable in `text` expressions, similar to display objects.
 
  * `led`: represents a set of LEDs, their number is set to match the bit-width of the attached signal.
 
