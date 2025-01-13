@@ -1,4 +1,5 @@
 require 'socket'
+require 'io/console'
 
 require 'rubyHDL'
 
@@ -994,6 +995,31 @@ HTMLRESPONSE
       @@http_ports << @http_port
       # Create the server
       @server = TCPServer.new(@http_port)
+
+      browse = Thread.new do
+        url = "http://localhost:#{@http_port}"
+        # Shall we try to open a page automatically:
+        puts "Shall I open a new page on your browser for the GUI? [y/n]"
+        ch = ""
+        ch = STDIN.getch while !(ch =~ /[YyNn]/)
+        unless ch =~ /[Yy]/ then
+          puts "Please open the following url manually: #{url}"
+          browse.kill
+        end
+        # Open the page if possible.
+        sleep(0.2)
+        case RUBY_PLATFORM
+        when /darwin/
+          Kernel.system("open",url)
+        when /linux/
+          Kernel.system("xdg",url)
+        when /mingw|mswin/
+          Kernel.system("start",url)
+        else
+          puts "Please open the following url on your browser: #{url}"
+        end
+      end
+
       # Create the running function.
       this = self
       Kernel.define_method(@name.to_sym) { this.run }
@@ -1269,7 +1295,7 @@ HTMLRESPONSE
 
     # Start the ui.
     def run
-      # At first the u is not running.
+      # At first the ui is not running.
       @connected = false
       # Create the ui thread.
       @thread = Thread.new do
@@ -1295,6 +1321,7 @@ HTMLRESPONSE
       # Wait for a first connection.
       sleep(0.1) while(!@connected)
     end
+
   end
 
 
