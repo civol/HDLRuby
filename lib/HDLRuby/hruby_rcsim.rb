@@ -558,7 +558,11 @@ module HDLRuby::High
             if self.language == :ruby then
                 # Loads the code files.
                 self.each_code do |code|
+                  if code.is_a?(Proc)
+                    TOPLEVEL_BINDING.eval(&code)
+                  else
                     Kernel.require("./"+code.to_s)
+                  end
                 end
                 # Add the input ports.
                 self.each_inport do |sym, sig|

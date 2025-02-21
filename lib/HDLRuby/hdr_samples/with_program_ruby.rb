@@ -8,7 +8,14 @@ system :with_ruby_prog do
         actport clk.posedge
         inport  inP: count
         outport outP: echo
-        code "ruby_program/echo.rb"
+        # code "ruby_program/echo.rb"
+        code(proc do
+          def echo
+            val = RubyHDL.inP
+            puts "Echoing: #{val}"
+            RubyHDL.outP = val    
+          end
+        end)
     end
 
 

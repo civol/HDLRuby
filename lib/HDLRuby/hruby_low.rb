@@ -3031,7 +3031,8 @@ module HDLRuby::Low
 
         # Add a new code file.
         def add_code(code)
-            @codes << code.to_s
+          #  @codes << code.to_s
+          @codes << (code.is_a?(Proc) ? code : code.to_s)
         end
 
         # Add a new input port.
