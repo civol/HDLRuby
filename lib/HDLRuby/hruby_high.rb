@@ -3067,7 +3067,7 @@ module HDLRuby::High
         end
 
         # Adds the unary operations generation.
-        [:"-@",:"@+",:"~", :abs,
+        [:"-@",:"+@",:"~", :abs,
          :boolean, :bit, :signed, :unsigned].each do |operator|
             meth = proc do
                 expr = self.to_expr

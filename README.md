@@ -17,6 +17,12 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.7.0:
+
+* Added the possibility to run sequencers in software (WIP).
+This allows both much faster simulation and the use of the same code for both hardware and software design.
+
+
 For HDLRuby version 3.6.x:
 
  * Added a new element for the GUI board that allows to assign an expression to a signal on the fly while simulating.
@@ -3215,7 +3221,7 @@ end
 ## Sequencer (software-like hardware coding):: `std/sequencer.rb`
 <a name="sequencer"></a>
 
-This library provides a new set of control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description.
+This library provides a new set of software-like control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description. Eventhough sequencers are ment to describe hardware, they are software-compatible so that they can efficiently be executed as software programs as explain in section [software sequencers](#sequencers-as-software-code).
 
 A sequencer can be declared anywhere in a system provided it is outside a behavior using the `sequencer` keyword as follows:
 
@@ -3714,6 +3720,188 @@ __Notes__:
     ```
 
     With the code above, the only restriction is that the signal `stack_overflow` is declared before the function `fact` is called.
+
+### Sequencers as Software Code
+
+#### Introduction to Sequencer as Software Code
+
+Sequencers can be executed in software using a Ruby interpreter with functional equivalance to the hardware implementation. To achieve this, the following headers must be added to your Ruby source code:
+
+```ruby
+require 'HDLRuby/std/sequencer_sw'
+include RubyHDL::High
+using RubyHDL::High
+```
+
+After this, signals and sequencers can be described exactly like in HDLRuby. However, the resulting sequencer objects are not executed immediately and must be stored in a variable for further reference. For example the following Ruby code defines a sequencer, refered by the variable `my_seq`, which increments signal `counter` up to 1000:
+
+```ruby
+require 'HDLRuby/std/sequencer_sw'
+include RubyHDL::High
+using RubyHDL::High
+
+[32].inner :counter
+
+my_seq = sequencer do
+   counter <= 0
+   1000.stimes do
+      counter <= counter + 1
+   end
+end
+```
+
+You may notice that no clock or start signal is provided to the sequencer. This is because, in software, execution is sequential, and no clock nor control signals are required. Instead, starting the execution of a sequencer is done using the call operators as follows: `my_seq.()`.
+
+To verify wether the sequencer executed correctly, you can access the values of signals outside the sequencer using the `value` method. For example, the following code, initialize `counter` to 0, and then display the counter value after executing the sequencer.
+
+```ruby
+require 'HDLRuby/std/sequencer_sw'
+include RubyHDL::High
+using RubyHDL::High
+
+[32].inner :counter
+
+counter.value = 0
+
+my_seq = sequencer do
+   counter <= 0
+   1000.stimes do
+      counter <= counter + 1
+   end
+end
+
+my_seq.()
+
+puts "counter=#{counter.value}"
+```
+
+__Note__: When displaying the value of a signal, the `.value` method can be omitted. For example, in the code above, the final statement can also be written as:
+
+```ruby
+puts "counter=#{counter}"
+```
+
+#### Why Would I Want to Execute a Sequencer in Software, and What are the Limitations?
+
+There are two main reasons for executing sequencers in software:
+
+1. High-speed simulation: Sequencers executed in software run approximately 10 times faster than in the HDLRuby simulator.
+
+2. Seamless transition from software to hardware: During the early design stages, it may not be clear whether a given part will be implemented in software and hardware. Using the same code for both ensures:
+
+   * Reliability (guaranteed functional equivalence).
+
+   * Reduced design time (no need for recoding).
+
+While software sequencer are functionaly equivalent to their hardware implementation, their handling of time and parallelism is fundamentally different. In hardware, sequencers are implemented as finite state machines that transition according to a clock and that run in parallel with the remain of the circuits. By contrast, in software, sequencers are implemented as functions executed in sequence. If parallel synchronization is important in your design, e.g., a communication protocol, software sequencers may not be useful. However, there are ways to add hardware timing and parallelism in the following sections.
+
+
+#### Adding a Clock to a Software Sequencer.
+
+While there is no clock in software, it is possible to simulate one while executing a sequencer to estimate its performance when implemented in hardware. This is done by passing as argument a signal that will be increase at each estimated clock cycle as follows:
+
+```ruby
+sequencer(<clock counting signal>) do
+  ...
+end
+```
+
+After the executing of a sequencer with a clock, the estimate number of clock cycles required by the hardware implementation is stored into the clock signal. For example the following code will display `1000 clocks` which is the estimated number of executed clocks if the sequencer is implemented in hardware:
+
+
+```ruby
+[32].inner :clk_count
+clk_count.value = 0
+
+sequencer(clk_count) do
+   1000.stimes
+end.()
+
+puts "#{clk_count} clocks"
+```
+
+__Note__: In the code above, the sequencer is not stored in a variable because it is executed immediately upon declaration.
+
+#### Adding a Signal to Control the Execution of a Software Sequencer.
+
+In addition to a clock counter signal, it is possible to add a signal that when written one will start the execution of a software sequencer, like it is the case for the hardware implementation. For that purpose this signal is to be passed as second argument of the sequencer. For example the following code, starts the execution of the sequencer using signal `start`:
+
+```ruby
+[32].inner :clk_count
+[1].inner :start
+clk_count.value = 0
+
+sequencer(clk_count,start) do
+   1000.stimes
+end
+
+start.value = 1
+
+puts "#{clk_count} clocks"
+```
+
+With this alternate way for executing a software sequencer, it is not necesary any longer to store it into a ruby variable, and it is possible to start the execution of a sequencer exactly like in hardware, and also from anther sequencer. For example, in the following code, the sequencer sequencer start is controlled by the first one.
+
+```ruby
+[1].inner :start0, :start1
+[8].inner :count0, :count1
+
+sequencer(nil,start0) do
+   count0 <= 0
+   swhile(count0<100) { count0 <= count0 + 1 }
+   start1 <= 1
+end
+
+sequencer(nil,start1) do
+   count1 <= 0
+   swhile(count1<100) { count1 <= count1 + 1 }
+end
+```
+   
+
+#### Synchronizing Sequencers for Pseudo-Parallel Execution
+
+While software sequencers normally execute to completion before any other code runs, they can be interrupted using the `sync` command. This command does not correspond to anything in hardware but can be used to simulate parallel execution of multiple sequencers.
+
+When a `sync` command is encountered during execution, the sequencer is paused, and execution resumes with the code that follows the sequencer’s start. The paused sequencer can then be resumed using the call operator or by setting its start signal to 1.
+
+For example, in the following code, the sequencer starts execution, then prints "stop at count=20" before resuming execution, and finally prints "end at count=40":
+
+```ruby
+
+[32].inner :count
+
+my_seq = sequencer do
+   count <= 0
+   20.stimes
+      count <= count + 1
+   sync
+   20.stimes
+      count <= count + 1
+   end
+end
+
+my_seq.()
+puts "stop at count=#{count}"
+my_seq.()
+puts "end at count=#{count}"
+```
+
+For full cycle-accurate synchronization, insert a sync command at each estimated cycle. However, sync has a significant performance cost, and depending on the Ruby interpreter and software configuration, excessive use may make execution slower than the HDLRuby hardware simulator. Hence it is recommended to use this command only when necessary, and use the HDLRuby hardware simulator for cycle-accurate synchronization.
+
+
+#### Executing ruby code within a software sequencer.
+
+When executing a sequencer in software, an additional command, `ruby`, is available for running plain Ruby code. For example, the following displays "Hello" ten times using the puts method:
+
+
+```ruby
+sequencer do
+   stimes.10 do
+      ruby { puts "Hello" }
+   end
+end.()
+```
 
 
 ## Fixed-point (fixpoint): `std/fixpoint.rb`
