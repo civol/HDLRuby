@@ -23,11 +23,14 @@ system :test_with_sw_ruby do
     i <= 0
     e <= 0
     # swhile(c<10000000) do
-    10000000.stimes do
+    # 10000000.stimes do
+    sfor(0..10000000) do |u|
       c <= a + b + d
       d <= c + 1
-      ar[i%4] <= i
-      i <= i + 1
+      # ar[i%4] <= i
+      ar[u%4] <= i
+      sif(i<1000) { i <= i + 1 }
+      selse { i <= 0 }
     end
     a[4] <= 1
     b[7..5] <= 5

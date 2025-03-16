@@ -19,15 +19,19 @@ some_ruby_value = 1
 prog0 = sequencer(clk) do
   a <= 1
   b <= 2
-  c <= ruby { some_ruby_value }
+  # c <= ruby { some_ruby_value }
+  c <= ruby("some_ruby_value")
   d <= 0
   i <= 0
   # swhile(c<10000000) do
-  10000000.stimes do
+  # 10000000.stimes do
+  sfor(0..10000000) do |u|
     c <= a + b + d
     d <= c + 1
-    ar[i%4] <= i
-    i <= i + 1
+    # ar[i%4] <= i
+    ar[u%4] <= i
+    sif(i<1000) { i <= i + 1 }
+    selse { i <= 0 }
     sync
   end
   a[4] <= 1
@@ -35,7 +39,10 @@ prog0 = sequencer(clk) do
   res0 <= ar[0]
 end
 
-puts "prog0 source code: #{prog0.source}\n"
+puts "Generating file from prog0 source code..."
+File.open("with_sw_hruby_mruby.rb","w") do |f|
+  f << prog0.source
+end
 
 prog1 = sequencer do
   sloop do
@@ -43,6 +50,8 @@ prog1 = sequencer do
     sync
   end
 end
+
+puts "Executing concurrently prog0 and prog1..."
 
 while prog0.alive? do
   prog0.call

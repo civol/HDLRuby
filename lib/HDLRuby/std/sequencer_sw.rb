@@ -1,5 +1,7 @@
 require "hruby_types.rb"
 
+# Note: Fiber in C: https://github.com/higan-emu/libco
+
 module RubyHDL
 end
 
@@ -52,6 +54,7 @@ module RubyHDL::High
 
     # Generate inner signals with type +type+ and names from +names+ list.
     def make_inners(type,*names)
+      puts "make_inners with names=#{names.join(",")}"
       type = type.to_type
       last_sig = nil
       names.each do |name|
@@ -60,6 +63,7 @@ module RubyHDL::High
         sig = SignalI.new(type,name)
         @signals << sig
         # Register it.
+        # self.register(name) { puts("sig=",sig.inspect); sig }
         self.register(name) { sig }
         last_sig = sig
       end
@@ -147,7 +151,7 @@ module RubyHDL::High
   # end
 
 
-  # The translation of operators into ruby code.
+  # The translation of operators into Ruby code.
   RUBY_OPERATOR = {
     # Unary operators.
     :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
@@ -158,6 +162,24 @@ module RubyHDL::High
     # Binary operators.
     :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
     :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "(%s)**(%s)",
+    :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
+    :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
+    :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
+    :"<" => "(%s)<(%s)", :">" => "(%s)>(%s)", 
+    :"<=" => "(%s)<=(%s)",:">=" => "(%s)>=(%s)"
+  }
+
+  # The translation of operators into C code.
+  C_OPERATOR = {
+    # Unary operators.
+    :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
+    :abs => "(%s).abs",
+    :boolean => "%s", :bit => "%s", 
+    :signed => "%s", :unsigned => "(%s) & 0xFFFFFFFFFFFFFFFF",
+
+    # Binary operators.
+    :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
+    :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "pow((%s),(%s))",
     :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
     :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
     :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
@@ -486,11 +508,15 @@ module RubyHDL::High
   end
 
 
-  # Modify String to act as ruby code generator.
+  # Modify String to act as Ruby code generator.
   refine ::String do
+    # Convert to Ruby code.
     def to_ruby
       self
     end
+
+    # Convert to C code.
+    alias_method :to_c, :to_ruby
   end
 
 
@@ -500,6 +526,14 @@ module RubyHDL::High
       return Value.new(signed[32],self)
     end
     alias_method :to_expr, :to_value
+
+    def to_ruby
+      return self
+    end
+
+    def to_c
+      return self.to_s
+    end
 
     # Enhance the Integer class with sequencer iterations.
 
@@ -527,12 +561,19 @@ module RubyHDL::High
     alias_method :to_expr, :to_value
   end
 
+  # Modify Range to act as RubyHDL object.
+  refine ::Range do
+    def to_ruby
+      return "(#{self})"
+    end
+  end
+
   # Modify Range to support HW iterators.
   refine ::Enumerable do
     import_methods SEnumerable
     # HW iteration on each element.
     def seach(&ruby_block)
-       RubyHDL::High.top_sblock << SeachEnumerable.new(self,&ruby_block)
+       return Siter.new(RubyHDL::High.top_sblock.sequencer,self,"each",&ruby_block)
     end
   end
 
@@ -901,6 +942,30 @@ module RubyHDL::High
       # A block? Apply it on each overload if any.
       @overloads.each(&ruby_block) if @overloads
     end
+
+    # Convert to C code.
+    def to_c
+      case @name
+      when :void
+        return "void"
+      when :bit, :unsigned
+        return "unsigned"
+      when :signed
+        return "signed"
+      when :float
+        return "double"
+      when :string
+        return "char*"
+      else
+        return @name.to_s
+      end
+    end
+
+    # Convert to C initialization code.
+    def to_c_init
+      # By default: 0
+      return "0"
+    end
   end
 
 
@@ -1143,6 +1208,32 @@ module RubyHDL::High
     end
 
     alias_method :each_deep, :each_type_deep
+
+    # Convert to C code.
+    def to_c
+      if @base.is_a?(TypeVector) then
+        # Array type case.
+        return @base.to_c + "[#{self.size.to_i}]"
+      else
+        # Simple vector type case.
+        if float? then
+          return @base.to_c
+        else
+          return @base + " long long"
+        end
+      end
+    end
+
+    # Convert to C initialization code.
+    def to_c_init
+      if @base.is_a?(TypeVector) then
+        # Array type case.
+        base_init = @base.to_c_init
+        return "[" + ([base_init] * self.size.to_i).join(",") + "]"
+      else
+        return "0"
+      end
+    end
   end
 
 
@@ -1558,9 +1649,14 @@ module RubyHDL::High
       raise "to_value not defined here."
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       raise "to_ruby not defined for class: #{self.class}."
+    end
+
+    # Convert to C code.
+    def to_c
+      raise "to_c not defined for class: #{self.class}."
     end
 
     # Convert to ruby code for left value.
@@ -1709,10 +1805,13 @@ module RubyHDL::High
       return self
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return @content.to_s
     end
+
+    # Convert to C code.
+    alias_method :to_c, :to_ruby
   end
 
   
@@ -1726,9 +1825,14 @@ module RubyHDL::High
       @child = child.to_expr
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return RUBY_OPERATOR[@operator] % @child.to_ruby
+    end
+
+    # Convert to C code.
+    def to_c
+      return C_OPERATOR[@operator] % @child.to_c
     end
   end
   
@@ -1743,9 +1847,14 @@ module RubyHDL::High
       @right = right.to_expr
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return RUBY_OPERATOR[@operator] % [ @left.to_ruby, @right.to_ruby ]
+    end
+
+    # Convert to C code.
+    def to_c
+      return C_OPERATOR[@operator] % [ @left.to_c, @right.to_c ]
     end
   end
   
@@ -1759,12 +1868,20 @@ module RubyHDL::High
       @choices = choices.map(&:to_expr)
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return "case(#{@sel.to_}) ; " +
         @choices.map.with_index do |choice,i|
           "when #{i} ; #{choice.to_ruby} ; "
         end.join + "end"
+    end
+
+    # Convert to C code.
+    def to_c
+      return "switch(#{@sel.to_c}) {\n" +
+        @choices.map.with_index do |choice,i|
+          "case #{i}:\n#{choice.to_c}\nbreak;"
+        end.join("\n") + "\n}"
     end
   end
 
@@ -1798,10 +1915,13 @@ module RubyHDL::High
       @name = name.to_sym
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return @name.to_s
     end
+
+    # Convert to C code.
+    alias_method :to_c, :to_ruby
   end
 
   # Describes a SW implementation of an index reference.
@@ -1857,9 +1977,14 @@ module RubyHDL::High
       return @idx..@idx
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return "#{@base.to_ruby}[#{@idx.to_ruby}]"
+    end
+
+    # Convert to C code.
+    def to_c
+      return "#{@base.to_c}[#{@idx.to_c}]"
     end
   end
 
@@ -1916,9 +2041,24 @@ module RubyHDL::High
     #   return rng
     # end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return "#{@base.to_ruby}[#{@rng.first.to_ruby}..#{@rng.last.to_ruby}]"
+    end
+
+    # Convert to C code.
+    def to_c
+      if @base.type.base.is_a?(TypeVector) then
+        raise "Range access not supported yet for arrays."
+      else
+        # Compute the writing and clearing masks
+        smask = (1.to_value<<(@rng.first+1-@rng.last))-1
+        cmask = ~(smask << @rng.last)
+        # Get the final base.
+        base = @base.final_base.to_c
+        # Generate the ruby code.
+        return "(#{base} & #{cmask.to_c}) >> (#{@rng.last.to_c})"
+      end
     end
   end
 
@@ -1948,7 +2088,7 @@ module RubyHDL::High
       return Binary.new(@left.type,@left,@right)
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       if (@left.is_a?(RefIndex) or @left.is_a?(RefRange)) then
         if @left.base.type.base.is_a?(TypeVector) then
@@ -1956,8 +2096,6 @@ module RubyHDL::High
           base = @left.final_base.to_ruby
           return "#{base} ||= []; #{@left.to_ruby} = #{@right.to_ruby}"
         else
-          # # Compute the final access range.
-          # rng = @left.final_range
           # Get the access range.
           rng = @left.range
           # Compute the writing and clearing masks
@@ -1973,6 +2111,29 @@ module RubyHDL::High
         return "#{@left.to_ruby} = #{@right.to_ruby}"
       end
     end
+
+    # Convert to C code.
+    def to_c
+      if (@left.is_a?(RefIndex) or @left.is_a?(RefRange)) then
+        if @left.base.type.base.is_a?(TypeVector) then
+          return "#{@left.to_c} = #{@right.to_c}"
+        else
+          # Get the access range.
+          rng = @left.range
+          # Compute the writing and clearing masks
+          smask = (1.to_value<<(rng.first+1-rng.last))-1
+          cmask = ~(smask << rng.last)
+          # Get the final base.
+          base = left.final_base.to_c
+          # Generate the ruby code.
+          return "#{base} &= #{cmask.to_c}; " +
+            "#{base} |= (((#{@right.to_c} & #{smask.to_c}) << (#{rng.last.to_c})))"
+        end
+      else
+        return "#{@left.to_c} = #{@right.to_c};"
+      end
+    end
+    
   end
 
   # Describes a SW implementation of a if statement.
@@ -1998,16 +2159,28 @@ module RubyHDL::High
       @else_blk = Sblock.new(@sequencer,&ruby_block)
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
-      res = @sequencer.clk_up + "\nif(#{@cond.to_ruby})\n#{@yes.to_ruby}\n"
+      res = @sequencer.clk_up + "\nif(#{@condition.to_ruby})\n#{@yes_blk.to_ruby}\n"
       @elsifs.each do |(cond,blk)|
         res << "elsif(#{cond.to_ruby})\n#{blk.to_ruby}\n"
       end
       if @else_blk then
         res << "else\n#{@else_blk.to_ruby}\n"
       end
-      return res + @sequencer.clk_up
+      return res + "end\n" + @sequencer.clk_up
+    end
+
+    # Convert to C code.
+    def to_c
+      res = @sequencer.clk_up + "\nif(#{@condition.to_c}) {\n#{@yes_blk.to_c}\n}"
+      @elsifs.each do |(cond,blk)|
+        res << "\nelse if(#{cond.to_c}) {\n#{blk.to_c}\n}"
+      end
+      if @else_blk then
+        res << "\nelse {\n#{@else_blk.to_c}\n}"
+      end
+      return res + @sequencer.clk_up_c
     end
   end
 
@@ -2020,9 +2193,14 @@ module RubyHDL::High
       @blk = Sblock.new(sequencer,&ruby_block)
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
-      return "loop do\n#{@blk.to_ruby}\n#{@sequencer.clk_up}\nend\n"
+      return "loop do\n#{@blk.to_ruby}\n#{@sequencer.clk_up}\nend"
+    end
+
+    # Convert to C code.
+    def to_c
+      return "for(;;){\n#{@blk.to_ruby}\n#{@sequencer.clk_up_c}\n}"
     end
   end
 
@@ -2037,10 +2215,15 @@ module RubyHDL::High
       @yes_blk = Sblock.new(sequencer,&ruby_block)
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return @sequencer.clk_up + 
-        "\nwhile(#{@condition.to_ruby}) do\n#{@yes_blk.to_ruby}\n#{@sequencer.clk_up}\nend\n"
+        "\nwhile(#{@condition.to_ruby}) do\n#{@yes_blk.to_ruby}\n#{@sequencer.clk_up}\nend"
+    end
+
+    # Convert to C code.
+    def to_c
+        "\nwhile(#{@condition.to_c}) {\n#{@yes_blk.to_c}\n#{@sequencer.clk_up_c}\n}"
     end
   end
 
@@ -2051,9 +2234,14 @@ module RubyHDL::High
       @sequencer = sequencer
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return @sequencer.clk_up
+    end
+
+    # Convert to C code.
+    def to_c
+      return @sequencer.clk_up_c
     end
   end
 
@@ -2064,9 +2252,14 @@ module RubyHDL::High
       @sequencer = sequencer
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return @sequencer.clk_up + "\nbreak"
+    end
+
+    # Convert to C code.
+    def to_c
+      return @sequencer.clk_up_c + "\nbreak;"
     end
   end
 
@@ -2077,9 +2270,14 @@ module RubyHDL::High
       @sequencer = sequencer
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return @sequencer.clk_up + "\ncontinue"
+    end
+
+    # Convert to Ruby code.
+    def to_c
+      return @sequencer.clk_up_c + "\ncontinue;"
     end
   end
 
@@ -2090,11 +2288,16 @@ module RubyHDL::High
       @sequencer = sequencer
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       # Implemented as returning from a function since a sequencer
       # is implemented as one.
       return @sequencer.clk_up + "\nreturn"
+    end
+
+    # Convert to C code.
+    def to_c
+      return @sequencer.clk_up_c + "\nreturn;"
     end
   end
 
@@ -2103,9 +2306,14 @@ module RubyHDL::High
     def initialize
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
       return "Fiber.yield"
+    end
+
+    # Convert to C code.
+    def to_c
+      return "yield();"
     end
   end
 
@@ -2113,13 +2321,19 @@ module RubyHDL::High
   class Ruby < Expression
     @@ruby_blocks = []
 
-    # Create a new ruby code block for +ruby_block+.
-    def initialize(&ruby_block)
+    # Create a new ruby code block for either +ruby_block+ or
+    # string +str+.
+    def initialize(str = nil, &ruby_block)
+      @str = str
       # puts "ruby_block=#{ruby_block}"
       # Create the id for the block.
       @id = @@ruby_blocks.size
       # Adds the block.
-      @@ruby_blocks << ruby_block
+      if ruby_block then
+        @@ruby_blocks << ruby_block
+      else
+        @@ruby_blocks << proc { TOPLEVEL_BINDING.eval(@str.to_s) }
+      end
     end
 
     # Convert to expression: does not change but remove from the
@@ -2136,39 +2350,45 @@ module RubyHDL::High
       @@ruby_blocks[id].call
     end
 
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
-      puts caller[0]
-      return "RubyHDL::High::Ruby.call(#{@id})"
+      # puts caller[0]
+      if @str then
+        return TOPLEVEL_BINDING.eval(@str)
+      else
+        return "RubyHDL::High::Ruby.call(#{@id})"
+      end
+    end
+
+    # Convert to C code.
+    def to_c
+      return "rb_eval_string(\"#{@str.to_s}\");"
     end
   end
 
-  # Describes a SW implementation of an iterator statement.
-  class Siter
+
+  # Describes a SW implementation of an call statement.
+  class Scall
     using RubyHDL::High
 
-    # Create a new iteration statement in sequencer +sequencer+ 
-    # for chain of commands +commands+ to interate while
-    # executing +ruby_block+.
-    def initialize(sequencer,*commands, &ruby_block)
+    # Create a new call statement in sequencer +sequencer+ for function
+    # named +name+ with arguments +args+.
+    def initialize(sequencer, name, *args)
       @sequencer = sequencer
-      puts "@sequencer=#{@sequencer}"
-      @commands = commands
-      @blk = Sblock.new(sequencer,&ruby_block)
+      @name = name.to_sym
+      @args = args
     end
 
-    # Iterate on the commands.
-    def each_command(&ruby_block)
-      return to_enum(:each_command) unless ruby_block
-      @commands.each(&ruby_block)
-    end
-    alias_method :each, :each_command
-
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
-      res = @sequencer.clk_up + "\n" + 
-        @commands.map { |command| command.to_ruby }.join(".") 
-      return res + " do\n#{@blk.to_ruby}\n#{@sequencer.clk_up}\nend"
+      return @sequencer.clk_up + "\n#{name}(" + 
+        @args.map {|arg| arg.to_ruby}.join(",") + ")"
+    end
+
+    # Convert to C code.
+    def to_c
+      return @sequencer.clk_up + "\n#{name}(" + 
+        @args.map {|arg| arg.to_ruby}.join(",") + ");"
     end
 
     # Create an iterator for a given method +meth+.
@@ -2504,6 +2724,384 @@ module RubyHDL::High
   end
 
 
+  # Describes a SW implementation of an iterator statement.
+  class Siter
+    using RubyHDL::High
+
+    # Create a new iteration statement in sequencer +sequencer+ 
+    # for chain of commands +commands+ to interate while
+    # executing +ruby_block+.
+    def initialize(sequencer,*commands, &ruby_block)
+      @sequencer = sequencer
+      @commands = commands
+      if ruby_block then
+        # The iterator is finalized.
+        @blk = Sblock.new(sequencer,&ruby_block)
+      end
+      # puts "New iterator with blk=#{@blk} commands=#{@commands}"
+    end
+
+    # Iterate on the commands.
+    def each_command(&ruby_block)
+      return to_enum(:each_command) unless ruby_block
+      @commands.each(&ruby_block)
+    end
+    alias_method :each, :each_command
+
+    # Convert to Ruby code.
+    def to_ruby
+      # puts "to_ruby with blk=#{@blk} commands=#{@commands}"
+      res = @sequencer.clk_up + "\n" + 
+        @commands.map { |command| command.to_ruby }.join(".") 
+      return res + " do\n#{@blk.to_ruby}\n#{@sequencer.clk_up}\nend"
+    end
+
+    # Convert to C code.
+    def to_c
+      res = @sequencer.clk_up_c + "\n" +
+        @commands.map { |command| command.to_c }.join("_")
+      return res + "(#{@blk.to_c})"
+    end
+
+    # Create an iterator for a given method +meth+.
+    def make_iterator(meth,*args,&ruby_block)
+      # if ruby_block then
+      #   blk = Sblock.new(@sequencer,&ruby_block)
+      #   command = RubyHDL::High::Ruby.new do
+      #     "#{meth}(#{args.map{|arg| arg.to_ruby}.join(",")}) { #{blk.to_ruby} }"
+      #   end
+      # else
+      #   command = RubyHDL::High::Ruby.new do
+      #     "#{meth}(#{args.map{|arg| arg.to_ruby}.join(",")})"
+      #   end
+      # end
+      command = "#{meth}"
+      if args.any? then
+        command += "(*#{RubyHDL::High::Ruby.new {
+        "#{args.map{|arg| arg.to_ruby}.join(",")}"}})"
+      end
+      return Siter.new(@sequencer,*@commands,command,&ruby_block)
+    end
+
+    # The iterator methods.
+
+    # Iterator on each of the elements in range +rng+.
+    # *NOTE*: 
+    #   - Stop iteration when the end of the range is reached or when there
+    #     are no elements left
+    #   - This is not a method from Ruby but one specific for hardware where
+    #     creating a array is very expensive.
+    def seach_range(rng,&ruby_block)
+      return self.make_iterator("each_range",rng,&ruby_block)
+    end
+
+    # Tell if all the elements respect a given criterion given either
+    # as +arg+ or as block.
+    def sall?(arg = nil,&ruby_block)
+      return self.make_iterator("all?",arg,&ruby_block)
+    end
+
+    # Tell if any of the elements respects a given criterion given either
+    # as +arg+ or as block.
+    def sany?(arg = nil,&ruby_block)
+      return self.make_iterator("any?",arg,&ruby_block)
+    end
+
+    # Returns an SEnumerator generated from current enumerable and +arg+
+    def schain(arg)
+      return self.make_iterator("chain",arg)
+    end
+
+    # HW implementation of the Ruby chunk.
+    # NOTE: to do, or may be not.
+    def schunk(*args,&ruby_block)
+      raise "schunk is not supported yet."
+    end
+
+    # HW implementation of the Ruby chunk_while.
+    # NOTE: to do, or may be not.
+    def schunk_while(*args,&ruby_block)
+      raise "schunk_while is not supported yet."
+    end
+
+    # Returns a vector containing the execution result of the given block 
+    # on each element. If no block is given, return an SEnumerator.
+    # NOTE: be carful that the resulting vector can become huge if there
+    # are many element.
+    def smap(&ruby_block)
+      return self.make_iterator("map",&ruby_block)
+    end
+
+    # HW implementation of the Ruby flat_map.
+    # NOTE: actually due to the way HDLRuby handles vectors, should work
+    #       like smap
+    def sflat_map(&ruby_block)
+      return self.make_iterator("flat_map",&ruby_block)
+    end
+
+    # HW implementation of the Ruby compact, but remove 0 values instead
+    # on nil (since nil that does not have any meaning in HW).
+    def scompact
+      return self.make_iterator("compact",&ruby_block)
+    end
+
+
+    # WH implementation of the Ruby count.
+    def scount(obj = nil, &ruby_block)
+      return self.make_iterator("count",obj,&ruby_block)
+    end
+
+    # HW implementation of the Ruby cycle.
+    def scycle(n = nil,&ruby_block)
+      return self.make_iterator("cycle",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby find.
+    # NOTE: contrary to Ruby, if_none_proc is mandatory since there is no
+    #       nil in HW. Moreover, the argument can also be a value.
+    def sfind(if_none_proc, &ruby_block)
+      return self.make_iterator("find",if_none_proc,&ruby_block)
+    end
+
+    # HW implementation of the Ruby drop.
+    def sdrop(n)
+      return self.make_iterator("drop",n)
+    end
+
+    # HW implementation of the Ruby drop_while.
+    def sdrop_while(&ruby_block)
+      return self.make_iterator("drop_while",&ruby_block)
+    end
+
+    # HW implementation of the Ruby each_cons
+    def seach_cons(n,&ruby_block)
+      return self.make_iterator("each_cons",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby each_entry.
+    # NOTE: to do, or may be not.
+    def seach_entry(*args,&ruby_block)
+      raise "seach_entry is not supported yet."
+    end
+
+    # HW implementation of the Ruby each_slice
+    def seach_slice(n,&ruby_block)
+      return self.make_iterator("each_slice",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby each_with_index.
+    def seach_with_index(*args,&ruby_block)
+      return self.make_iterator("each_with_index",*args,&ruby_block)
+    end
+    alias_method :with_index, :seach_with_index
+
+    # HW implementation of the Ruby each_with_object.
+    def seach_with_object(obj,&ruby_block)
+      return self.make_iterator("each_with_object",obj,&ruby_block)
+    end
+
+    # HW implementation of the Ruby to_a.
+    def sto_a
+      return self.make_iterator("to_a")
+    end
+
+    # HW implementation of the Ruby select.
+    def sselect(&ruby_block)
+      return self.make_iterator("select",&ruby_block)
+    end
+
+    # HW implementation of the Ruby find_index.
+    def sfind_index(obj = nil, &ruby_block)
+      return self.make_iterator("find_index",obj,&ruby_block)
+    end
+
+    # HW implementation of the Ruby first.
+    def sfirst(n=1)
+      return self.make_iterator("first",n)
+    end
+
+    # HW implementation of the Ruby grep.
+    # NOTE: to do, or may be not.
+    def sgrep(*args,&ruby_block)
+      raise "sgrep is not supported yet."
+    end
+
+    # HW implementation of the Ruby grep_v.
+    # NOTE: to do, or may be not.
+    def sgrep_v(*args,&ruby_block)
+      raise "sgrep_v is not supported yet."
+    end
+
+    # HW implementation of the Ruby group_by.
+    # NOTE: to do, or may be not.
+    def sgroup_by(*args,&ruby_block)
+      raise "sgroup_by is not supported yet."
+    end
+
+    # HW implementation of the Ruby include?
+    def sinclude?(obj)
+      return self.make_iterator("include?",obj)
+    end
+
+    # HW implementation of the Ruby inject.
+    def sinject(*args,&ruby_block)
+      return self.make_iterator("inject",*args,&ruby_block)
+    end
+
+    # HW implementation of the Ruby reduce.
+    def sreduce
+      return self.make_iterator("reduce",*args,&ruby_block)
+    end
+
+
+    # HW implementation of the Ruby lazy.
+    # NOTE: to do, or may be not.
+    def slazy(*args,&ruby_block)
+      raise "slazy is not supported yet."
+    end
+
+    # HW implementation of the Ruby max.
+    def smax(n = nil, &ruby_block)
+      return self.make_iterator("max",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby max_by.
+    def smax_by(n = nil, &ruby_block)
+      return self.make_iterator("max_by",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby min.
+    def smin(n = nil, &ruby_block)
+      return self.make_iterator("min",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby min_by.
+    def smin_by(n = nil, &ruby_block)
+      return self.make_iterator("min_by",n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby minmax.
+    def sminmax(&ruby_block)
+      return self.make_iterator("minmax",&ruby_block)
+    end
+
+    # HW implementation of the Ruby minmax_by.
+    def sminmax_by(&ruby_block)
+      return self.make_iterator("minmax_by",&ruby_block)
+    end
+
+    # Tell if none of the elements respects a given criterion given either
+    # as +arg+ or as block.
+    def snone?(arg = nil,&ruby_block)
+      return self.make_iterator("none?",arg,&ruby_block)
+    end
+
+    # Tell if one and only one of the elements respects a given criterion
+    # given either as +arg+ or as block.
+    def sone?(arg = nil,&ruby_block)
+      return self.make_iterator("one?",arg,&ruby_block)
+    end
+
+    # HW implementation of the Ruby partition.
+    # NOTE: to do, or may be not.
+    def spartition(*args,&ruby_block)
+      raise "spartition is not supported yet."
+    end
+
+    # HW implementatiob of the Ruby reject.
+    def sreject(&ruby_block)
+      return self.make_iterator("reject",&ruby_block)
+    end
+
+    # HW implementatiob of the Ruby reverse_each.
+    def sreverse_each(*args,&ruby_block)
+      return self.make_iterator("reverse_each",*args,&ruby_block)
+    end
+
+    # HW implementation of the Ruby slice_after.
+    # NOTE: to do, or may be not.
+    def sslice_after(pattern = nil,&ruby_block)
+      raise "sslice_after is not supported yet."
+    end
+
+    # HW implementation of the Ruby slice_before.
+    # NOTE: to do, or may be not.
+    def sslice_before(*args,&ruby_block)
+      raise "sslice_before is not supported yet."
+    end
+
+    # HW implementation of the Ruby slice_when.
+    # NOTE: to do, or may be not.
+    def sslice_when(*args,&ruby_block)
+      raise "sslice_before is not supported yet."
+    end
+
+    # Merge two arrays in order, for ssort only.
+    def ssort_merge(arI, arO, first, middle, last, &ruby_block)
+      return self.make_iterator("sort_merge",arI,arO,first,middle,last,&ruby_block)
+    end
+
+    # HW implementation of the Ruby sort.
+    def ssort(&ruby_block)
+      return self.make_iterator("sort",&ruby_block)
+    end
+
+    # HW implementation of the Ruby sort.
+    def ssort_by(&ruby_block)
+      return self.make_iterator("sort_by",&ruby_block)
+    end
+
+    # HW implementation of the Ruby sum.
+    def ssum(initial_value = nil,&ruby_block)
+      return self.make_iterator("sum",initial_value,&ruby_block)
+    end
+
+    # The HW implementation of the Ruby take.
+    def stake(n)
+      return self.make_iterator("take",n)
+    end
+
+    # The HW implementation of the Ruby take_while.
+    def stake_while(&ruby_block)
+      return self.make_iterator("take_while",&ruby_block)
+    end
+
+    # HW implementation of the Ruby tally.
+    # NOTE: to do, or may be not.
+    def stally(h = nil)
+      raise "stally is not supported yet."
+    end
+
+    # HW implementation of the Ruby to_h.
+    # NOTE: to do, or may be not.
+    def sto_h(h = nil)
+      raise "sto_h is not supported yet."
+    end
+
+    # HW implementation of the Ruby uniq.
+    def suniq(&ruby_block)
+      return self.make_iterator("uniq",&ruby_block)
+    end
+
+    # HW implementation of the Ruby zip.
+    # NOTE: for now szip is deactivated untile tuples are properly
+    #       handled by HDLRuby.
+    def szip(obj,&ruby_block)
+      return self.make_iterator("zip",obj,&ruby_block)
+    end
+
+    # Iterator on the +num+ next elements.
+    # *NOTE*:
+    #   - Stop iteration when the end of the range is reached or when there
+    #     are no elements left
+    #   - This is not a method from Ruby but one specific for hardware where
+    #     creating a array is very expensive.
+    def seach_nexts(num,&ruby_block)
+      return self.seach.snexts(num,&ruby_block)
+    end
+  end
+
+
   # Describes a SW implementation of a signal.
   class SignalI < Expression
     using RubyHDL::High
@@ -2512,7 +3110,6 @@ module RubyHDL::High
     def initialize(type,name)
       @type = type.to_type
       @name = name.to_sym
-      # @content = nil # The content is the Ruby value, not the HW description one!
     end
 
     # Tell if the signal is an array.
@@ -2520,20 +3117,17 @@ module RubyHDL::High
       return @type.base.is_a?(TypeVector)
     end
 
-    # # Convert to a value.
-    # def to_value
-    #   return @content.to_value
-    # end
-
-    # Sets the content of the signal.
-    # def content=(value)
-    #   @content = value
-    # end
-
-    # Convert to ruby code.
+    # Convert to Ruby code.
     def to_ruby
-      # return self.name.to_s + ".content"
       return "__" + self.name.to_s
+    end
+
+    # Convert to C code.
+    alias_method :to_c, :to_ruby
+
+    # Check if a value is defined for the signal.
+    def value?
+      return TOPLEVEL_BINDING.local_variable_defined?(self.to_ruby)
     end
 
     # Gets the value of the signal.
@@ -2548,22 +3142,16 @@ module RubyHDL::High
 
     # Convert to an integer.
     def to_i
-      # return @content.to_i
-      # return binding.local_variable_get(to_ruby.to_sym).to_i
       return self.value.to_i
     end
 
     # Convert to an float.
     def to_f
-      # return @content.to_f
-      # return binding.local_variable_get(to_ruby.to_sym).to_f
       return self.value.to_f
     end
 
     # Convert to a string.
     def to_s
-      # return @content.to_s
-      # return binding.local_variable_get(to_ruby.to_sym).to_s
       return self.value.to_s
     end
   end
@@ -2585,8 +3173,13 @@ module RubyHDL::High
       @statements = []
       # Push the new sblock on top of the stack.
       RubyHDL::High.push_sblock(self)
+      # Make signals from the arguments of the ruby block.
+      @args = []
+      ruby_block.parameters.each do |typ,arg|
+        @args << SignalI.new(Void,arg)
+      end
       # Fill it.
-      self.instance_eval(&ruby_block)
+      self.instance_exec(*@args,&ruby_block)
       # Pop the new sblock.
       RubyHDL::High.pop_sblock
     end
@@ -2614,12 +3207,38 @@ module RubyHDL::High
       @statements.unshift(statement)
     end
 
+    # Get the last statement.
+    def last_statement
+      return @statements[-1]
+    end
 
-    # Convert to ruby code.
+
+    # Convert to Ruby code.
     def to_ruby
-      return @statements.map do |stmnt|
+      res = ""
+      # Generate the arguments if any.
+      if @args.any? then
+        res = "|#{@args.map(&:to_ruby).join(",")}|\n"
+      end
+      # Generate the statements.
+      res += @statements.map do |stmnt|
         stmnt.to_ruby + "\n"
       end.join
+      return res
+    end
+
+    # Convert to C code.
+    def to_c
+      res = ""
+      # Generate the arguments if any.
+      if @args.any? then
+        res = "(#{@args.map(&:to_c).join(",")})\n"
+      end
+      # Generate the statements.
+      res += "{" + @statements.map do |stmnt|
+        stmnt.to_ruby + "\n"
+      end.join + "}"
+      return res
     end
 
     # The interface for describing statements and expressions.
@@ -2656,12 +3275,12 @@ module RubyHDL::High
 
     # Create a sequential elsif statement on +cond+.
     def selsif(cond, &ruby_block)
-      self.statements[-1].selsif(&ruby_block)
+      self.last_statement.selsif(&ruby_block)
     end
 
     # Create a sequential else statement.
     def selse(&ruby_block)
-      self.statements[-1].selse(&ruby_block)
+      self.last_statement.selse(&ruby_block)
     end
 
     # Wait a given condition.
@@ -2685,7 +3304,7 @@ module RubyHDL::High
       # Ensures there is a ruby block to avoid returning an enumerator
       # (returning an enumerator would be confusing for a for statement).
       ruby_block = proc {} unless ruby_block
-      expr.seach.with_index(&ruby_block)
+      self << expr.seach.with_index(&ruby_block)
     end
 
     # The SW-specific statements and expressions.
@@ -2697,16 +3316,41 @@ module RubyHDL::High
       self << RubyHDL::High::Sync.new
     end
 
-    # Some arbirary Ruby code.
-    def ruby(&ruby_block)
-      self << RubyHDL::High::Ruby.new(&ruby_block)
+    # Some arbirary Ruby code as a string +str+ or as a proc
+    # +ruby_block+.
+    def ruby(str = nil, &ruby_block)
+      self << RubyHDL::High::Ruby.new(str,&ruby_block)
+    end
+  end
+
+
+  # Describes a SW implementation of a sequencer function.
+  class SfunctionT
+    using RubyHDL::High
+    attr_reader :name
+    # Create a new named +name+ with arguments +args+ and 
+    # executing the content of block +sblock+
+    def initialize(type,name,sblock,*args)
+      @name = name.to_sym
+      @args  = args
+      @blk = sblock
+    end
+
+    # Convert to Ruby code.
+    def to_ruby
+      return "def #{name}(#{@args.map {|arg| arg.to_ruby}.join(",")}\n#{@blk.to_ruby}\nend\n"
+    end
+
+    # Convert to C code.
+    def to_c
+      return "unsigned long long #{name}(#{@args.map {|arg| "unsigned long long " + arg.to_c}.join(",")} {\n#{@blk.to_c}\n}\n"
     end
   end
 
 
   
 
-  # Describes a SW implmentation of a sequencer.
+  # Describes a SW implementation of a sequencer.
   class SequencerT 
 
     # The source code (in ruby).
@@ -2729,36 +3373,38 @@ module RubyHDL::High
           this.resume if val.to_i == 1
         end
       end
-      # # Create the set of signals to update.
-      # @to_updates = []
+      # Create a set of sfunction used in the sequencer.
+      @sfunctions = {}
       # Create the main block.
       @sblock = RubyHDL::High::Sblock.new(self,&ruby_block)
       # Build the Ruby code.
       @source = ""
       @code = nil
-      self.build
+      self.build_ruby
     end
 
-    # # Set a signal to be updated at the end of the sequencer.
-    # def to_update(signal)
-    #   signal = signal.final_base unless signal.is_a?(SignalI)
-    #   @to_updates << signal
-    # end
+    # Add a sfunction.
+    def add_sfunction(name,sfunction)
+      @sfunctions[name.to_sym] = sfunction
+    end
 
-    # # Iterator on the updates.
-    # def each_to_update(&ruby_block)
-    #   # No ruby block? Return an enumerator.
-    #   return to_enum(:each_to_update) unless ruby_block
-    #   @to_updates.each(&ruby_block)
-    # end
-    # 
+    # Check if a sfunction is present.
+    def sfunction?(name)
+      return @sfunctions.key?(name.to_sym)
+    end
+
+    # Get a sfunction by name.
+    def sfunction(name)
+      return @sfunctions[name.to_sym]
+    end
 
     # Build the ruby code.
-    def build
+    def build_ruby
       this = self
       @source = <<-BUILD
 #{RubyHDL::High.global_sblock.each_signal.map do |signal|
-      signal.to_ruby + " = " + (signal.array? ? "[]" : "nil") + " unless defined?(" + signal.to_ruby + ")"
+      signal.to_ruby + " ||= " + 
+        (signal.array? ? "[]" : signal.value? ? signal.value.inspect : "nil")
 end.join("\n")}
 Fiber.new do
 #{@sblock.to_ruby}
@@ -2768,12 +3414,39 @@ BUILD
       @code = TOPLEVEL_BINDING.eval(@source)
     end
 
+    # Get the Ruby code.
+    def to_ruby
+      return @code
+    end
+
+    # Convert to C code.
+    def to_c
+      typ = nil
+      res = <<-BUILDC
+#{RubyHDL::High.global_sblock.each_signal.map do |signal|
+      typ = signal.type
+      typ.to_c + " " + signal.to_c + "=" + typ.to_c_init + ";"
+end.join("\n")}
+#{sblock.to_c}
+BUILDC
+      return res
+    end
+
     # Handling of the clock if any.
 
     # Generate a clock up of +count+ cycles if any clock.
     def clk_up(count = 1)
       if @clk then
         return "#{clk.to_ruby} += #{count.to_i}"
+      else
+        return ""
+      end
+    end
+
+    # Generate a clock up of +count+ cycles if any clock for C code.
+    def clk_up_c(count = 1)
+      if @clk then
+        return "#{clk.to_c} += #{count.to_i};"
       else
         return ""
       end
@@ -2806,20 +3479,35 @@ BUILD
     return SequencerT.new(clk,start,&ruby_block)
   end
 
-  # Creates an sequencer enumerator using a specific block access.
-  # - +typ+ is the data type of the elements.
-  # - +size+ is the number of elements, nil if not relevant.
-  # - +access+ is the block implementing the access method.
-  # def senumerator(typ,size,&access)
-  def senumerator(typ,size = nil,&access)
-    return SEnumeratorBase.new(typ,size,&access)
+  # Create a new function named +name+, built using block +ruby_block+.
+  def sdef(name,&ruby_block)
+    name = name.to_sym
+    # Get the arguments of the ruby_block.
+    args = ruby_block.parameters.map {|typ,name| name.to_s }
+    # Register the call to the function.
+    RubyHDL::High.register(name.to_sym) do |args|
+      cur_seq = Ruby::HDL::High.top_sblock.sequencer
+      unless cur_seq.sfunction?(name) then
+        # Need to create a new sfunction.
+        # Push a new empty sblock for building the function.
+        RubyHDL::High.push_sblock(SblockTop.new)
+        args.each do |arg|
+          RubyHDL::High.top_sblock.make_inners(Void,arg.to_sym)
+        end
+        # Execute the ruby block in a sequencer environment for building
+        # the sblock.
+        sblock = Sblock.new(cur_seq,&ruby_block)
+        RubyHDL::High.pop_sblock
+        # Create the function.
+        function = SfunctionT.new(name,args,sblock)
+        # Add it to the sequencer.
+        cur_seq.add_sfunction(name)
+      end
+      Scall.new(cur_seq,name,args)
+    end
   end
 
 
 end
 
-
-
-include RubyHDL::High
-using RubyHDL::High
 
