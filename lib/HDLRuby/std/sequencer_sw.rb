@@ -54,7 +54,7 @@ module RubyHDL::High
 
     # Generate inner signals with type +type+ and names from +names+ list.
     def make_inners(type,*names)
-      puts "make_inners with names=#{names.join(",")}"
+      # puts "make_inners with names=#{names.join(",")}"
       type = type.to_type
       last_sig = nil
       names.each do |name|
@@ -3110,6 +3110,8 @@ module RubyHDL::High
     def initialize(type,name)
       @type = type.to_type
       @name = name.to_sym
+      # Compute the mask for adjusting the value to the type.
+      @mask = (2 ** @type.width)-1
     end
 
     # Tell if the signal is an array.
@@ -3132,12 +3134,12 @@ module RubyHDL::High
 
     # Gets the value of the signal.
     def value
-      return TOPLEVEL_BINDING.eval(self.to_ruby)
+      return TOPLEVEL_BINDING.eval(self.to_ruby) & @mask
     end
 
     # Sets the value of the signal.
     def value=(val)
-      return TOPLEVEL_BINDING.eval("#{self.to_ruby} = #{val}")
+      return TOPLEVEL_BINDING.eval("#{self.to_ruby} = #{val} & #{@mask}")
     end
 
     # Convert to an integer.
@@ -3477,6 +3479,11 @@ BUILDC
   # run control +start+
   def sequencer(clk = nil, start = nil, &ruby_block)
     return SequencerT.new(clk,start,&ruby_block)
+  end
+
+  # Create a 1-bit signal.
+  def inner(*names)
+    return [1].inner(*names)
   end
 
   # Create a new function named +name+, built using block +ruby_block+.
