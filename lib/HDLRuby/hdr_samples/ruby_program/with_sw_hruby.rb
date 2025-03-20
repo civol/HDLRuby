@@ -5,7 +5,7 @@ require 'HDLRuby/std/sequencer_sw'
 include RubyHDL::High
 using RubyHDL::High
 
-[1].inner :clk
+[32].inner :clk
 clk.value = 0
 
 [32].inner :a,:b,:c,:i

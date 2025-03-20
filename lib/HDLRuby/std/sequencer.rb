@@ -320,6 +320,11 @@ module HDLRuby::High::Std
           return @fsm.cur_state_sig != self.end_state_value
         end
 
+        # Resets the sequencer.
+        def reset!
+          @fsm.next_state_sig <= self.start_state_value
+        end
+
 
         # Fills the top user with the content of block +blk+.
         def fill_top_user(blk)

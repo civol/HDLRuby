@@ -151,22 +151,44 @@ module RubyHDL::High
   # end
 
 
+  # RUBY_OPERATOR = {
+  #   # Unary operators.
+  #   :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
+  #   :abs => "(%s).abs",
+  #   :boolean => "%s", :bit => "%s", 
+  #   :signed => "%s", :unsigned => "(%s) & 0xFFFFFFFFFFFFFFFF",
+
+  #   # Binary operators.
+  #   :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
+  #   :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "(%s)**(%s)",
+  #   :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
+  #   :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
+  #   :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
+  #   :"<" => "(%s)<(%s)", :">" => "(%s)>(%s)", 
+  #   :"<=" => "(%s)<=(%s)",:">=" => "(%s)>=(%s)"
+  # }
+
   # The translation of operators into Ruby code.
   RUBY_OPERATOR = {
     # Unary operators.
-    :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
-    :abs => "(%s).abs",
-    :boolean => "%s", :bit => "%s", 
-    :signed => "%s", :unsigned => "(%s) & 0xFFFFFFFFFFFFFFFF",
+    :"-@" => "-(%{l})", :"+@" => "+(%{l})", :"~" => "~(%{l})",
+    :abs => "(%{l}).abs",
+    :boolean => "%{l}", :bit => "%{l}", 
+    :signed => "%{l}", :unsigned => "(%{l}) & 0xFFFFFFFFFFFFFFFF",
 
     # Binary operators.
-    :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
-    :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "(%s)**(%s)",
-    :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
-    :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
-    :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
-    :"<" => "(%s)<(%s)", :">" => "(%s)>(%s)", 
-    :"<=" => "(%s)<=(%s)",:">=" => "(%s)>=(%s)"
+    :"+" => "(%{l})+(%{r})", :"-" => "(%{l})-(%{r})", 
+    :"*" => "(%{l})*(%{r})", :"/" => "(%{l})/(%{r})", 
+    :"%" => "(%{l})%%(%{r})", :"**" => "(%{l})**(%{r})",
+    :"&" => "(%{l})&(%{r})", :"|" => "(%{l})|(%{r})", 
+    :"^" => "(%{l})^(%{r})",
+    :"<<" => "(%{l})<<(%{r})", :">>" => "(%{l})>>(%{r})",
+    :"==" => "(%{l}) & %{m}==(%{r}) & %{m}", 
+    :"!=" => "(%{l}) & %{m}!=(%{r}) %{m}",
+    :"<" => "(%{l}) & %{m}%{s} < (%{r}) & %{m}%{s}", 
+    :">" => "(%{l}) & %{m}%{s} > (%{r}) & %{m}%{s}", 
+    :"<=" => "(%{l}) & %{m}%{s} <=(%{r}) & %{m}%{s}",
+    :">=" => "(%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}"
   }
 
   # The translation of operators into C code.
@@ -985,12 +1007,30 @@ module RubyHDL::High
 
   # The signed bit type.
   Signed = define_type(:signed)
+  class << Signed
+    # Tells if the type signed.
+    def signed?
+      return true
+    end
+  end
 
   # The unsigned bit type.
   Unsigned = define_type(:unsigned)
+  class << Unsigned
+    # Tells if the type unsigned.
+    def unsigned?
+      return true
+    end
+  end
 
   # The float bit type
   Float = define_type(:float)
+  class << Float
+    # Tells if the type signed.
+    def signed?
+      return true
+    end
+  end
 
   # The string type
   StringT = define_type(:string)
@@ -1823,11 +1863,13 @@ module RubyHDL::High
       super(type)
       @operator = operator.to_sym
       @child = child.to_expr
+      @mask = (2 ** @type.width)-1
     end
 
     # Convert to Ruby code.
     def to_ruby
-      return RUBY_OPERATOR[@operator] % @child.to_ruby
+      # return RUBY_OPERATOR[@operator] % @child.to_ruby
+      return RUBY_OPERATOR[@operator] % { l: @child.to_ruby }
     end
 
     # Convert to C code.
@@ -1845,11 +1887,22 @@ module RubyHDL::High
       @operator = operator.to_sym
       @left = left.to_expr
       @right = right.to_expr
+      # Compute the mask for fixing the bit width.
+      @mask = (2 ** @type.width)-1
+      # Compute xor mask for handling the sign.
+      # Make it as a string so that no addition computation is required
+      # if no sign is required.
+      @sign_fix = ""
+      if type.signed? then
+        @sign_fix = " ^ #{2**(@type.width-1)}"
+      end
     end
 
     # Convert to Ruby code.
     def to_ruby
-      return RUBY_OPERATOR[@operator] % [ @left.to_ruby, @right.to_ruby ]
+      # return RUBY_OPERATOR[@operator] % [ @left.to_ruby, @right.to_ruby ]
+      return RUBY_OPERATOR[@operator] % 
+        { l: @left.to_ruby, r: @right.to_ruby, m: @mask, s: @sign_fix }
     end
 
     # Convert to C code.
@@ -3112,6 +3165,7 @@ module RubyHDL::High
       @name = name.to_sym
       # Compute the mask for adjusting the value to the type.
       @mask = (2 ** @type.width)-1
+      @sign = 2 ** (@type.width-1)
     end
 
     # Tell if the signal is an array.
@@ -3134,12 +3188,22 @@ module RubyHDL::High
 
     # Gets the value of the signal.
     def value
-      return TOPLEVEL_BINDING.eval(self.to_ruby) & @mask
+      # return TOPLEVEL_BINDING.eval(self.to_ruby)
+      res = TOPLEVEL_BINDING.eval(self.to_ruby)
+      if res.is_a?(Integer) then
+        res = res & @mask
+        if @type.signed? then
+          if res & @sign != 0 then
+            return res - (@mask+1)
+          end
+        end
+      end
+      return res
     end
 
     # Sets the value of the signal.
     def value=(val)
-      return TOPLEVEL_BINDING.eval("#{self.to_ruby} = #{val} & #{@mask}")
+      return TOPLEVEL_BINDING.eval("#{self.to_ruby} = #{val}")
     end
 
     # Convert to an integer.
@@ -3274,16 +3338,19 @@ module RubyHDL::High
     def sif(cond, &ruby_block)
       self << RubyHDL::High::Sif.new(@sequencer,cond,&ruby_block)
     end
+    alias_method :hif, :sif
 
     # Create a sequential elsif statement on +cond+.
     def selsif(cond, &ruby_block)
       self.last_statement.selsif(&ruby_block)
     end
+    alias_method :helsif, :selsif
 
     # Create a sequential else statement.
     def selse(&ruby_block)
       self.last_statement.selse(&ruby_block)
     end
+    alias_method :helse, :selse
 
     # Wait a given condition.
     def swait(cond)
