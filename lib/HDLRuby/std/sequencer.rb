@@ -315,6 +315,11 @@ module HDLRuby::High::Std
             expr.seach.with_index(&ruby_block)
         end
 
+        # Tell if the sequencer ends it execution.
+        def alive?
+          return @fsm.cur_state_sig != self.end_state_value
+        end
+
 
         # Fills the top user with the content of block +blk+.
         def fill_top_user(blk)

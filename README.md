@@ -17,6 +17,10 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.7.2:
+
+* Added the `alive?` and `reset!` commands for HDLRuby sequencers.
+
 For HDLRuby version 3.7.x:
 
 * Added the possibility to run [sequencers in software](#sequencers-as-software-code). (WIP)
@@ -3254,6 +3258,29 @@ A sequence is a specific case of a `seq` block that includes the following softw
  - `scontinue`: goes to the next step of the iteration.
 
  - `sterminate`: ends the execution of the sequence.
+
+ - `alive?`: is 0 if the sequencer is still running and not 0 otherwise.
+   Can be used outside the sequencer.
+
+ - `reset!`: resets the sequencer to its start.
+   Can be used outside the sequencer.
+
+The two last commands can be used to control a sequencer outside of it. For that purpose, a reference must be assigned to the sequencer as follows, where `ref_sequencer` is a Ruby variable that will refer to the sequencer:
+
+```ruby
+ref_sequencer = sequencer(clk,start) do
+   < some sequencer code >
+end
+
+< somewhere else in the code. >
+
+   # Reset the sequencer if it ended its execution.
+   hif(ref_sequencer.alive? == 0) do
+      ref_sequencer.reset!
+   end
+```
+
+
 
 It is also possible to use enumerators (iterators) similar to the Ruby `each` using the following methods within sequences:
 
