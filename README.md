@@ -21,6 +21,8 @@ For HDLRuby version 3.7.2:
 
 * Added the `alive?` and `reset!` commands for HDLRuby sequencers.
 
+* Added the `require_ruby` method for loading Ruby (i.e., non-HDLRuby) libraries.
+
 For HDLRuby version 3.7.x:
 
 * Added the possibility to run [sequencers in software](#sequencers-as-software-code). (WIP)
@@ -259,7 +261,9 @@ hdr_vhdl
 hdr_sim
 ```
 
+## HDLRuby files.
 
+HDLRuby being built on top of the Ruby language, we choose as convension to name the HDLRuby file with the `.rb` extension. For the same reason, including external HDLRuby files is done using the `require` or `require_relative` methods, that are identical to their Ruby counterpart. Those method however can only be used for including HDLRuby description file and not Ruby ones, for the later, the method `require_ruby` and `require_relative_ruby` must be used instead.
 
 
 # HDLRuby programming guide
@@ -743,7 +747,7 @@ __Notes__:
 - Since this is Ruby code, the body can also be delimited by the `do` and `end` Ruby keywords (in which case the parentheses can be omitted) as follows:
 
 ```ruby
-system :box does
+system :box do
 end
 ```
 
@@ -931,8 +935,16 @@ inner sig: 0
 As another example, an 8-bit 8-word ROM could be declared and initialized as follows:
 
 ```ruby
-bit[8][-8] rom: [ 0,1,2,3,4,5,6,7 ]
+bit[8][-8] rom: [ _h00,_h01,_h02,_h03,_h04,_h05,_h06,_h07 ]
 ```
+
+__Note__: 
+
+ * The notation `_hXY` is used for indicating a 2-digit, `X` and `Y`, hexadecimal.
+
+ *  By default, Ruby integers (not preceded by the `_` prefix) are typed as 64-bit HDLRuby values, whereas HDLRuby explicit values (preceded by the `_ ` prefix) have a bit-width corresponding to their representation.
+
+ * When declaring the contents of a ROM, the bit-width of the elements must match that of the declared type; otherwise, misalignments may occur.
 
 
 ### Scope in a system

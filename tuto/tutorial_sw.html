@@ -131,6 +131,12 @@ To do this, you can use the following command:</p>
 </code></pre>
 <p><strong>Note</strong>: for the command above, it is assumed that 'adder.v' contains a simulation benchmark.</p>
 <p>And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.</p>
+<h3>1.4. About the HDLRuby files.</h3>
+<p>The HDLRuby files, that include HDLRuby description of circuits, are text files (the default encoding is UTF-8), is file name's extension is by convension <code>.rb</code>. It is possible to include other HDLRuby file within the current one using the <code>require</code> (for HDLRuby standard files) or <code>require_relative</code> (for local HDLRuby files) methods as follows:</p>
+<pre><code class="language-ruby">require &quot;filename&quot;
+require_relative &quot;path_to_another_filename&quot;
+</code></pre>
+<p>As it will be seen later, software Ruby code can also be used for generic descriptions of circuits. It is also possible to include Ruby code from different files using respectively <code>require_ruby</code> for standard libraries and gems, and <code>require_relative_ruby</code> for local files.</p>
 <h2>2. How to represent a circuit in HDLRuby</h2>
 <p>In this section we will see:</p>
 <ul>
