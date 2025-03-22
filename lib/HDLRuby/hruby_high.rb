@@ -1466,6 +1466,11 @@ module HDLRuby::High
                     sys.no_parent!
                     systemT.scope.add_systemI(sys)
                 end
+                # Adds it programs.
+                included.scope.each_program do |program|
+                  program.no_parent!
+                  systemT.scope.add_program(program)
+                end
                 # Adds its code.
                 included.scope.each_code do |code|
                     code.no_parent!
@@ -5493,6 +5498,16 @@ module HDLRuby::High
     Real    = TypeFloat.new(:float)
 
 
+end
+
+# Require a Ruby file.
+def self.require_ruby(str)
+  require(str)
+end
+
+# Require a Ruby file from current path.
+def self.require_relative_ruby(str)
+  require_relative(str)
 end
 
 # Tell if already configured.
