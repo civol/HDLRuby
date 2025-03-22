@@ -3480,7 +3480,7 @@ Fiber.new do
 end
 BUILD
       # puts "building code_txt=" + @source
-      @code = TOPLEVEL_BINDING.eval(@source)
+      self.reset!
     end
 
     # Get the Ruby code.
@@ -3530,6 +3530,11 @@ BUILDC
       @code.resume
     end
     alias_method :call, :resume
+
+    # Resets the sequencer.
+    def reset!
+      @code = TOPLEVEL_BINDING.eval(@source)
+    end
 
     # Check is the sequencer can still be resumed.
     def alive?
