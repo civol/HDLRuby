@@ -187,6 +187,18 @@ __Note__: for the command above, it is assumed that 'adder.v' contains a simulat
 
 And that's it! For details about all the actions that can be performed, how to write an input file, and what kind of output can be produced, let us see the remaining of the tutorial.
 
+### 1.4. About the HDLRuby files.
+
+The HDLRuby files, that include HDLRuby description of circuits, are text files (the default encoding is UTF-8), is file name's extension is by convension `.rb`. It is possible to include other HDLRuby file within the current one using the `require` (for HDLRuby standard files) or `require_relative` (for local HDLRuby files) methods as follows:
+
+```ruby
+require "filename"
+require_relative "path_to_another_filename"
+```
+
+As it will be seen later, software Ruby code can also be used for generic descriptions of circuits. It is also possible to include Ruby code from different files using respectively `require_ruby` for standard libraries and gems, and `require_relative_ruby` for local files.
+
+
 
 ## 2. How to represent a circuit in HDLRuby
 
