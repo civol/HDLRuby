@@ -3201,6 +3201,20 @@ module RubyHDL::High
       return res
     end
 
+    # Generate a Ruby/C string code for accessing the value of the 
+    # signal with proper bit width and sign.
+    def value_text
+      unless self.array? then
+        if @type.signed? then
+          return "(#{self.to_ruby} & #{@sign} != 0 ? #{self.to_ruby} & #{@mask} - #{@mask+1} : #{self.to_ruby} & #{@mask})"
+        else
+          return "(#{self.to_ruby} & #{@mask})"
+        end
+      else
+        return self.to_ruby
+      end
+    end
+
     # Sets the value of the signal.
     def value=(val)
       return TOPLEVEL_BINDING.eval("#{self.to_ruby} = #{val}")
@@ -3389,6 +3403,11 @@ module RubyHDL::High
     # +ruby_block+.
     def ruby(str = nil, &ruby_block)
       self << RubyHDL::High::Ruby.new(str,&ruby_block)
+    end
+
+    # Some arbitrary code whose text is to add direction.
+    def text(str)
+      self << str.to_s
     end
   end
 

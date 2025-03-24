@@ -19,6 +19,10 @@ __What's new__
 
 For HDLRuby version 3.7.2:
 
+* Added the `text` command for the sequencers in software.
+
+* Added the `value_text` method to sequencers in software's signal for generatign Ruby/C code for accessing a value with correct typing.
+
 * Added the `alive?` and `reset!` commands for HDLRuby sequencers.
 
 * Added the `require_ruby` method for loading Ruby (i.e., non-HDLRuby) libraries.
@@ -3956,17 +3960,26 @@ sequencer do
 end.()
 ```
 
-Another possibility is to put the code into a string as follows:
+Another possibility is to put the code into a string using the command `text` as follows:
 
 ```
 sequencer do
    stimes.10 do
-      ruby('puts "Hello"')
+      text('puts "Hello"')
    end
 end.()
 ```
 
-Both method are functionally equivalent. However, the first is faster and safer but is incompatible with separated code generation, while the second allows separate code generation but is slower and less safe.
+Both method are functionally equivalent. However, the first is safer as potential errors are detected at the compile stage, but is incompatible with separated code generation and is slow, while the second allows separate code generation, if fast, but is less safe since it is only at the execution stage that the code is checked.
+
+__Note__: Since the string in text is grafted as is into the generated Ruby (or C) code, you cannot directly access the value of a signal. However, you can use to_ruby or to_c to access the underlying raw value, or use value_text to retrieve the value with proper type adjustment in case of overflow or underflow. For example, the following will display the raw value of signal sig0 and the hardware-accurate value of signal sig1:
+
+```ruby
+sequencer do
+   text("puts #{sig0.to_ruby}")
+   text("puts #{sig1.value_text}")
+end
+```
 
 
 ## Fixed-point (fixpoint): `std/fixpoint.rb`
