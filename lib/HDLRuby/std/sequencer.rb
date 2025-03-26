@@ -315,6 +315,11 @@ module HDLRuby::High::Std
             expr.seach.with_index(&ruby_block)
         end
 
+        # Does nothing: just for compatibility with the software
+        # implementation of sequencers.
+        def sync
+        end
+
         # Tell if the sequencer ends it execution.
         def alive?
           return @fsm.cur_state_sig != self.end_state_value
