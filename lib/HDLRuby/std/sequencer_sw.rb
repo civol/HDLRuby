@@ -2555,14 +2555,12 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return @sequencer.clk_up + "__#{@name}(" + 
-        @args.map {|arg| arg.to_ruby}.join(",") + ")"
+      return "__#{@name}(" + @args.map {|arg| arg.to_ruby}.join(",") + ")"
     end
 
     # Convert to C code.
     def to_c
-      return @sequencer.clk_up + "\n__#{name}(" + 
-        @args.map {|arg| arg.to_ruby}.join(",") + ");"
+      return "\n__#{name}(" + @args.map {|arg| arg.to_ruby}.join(",") + ");"
     end
 
     # Create an iterator for a given method +meth+.
@@ -3303,6 +3301,17 @@ module RubyHDL::High
       # Compute the mask for adjusting the value to the type.
       @mask = (2 ** @type.width)-1
       @sign = 2 ** (@type.width-1)
+      @global = "" # The global indicator: empty or '$'
+    end
+
+    # Tell if the signal is global or not.
+    def global?
+      return @global == "$"
+    end
+
+    # Set the signal to be a global.
+    def global!
+      @global = "$"
     end
 
     # Tell if the signal is an array.
@@ -3312,7 +3321,7 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return "__" + self.name.to_s
+      return @global + "__" + self.name.to_s
     end
 
     # Convert to C code.
@@ -3320,7 +3329,11 @@ module RubyHDL::High
 
     # Check if a value is defined for the signal.
     def value?
-      return TOPLEVEL_BINDING.local_variable_defined?(self.to_ruby)
+      if global? then
+        return global_variables.include?(self.to_ruby)
+      else
+        return TOPLEVEL_BINDING.local_variable_defined?(self.to_ruby)
+      end
     end
 
     # Gets the value of the signal.
@@ -3598,12 +3611,12 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return "def __#{name}(#{@args.map {|arg| "__" + arg.to_ruby}.join(",")})\n#{@blk.to_ruby}\nend\n"
+      return "def __#{name}(#{@args.map {|arg| "__" + arg.to_ruby}.join(",")})\n#{@blk.sequencer.clk_up}\n#{@blk.to_ruby}\nend\n"
     end
 
     # Convert to C code.
     def to_c
-      return "unsigned long long __#{name}(#{@args.map {|arg| "unsigned long long " + arg.to_c}.join(",")} {\n#{@blk.to_c}\n}\n"
+      return "unsigned long long __#{name}(#{@args.map {|arg| "unsigned long long " + arg.to_c}.join(",")} {\n#{@blk.sequencer.clk_up_c}\n#{@blk.to_c}\n}\n"
     end
   end
 
@@ -3662,13 +3675,14 @@ module RubyHDL::High
     def build_ruby
       this = self
       @source = <<-BUILD
-#{@sfunctions.map {|n,f| f.to_ruby }.join("\n\n")}
-
 #{RubyHDL::High.global_sblock.each_signal.map do |signal|
       # puts "for signal=#{signal.name} with type=#{signal.type}"
       signal.to_ruby + " ||= " + 
-        (signal.array? ? "[]" : signal.value? ? signal.value.inspect : "nil")
+        (signal.array? ? "[]" : signal.value? ? signal.value.inspect : "0")
 end.join("\n")}
+
+#{@sfunctions.map {|n,f| f.to_ruby }.join("\n\n")}
+
 Fiber.new do
 #{@blk.to_ruby}
 end
@@ -3744,6 +3758,8 @@ BUILDC
   # Create a new sequencer block, with clock counter +clk+ and
   # run control +start+
   def sequencer(clk = nil, start = nil, &ruby_block)
+    # Ensure the clock is global.
+    clk.global! if clk
     return SequencerT.new(clk,start,&ruby_block)
   end
 

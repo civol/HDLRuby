@@ -10,8 +10,9 @@ sdef(:truc) do |m,n|
 end
 
 signed[32].inner :x,:y, :result
+signed[32].inner :clk
 
-my_seq = sequencer do
+my_seq = sequencer(clk) do
   x <= 0
   y <= 0
   100.stimes do
