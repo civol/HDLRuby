@@ -2924,7 +2924,7 @@ module RubyHDL::High
     def each_statement(&ruby_block)
       return to_enum(:each_statement) unless ruby_block
       # Apply ruby_block on the block.
-      ruby_block.call(@blk)
+      @blk.each_statement(&ruby_block)
     end
 
     # Iterate deeply on the statements.
@@ -2941,7 +2941,10 @@ module RubyHDL::High
       # puts "to_ruby with blk=#{@blk} commands=#{@commands}"
       res = @sequencer.clk_up + "\n" + 
         @commands.map { |command| command.to_ruby }.join(".") 
-      return res + " do\n#{@blk.to_ruby}\n#{@sequencer.clk_up}\nend"
+      return res + " do" + 
+        (@blk.each_arg.any? ? 
+         "|#{@blk.each_arg.map(&:to_ruby).join(",")}|" : "") + 
+        "\n#{@blk.to_ruby}\n#{@sequencer.clk_up}\nend"
     end
 
     # Convert to C code.
@@ -3441,7 +3444,6 @@ module RubyHDL::High
         ruby_block(statement)
       end
     end
-        
 
     # Delete a statement.
     def delete(statement)
@@ -3458,6 +3460,11 @@ module RubyHDL::High
       return @statements[-1]
     end
 
+    # Iterate on the arguments if any.
+    def each_arg(&ruby_block)
+      return to_enum(:each_arg) unless ruby_block
+      @args.each(&ruby_block)
+    end
 
     # Convert to Ruby code.
     def to_ruby
