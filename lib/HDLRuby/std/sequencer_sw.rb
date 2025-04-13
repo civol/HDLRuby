@@ -15,6 +15,8 @@ module RubyHDL::High
   ########################################################################
 
 
+
+
   @@absoluteCounter = -1 # The absolute name counter.
 
   @@uniq_names = Set.new(Symbol.all_symbols.map {|sym| sym.to_s})
@@ -52,6 +54,42 @@ module RubyHDL::High
       nil
     end
 
+    # Generate input signals with type +type+ and names from +names+ list.
+    def make_inputs(type,*names)
+      # puts "make_inputs with names=#{names.join(",")}"
+      type = type.to_type
+      last_sig = nil
+      names.each do |name|
+        name = name.to_sym
+        # Create and add the signal.
+        sig = SignalI.new(name,type,:input)
+        @signals << sig
+        # Register it.
+        # self.register(name) { puts("sig=",sig.inspect); sig }
+        self.register(name) { sig }
+        last_sig = sig
+      end
+      return last_sig
+    end
+
+    # Generate output signals with type +type+ and names from +names+ list.
+    def make_outputs(type,*names)
+      # puts "make_outputs with names=#{names.join(",")}"
+      type = type.to_type
+      last_sig = nil
+      names.each do |name|
+        name = name.to_sym
+        # Create and add the signal.
+        sig = SignalI.new(name,type,:output)
+        @signals << sig
+        # Register it.
+        # self.register(name) { puts("sig=",sig.inspect); sig }
+        self.register(name) { sig }
+        last_sig = sig
+      end
+      return last_sig
+    end
+
     # Generate inner signals with type +type+ and names from +names+ list.
     def make_inners(type,*names)
       # puts "make_inners with names=#{names.join(",")}"
@@ -60,7 +98,7 @@ module RubyHDL::High
       names.each do |name|
         name = name.to_sym
         # Create and add the signal.
-        sig = SignalI.new(type,name)
+        sig = SignalI.new(name,type,:inner)
         @signals << sig
         # Register it.
         # self.register(name) { puts("sig=",sig.inspect); sig }
@@ -183,12 +221,12 @@ module RubyHDL::High
     :"&" => "(%{l})&(%{r})", :"|" => "(%{l})|(%{r})", 
     :"^" => "(%{l})^(%{r})",
     :"<<" => "(%{l})<<(%{r})", :">>" => "(%{l})>>(%{r})",
-    :"==" => "(%{l}) & %{m}==(%{r}) & %{m}", 
-    :"!=" => "(%{l}) & %{m}!=(%{r}) %{m}",
-    :"<" => "(%{l}) & %{m}%{s} < (%{r}) & %{m}%{s}", 
-    :">" => "(%{l}) & %{m}%{s} > (%{r}) & %{m}%{s}", 
-    :"<=" => "(%{l}) & %{m}%{s} <=(%{r}) & %{m}%{s}",
-    :">=" => "(%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}"
+    :"==" => "((%{l}) & %{m}==(%{r}) & %{m}) ? 1:0", 
+    :"!=" => "((%{l}) & %{m}!=(%{r}) %{m}) ? 1:0",
+    :"<" => "((%{l}) & %{m}%{s} < (%{r}) & %{m}%{s}) ? 1:0", 
+    :">" => "((%{l}) & %{m}%{s} > (%{r}) & %{m}%{s}) ? 1:0", 
+    :"<=" => "((%{l}) & %{m}%{s} <=(%{r}) & %{m}%{s}) ? 1:0",
+    :">=" => "((%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}) ? 1:0"
   }
 
   # The translation of operators into C code.
@@ -618,7 +656,23 @@ module RubyHDL::High
       return TypeVector.new(:"",base,self[0])
     end
 
-    # Generate signals from +names+.
+    # Generate input signals from +names+.
+    def input(*names)
+      # Generate the type.
+      type = self.to_type
+      # Generate the resulting signals.
+      return type.input(*names)
+    end
+
+    # Generate output signals from +names+.
+    def output(*names)
+      # Generate the type.
+      type = self.to_type
+      # Generate the resulting signals.
+      return type.output(*names)
+    end
+
+    # Generate inner signals from +names+.
     def inner(*names)
       # Generate the type.
       type = self.to_type
@@ -859,17 +913,17 @@ module RubyHDL::High
 
     # SignalI creation through the type.
 
-    # # Declares high-level input signals named +names+ of the current type.
-    # def input(*names)
-    #   High.top_sblock.make_inputs(self,*names)
-    # end
+    # Declares high-level input signals named +names+ of the current type.
+    def input(*names)
+      RubyHDL::High.top_sblock.make_inputs(self,*names)
+    end
 
-    # # Declares high-level untyped output signals named +names+ of the
-    # # current type.
-    # def output(*names)
-    #   # High.top_user.make_outputs(self.instantiate,*names)
-    #   High.top_sblock.make_outputs(self,*names)
-    # end
+    # Declares high-level untyped output signals named +names+ of the
+    # current type.
+    def output(*names)
+      # High.top_user.make_outputs(self.instantiate,*names)
+      RubyHDL::High.top_sblock.make_outputs(self,*names)
+    end
 
     # # Declares high-level untyped inout signals named +names+ of the
     # # current type.
@@ -1889,6 +1943,7 @@ module RubyHDL::High
       @right = right.to_expr
       # Compute the mask for fixing the bit width.
       @mask = (2 ** @type.width)-1
+      # puts "@type=#{@type} name=#{@type.name} @type.width=#{@type.width} @mask=#{@mask}"
       # Compute xor mask for handling the sign.
       # Make it as a string so that no addition computation is required
       # if no sign is required.
@@ -2254,7 +2309,7 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      res = @sequencer.clk_up + "\nif(#{@condition.to_ruby})\n#{@yes_blk.to_ruby}\n"
+      res = @sequencer.clk_up + "\nif(#{@condition.to_ruby} != 0)\n#{@yes_blk.to_ruby}\n"
       @elsifs.each do |(cond,blk)|
         res << "elsif(#{cond.to_ruby})\n#{blk.to_ruby}\n"
       end
@@ -2431,7 +2486,7 @@ module RubyHDL::High
   # Describes a SW implementation of a terminate statement.
   class Sterminate < Statement
     # Create a new break statement in sequencer +sequencer+.
-    def initialize
+    def initialize(sequencer)
       @sequencer = sequencer
     end
 
@@ -2450,12 +2505,24 @@ module RubyHDL::High
 
   # Describes a SW synchronization of a signal.
   class Sync < Statement
-    def initialize
+    def initialize(sequencer)
+      @sequencer = sequencer
     end
 
     # Convert to Ruby code.
     def to_ruby
-      return "Fiber.yield"
+      # Update the inputs and outputs.
+      res = ""
+      RubyHDL::High.global_sblock.each_signal do |signal|
+        case signal.dir
+        when :input
+          res << signal.to_ruby + " = RubyHDL.#{signal.name}\n"
+        when :output
+          res << "RubyHDL.#{signal.name} = " + signal.to_ruby + "\n"
+        end
+      end
+      res << "Fiber.yield"
+      return res
     end
 
     # Convert to C code.
@@ -3296,11 +3363,12 @@ module RubyHDL::High
   # Describes a SW implementation of a signal.
   class SignalI < Expression
     using RubyHDL::High
-    attr_reader :type, :name #, :content
+    attr_reader :name, :type, :dir
     # Create a new signal with type +type+ and name +name+.
-    def initialize(type,name)
-      @type = type.to_type
+    def initialize(name,type,dir)
       @name = name.to_sym
+      @type = type.to_type
+      @dir = dir.to_sym
       # Compute the mask for adjusting the value to the type.
       @mask = (2 ** @type.width)-1
       @sign = 2 ** (@type.width-1)
@@ -3389,7 +3457,6 @@ module RubyHDL::High
     end
   end
 
-
   # Describes a SW implementation of a block.
   class Sblock < SblockTop
     using RubyHDL::High
@@ -3407,9 +3474,11 @@ module RubyHDL::High
       # Push the new sblock on top of the stack.
       RubyHDL::High.push_sblock(self)
       # Make signals from the arguments of the ruby block.
+      # unsigned 32-bit integers by default.
       @args = []
       ruby_block.parameters.each do |typ,arg|
-        @args << SignalI.new(Void,arg)
+        # @args << SignalI.new(arg,Void,:inner)
+        @args << SignalI.new(arg,bit[32],:inner)
       end
       # Fill it.
       self.instance_exec(*@args,&ruby_block)
@@ -3575,7 +3644,7 @@ module RubyHDL::High
     # For software only: stop the current sequencer for allowing
     # sharing of variables with other ones.
     def sync
-      self << RubyHDL::High::Sync.new
+      self << RubyHDL::High::Sync.new(@sequencer)
     end
 
     # Some arbirary Ruby code as a string +str+ or as a proc
@@ -3684,8 +3753,13 @@ module RubyHDL::High
       @source = <<-BUILD
 #{RubyHDL::High.global_sblock.each_signal.map do |signal|
       # puts "for signal=#{signal.name} with type=#{signal.type}"
-      signal.to_ruby + " ||= " + 
+      case signal.dir
+      when :input
+        signal.to_ruby + " = RubyHDL.#{signal.name}"
+      else
+        signal.to_ruby + " ||= " + 
         (signal.array? ? "[]" : signal.value? ? signal.value.inspect : "0")
+      end
 end.join("\n")}
 
 #{@sfunctions.map {|n,f| f.to_ruby }.join("\n\n")}
@@ -3770,7 +3844,17 @@ BUILDC
     return SequencerT.new(clk,start,&ruby_block)
   end
 
-  # Create a 1-bit signal.
+  # Create a 1-bit input signal.
+  def input(*names)
+    return [1].input(*names)
+  end
+
+  # Create a 1-bit output signal.
+  def output(*names)
+    return [1].output(*names)
+  end
+
+  # Create a 1-bit inner signal.
   def inner(*names)
     return [1].inner(*names)
   end
@@ -3808,7 +3892,6 @@ BUILDC
       Scall.new(function,cur_seq,*args)
     end
   end
-
 
 end
 
