@@ -901,6 +901,14 @@ extern void transmit_to_signal_seq(Value value, SignalI signal);
  *         value to. */
 extern void transmit_to_signal_range_seq(Value value, RefRangeS ref);
 
+/** Transmit a value to a range within a signal in case of sequential
+ *  execution model.
+ *  @param value the value to transmit
+ *  @param ref the reference to the range in the signal to transmit the
+ *         value to. */
+extern void transmit_to_signal_range_num_seq(Value value, SignalI signal,
+        unsigned long long first, unsigned long long last);
+
 /** Creates an event.
  *  @param edge the edge of the event
  *  @param signal the signal of the event */

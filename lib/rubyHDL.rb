@@ -6,6 +6,32 @@ require 'hruby_sim/hruby_sim'
 ########################################################################
 module RubyHDL
 
+    # Wrapper for array signal accesses.
+    class ArrayWrapper
+        # Create a new memory wrapper for signal +sig+
+        def initialize(sig)
+            @signal = sig 
+        end
+
+        # Read the array.
+        def [](idx)
+          return RCSim.rcsim_read_index_fixnum(@signal,idx)
+        end
+
+        # Write to the array.
+        def []=(idx,val)
+          return RCSim.rcsim_write_index_fixnum_seq(@signal,idx,val)
+        end
+    end
+
+    # Creates a new array port 'name' assigned to signal 'sig'.
+    def self.arrayport(name,sig)
+      # Creating the accessing method.
+      define_singleton_method(name.to_sym) do
+        ArrayWrapper.new(sig)
+      end
+    end
+
     # Creates a new port 'name' assigned to signal 'sig' for reading.
     def self.inport(name,sig)
         # Create the accessing methods.

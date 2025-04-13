@@ -2584,6 +2584,8 @@ module HDLRuby::High
             self.each_inport  { |p| progL.add_inport(p[0],p[1].to_low) }
             # Add the output signals references.
             self.each_outport { |p| progL.add_outport(p[0],p[1].to_low) }
+            # Add the array signals references.
+            self.each_arrayport { |p| progL.add_arrayport(p[0],p[1].to_low) }
             # Return the resulting program.
             return progL
         end
@@ -2606,6 +2608,11 @@ module HDLRuby::High
         # Adds new output ports.
         def outport(ports = {})
           ports.each { |k,v| self.add_outport(k,v) }
+        end
+
+        # Adds new array ports.
+        def arrayport(ports = {})
+          ports.each { |k,v| self.add_arrayport(k,v) }
         end
     end
 
@@ -5555,4 +5562,20 @@ def self.configure_high
     def self.booting?
         false
     end
+
+
 end
+
+
+
+
+# Activate the software sequencer for Ruby code embedded in HDLRuby
+def activate_sequencer_sw(binding_context)
+  eval <<~RUBY, binding_context
+    alias require_ruby require
+    require_ruby 'HDLRuby/std/sequencer_sw'
+    include RubyHDL::High
+    using RubyHDL::High
+  RUBY
+end
+

@@ -3019,6 +3019,7 @@ module HDLRuby::Low
             @codes    = [] # The code files.
             @inports  = {} # The input ports.
             @outports = {} # The output ports.
+            @arrayports ={}# The array ports.
         end
 
         # Add a new activation port.
@@ -3063,6 +3064,20 @@ module HDLRuby::Low
             @outports[name] = sig
         end
 
+        # Add a new array port.
+        def add_arrayport(name, sig)
+            # Ensure name is a symbol.
+            unless name.is_a?(Symbol) then
+                name = name.to_s.to_sym
+            end
+            # Ensure sig is a signal.
+            unless sig.is_a?(SignalI) then
+                raise AnyError, "Invalid class for a signal: #{sig.class}"
+            end
+            # Add the new port.
+            @arrayports[name] = sig
+        end
+
 
         # Iterates over each activation event.
         #
@@ -3102,6 +3117,16 @@ module HDLRuby::Low
             return to_enum(:each_outport) unless ruby_block
             # A block is given, apply it.
             @outports.each(&ruby_block)
+        end
+
+        # Iterate over each array port.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each_arrayport(&ruby_block)
+            # No block? Return an enumerator.
+            return to_enum(:each_arrayport) unless ruby_block
+            # A block is given, apply it.
+            @arrayports.each(&ruby_block)
         end
 
     end

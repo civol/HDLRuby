@@ -735,18 +735,35 @@ void transmit_to_signal_seq(Value value, SignalI signal) {
  *  @param value the value to transmit
  *  @param ref the reference to the range in the signal to transmit the
  *         value to. */
+void transmit_to_signal_range_num_seq(Value value, SignalI signal,
+        unsigned long long first, unsigned long long last) {
+    // printf("Tansmit to signal range seq: %s(%p) [%llu,%llu]\n",signal->name,signal,first,last);
+    /* The base type is stored here to avoid allocating a new type each time.
+     * It have an arbitrary base size a single element. */
+    static TypeS baseT = { 1, 1 };
+    baseT.base = signal->f_value->type->base;
+    // printf("Tansmit to signal range: %s(%p) [%lld:%lld]\n",signal->name,signal,first,last);
+    /* Can transmit, copy the content. */
+    if (signal->fading)
+        signal->f_value = write_range(value,first,last,&baseT,
+                signal->f_value);
+    else
+        signal->f_value = write_range_no_z(value,first,last,&baseT,
+                signal->f_value);
+    /* And touch the signal. */
+    touch_signal_seq(signal);
+}
+
+/** Transmit a value to a range given with by first and last values, within a signal in case of sequential
+ *  execution model.
+ *  @param value the value to transmit
+ *  @param ref the reference to the range in the signal to transmit the
+ *         value to. */
 void transmit_to_signal_range_seq(Value value, RefRangeS ref) {
     SignalI signal = ref.signal;
     unsigned long long first = ref.first;
     unsigned long long last = ref.last;
     // printf("Tansmit to signal range seq: %s(%p) [%llu,%llu]\n",signal->name,signal,first,last);
-    // /* Can transmit, copy the content. */
-    // if (signal->fading)
-    //     // write_range(value,first,last,signal->f_value->type,signal->f_value);
-    //     write_range(value,first,last,ref.type,signal->f_value);
-    // else
-    //     // write_range_no_z(value,first,last,signal->f_value->type,signal->f_value);
-    //     write_range_no_z(value,first,last,ref.type,signal->f_value);
     /* The base type is stored here to avoid allocating a new type each time.
      * It have an arbitrary base size a single element. */
     static TypeS baseT = { 1, 1 };

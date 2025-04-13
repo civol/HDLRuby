@@ -572,6 +572,10 @@ module HDLRuby::High
                 self.each_outport do |sym, sig|
                     RubyHDL.outport(sym,sig.rcsignalI)
                 end
+                # Add the array ports.
+                self.each_arrayport do |sym, sig|
+                    RubyHDL.arrayport(sym,sig.rcsignalI)
+                end
             elsif self.language == :c then
                 # Loads the code file: only the last one remains.
                 self.each_code do |code|
@@ -599,6 +603,10 @@ module HDLRuby::High
                 end
                 # Add the output ports.
                 self.each_outport do |sym, sig|
+                    RCSim::CPorts[sym] = sig.rcsignalI
+                end
+                # Add the array ports.
+                self.each_arrayport do |sym, sig|
                     RCSim::CPorts[sym] = sig.rcsignalI
                 end
             end

@@ -1682,7 +1682,7 @@ VALUE rcsim_transmit_fixnum_to_signal(VALUE mod, VALUE signalV, VALUE valR) {
     /* Get the C signal from the Ruby value. */
     SignalI signal;
     value_to_rcsim(SignalIS,signalV,signal);
-    /* Compute the simualtion value from valR. */
+    /* Compute the simulation value from valR. */
     Value value = get_value();
     value->type = signal->type;
     value->numeric = 1;
@@ -1699,7 +1699,7 @@ VALUE rcsim_transmit_fixnum_to_signal_seq(VALUE mod, VALUE signalV, VALUE valR) 
     /* Get the C signal from the Ruby value. */
     SignalI signal;
     value_to_rcsim(SignalIS,signalV,signal);
-    /* Compute the simualtion value from valR. */
+    /* Compute the simulation value from valR. */
     Value value = get_value();
     value->type = signal->type;
     value->numeric = 1;
@@ -1709,6 +1709,49 @@ VALUE rcsim_transmit_fixnum_to_signal_seq(VALUE mod, VALUE signalV, VALUE valR) 
     /* End, return the transmitted expression. */
     return valR;
 }
+
+
+/** Reads an elements of a C signal array at an index and returns
+ *  the result as a Ruby fixnum.
+ *  Sets 0 if the value contains x or z bits. */
+VALUE rcsim_read_index_fixnum(VALUE mod, VALUE signalV, VALUE idxV) {
+    Value value = get_value();
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    /* Get its base type.*/
+    Type base = get_type_vector(get_type_bit(),signal->type->base);
+    /* Get the index. */
+    unsigned long long idx = FIX2LONG(idxV);
+    /* Access the value. */
+    read_range(signal->c_value,idx,idx,base,value);
+    /* Get the value from the signal. */
+    return LONG2FIX(value2integer(value));
+}
+
+/** Transmit a Ruby fixnum inside a C signal array at an index in 
+ *  a blocking fashion.
+ * NOTE: the simulator events are updated. */
+VALUE rcsim_write_index_fixnum_seq(VALUE mod, VALUE signalV, VALUE idxV, VALUE valR) {
+    /* Get the C signal from the Ruby value. */
+    SignalI signal;
+    value_to_rcsim(SignalIS,signalV,signal);
+    // /* Get its base type.*/
+    // Type base = get_type_vector(get_type_bit(),signal->type->base);
+    /* Get the index. */
+    unsigned long long idx = FIX2LONG(idxV);
+    /* Compute the simulation value from valR. */
+    Value value = get_value();
+    value->type = signal->type;
+    value->numeric = 1;
+    value->data_int = FIX2LONG(valR);
+    /* Transmit it. */
+    transmit_to_signal_range_num_seq(value, signal, idx,idx);
+    /* End, return the transmitted expression. */
+    return valR;
+}
+
+
 
 
 // /** Execute a behavior. */
@@ -1900,6 +1943,8 @@ void Init_hruby_sim() {
     /* The Ruby software interface. */
     rb_define_singleton_method(mod,"rcsim_get_signal_fixnum",rcsim_get_signal_fixnum,1);
     rb_define_singleton_method(mod,"rcsim_transmit_fixnum_to_signal_seq",rcsim_transmit_fixnum_to_signal_seq,2);
+    rb_define_singleton_method(mod,"rcsim_read_index_fixnum",rcsim_read_index_fixnum,2);
+    rb_define_singleton_method(mod,"rcsim_write_index_fixnum_seq",rcsim_write_index_fixnum_seq,3);
     // rb_define_singleton_method(mod,"rcsim_execute_behavior",rcsim_execute_behavior,1);
 
 }

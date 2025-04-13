@@ -2449,7 +2449,7 @@ static int same_content_value_range_numeric(Value value0,
 Value read_range_numeric(Value value,
         unsigned long long first, unsigned long long last,
         Type base, Value dst) {
-    /* printf("read_range_numeric with value=%llx and first=%llu and last=%llu\n",value->data_int,first,last); */
+    // printf("read_range_numeric with value=%llx and first=%llu and last=%llu\n",value->data_int,first,last); 
     /* Ensure first is the smaller. */
     if (first > last) {
         long long tmp = last;
@@ -2465,7 +2465,7 @@ Value read_range_numeric(Value value,
     first *= bw;
     last  *= bw;
     length *= bw;
-    /* printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length); */
+    // printf("first=%lld last=%lld bw=%llu length=%lld\n",first,last,bw,length); */
 
     /* Set the type and size of the destination from the type of the source.*/
     dst->type = make_type_vector(get_type_bit(),length);
@@ -3427,6 +3427,7 @@ unsigned long long value2integer(Value value) {
 Value read_range(Value value,
         unsigned long long first, unsigned long long last, 
         Type base, Value dst) {
+    // printf("Read range with first=%d, last=%d\n",first,last);
     /* Is the value numeric? */
     if (value->numeric) {
         /* Yes, do a numeric range read. */
