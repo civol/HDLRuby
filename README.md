@@ -3987,7 +3987,7 @@ end
 
 #### Using Software Sequencer Inside a HDLRuby program.
 
-HDLRuby supports hardware/software co-design through the `program` [construct](#declaring-a-software-component). Since software sequencers are software components, they can be used within this construct when the selected language is Ruby. They can also be used with the C language, but in that case, the corresponding C code must first be generated.
+HDLRuby supports hardware/software co-design through the `program` [construct](#declaring-a-software-component). Since software sequencers are software components, they can be used within this construct when the selected language is Ruby, however the command `activate_sequencer_sw(binding)` must be inserted in the first line of the Ruby code. Software sequencers can also be used with the C language, but in that case, the corresponding C code must first be generated.
 
 For Ruby, software sequencer signals can be automatically connected to the ports of the program construct by declaring them as input signals for `inport` and output signals for `outport`. For example, the following code describes a software sequencer that echoes the value from the input port `inP` to the output port `outP` (`sig0` and `sig1` are signals from the upper RTL design).
 
@@ -3997,6 +3997,7 @@ program(:ruby) do
   inport inP: sig0
   outport outP: sig1
   code do
+    activate_sequencer_sw(binding)
     input :inP
     output :outP
     sequencer do
