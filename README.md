@@ -17,6 +17,10 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.7.3:
+
+* Added the possibility to use software sequencers inside HDLRuby's program construct, and use within them program ports like they were input or output signals.
+
 For HDLRuby version 3.7.2:
 
 * Added the `text` command for the sequencers in software.
@@ -3980,6 +3984,28 @@ sequencer do
    text("puts #{sig1.value_text}")
 end
 ```
+
+#### Using Software Sequencer Inside a HDLRuby program.
+
+HDLRuby supports hardware/software co-design through the `program` [construct](#declaring-a-software-component). Since software sequencers are software components, they can be used within this construct when the selected language is Ruby. They can also be used with the C language, but in that case, the corresponding C code must first be generated.
+
+For Ruby, software sequencer signals can be automatically connected to the ports of the program construct by declaring them as input signals for `inport` and output signals for `outport`. For example, the following code describes a software sequencer that echoes the value from the input port `inP` to the output port `outP` (`sig0` and `sig1` are signals from the upper RTL design).
+
+```ruby
+program(:ruby) do
+  actport clk.posedge
+  inport inP: sig0
+  outport outP: sig1
+  code do
+    input :inP
+    output :outP
+    sequencer do
+      outP <= inP
+    end
+  end
+end
+```
+
 
 
 ## Fixed-point (fixpoint): `std/fixpoint.rb`
