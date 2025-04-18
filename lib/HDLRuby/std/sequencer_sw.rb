@@ -1978,7 +1978,7 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return "case(#{@sel.to_}) ; " +
+      return "case(#{@sel.to_ruby}) ; " +
         @choices.map.with_index do |choice,i|
           "when #{i} ; #{choice.to_ruby} ; "
         end.join + "end"
@@ -3636,6 +3636,19 @@ module RubyHDL::High
       # (returning an enumerator would be confusing for a for statement).
       ruby_block = proc {} unless ruby_block
       self << expr.seach.with_index(&ruby_block)
+    end
+
+    # Implements a multiplexer.
+    def mux(cond, *choices)
+      return Select.new(choices[0].type,:mux,cond,*choices)
+    end
+
+    # Displays a string for debugging purpose.
+    def hprint(*args)
+      args.each do |arg|
+        arg = arg.to_value if arg.is_a?(RubyHDL::High::Expression)
+        print arg
+      end
     end
 
     # The SW-specific statements and expressions.
