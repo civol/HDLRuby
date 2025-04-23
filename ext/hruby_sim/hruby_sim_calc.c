@@ -593,6 +593,7 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
+    // printf("sub_value_bitstring, width0=%llu width1=%llu\n",width0,width1);
 
     /* Update the destination capacity if required. */
     resize_value(dst,width0);
@@ -605,6 +606,8 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
     char *src1_data = src1->data_str;
     /* Get access to the data of the destination. */
     char *dst_data = dst->data_str;
+    // printf("src0_data=%s\n",src0_data);
+    // printf("src1_data=%s\n",src1_data);
 
     /* Get the sign extension character of source 1 and convert it to a bit.*/
     // int ext = src1->type->flags.sign ?  src1_data[width1-1] - '0' : 0;
@@ -620,10 +623,12 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
         if (count < width1) {
             char d1 = src1_data[count] - '0';/* Get and convert to bit. */
             if ((d0 == (d0&1)) && (d1 == (d1&1))) {
-                d1 = !d1; /* For the subtraction: a + ~b + 1 */
+                // d1 = !d1; /* For the subtraction: a + ~b + 1 */
+                d1 = d1 ^ 1; /* For the subtraction: a + ~b + 1 */
                 /* d0 and d1 are defined. */
                 res = d0 ^ (d1) ^ carry;
                 carry = (d0&d1) | (d0&carry) | (d1&carry);
+                //printf("d0=%d d1=%d res=%d carry=%d\n",d0,d1,res,carry);
             } else {
                 /* Either input bit is undefined, end here. */
                 break;
@@ -650,6 +655,7 @@ static Value sub_value_bitstring(Value src0, Value src1, Value dst) {
     for(;count < width0; ++count) {
         dst_data[count] = 'x';
     }
+    // printf("dst_data=%s\n",dst_data);
     /* Return the destination. */
     return dst;
 }
@@ -777,47 +783,72 @@ static Value mod_value_defined_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("greater_value_defined_bitstring.\n");
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Converts the values to integers. */
+    // unsigned long long src0i = value2integer(src0);
+    // unsigned long long src1i = value2integer(src1);
     // /* Perform the comparison. */
     // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) > 
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) >
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src0i > (signed long long)src1i;
+    //     else
+    //         dst->data_int = (signed long long)src0i >= 0 ? src0i > src1i : 0;
     // } else {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) > 
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) > 
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
+    //     else 
+    //         dst->data_int = src0i > src1i;
     // }
-    /* Converts the values to integers. */
-    unsigned long long src0i = value2integer(src0);
-    unsigned long long src1i = value2integer(src1);
-    /* Perform the comparison. */
-    if (src0->type->flags.sign) {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src0i > (signed long long)src1i;
-        else
-            dst->data_int = (signed long long)src0i >= 0 ? src0i > src1i : 0;
+    char* src0_data = src0->data_str;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && src0_data[width0-1] == '1') {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' : src0_data[i];
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 0;
+            return dst;
+        }
     } else {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
-        else 
-            dst->data_int = src0i > src1i;
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 1;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' : src0_data[i];
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        }
     }
+    /* Equality. */
+    dst->data_int = 0;
     return dst;
 }
 
@@ -827,47 +858,72 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
  *  @param dst the destination value
  *  @return dst */
 static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("lesser_value_defined_bitstring.\n");
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Converts the values to integers. */
+    // unsigned long long src0i = value2integer(src0);
+    // unsigned long long src1i = value2integer(src1);
     // /* Perform the comparison. */
     // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) < 
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) < 
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src0i < (signed long long)src1i;
+    //     else
+    //         dst->data_int = (signed long long)src0i >= 0 ? src0i < src1i : 1;
     // } else {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) < 
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) < 
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
+    //     else 
+    //         dst->data_int = src0i < src1i;
     // }
-    /* Converts the values to integers. */
-    unsigned long long src0i = value2integer(src0);
-    unsigned long long src1i = value2integer(src1);
-    /* Perform the comparison. */
-    if (src0->type->flags.sign) {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src0i < (signed long long)src1i;
-        else
-            dst->data_int = (signed long long)src0i >= 0 ? src0i < src1i : 1;
+    char* src0_data = src0->data_str;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && src0_data[width0-1] == '1') {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' : src0_data[i];
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 1;
+            return dst;
+        }
     } else {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
-        else 
-            dst->data_int = src0i < src1i;
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 0;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' : src0_data[i];
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        }
     }
+    /* Equality. */
+    dst->data_int = 0;
     return dst;
 }
 
@@ -881,44 +937,68 @@ static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Converts the values to integers. */
+    // unsigned long long src0i = value2integer(src0);
+    // unsigned long long src1i = value2integer(src1);
+    // // printf("src0i=%lld src1i=%lld, src0i.sign=%d src0i.width=%d, src1i.sign=%d src1i.width=%d\n",src0i,src1i,src0->type->flags.sign,type_width(src0->type),src1->type->flags.sign,type_width(src1->type));
     // /* Perform the comparison. */
     // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) >=
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) >=
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src0i >= (signed long long)src1i;
+    //     else
+    //         dst->data_int = (signed long long)src0i >= 0 ? src0i >= src1i : 0;
     // } else {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) >=
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) >=
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
+    //     else 
+    //         dst->data_int = src0i >= src1i;
     // }
-    /* Converts the values to integers. */
-    unsigned long long src0i = value2integer(src0);
-    unsigned long long src1i = value2integer(src1);
-    // printf("src0i=%lld src1i=%lld, src0i.sign=%d src0i.width=%d, src1i.sign=%d src1i.width=%d\n",src0i,src1i,src0->type->flags.sign,type_width(src0->type),src1->type->flags.sign,type_width(src1->type));
-    /* Perform the comparison. */
-    if (src0->type->flags.sign) {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src0i >= (signed long long)src1i;
-        else
-            dst->data_int = (signed long long)src0i >= 0 ? src0i >= src1i : 0;
+    char* src0_data = src0->data_str;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && src0_data[width0-1] == '1') {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' : src0_data[i];
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 0;
+            return dst;
+        }
     } else {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
-        else 
-            dst->data_int = src0i >= src1i;
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 1;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' : src0_data[i];
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        }
     }
+    /* Equality. */
+    dst->data_int = 1;
     return dst;
 }
 
@@ -932,43 +1012,67 @@ static Value lesser_equal_value_defined_bitstring(Value src0, Value src1, Value 
     dst->type = src0->type;
     dst->numeric = 1;
 
+    // /* Converts the values to integers. */
+    // unsigned long long src0i = value2integer(src0);
+    // unsigned long long src1i = value2integer(src1);
     // /* Perform the comparison. */
     // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) <=
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((signed long long)value2integer(src0) <=
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src0i <= (signed long long)src1i;
+    //     else
+    //         dst->data_int = (signed long long)src0i >= 0 ? src0i <= src1i : 1;
     // } else {
-    //     if (src1->type->flags.sign) {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) <=
-    //              (signed long long)value2integer(src1));
-    //     } else {
-    //         dst->data_int = 
-    //             ((unsigned long long)value2integer(src0) <=
-    //              (unsigned long long)value2integer(src1));
-    //     }
+    //     if (src1->type->flags.sign)
+    //         dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
+    //     else 
+    //         dst->data_int = src0i <= src1i;
     // }
-    /* Converts the values to integers. */
-    unsigned long long src0i = value2integer(src0);
-    unsigned long long src1i = value2integer(src1);
-    /* Perform the comparison. */
-    if (src0->type->flags.sign) {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src0i <= (signed long long)src1i;
-        else
-            dst->data_int = (signed long long)src0i >= 0 ? src0i <= src1i : 1;
+    char* src0_data = src0->data_str;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && src0_data[width0-1] == '1') {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' : src0_data[i];
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 1;
+            return dst;
+        }
     } else {
-        if (src1->type->flags.sign)
-            dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
-        else 
-            dst->data_int = src0i <= src1i;
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 0;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' : src0_data[i];
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        }
     }
+    /* Equality. */
+    dst->data_int = 1;
     return dst;
 }
 
@@ -1193,6 +1297,7 @@ static Value or_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value xor_value_bitstring(Value src0, Value src1, Value dst) {
+    // printf("xor_value_bitstring.\n");
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
@@ -1399,6 +1504,7 @@ static Value shift_right_value_bitstring(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
+    // printf("equal_value_bitstring.\n");
     /* Compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
@@ -2936,21 +3042,25 @@ Value shift_right_value(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return the destination value */
 Value equal_value(Value src0, Value src1, Value dst) {
+    // printf("equal_value.\n");
     /* Might allocate a new value so save the current pool state. */
     unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
      * computation. */
     if (src0->numeric) {
         if (src1->numeric) {
+            // printf("numeric numeric\n");
             /* Both sources are numeric. */
             return equal_value_numeric(src0,src1,dst);
         } else {
+            // printf("numeric bitstring\n");
             /* src1 is not numeric, convert src0 to bitstring. */
             src0 = set_bitstring_value(src0,get_value());
         }
     } else {
         /* src0 is not numeric, what about src1. */
         if (src1->numeric) {
+            // printf("bitstring numeric\n");
             /* src1 is numeric, convert it to bitstring. */
             src1 = set_bitstring_value(src1,get_value());
         }

@@ -17,6 +17,7 @@ static unsigned int pool_pos = 0; /* The position in the pool. */
 
 /** Get a fresh value. */
 Value get_value() {
+    // printf("get_value, pool_cap=%d\n",pool_cap);
     if (pool_cap == 0) {
         /* First allocation. */
         pool_cap = 16;
@@ -67,6 +68,7 @@ Value get_top_value() {
 
 /** Frees the last value of the pool. */
 void free_value() {
+    // printf("free_value\n");
     if (pool_pos <= 0) { printf("Pool error!\n");exit(1);}
     if (pool_pos > 0) pool_pos--;
 }

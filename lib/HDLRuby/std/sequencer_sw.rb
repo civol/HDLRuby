@@ -222,7 +222,7 @@ module RubyHDL::High
     :"^" => "(%{l})^(%{r})",
     :"<<" => "(%{l})<<(%{r})", :">>" => "(%{l})>>(%{r})",
     :"==" => "((%{l}) & %{m}==(%{r}) & %{m}) ? 1:0", 
-    :"!=" => "((%{l}) & %{m}!=(%{r}) %{m}) ? 1:0",
+    :"!=" => "((%{l}) & %{m}!=(%{r}) & %{m}) ? 1:0",
     :"<" => "((%{l}) & %{m}%{s} < (%{r}) & %{m}%{s}) ? 1:0", 
     :">" => "((%{l}) & %{m}%{s} > (%{r}) & %{m}%{s}) ? 1:0", 
     :"<=" => "((%{l}) & %{m}%{s} <=(%{r}) & %{m}%{s}) ? 1:0",
@@ -2309,9 +2309,9 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      res = @sequencer.clk_up + "\nif(#{@condition.to_ruby} != 0)\n#{@yes_blk.to_ruby}\n"
+      res = @sequencer.clk_up + "\nif((#{@condition.to_ruby}) != 0)\n#{@yes_blk.to_ruby}\n"
       @elsifs.each do |(cond,blk)|
-        res << "elsif(#{cond.to_ruby})\n#{blk.to_ruby}\n"
+        res << "elsif((#{cond.to_ruby}) != 0)\n#{blk.to_ruby}\n"
       end
       if @else_blk then
         res << "else\n#{@else_blk.to_ruby}\n"
@@ -2398,7 +2398,7 @@ module RubyHDL::High
     # Convert to Ruby code.
     def to_ruby
       return @sequencer.clk_up + 
-        "\nwhile(#{@condition.to_ruby}) do\n#{@yes_blk.to_ruby}\n#{@sequencer.clk_up}\nend"
+        "\nwhile((#{@condition.to_ruby}) != 0) do\n#{@yes_blk.to_ruby}\n#{@sequencer.clk_up}\nend"
     end
 
     # Convert to C code.

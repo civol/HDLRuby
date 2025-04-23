@@ -367,6 +367,7 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                     default:
                         perror("Invalid kind for a reference.");
                 }
+                free_value();
                 break;
             }
         case PRINT:
@@ -401,10 +402,13 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 Value condition = get_value();
                 condition = calc_expression(hif->condition,condition);
                 /* Is it true? */
-                if (is_defined_value(condition) && value2integer(condition)) {
+                // if (is_defined_value(condition) && value2integer(condition)) {
+                if (is_defined_value(condition) && !zero_value(condition)) {
+                    // printf("Taken\n");
                     /* Yes, execute the yes branch. */
                     execute_statement(hif->yes,mode,behavior);
                 } else {
+                    // printf("Not Taken\n");
                     /* No, maybe an alternate condition is met. */
                     int met = 0;/* Tell if an alternate condition has been met.*/
                     for(int i=0; i<hif->num_noifs; ++i) {
