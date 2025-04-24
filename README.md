@@ -17,6 +17,10 @@ hdrcc --get-tuto
 
 __What's new__
 
+For HDLRuby version 3.7.4/3.7.5:
+
+* Various bug fixes.
+
 For HDLRuby version 3.7.3:
 
 * Added the possibility to use software sequencers inside HDLRuby's program construct, and use within them program ports like they were input or output signals.
