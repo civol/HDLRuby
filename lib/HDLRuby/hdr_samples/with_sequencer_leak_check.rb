@@ -8,11 +8,11 @@ system :my_seqencer do
     inner :clk,:rst
     [65536].inner :count
 
-    # sequencer(clk.posedge,rst) do
-    #   sloop do
-    #     # count <= count + 1
-    #   end
-    # end
+    sequencer(clk.posedge,rst) do
+      sloop do
+        count <= count + 1
+      end
+    end
 
 
 
