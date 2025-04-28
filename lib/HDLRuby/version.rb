@@ -1,3 +1,3 @@
 module HDLRuby
-  VERSION = "3.7.7"
+  VERSION = "3.7.6"
 end
