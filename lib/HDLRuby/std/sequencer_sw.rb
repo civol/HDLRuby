@@ -96,6 +96,12 @@ module RubyHDL::High
       type = type.to_type
       last_sig = nil
       names.each do |name|
+        init = nil
+        if name.is_a?(Hash) then
+          init = name.values[0]
+          name = name.keys[0]
+          # puts "init=#{init}"
+        end
         name = name.to_sym
         # Create and add the signal.
         sig = SignalI.new(name,type,:inner)
@@ -104,6 +110,9 @@ module RubyHDL::High
         # self.register(name) { puts("sig=",sig.inspect); sig }
         self.register(name) { sig }
         last_sig = sig
+
+        # Sets the initial value if any.
+        sig.value = init if init
       end
       return last_sig
     end
@@ -586,6 +595,11 @@ module RubyHDL::High
       return Value.new(signed[32],self)
     end
     alias_method :to_expr, :to_value
+
+    def as(type)
+      # For now, cast is ignored.
+      return self
+    end
 
     def to_ruby
       return self
@@ -2151,7 +2165,8 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return "#{@base.to_ruby}[#{@rng.first.to_ruby}..#{@rng.last.to_ruby}]"
+      # return "#{@base.to_ruby}[#{@rng.first.to_ruby}..#{@rng.last.to_ruby}]"
+      return "#{@base.to_ruby}[#{@rng.last.to_ruby}..#{@rng.first.to_ruby}]"
     end
 
     # Convert to C code.
@@ -3771,7 +3786,7 @@ module RubyHDL::High
         signal.to_ruby + " = RubyHDL.#{signal.name}"
       else
         signal.to_ruby + " ||= " + 
-        (signal.array? ? "[]" : signal.value? ? signal.value.inspect : "0")
+          (signal.array? ? "[*#{signal.value? ? signal.value : "nil"}]" : signal.value? ? signal.value.inspect : "0")
       end
 end.join("\n")}
 

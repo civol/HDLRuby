@@ -15,9 +15,13 @@ And if you want an html version the following command with create a `tuto` folde
 hdrcc --get-tuto
 ```
 
-__What's new__
+__What's new_
 
-For HDLRuby version 3.7.4/3.7.5:
+For HDLRuby version 3.7.6:
+
+* Added initial value to signals for the software sequencers.
+
+For HDLRuby versions 3.7.4/3.7.5:
 
 * Various bug fixes.
 
