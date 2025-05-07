@@ -2977,6 +2977,54 @@ module RubyHDL::High
     end
   end
 
+  # Describes a SW implementation of a hardware print statement.
+  class Print < Statement
+    using RubyHDL::High
+
+    # Create a new hprint statement in sequencer +sequencer+
+    # for displaying +args+.
+    def initialize(sequencer,*args)
+      @sequencer = sequencer
+      @arguments = args
+    end
+
+    # Convert to Ruby code.
+    def to_ruby
+      return "" if @arguments.empty?
+      res = "print("
+      @arguments.each do |arg|
+          if arg.is_a?(::String) then
+            res << "\"#{arg}\""
+          else
+            res << arg.to_ruby
+          end
+        end
+        res << ")\n"
+        return res
+    end
+
+    # Convert to C code.
+    def to_c
+      return "" if @arguments.empty?
+      # Create the format.
+      format = @arguments.each do |arg|
+        if arg.is_a?(Expression) then
+          arg.type.signed? ? "%lld" : "%llu"
+        else
+          "%s"
+        end
+      end.join
+      return "printf(\"#{format}\"," +
+        @arguments.each do |arg|
+          if arg.is_a?(::String) then
+            "\"#{arg}\""
+          else
+            arg.to_c
+          end
+        end.join(",")
+    end
+  end
+
 
   # Describes a SW implementation of an iterator statement.
   class Siter < Statement
@@ -3660,10 +3708,11 @@ module RubyHDL::High
 
     # Displays a string for debugging purpose.
     def hprint(*args)
-      args.each do |arg|
-        arg = arg.to_value if arg.is_a?(RubyHDL::High::Expression)
-        print arg
-      end
+      # args.each do |arg|
+      #   arg = arg.to_value if arg.is_a?(RubyHDL::High::Expression)
+      #   print arg
+      # end
+      self << RubyHDL::High::Print.new(@sequencer,*args)
     end
 
     # The SW-specific statements and expressions.

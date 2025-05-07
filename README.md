@@ -21,6 +21,8 @@ For HDLRuby version 3.7.6:
 
 * Added initial value to signals for the software sequencers.
 
+* Fixed hprint in software sequencer.
+
 For HDLRuby versions 3.7.4/3.7.5:
 
 * Various bug fixes.
