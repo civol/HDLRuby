@@ -1325,10 +1325,10 @@ module RubyHDL::High
         return @base.to_c + "[#{self.size.to_i}]"
       else
         # Simple vector type case.
-        if float? then
+        if @base.float? then
           return @base.to_c
         else
-          return @base + " long long"
+          return @base.to_c + " long long"
         end
       end
     end
@@ -1338,7 +1338,7 @@ module RubyHDL::High
       if @base.is_a?(TypeVector) then
         # Array type case.
         base_init = @base.to_c_init
-        return "[" + ([base_init] * self.size.to_i).join(",") + "]"
+        return "{" + ([base_init] * self.size.to_i).join(",") + "}"
       else
         return "0"
       end
@@ -1919,7 +1919,13 @@ module RubyHDL::High
     end
 
     # Convert to C code.
-    alias_method :to_c, :to_ruby
+    def to_c
+      if @content.is_a?(::Array) then
+        return "{" + @content.to_s[1..-2] + "}"
+      else
+        return @content.to_s
+      end
+    end
   end
 
   
@@ -2000,10 +2006,11 @@ module RubyHDL::High
 
     # Convert to C code.
     def to_c
-      return "switch(#{@sel.to_c}) {\n" +
-        @choices.map.with_index do |choice,i|
-          "case #{i}:\n#{choice.to_c}\nbreak;"
-        end.join("\n") + "\n}"
+      # return "switch(#{@sel.to_c}) {\n" +
+      #   @choices.map.with_index do |choice,i|
+      #     "case #{i}:\n#{choice.to_c}\nbreak;"
+      #   end.join("\n") + "\n}"
+      return "#{@sel.to_c} ? #{@choices[1].to_c} : #{@choices[0].to_c}"
     end
   end
 
@@ -2112,6 +2119,7 @@ module RubyHDL::High
 
   # Describes a SW implementation of an range reference.
   class RefRange < Ref
+    using RubyHDL::High
     attr_reader :base
 
     # Create a new index reference with +type+ data type +base+ base
@@ -2178,7 +2186,11 @@ module RubyHDL::High
         smask = (1.to_value<<(@rng.first+1-@rng.last))-1
         cmask = ~(smask << @rng.last)
         # Get the final base.
-        base = @base.final_base.to_c
+        if @base.is_a?(Ref) then
+          base = @base.final_base.to_c
+        else
+          base = @base.to_c
+        end
         # Generate the ruby code.
         return "(#{base} & #{cmask.to_c}) >> (#{@rng.last.to_c})"
       end
@@ -2256,7 +2268,7 @@ module RubyHDL::High
     def to_c
       if (@left.is_a?(RefIndex) or @left.is_a?(RefRange)) then
         if @left.base.type.base.is_a?(TypeVector) then
-          return "#{@left.to_c} = #{@right.to_c}"
+          return "#{@left.to_c} = #{@right.to_c};"
         else
           # Get the access range.
           rng = @left.range
@@ -2275,7 +2287,7 @@ module RubyHDL::High
     end  
   end
 
-  # Describes a SW implementation of a if statement.
+  # Describes a SW implementation of a sif statement.
   class Sif < Statement
     # Create a new if statement in sequencer +sequencer+ 
     # with +cond+ condition and +ruby_block+
@@ -2336,7 +2348,7 @@ module RubyHDL::High
 
     # Convert to C code.
     def to_c
-      res = @sequencer.clk_up + "\nif(#{@condition.to_c}) {\n#{@yes_blk.to_c}\n}"
+      res = @sequencer.clk_up_c + "\nif(#{@condition.to_c}) {\n#{@yes_blk.to_c}\n}"
       @elsifs.each do |(cond,blk)|
         res << "\nelse if(#{cond.to_c}) {\n#{blk.to_c}\n}"
       end
@@ -2344,6 +2356,33 @@ module RubyHDL::High
         res << "\nelse {\n#{@else_blk.to_c}\n}"
       end
       return res + @sequencer.clk_up_c
+    end
+  end
+
+  # Describes a SW implementation of a hif statement.
+  class Hif < Sif
+    # Convert to Ruby code.
+    def to_ruby
+      res = "\nif((#{@condition.to_ruby}) != 0)\n#{@yes_blk.to_ruby}\n"
+      @elsifs.each do |(cond,blk)|
+        res << "elsif((#{cond.to_ruby}) != 0)\n#{blk.to_ruby}\n"
+      end
+      if @else_blk then
+        res << "else\n#{@else_blk.to_ruby}\n"
+      end
+      return res + "end\n"
+    end
+
+    # Convert to C code.
+    def to_c
+      res = "\nif(#{@condition.to_c}) {\n#{@yes_blk.to_c}\n}"
+      @elsifs.each do |(cond,blk)|
+        res << "\nelse if(#{cond.to_c}) {\n#{blk.to_c}\n}"
+      end
+      if @else_blk then
+        res << "\nelse {\n#{@else_blk.to_c}\n}"
+      end
+      return res
     end
   end
 
@@ -2494,7 +2533,7 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_c
-      return @sequencer.clk_up_c + "\nreturn #{val.to_c};"
+      return @sequencer.clk_up_c + "\nreturn #{@value.to_c};"
     end
   end
 
@@ -2642,7 +2681,7 @@ module RubyHDL::High
 
     # Convert to C code.
     def to_c
-      return "\n__#{name}(" + @args.map {|arg| arg.to_ruby}.join(",") + ");"
+      return "\n__#{@name}(" + @args.map {|arg| arg.to_ruby}.join(",") + ");"
     end
 
     # Create an iterator for a given method +meth+.
@@ -3007,7 +3046,7 @@ module RubyHDL::High
     def to_c
       return "" if @arguments.empty?
       # Create the format.
-      format = @arguments.each do |arg|
+      format = @arguments.map do |arg|
         if arg.is_a?(Expression) then
           arg.type.signed? ? "%lld" : "%llu"
         else
@@ -3015,13 +3054,13 @@ module RubyHDL::High
         end
       end.join
       return "printf(\"#{format}\"," +
-        @arguments.each do |arg|
+        @arguments.map do |arg|
           if arg.is_a?(::String) then
-            "\"#{arg}\""
+            "\"#{arg.gsub(/\n/,"\\n")}\""
           else
             arg.to_c
           end
-        end.join(",")
+        end.join(",") + ");"
     end
   end
 
@@ -3459,7 +3498,9 @@ module RubyHDL::High
     end
 
     # Convert to C code.
-    alias_method :to_c, :to_ruby
+    def to_c
+      return "__" + self.name.to_s
+    end
 
     # Check if a value is defined for the signal.
     def value?
@@ -3616,14 +3657,14 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       res = ""
-      # Generate the arguments if any.
-      if @args.any? then
-        res = "(#{@args.map(&:to_c).join(",")})\n"
-      end
+      # # Generate the arguments if any.
+      # if @args.any? then
+      #   res = "(#{@args.map(&:to_c).join(",")})\n"
+      # end
       # Generate the statements.
-      res += "{" + @statements.map do |stmnt|
-        stmnt.to_ruby + "\n"
-      end.join + "}"
+      res += "{\n" + @statements.map do |stmnt|
+        stmnt.to_c + "\n"
+      end.join + "\n}"
       return res
     end
 
@@ -3663,7 +3704,11 @@ module RubyHDL::High
     def sif(cond, &ruby_block)
       self << RubyHDL::High::Sif.new(@sequencer,cond,&ruby_block)
     end
-    alias_method :hif, :sif
+
+    # Create a sequential if statement on +cond+.
+    def hif(cond, &ruby_block)
+      self << RubyHDL::High::Hif.new(@sequencer,cond,&ruby_block)
+    end
 
     # Create a sequential elsif statement on +cond+.
     def selsif(cond, &ruby_block)
@@ -3769,7 +3814,7 @@ module RubyHDL::High
 
     # Convert to C code.
     def to_c
-      return "unsigned long long __#{name}(#{@args.map {|arg| "unsigned long long " + arg.to_c}.join(",")} {\n#{@blk.sequencer.clk_up_c}\n#{@blk.to_c}\n}\n"
+      return "unsigned long long __#{name}(#{@args.map {|arg| "unsigned long long __" + arg.to_c}.join(",")}) {\n#{@blk.sequencer.clk_up_c}\n#{@blk.to_c}\n}\n"
     end
   end
 
@@ -3858,11 +3903,29 @@ BUILD
     def to_c
       typ = nil
       res = <<-BUILDC
+#include <stdio.h>
+
 #{RubyHDL::High.global_sblock.each_signal.map do |signal|
       typ = signal.type
-      typ.to_c + " " + signal.to_c + "=" + typ.to_c_init + ";"
+      if signal.value? then
+        if signal.array? then
+          typ.base.to_c + " " + signal.to_c + "[#{typ.size}]" " = {" + 
+            signal.value.inspect[1..-2] + "};"
+        else
+          typ.to_c + " " + signal.to_c + "=" + signal.value.inspect + ";"
+        end
+      else
+        if signal.array? then
+          typ.base.to_c + " " + signal.to_c + "[#{typ.size}]" + " =" + typ.to_c_init + ";"
+        else
+          typ.to_c + " " + signal.to_c + "=" + typ.to_c_init + ";"
+        end
+      end
 end.join("\n")}
-#{sblock.to_c}
+
+#{@sfunctions.map {|n,f| f.to_c }.join("\n\n")}
+
+void sequencer() #{@blk.to_c}
 BUILDC
       return res
     end
