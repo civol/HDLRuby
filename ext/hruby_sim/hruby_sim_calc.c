@@ -690,13 +690,13 @@ static Value mul_value_defined_bitstring(Value src0, Value src1, Value dst) {
         int sgn1 = (src1->type->flags.sign) && (src1->data_str[width1-1] == '1');
         // printf("sgn0=%d sgn1=%d\n",(src0->type->flags.sign) && (src0->data_str[width0-1] == '1'),sgn1);
         Value psrc1;
-        // printf("first scr1->data_str=%s\n",src1->data_str);fflush(stdout);
+        // printf("first src1->data_str=%s\n",src1->data_str);fflush(stdout);
         if (sgn1) {
             psrc1 = neg_value_bitstring(src1,get_value());
         } else {
             psrc1 = src1;
         }
-        // printf("now pscr1->data_str=%s\n",psrc1->data_str);fflush(stdout);
+        // printf("now psrc1->data_str=%s\n",psrc1->data_str);fflush(stdout);
         /* Perform the multiplying with sucessive shifts and additions. */
         /* First the result is zero. */
         const char* str = psrc1->data_str;
@@ -778,8 +778,8 @@ static Value mod_value_defined_bitstring(Value src0, Value src1, Value dst) {
 
 
 /** Computes the greater comparision of two defined bitstring values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
  *  @param dst the destination value
  *  @return dst */
 static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) {
@@ -788,28 +788,13 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
     dst->type = src0->type;
     dst->numeric = 1;
 
-    // /* Converts the values to integers. */
-    // unsigned long long src0i = value2integer(src0);
-    // unsigned long long src1i = value2integer(src1);
-    // /* Perform the comparison. */
-    // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src0i > (signed long long)src1i;
-    //     else
-    //         dst->data_int = (signed long long)src0i >= 0 ? src0i > src1i : 0;
-    // } else {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src1i >= 0 ? src0i > src1i : 1;
-    //     else 
-    //         dst->data_int = src0i > src1i;
-    // }
     char* src0_data = src0->data_str;
     char* src1_data = src1->data_str;
     long long width0 = type_width(src0->type);
     long long width1 = type_width(src1->type);
     long long width = width0>width1 ? width0 : width1;
-    if (src0->type->flags.sign && src0_data[width0-1] == '1') {
-        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+    if (src0->type->flags.sign && (src0_data[width0-1] == '1')) {
+        if(src1->type->flags.sign && (src1_data[width1-1] == '1')) {
             /* Negative-negative comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '1' : src0_data[i];
@@ -828,7 +813,7 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
             return dst;
         }
     } else {
-        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+        if(src1->type->flags.sign && (src1_data[width1-1] == '1')) {
             /* Positive-negative comparison, src0 is greater. */
             dst->data_int = 1;
             return dst;
@@ -836,6 +821,69 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
             /* Positive-positive comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '0' : src0_data[i];
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        }
+    }
+    /* Equality. */
+    dst->data_int = 0;
+    return dst;
+}
+
+/** Computes the greater comparision of a numeric value and a
+ * defined bitstring values.
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
+ *  @param dst the destination value
+ *  @return dst */
+static Value greater_value_numeric_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("greater_value_numeric_defined_bitstring.\n");
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    unsigned long long src0_int = src0->data_int;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && (src0_int & (1 << (width0-1)))) {
+        if(src1->type->flags.sign && (src1_data[width1-1] == '1')) {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' : 
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 0;
+            return dst;
+        }
+    } else {
+        if(src1->type->flags.sign && (src1_data[width1-1] == '1')) {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 1;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' : 
+                    ((src0_int & (1 << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '0' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 0;
@@ -853,8 +901,8 @@ static Value greater_value_defined_bitstring(Value src0, Value src1, Value dst) 
 }
 
 /** Computes the lesser comparision of two defined bitstring values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
  *  @param dst the destination value
  *  @return dst */
 static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
@@ -863,21 +911,6 @@ static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
     dst->type = src0->type;
     dst->numeric = 1;
 
-    // /* Converts the values to integers. */
-    // unsigned long long src0i = value2integer(src0);
-    // unsigned long long src1i = value2integer(src1);
-    // /* Perform the comparison. */
-    // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src0i < (signed long long)src1i;
-    //     else
-    //         dst->data_int = (signed long long)src0i >= 0 ? src0i < src1i : 1;
-    // } else {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src1i >= 0 ? src0i < src1i : 0;
-    //     else 
-    //         dst->data_int = src0i < src1i;
-    // }
     char* src0_data = src0->data_str;
     char* src1_data = src1->data_str;
     long long width0 = type_width(src0->type);
@@ -927,32 +960,80 @@ static Value lesser_value_defined_bitstring(Value src0, Value src1, Value dst) {
     return dst;
 }
 
-/** Computes the greater or equal comparision of two defined bitstring values.
- *  @param src0 the first source value of the addition
- *  @param src1 the second source value of the addition
+/** Computes the lesser comparision of one numeric value and one
+ *  defined bitstring values.
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
  *  @param dst the destination value
  *  @return dst */
-static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value dst) {
+static Value lesser_value_numeric_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("lesser_value_numeric_defined_bitstring.\n");
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
 
-    // /* Converts the values to integers. */
-    // unsigned long long src0i = value2integer(src0);
-    // unsigned long long src1i = value2integer(src1);
-    // // printf("src0i=%lld src1i=%lld, src0i.sign=%d src0i.width=%d, src1i.sign=%d src1i.width=%d\n",src0i,src1i,src0->type->flags.sign,type_width(src0->type),src1->type->flags.sign,type_width(src1->type));
-    // /* Perform the comparison. */
-    // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src0i >= (signed long long)src1i;
-    //     else
-    //         dst->data_int = (signed long long)src0i >= 0 ? src0i >= src1i : 0;
-    // } else {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src1i >= 0 ? src0i >= src1i : 1;
-    //     else 
-    //         dst->data_int = src0i >= src1i;
-    // }
+    unsigned long long src0_int = src0->data_int;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && (src0_int & (1 << (width0-1)))) {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' : 
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 1;
+            return dst;
+        }
+    } else {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 0;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' :
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        }
+    }
+    /* Equality. */
+    dst->data_int = 0;
+    return dst;
+}
+
+/** Computes the greater or equal comparision of two defined bitstring values.
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
+ *  @param dst the destination value
+ *  @return dst */
+static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("greater_equal_value_defined_bitstring.\n");
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
     char* src0_data = src0->data_str;
     char* src1_data = src1->data_str;
     long long width0 = type_width(src0->type);
@@ -1002,31 +1083,80 @@ static Value greater_equal_value_defined_bitstring(Value src0, Value src1, Value
     return dst;
 }
 
+/** Computes the greater or equal comparision of numeric and one
+ *  defined bitstring values.
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
+ *  @param dst the destination value
+ *  @return dst */
+static Value greater_equal_value_numeric_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("greater_equal_value_numeric_defined_bitstring.\n");
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    unsigned long long src0_int = src0->data_int;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && (src0_int & (1 <<(width0-1)))) {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' :
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 0;
+            return dst;
+        }
+    } else {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 1;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' : 
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 0;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 1;
+                    return dst;
+                }
+            }
+        }
+    }
+    /* Equality. */
+    dst->data_int = 1;
+    return dst;
+}
+
 /** Computes the lesser or equal comparision of two defined bitstring values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
  *  @param dst the destination value
  *  @return dst */
 static Value lesser_equal_value_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("lesser_equal_value_defined_bitstring.\n");
     /* Sets state of the destination using the first source. */
     dst->type = src0->type;
     dst->numeric = 1;
 
-    // /* Converts the values to integers. */
-    // unsigned long long src0i = value2integer(src0);
-    // unsigned long long src1i = value2integer(src1);
-    // /* Perform the comparison. */
-    // if (src0->type->flags.sign) {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src0i <= (signed long long)src1i;
-    //     else
-    //         dst->data_int = (signed long long)src0i >= 0 ? src0i <= src1i : 1;
-    // } else {
-    //     if (src1->type->flags.sign)
-    //         dst->data_int = (signed long long)src1i >= 0 ? src0i <= src1i : 0;
-    //     else 
-    //         dst->data_int = src0i <= src1i;
-    // }
     char* src0_data = src0->data_str;
     char* src1_data = src1->data_str;
     long long width0 = type_width(src0->type);
@@ -1061,6 +1191,70 @@ static Value lesser_equal_value_defined_bitstring(Value src0, Value src1, Value 
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '0' : src0_data[i];
                 char d1 = i >= width1 ? '0' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        }
+    }
+    /* Equality. */
+    dst->data_int = 1;
+    return dst;
+}
+
+/** Computes the lesser or equal comparision of on numeric value and one
+ *  defined bitstring values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return dst */
+static Value lesser_equal_value_numeric_defined_bitstring(Value src0, Value src1, Value dst) {
+    // printf("lesser_equal_value_numeric_defined_bitstring.\n");
+    /* Sets state of the destination using the first source. */
+    dst->type = src0->type;
+    dst->numeric = 1;
+
+    unsigned long long src0_int = src0->data_int;
+    char* src1_data = src1->data_str;
+    long long width0 = type_width(src0->type);
+    long long width1 = type_width(src1->type);
+    long long width = width0>width1 ? width0 : width1;
+    if (src0->type->flags.sign && (src0_int & (1 << (width0-1)))) {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Negative-negative comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '1' :
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '1' : src1_data[i];
+                if (d0 < d1) {
+                    dst->data_int = 1;
+                    return dst;
+                } else if (d0 > d1) {
+                    dst->data_int = 0;
+                    return dst;
+                }
+            }
+        } else {
+            /* Negative positive comparison, src0 is smaller. */
+            dst->data_int = 1;
+            return dst;
+        }
+    } else {
+        if(src1->type->flags.sign && src1_data[width1-1] == '1') {
+            /* Positive-negative comparison, src0 is greater. */
+            dst->data_int = 0;
+            return dst;
+        } else {
+            /* Positive-positive comparison. */
+            for(long long i=width-1; i >= 0; --i) {
+                char d0 = i >= width0 ? '0' :
+                    ((src0_int & (1 << i)) ? '1' : '0');
+                char d1 = i >= width1 ? '0' : src1_data[i];
+                // printf("d0=%c d1=%c\n",d0,d1);
                 if (d0 < d1) {
                     dst->data_int = 1;
                     return dst;
@@ -3111,6 +3305,10 @@ Value greater_value(Value src0, Value src1, Value dst) {
         /* Both sources are numeric. */
         return greater_value_numeric(src0,src1,dst);
     } else if (is_defined_value(src0) && is_defined_value(src1)) {
+        if (src0->numeric)
+            return greater_value_numeric_defined_bitstring(src0,src1,dst);
+        if (src1->numeric)
+            return lesser_equal_value_numeric_defined_bitstring(src1,src0,dst);
         /* Both sources can be converted to numeric values. */
         return greater_value_defined_bitstring(src0,src1,dst);
     } else {
@@ -3139,6 +3337,10 @@ Value lesser_value(Value src0, Value src1, Value dst) {
         return lesser_value_numeric(src0,src1,dst);
     } else if (is_defined_value(src0) && is_defined_value(src1)) {
         /* Both sources can be converted to numeric values. */
+        if (src0->numeric)
+            return lesser_value_numeric_defined_bitstring(src0,src1,dst);
+        if (src1->numeric)
+            return greater_equal_value_numeric_defined_bitstring(src1,src0,dst);
         return lesser_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */
@@ -3166,6 +3368,10 @@ Value greater_equal_value(Value src0, Value src1, Value dst) {
         return greater_equal_value_numeric(src0,src1,dst);
     } else if (is_defined_value(src0) && is_defined_value(src1)) {
         /* Both sources can be converted to numeric values. */
+        if (src0->numeric)
+            return greater_equal_value_numeric_defined_bitstring(src0,src1,dst);
+        if (src1->numeric)
+            return lesser_value_numeric_defined_bitstring(src1,src0,dst);
         return greater_equal_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */
@@ -3192,6 +3398,10 @@ Value lesser_equal_value(Value src0, Value src1, Value dst) {
         return lesser_equal_value_numeric(src0,src1,dst);
     } else if (is_defined_value(src0) && is_defined_value(src1)) {
         /* Both sources can be converted to numeric values. */
+        if (src0->numeric)
+            return lesser_equal_value_numeric_defined_bitstring(src0,src1,dst);
+        if (src1->numeric)
+            return greater_value_numeric_defined_bitstring(src1,src0,dst);
         return lesser_equal_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */

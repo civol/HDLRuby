@@ -42,6 +42,28 @@ system :comparison_bench do
         sgeL <= (uL >= vL)
     end
 
+    [8].inner :xND
+    [96].inner :yND
+    signed[8].inner :uND
+    signed[128].inner :vND
+    inner :ueND, :ultND, :uleND, :ugtND, :ugeND
+    inner :seND, :sltND, :sleND, :sgtND, :sgeND
+
+    par do
+        ueND  <= (xND == yND)
+        ultND <= (xND < yND)
+        uleND <= (xND <= yND)
+        ugtND <= (xND > yND)
+        ugeND <= (xND >= yND)
+
+        seND  <= (uND == vND)
+        sltND <= (uND < vND)
+        sleND <= (uND <= vND)
+        sgtND <= (uND > vND)
+        sgeND <= (uND >= vND)
+    end
+
+
     timed do
         x <= 0
         y <= 0
@@ -51,26 +73,38 @@ system :comparison_bench do
         yL <= 0
         uL <= 0
         vL <= 0
+        xND <= 0
+        yND <= 0
+        uND <= 0
+        vND <= 0
         !10.ns
         x <= 1
         u <= 1
         xL <= 2**80 - 1
         uL <= 2**80 - 1
+        xND <= 1
+        uND <= 1
         !10.ns
         y <= 2
         v <= 2
         yL <= 2**81 - 1
         vL <= 2**81 - 1
+        yND <= 2
+        vND <= 2
         !10.ns
         x <= 3
         u <= 3
         xL <= 2**81 + 2**80 - 1
         uL <= 2**81 + 2**80 - 1
+        xND <= 3
+        uND <= 3
         !10.ns
         x <= 2
         u <= -2
         xL <= 2**81 - 1
         uL <= -2**81 + 1
+        xND <= 2
+        uND <= -2
         !10.ns
     end
 end

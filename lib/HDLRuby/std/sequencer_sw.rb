@@ -3032,14 +3032,16 @@ module RubyHDL::High
       return "" if @arguments.empty?
       res = "print("
       @arguments.each do |arg|
-          if arg.is_a?(::String) then
-            res << "\"#{arg}\""
-          else
-            res << arg.to_ruby
-          end
+        if arg.is_a?(::String) then
+          res << "\"#{arg}\""
+        else
+          res << arg.to_ruby
         end
-        res << ")\n"
-        return res
+        res << ","
+      end
+      res[-1] = ")"
+      res << "\n"
+      return res
     end
 
     # Convert to C code.

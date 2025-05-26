@@ -17,6 +17,10 @@ hdrcc --get-tuto
 
 __What's new_
 
+For HDLRuby versions 3.7.7/3.7.8:
+
+* Various fixes regqrding the software sequencers.
+
 For HDLRuby version 3.7.6:
 
 * Added initial value to signals for the software sequencers.
