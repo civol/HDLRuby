@@ -14,6 +14,7 @@ require 'std/sequencer.rb'
 require 'std/sequencer_channel.rb'
 require 'std/sequencer_sync.rb'
 require 'std/sequencer_func.rb'
+require 'std/hruby_enum.rb'
 
 # User interface libraries.
 require 'ui/hruby_board.rb'

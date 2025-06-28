@@ -991,7 +991,7 @@ module HDLRuby::High::Std
             # Declare the result signal the flag and the result array size index
             # used for implementing the algorithm (shift-based sorting) in
             # case of multiple max.
-            res  = nil
+            res = nil
             flg = nil
             idx = nil
             HDLRuby::High.cur_system.open do

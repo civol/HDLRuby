@@ -238,6 +238,28 @@ module RubyHDL::High
     :">=" => "((%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}) ? 1:0"
   }
 
+  PYTHON_OPERATOR = {
+    # Unary operators.
+    :"-@" => "-(%{l})", :"+@" => "+(%{l})", :"~" => "~(%{l})",
+    :abs => "(%{l}).abs",
+    :boolean => "%{l}", :bit => "%{l}", 
+    :signed => "%{l}", :unsigned => "(%{l}) & 0xFFFFFFFFFFFFFFFF",
+
+    # Binary operators.
+    :"+" => "(%{l})+(%{r})", :"-" => "(%{l})-(%{r})", 
+    :"*" => "(%{l})*(%{r})", :"/" => "(%{l})/(%{r})", 
+    :"%" => "(%{l})%%(%{r})", :"**" => "(%{l})**(%{r})",
+    :"&" => "(%{l})&(%{r})", :"|" => "(%{l})|(%{r})", 
+    :"^" => "(%{l})^(%{r})",
+    :"<<" => "(%{l})<<(%{r})", :">>" => "(%{l})>>(%{r})",
+    :"==" => "1 if ((%{l}) & %{m}==(%{r}) & %{m}) else 0", 
+    :"!=" => "1 if ((%{l}) & %{m}!=(%{r}) & %{m}) else 0",
+    :"<" => "1 if ((%{l}) & %{m}%{s} < (%{r}) & %{m}%{s}) else 0", 
+    :">" => "1 if ((%{l}) & %{m}%{s} > (%{r}) & %{m}%{s}) else 0", 
+    :"<=" => "1 if ((%{l}) & %{m}%{s} <=(%{r}) & %{m}%{s}) else 0",
+    :">=" => "1 if ((%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}) else 0"
+  }
+
   # The translation of operators into C code.
   C_OPERATOR = {
     # Unary operators.
@@ -586,6 +608,11 @@ module RubyHDL::High
 
     # Convert to C code.
     alias_method :to_c, :to_ruby
+
+    # Convert to Python.
+    def to_python(l = "")
+      to_ruby
+    end
   end
 
 
@@ -606,6 +633,10 @@ module RubyHDL::High
     end
 
     def to_c
+      return self.to_s
+    end
+
+    def to_python(l = "")
       return self.to_s
     end
 
@@ -639,6 +670,10 @@ module RubyHDL::High
   refine ::Range do
     def to_ruby
       return "(#{self})"
+    end
+
+    def to_python(l = "")
+      return "range(#{self.first.to_python}, #{self.last.to_python} + 1)"
     end
   end
 
@@ -1058,6 +1093,12 @@ module RubyHDL::High
       # By default: 0
       return "0"
     end
+
+    # Convert to Python initialization code.
+    def to_python_init
+      # By default: 0
+      return "0"
+    end
   end
 
 
@@ -1339,6 +1380,17 @@ module RubyHDL::High
         # Array type case.
         base_init = @base.to_c_init
         return "{" + ([base_init] * self.size.to_i).join(",") + "}"
+      else
+        return "0"
+      end
+    end
+
+    # Convert to Python initialization code.
+    def to_python_init
+      if @base.is_a?(TypeVector) then
+        # Array type case.
+        base_init = @base.to_python_init
+        return "[" + ([base_init] * self.size.to_i).join(",") + "]"
       else
         return "0"
       end
@@ -1767,6 +1819,11 @@ module RubyHDL::High
       raise "to_c not defined for class: #{self.class}."
     end
 
+    # Convert to Python code.
+    def to_python(l = "")
+      raise "to_python not defined for class: #{self.class}."
+    end
+
     # Convert to ruby code for left value.
     # By default: the same as to_ruby
     alias_method :to_ruby_left, :to_ruby
@@ -1926,6 +1983,11 @@ module RubyHDL::High
         return @content.to_s
       end
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @content.to_s
+    end
   end
 
   
@@ -1949,6 +2011,11 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       return C_OPERATOR[@operator] % @child.to_c
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return PYTHON_OPERATOR[@operator] % { l: @child.to_python }
     end
   end
   
@@ -1984,6 +2051,12 @@ module RubyHDL::High
     def to_c
       return C_OPERATOR[@operator] % [ @left.to_c, @right.to_c ]
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return PYTHON_OPERATOR[@operator] % 
+        { l: @left.to_python, r: @right.to_python, m: @mask, s: @sign_fix }
+    end
   end
   
   # Describes the software implementation of an select operation.
@@ -1998,10 +2071,10 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return "case(#{@sel.to_ruby}) ; " +
+      return @sequencer.clk_up + "\ncase(#{@sel.to_ruby}) ; " +
         @choices.map.with_index do |choice,i|
           "when #{i} ; #{choice.to_ruby} ; "
-        end.join + "end"
+        end.join + "end\n" + @sequencer.clk_up
     end
 
     # Convert to C code.
@@ -2010,7 +2083,18 @@ module RubyHDL::High
       #   @choices.map.with_index do |choice,i|
       #     "case #{i}:\n#{choice.to_c}\nbreak;"
       #   end.join("\n") + "\n}"
-      return "#{@sel.to_c} ? #{@choices[1].to_c} : #{@choices[0].to_c}"
+      return @sequencer.clk_up_c + 
+        "\n#{@sel.to_c} ? #{@choices[1].to_c} : #{@choices[0].to_c}" +
+        @sequencer.clk_up_c
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l) + 
+        "\n#{l}match #{@sel.to_python}:\n" +
+        @choices.map.with_index do |choice,i|
+          "#{l}  case #{i}:\n    #{choice.to_python(l + "  ")}\n"
+        end.join + @sequencer.clk_up_pyhton(l)
     end
   end
 
@@ -2051,6 +2135,11 @@ module RubyHDL::High
 
     # Convert to C code.
     alias_method :to_c, :to_ruby
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return to_ruby
+    end
   end
 
   # Describes a SW implementation of an index reference.
@@ -2114,6 +2203,11 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       return "#{@base.to_c}[#{@idx.to_c}]"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{@base.to_python}[#{@idx.to_python}]"
     end
   end
 
@@ -2194,6 +2288,11 @@ module RubyHDL::High
         # Generate the ruby code.
         return "(#{base} & #{cmask.to_c}) >> (#{@rng.last.to_c})"
       end
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{@base.to_python}[#{@rng.last.to_python}:#{@rng.first.to_python}]"
     end
   end
 
@@ -2285,6 +2384,32 @@ module RubyHDL::High
         return "#{@left.to_c} = #{@right.to_c};"
       end
     end  
+
+    # Convert to Python code.
+    def to_python(l = "")
+      if (@left.is_a?(RefIndex) or @left.is_a?(RefRange)) then
+        if @left.base.type.base.is_a?(TypeVector) then
+          # Assign inside array.
+          base = @left.final_base.to_python
+          return "#{l}try:\n#{l}  #{base}\n" + 
+            "#{l}except NameError:\n#{l}  #{base} = []\n" +
+            "#{l}#{@left.to_python} = #{@right.to_python}"
+        else
+          # Get the access range.
+          rng = @left.range
+          # Compute the writing and clearing masks
+          smask = (1.to_value<<(rng.first+1-rng.last))-1
+          cmask = ~(smask << rng.last)
+          # Get the final base.
+          base = left.final_base.to_ruby
+          # Generate the ruby code.
+          return "#{l}#{base} &= #{cmask.to_python}\n" +
+            "#{l}#{base} |= (((#{@right.to_python} & #{smask.to_python}) << (#{rng.last.to_python})))"
+        end
+      else
+        return "#{l}#{@left.to_python} = #{@right.to_python}"
+      end
+    end
   end
 
   # Describes a SW implementation of a sif statement.
@@ -2357,6 +2482,21 @@ module RubyHDL::High
       end
       return res + @sequencer.clk_up_c
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      res = @sequencer.clk_up_python(l) + 
+        "\n#{l}if (#{@condition.to_ruby}) != 0:\n" +
+        "#{@yes_blk.to_python(l + "  ")}\n"
+      @elsifs.each do |(cond,blk)|
+        res << "#{l}elif (#{cond.to_python}) != 0:\n" +
+        "#{blk.to_python(l + "  ")}\n"
+      end
+      if @else_blk then
+        res << "#{l}else:\n#{@else_blk.to_python(l + "  ")}\n"
+      end
+      return res + @sequencer.clk_up_python(l)
+    end
   end
 
   # Describes a SW implementation of a hif statement.
@@ -2381,6 +2521,20 @@ module RubyHDL::High
       end
       if @else_blk then
         res << "\nelse {\n#{@else_blk.to_c}\n}"
+      end
+      return res
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      res = "#{l}if (#{@condition.to_python}) != 0:\n" +
+        "#{@yes_blk.to_python(l + "  ")}\n"
+      @elsifs.each do |(cond,blk)|
+        res << "#{l}elif (#{cond.to_python}) != 0:\n" +
+        "#{blk.to_python(l + "  ")}\n"
+      end
+      if @else_blk then
+        res << "#{l}else:\n#{@else_blk.to_python(l + "  ")}\n"
       end
       return res
     end
@@ -2419,6 +2573,12 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       return "for(;;){\n#{@blk.to_ruby}\n#{@sequencer.clk_up_c}\n}"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{l}while True:\n#{@blk.to_python(l + "  ")}\n" +
+        @sequencer.clk_up_python(l + "  ")
     end
   end
 
@@ -2459,6 +2619,14 @@ module RubyHDL::High
     def to_c
         "\nwhile(#{@condition.to_c}) {\n#{@yes_blk.to_c}\n#{@sequencer.clk_up_c}\n}"
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l) + 
+        "\n#{l}while (#{@condition.to_python}) != 0:\n" +
+        "#{@yes_blk.to_python(l + "  ")}\n" +
+        @sequencer.clk_up_python(l + "  ")
+    end
   end
 
   # Describes a SW implementation of a step statement.
@@ -2476,6 +2644,11 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       return @sequencer.clk_up_c
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l)
     end
   end
 
@@ -2495,6 +2668,11 @@ module RubyHDL::High
     def to_c
       return @sequencer.clk_up_c + "\nbreak;"
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l) + "\n#{l}brea;"
+    end
   end
 
   # Describes a SW implementation of a continue statement.
@@ -2512,6 +2690,11 @@ module RubyHDL::High
     # Convert to Ruby code.
     def to_c
       return @sequencer.clk_up_c + "\ncontinue;"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l) + "\n#{l}continue"
     end
   end
 
@@ -2535,6 +2718,11 @@ module RubyHDL::High
     def to_c
       return @sequencer.clk_up_c + "\nreturn #{@value.to_c};"
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l) + "\n#{l}return #{@value.to_c}"
+    end
   end
 
   # Describes a SW implementation of a terminate statement.
@@ -2554,6 +2742,11 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       return @sequencer.clk_up_c + "\nreturn;"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return @sequencer.clk_up_python(l) + "\n#{l}return;"
     end
   end
 
@@ -2582,6 +2775,11 @@ module RubyHDL::High
     # Convert to C code.
     def to_c
       return "yield();"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{l}yield()"
     end
   end
 
@@ -2645,6 +2843,11 @@ module RubyHDL::High
     def to_c
       return "rb_eval_string(\"#{@str.to_s}\");"
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      raise "Ruby objects cannot be converted to Python yet."
+    end
   end
 
 
@@ -2681,7 +2884,12 @@ module RubyHDL::High
 
     # Convert to C code.
     def to_c
-      return "\n__#{@name}(" + @args.map {|arg| arg.to_ruby}.join(",") + ");"
+      return "\n__#{@name}(" + @args.map {|arg| arg.to_c}.join(",") + ");"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{l}\n__#{@name}(" + @args.map {|arg| arg.to_python}.join(",") + ")"
     end
 
     # Create an iterator for a given method +meth+.
@@ -3064,6 +3272,23 @@ module RubyHDL::High
           end
         end.join(",") + ");"
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "" if @arguments.empty?
+      res = "#{l}print("
+      @arguments.each do |arg|
+        if arg.is_a?(::String) then
+          res << "\"#{arg}\""
+        else
+          res << arg.to_python
+        end
+        res << ","
+      end
+      res[-1] = ")"
+      res << "\n"
+      return res
+    end
   end
 
 
@@ -3123,6 +3348,13 @@ module RubyHDL::High
       res = @sequencer.clk_up_c + "\n" +
         @commands.map { |command| command.to_c }.join("_")
       return res + "(#{@blk.to_c})"
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      res = @sequencer.clk_up_python(l) + "\n" +
+        @commands.map { |command| command.to_python }.join("_")
+      return res + "(#{@blk.to_python})"
     end
 
     # Create an iterator for a given method +meth+.
@@ -3504,6 +3736,11 @@ module RubyHDL::High
       return "__" + self.name.to_s
     end
 
+    # Convert to Python code.
+    def to_python(l = "")
+      return "__" + self.name.to_s
+    end
+
     # Check if a value is defined for the signal.
     def value?
       if global? then
@@ -3670,6 +3907,16 @@ module RubyHDL::High
       return res
     end
 
+    # Convert to Python code.
+    def to_python(l = "")
+      res = ""
+      # Generate the statements.
+      res += @statements.map do |stmnt|
+        stmnt.to_python(l) + "\n"
+      end.join
+      return res
+    end
+
     # The interface for describing statements and expressions.
 
     # Mark a step.
@@ -3818,6 +4065,11 @@ module RubyHDL::High
     def to_c
       return "unsigned long long __#{name}(#{@args.map {|arg| "unsigned long long __" + arg.to_c}.join(",")}) {\n#{@blk.sequencer.clk_up_c}\n#{@blk.to_c}\n}\n"
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{l}def __#{name}(#{@args.map {|arg| "__" + arg.to_ruby}.join(",")}):\n#{@blk.sequencer.clk_python(l + "  ")}\n#{@blk.to_python(l + "  ")}\n"
+    end
   end
 
 
@@ -3932,6 +4184,46 @@ BUILDC
       return res
     end
 
+    # Convert to Python code.
+    def to_python(l = "")
+      typ = nil
+      res = <<-BUILDPYTHON
+#{RubyHDL::High.global_sblock.each_signal.map do |signal|
+      typ = signal.type
+      if signal.value? then
+        if signal.array? then
+          res = signal.to_python + "= [0] * #{signal.type.range.size}"
+          signal.value.each_with_index do |v,i|
+            res += "\n" + signal.to_python + "[#{i}=#{v.to_python}]"
+          end
+          res
+        else
+          signal.to_python + "=" + signal.value.inspect
+        end
+      else
+        if signal.array? then
+          signal.to_python + " = " + typ.to_python_init
+        else
+          signal.to_python + "=" + typ.to_python_init
+        end
+      end
+end.join("\n")}
+
+#{@sfunctions.map {|n,f| f.to_c }.join("\n\n")}
+
+def sequencer():
+#{RubyHDL::High.global_sblock.each_signal.map do |signal|
+   "  global #{signal.to_python}"
+end.join("\n")}
+#{@blk.to_python("  ")}
+BUILDPYTHON
+      return res
+    end
+
+
+
+
+
     # Handling of the clock if any.
 
     # Generate a clock up of +count+ cycles if any clock.
@@ -3947,6 +4239,15 @@ BUILDC
     def clk_up_c(count = 1)
       if @clk then
         return "#{clk.to_c} += #{count.to_i};"
+      else
+        return ""
+      end
+    end
+
+    # Generate a clock up of +count+ cycles if any clock.
+    def clk_up_python(l="", count = 1)
+      if @clk then
+        return "#{l}#{clk.to_python} += #{count.to_i}"
       else
         return ""
       end
