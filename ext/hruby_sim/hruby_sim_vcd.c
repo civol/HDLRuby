@@ -207,6 +207,76 @@ static void vcd_print_signal_cvalue(SignalI signal) {
 }
 
 
+/** Checks if a statement contains any declaration.
+ *  @param stmnt the statement to check. */
+static int vcd_statement_has_decl(Statement stmnt) {
+    // printf("stmnt kind=%d\n",stmnt->kind);
+    switch(stmnt->kind) {
+        case TRANSMIT: 
+        case PRINT:
+            /* No declaration. */
+            return 0;
+        case HIF:
+            {
+                HIf hif = (HIf)stmnt;
+                /* Recruse on the sub statements of the if.*/
+                if (vcd_statement_has_decl(hif->yes)) return 1;
+                for(int i=0; i<hif->num_noifs; ++i)
+                    if (vcd_statement_has_decl(hif->nostmnts[i])) 
+                        return 1;
+                if (hif->no)
+                    return vcd_statement_has_decl(hif->no);
+                /* No declaration. */
+                return 0;
+            }
+        case HCASE:
+            {
+                HCase hcase = (HCase)stmnt;
+                /* Recruse on the sub statements of the case.*/
+                for(int i=0; i<hcase->num_whens; ++i)
+                    if (vcd_statement_has_decl(hcase->stmnts[i]))
+                        return 1;
+                if (hcase->defolt)
+                    return vcd_statement_has_decl(hcase->defolt);
+                /* No declaration. */
+                return 0;
+            }
+        case TIME_WAIT:
+            /* No declaration. */
+            return 0;
+        case TIME_REPEAT:
+            {
+                TimeRepeat rep = (TimeRepeat)stmnt;
+                /* Recruse on the sub statements of the repeat.*/
+                for(long long i=0; i<rep->number; ++i)
+                    if (vcd_statement_has_decl(rep->statement))
+                        return 1;
+                /* No declaration. */
+                return 0;
+            }
+        case TIME_TERMINATE:
+            /* No declaration. */
+            return 0;
+        case BLOCK:
+            {
+                Block blk = (Block)stmnt;
+                if (blk->num_inners != 0) return 1;
+                /* Recruse on the sub statements. */
+                for(int i=0; i<blk->num_stmnts; ++i)
+                    if (vcd_statement_has_decl(blk->stmnts[i]))
+                        return 1;
+                /* No declaration. */
+                return 0;
+            }
+        default:
+            perror("Invalid kind for a statement."); 
+    }
+    /* Should not be here though. */
+    return 0;
+}
+
+
+
 /** Prints the hierarchy content of a system type.
  *  @param system the system to print. */
 static void vcd_print_systemT_content(SystemT system);
@@ -215,13 +285,74 @@ static void vcd_print_systemT_content(SystemT system);
  *  @param scope the scope to print. */
 static void vcd_print_scope(Scope scope);
 
+/** Prints the hierarchy of a block.
+ *  @param block the block to print. */
+static void vcd_print_block(Block block);
+
+/** Prints the hierarchy of a statement.
+ *  @param stmnt the statement to print. */
+static void vcd_print_statement(Statement stmnt) {
+    // printf("stmnt kind=%d\n",stmnt->kind);
+    switch(stmnt->kind) {
+        case TRANSMIT: 
+        case PRINT:
+            /* Nothing to do. */
+            break;
+        case HIF:
+            {
+                HIf hif = (HIf)stmnt;
+                /* Recruse on the sub statements of the if.*/
+                vcd_print_statement(hif->yes);
+                for(int i=0; i<hif->num_noifs; ++i)
+                    vcd_print_statement(hif->nostmnts[i]);
+                if (hif->no)
+                    vcd_print_statement(hif->no);
+                break;
+            }
+        case HCASE:
+            {
+                HCase hcase = (HCase)stmnt;
+                /* Recruse on the sub statements of the case.*/
+                for(int i=0; i<hcase->num_whens; ++i)
+                    vcd_print_statement(hcase->stmnts[i]);
+                if (hcase->defolt)
+                    vcd_print_statement(hcase->defolt);
+                break;
+            }
+        case TIME_WAIT:
+            /* Nothing to do. */
+            break;
+        case TIME_REPEAT:
+            {
+                TimeRepeat rep = (TimeRepeat)stmnt;
+                /* Recruse on the sub statements of the repeat.*/
+                for(long long i=0; i<rep->number; ++i)
+                    vcd_print_statement(rep->statement);
+                break;
+            }
+        case TIME_TERMINATE:
+            /* Nothing to do. */
+            break;
+        case BLOCK:
+            {
+                /* Block case: there is a specific function for it. */
+                vcd_print_block((Block)stmnt);
+                break;
+            }
+        default:
+            perror("Invalid kind for a statement."); 
+    }
+}
+
 
 /** Prints the hierarchy of a block.
  *  @param block the block to print. */
 static void vcd_print_block(Block block) {
     int i;
+    // printf("vcd_print_block\n");
     /* Do not print block with no declaration. */
-    if (block->num_inners == 0) return;
+    // if (block->num_inners == 0) return;
+    if (!vcd_statement_has_decl(block)) return;
 
     /* Declares the block if named. */
     vcd_print("$scope module ");
@@ -231,6 +362,11 @@ static void vcd_print_block(Block block) {
     /* Declare the inners of the systems. */
     for(i=0; i<block->num_inners; ++i) {
         vcd_print_var(block->inners[i]);
+    }
+
+    /* Recurse on the statements if any. */
+    for(i=0; i<block->num_stmnts; ++i) {
+        vcd_print_statement(block->stmnts[i]);
     }
 
     /* Close the hierarchy. */
@@ -258,6 +394,7 @@ static void vcd_print_systemI(SystemI systemI) {
  *  @param scope the scope to print the inside. */
 static void vcd_print_scope_content(Scope scope) {
     int i;
+    // printf("vcd_print_scope_content\n");
 
     /* Declare the inners of the systems. */
     for(i=0; i<scope->num_inners; ++i) {
