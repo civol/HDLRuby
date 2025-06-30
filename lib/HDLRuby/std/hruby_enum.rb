@@ -712,6 +712,7 @@ module HDLRuby::High::Std
 
   # This is the abstract Enumerator class.
   class HEnumerator
+    include Enumerable
     include HEnumerable
 
     # The methods that need to be defined.
@@ -725,8 +726,17 @@ module HDLRuby::High::Std
     def heach(&ruby_block)
       # No block given, returns self.
       return self unless ruby_block
-      return self.hto_a.each(&ruby_block)
+      # return self.hto_a.each(&ruby_block)
+      if self.respond_to?(:[]) then
+        return self.size.times do |i|
+          ruby_block.call(self[i])
+        end
+      else
+        return self.hto_a.each(&ruby_block)
+      end
     end
+
+    alias_method :each, :heach
 
     # Iterator on each of the elements in range +rng+.
     # *NOTE*: 
@@ -793,7 +803,7 @@ module HDLRuby::High::Std
 
     # The directly delegate methods.
     def size
-      return @enumertor.size
+      return @enumerator.size
     end
     alias_method :hsize, :size
 
