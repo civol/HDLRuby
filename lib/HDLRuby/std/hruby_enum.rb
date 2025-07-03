@@ -13,9 +13,11 @@ module HDLRuby::High::Std
   # the to_a method.
   module HEnumerable
 
-    # Iterator on each element.
-    def heach(&ruby_block)
-      return self.to_a.each(&ruby_block)
+    # Convert to an array.
+    def h_to_a
+      res = []
+      self.heach {|e| res << e }
+      return res
     end
 
     # Iterator on each of the elements in range +rng+.
@@ -78,7 +80,8 @@ module HDLRuby::High::Std
 
     # Returns an HEnumerator generated from current enumerable and +arg+
     def hchain(arg)
-      return self.heach + arg
+      # return self.heach + arg
+      return self.hto_a + arg.hto_a
     end
 
     # HW implementation of the Ruby chunk.
@@ -101,7 +104,9 @@ module HDLRuby::High::Std
         return HEnumeratorWrapper.new(self,:hmap)
       end
       # A block given? Create the result HEnumerable (a Ruby array).
-      return self.heach.map(&ruby_block)
+      res = []
+      self.heach { |e| res << ruby_block.call(e) }
+      return res
     end
 
     # HW implementation of the Ruby flat_map.
@@ -111,7 +116,8 @@ module HDLRuby::High::Std
         return HEnumeratorWrapper.new(self,:hmap)
       end
       # A block given? Create the result HEnumerable (a Ruby array).
-      return self.heach.flat_map(&ruby_block)
+      # return self.heach.flat_map(&ruby_block)
+      return self.hto_a.flat_map(&ruby_block)
     end
 
     # HW implementation of the Ruby compact.
@@ -160,7 +166,7 @@ module HDLRuby::High::Std
         return ifnone.call
       end
       # Convert to an array.
-      ar = self.to_a
+      ar = self.hto_a
       # Use the ruby block in parallel.
       comp = ar.map { |elem| ruby_block.call(elem) }
       # Generate the look up circuit.
@@ -173,7 +179,15 @@ module HDLRuby::High::Std
 
     # HW implementation of the Ruby drop.
     def hdrop(n)
-      return self.heach.drop(n)
+      # return self.heach.drop(n)
+      res = []
+      size = self.hsize
+      self.heach do |e|
+        break if n == size
+        n += 1
+        res << e
+      end
+      return res
     end
 
     # HW implementation of the Ruby drop_while.
@@ -187,7 +201,8 @@ module HDLRuby::High::Std
       if !ruby_block then
         return HEnumeratorWrapper.new(self,:heach_cons,n)
       end
-      return self.heach.each_cons(n,&ruby_block)
+      # return self.heach.each_cons(n,&ruby_block)
+      return self.hto_a.each_cons(n,&ruby_block)
     end
 
     # HW implementation of the Ruby each_entry.
@@ -202,7 +217,8 @@ module HDLRuby::High::Std
       if !ruby_block then
         return HEnumeratorWrapper.new(self,:heach_slice,n)
       end
-      return self.heach.each_slice(n,&ruby_block)
+      # return self.heach.each_slice(n,&ruby_block)
+      return self.hto_a.each_slice(n,&ruby_block)
     end
 
     # HW implementation of the Ruby each_with_index.
@@ -212,7 +228,12 @@ module HDLRuby::High::Std
       if !ruby_block then
         return HEnumeratorWrapper.new(self,:heach_with_index)
       end
-      self.heach.each_with_index(*args,&ruby_block)
+      # self.heach.each_with_index(*args,&ruby_block)
+      idx = 0
+      self.heach do |e|
+        ruby_block.call(*args,e,idx)
+        idx += 1
+      end
     end
 
     # HW implementation of the Ruby each_with_object.
@@ -222,12 +243,19 @@ module HDLRuby::High::Std
       if !ruby_block then
         return HEnumeratorWrapper.new(self,:heach_with_object)
       end
-      self.heach.with_object(obj,&ruby_block)
+      # self.heach.with_object(obj,&ruby_block)
+      self.heach { |e| ruby_block.call(e,obj,&ruby_block) }
     end
 
-    # HW implementation of the Ruby to_a.
+    # # HW implementation of the Ruby to_a.
+    # def hto_a
+    #   return self.heach.to_a
+    # end
+
     def hto_a
-      return self.heach.to_a
+      res = []
+      self.heach { |e| res << e }
+      return res
     end
 
     # HW implementation of the Ruby select.
@@ -249,7 +277,7 @@ module HDLRuby::High::Std
       # If there is an objet, look for it.
       ruby_block = proc { |e| e == obj } if obj
       # Convert to an array.
-      ar = self.to_a
+      ar = self.hto_a
       size =ar.size
       # Use the ruby block in parallel.
       comp = self.hmap { |elem| ruby_block.call(elem) }
@@ -263,7 +291,14 @@ module HDLRuby::High::Std
 
     # HW implementation of the Ruby first.
     def hfirst(n=1)
-      return self.heach.first(n)
+      # return self.heach.first(n)
+      res = []
+      self.heach do |e|
+        break if n == 0
+        res << e
+        n -= 1
+      end
+      return res
     end
 
     # HW implementation of the Ruby grep.
@@ -290,15 +325,22 @@ module HDLRuby::High::Std
     end
 
     # HW implementation of the Ruby inject.
-    def hinject(*args,&ruby_block)
-      return self.heach.inject(*args,&ruby_block)
+    def hinject(*args, &ruby_block)
+      # return self.heach.inject(*args,&ruby_block)
+      return self.hto_a.inject(*args,&ruby_block)
     end
 
     alias_method :hreduce, :hinject
 
+    # Specific to HDLRuby: inject with no default value through the call
+    # operator.
+    def call(*args, &ruby_block)
+      return self.hinject(*args,&ruby_block)
+    end
+
     # HW implementation of the Ruby lazy.
     # NOTE: to do, or may be not.
-    def hlazy(*args,&ruby_block)
+    def hlazy(*args, &ruby_block)
       raise "hlazy is not supported yet."
     end
 
@@ -319,7 +361,7 @@ module HDLRuby::High::Std
       # The 2-value max unit.
       max2 = proc {|a,b| HDLRuby::High.top_user.mux(ruby_block.call(a,b),b,a) }
       # The single max hearch.
-      m = self.reduce(&max2)
+      m = self.hreduce(&max2)
       res = [m]
       if n > 1 then
         raise "hmax not supported for more than one max element."
@@ -381,7 +423,7 @@ module HDLRuby::High::Std
       # The 2-value max unit.
       min2 = proc {|a,b| HDLRuby::High.top_user.mux(ruby_block.call(a,b),a,b) }
       # The single max hearch.
-      m = self.reduce(&min2)
+      m = self.hreduce(&min2)
       res = [m]
       if n > 1 then
         raise "hmin not supported for more than one max element."
@@ -625,7 +667,7 @@ module HDLRuby::High::Std
                  &ruby_block)
       # No block given? Generate a new wrapper enumerator for smin_by.
       if !ruby_block then
-        return SEnumeratorWrapper.new(self,:hsort_by,n)
+        return HEnumeratorWrapper.new(self,:hsort_by,n)
       end
       # A block is given, use smin with a proc that applies ruby_block
       # before comparing.
@@ -768,7 +810,7 @@ module HDLRuby::High::Std
       end
     end
 
-    # Return a new SEnumerator with an arbitrary arbitrary object +obj+.
+    # Return a new HEnumerator with an arbitrary arbitrary object +obj+.
     def with_object(obj)
       # No block given, returns a new enumerator.
       return HEnumeratorWrapper.new(self,:with_object) unless ruby_block
@@ -789,7 +831,7 @@ module HDLRuby::High::Std
   # other interation method over the first one.
   class HEnumeratorWrapper < HEnumerator
 
-    # Create a new SEnumerator wrapper over +enum+ with +iter+ iteration
+    # Create a new HEnumerator wrapper over +enum+ with +iter+ iteration
     # method and +args+ argument.
     def initialize(enum,iter,*args)
       if enum.is_a?(HEnumerator) then
@@ -809,12 +851,6 @@ module HDLRuby::High::Std
 
     def type
       return @enumerator.type
-    end
-
-    def hto_a
-      res = []
-      self.heach { |e| res << e }
-      return res
     end
 
     # Iterator on each of the elements in range +rng+.
@@ -842,23 +878,105 @@ module HDLRuby::High::Std
   end
 
 
-  module HDLRuby::High::HRef
-    # Enhance the HRef module with sequencer iteration.
-    # Properties of expressions are also required
-    def self.included(klass)
-      klass.class_eval do
-        include HEnumerable
+  # module HDLRuby::High::HRef
+  module HDLRuby::High::HExpression
+    # # Enhance the HRef module with sequencer iteration.
+    # # Properties of expressions are also required
+    # def self.included(klass)
+    #   klass.class_eval do
+    #     include HEnumerable
+    #     puts "current class=#{klass}"
+
+    #     # Iterate over the elements.
+    #     #
+    #     # Returns an enumerator if no ruby block is given.
+    #     def heach(&ruby_block)
+    #       # No ruby block? Return an enumerator.
+    #       # return to_enum(:each) unless ruby_block
+    #       return self unless ruby_block
+    #       # A block? Apply it on each element.
+    #       self.type.range.heach do |i|
+    #         yield(self[i])
+    #       end
+    #     end
+
+    #     # Size.
+    #     def hsize
+    #       self.type.size
+    #     end
+    #   end
+    # end
+
+    # Iterate over the elements.
+    #
+    # Returns an enumerator if no ruby block is given.
+    def heach(&ruby_block)
+      # No ruby block? Return an enumerator.
+      # return to_enum(:each) unless ruby_block
+      return self unless ruby_block
+      # A block? Apply it on each element.
+      self.type.range.heach do |i|
+        yield(self[i])
       end
     end
-
-    # Convert to an array.
-    alias_method :hto_a, :to_a
 
     # Size.
     def hsize
       self.type.size
     end
+
+    # Also adds the methods of HEnumerable.
+    HEnumerable.instance_methods.each do |meth|
+      define_method(meth,HEnumerable.instance_method(meth))
+    end
   end
+
+
+  module HDLRuby::High::HExpression
+    # Enhance the HExpression module with sequencer iterations.
+
+    # HW times iteration.
+    def htimes(&ruby_block)
+      unless self.respond_to?(:to_i) then
+        raise "htimes unsupported for such an expression: #{self}."
+      end
+      return self.to_i.htimes(&ruby_block)
+    end
+
+    # HW upto iteration.
+    def hupto(val,&ruby_block)
+      unless self.respond_to?(:to_i) then
+        raise "hupto unsupported for such an expression: #{self}."
+      end
+      return self.to_i.hupto(val,&ruby_block)
+    end
+
+    # HW downto iteration.
+    def sdownto(val,&ruby_block)
+      unless self.respond_to?(:to_i) then
+        raise "hupto unsupported for such an expression: #{self}."
+      end
+      return self.to_i.hdownto(val,&ruby_block)
+    end
+  end
+
+  # class HDLRuby::High::Value
+  #   # Enhance the HRef module with sequencer iteration.
+  #   # Properties of expressions are also required
+  #   def self.included(klass)
+  #     klass.class_eval do
+  #       include HEnumerable
+  #     end
+  #   end
+
+  #   # Convert to an array.
+  #   alias_method :hto_a, :to_a
+
+  #   # Size.
+  #   def hsize
+  #     self.type.size
+  #   end
+  # end
 
 
   module ::Enumerable
@@ -879,20 +997,28 @@ module HDLRuby::High::Std
   end
 
 
+  class ::Array
+    alias :heach :each
+
+    alias :hto_a :to_a
+  end
+
+
   class ::Range
     # Enhance the Range class with sequencer iteration.
     include HEnumerable
 
-    # Conversion to array.
-    def hto_a
-      res = []
-      self.heach { |i| res << i }
-      return res
-    end
+    # # Conversion to array.
+    # def hto_a
+    #   res = []
+    #   self.heach { |i| res << i }
+    #   return res
+    # end
 
     # Redefinition of heach to support also HDLRuby Values.
     def heach(&ruby_block)
       if self.first.is_a?(Value) or self.last.is_a?(Value) then
+        # Value range case.
         # No block given.
         return self unless ruby_block
         # A block is given, iterate on each element of the range
@@ -904,11 +1030,22 @@ module HDLRuby::High::Std
         end
         first = self.first.to_i
         last = self.last.to_i
-        (first..last).each do |i|
-          ruby_block.call(i.as(typ))
+        if first <= last then
+          (first..last).each do |i|
+            ruby_block.call(i.as(typ))
+          end
+        else
+          (last..first).reverse_each do |i|
+            ruby_block.call(i.as(typ))
+          end
         end
       else
-        return self.each(&ruby_block)
+        # Other range cases.
+        if self.first <= self.last then
+          return self.each(&ruby_block)
+        else
+          return (self.last..self.first).reverse_each(&ruby_block)
+        end
       end
     end
 

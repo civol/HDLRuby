@@ -35,6 +35,8 @@ include HDLRuby::High::Std
 # - The thirtieth check is for suniq
 # - The thirty first check is for hzip
 #
+# - The remaing checks the enumerators apply on values directly.
+#
  
 system :henmerable_checks do
 
@@ -204,7 +206,7 @@ system :henmerable_checks do
 
     par(clk.posedge) do
       # hprint(":0\n")
-      res36 <= vals.hinject(:+)
+      res36 <= vals.(:+)
     end
 
     [8].inner :res37
@@ -340,6 +342,16 @@ system :henmerable_checks do
       vals.hzip([_h12]*8).each_with_index { |(a,b),i| res62[i] <= a+b }
     end
 
+    # Test enumerators of values.
+    inner :res63, :res64, :res65
+
+    res63 <= _b0101011.(:|)
+    res64 <= _b0101011.(:^)
+    res65 <= _b0101011.(:&)
+
+    [8].inner :res66
+
+    res66 <= [_h01, _h02, _h03, _h04].(:+)
 
 
 

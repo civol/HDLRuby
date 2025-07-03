@@ -2150,7 +2150,8 @@ module HDLRuby::High::Std
 
     # class HDLRuby::High::Value
     module HDLRuby::High::HExpression
-        # Enhance the Value class with sequencer iterations.
+        # # Enhance the Value class with sequencer iterations.
+        # Enhance the HExpression module with sequencer iterations.
 
         # HW times iteration.
         def stimes(&ruby_block)

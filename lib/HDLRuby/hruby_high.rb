@@ -3461,6 +3461,21 @@ module HDLRuby::High
             return valueL
         end
 
+
+        # Iterate over the elements.
+        #
+        # Returns an enumerator if no ruby block is given.
+        def each(&ruby_block)
+            # No ruby block? Return an enumerator.
+            return to_enum(:each) unless ruby_block
+            # A block? Apply it on each element.
+            self.type.range.heach do |i|
+              yield(self.content[i])
+            end
+        end
+
+        # Reference can be used like enumerator
+        include Enumerable
     end
 
 
@@ -3512,26 +3527,14 @@ module HDLRuby::High
             return Event.new(:anyedge,self.to_ref)
         end
 
-        # Iterate over the elements.
-        #
-        # Returns an enumerator if no ruby block is given.
-        def each(&ruby_block)
-            # No ruby block? Return an enumerator.
-            return to_enum(:each) unless ruby_block
-            # A block? Apply it on each element.
-            self.type.range.heach do |i|
-                yield(self[i])
-            end
-        end
-
         # Get the refered objects.
         def objects
             return [ self.object] if self.is_a?(RefObject)
             return self.each.map { |ref| ref.objects }.flatten
         end
 
-        # Reference can be used like enumerator
-        include Enumerable
+        # # Reference can be used like enumerator
+        # include Enumerable
     end
 
 
@@ -5245,22 +5248,22 @@ module HDLRuby::High
         #     self.to_expr <= expr
         # end
 
-        # Array construction shortcuts
+        # # Array construction shortcuts
 
-        # Create an array whose number of elements is given by the content
-        # of the current array, filled by +obj+ objects.
-        # If +obj+ is nil, +ruby_block+ is used instead for filling the array.
-        def call(obj = nil, &ruby_block)
-            unless self.size == 1 then
-                raise AnyError, "Invalid array for call opertor."
-            end
-            number = self[0].to_i
-            if obj then
-                return Array.new(number,obj)
-            else
-                return Array.new(number,&ruby_block)
-            end
-        end
+        # # Create an array whose number of elements is given by the content
+        # # of the current array, filled by +obj+ objects.
+        # # If +obj+ is nil, +ruby_block+ is used instead for filling the array.
+        # def call(obj = nil, &ruby_block)
+        #     unless self.size == 1 then
+        #         raise AnyError, "Invalid array for call opertor."
+        #     end
+        #     number = self[0].to_i
+        #     if obj then
+        #         return Array.new(number,obj)
+        #     else
+        #         return Array.new(number,&ruby_block)
+        #     end
+        # end
 
         # Create an array of instances of system +name+, using +args+ as
         # arguments.
