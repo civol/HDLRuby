@@ -4412,6 +4412,10 @@ module HDLRuby::High
         # built from +ruby_block+.
         def par(name = :"", &ruby_block)
             return :par unless ruby_block
+            unless name.is_a?(::Symbol) or name.is_a?(::String) then
+              raise AnyError,
+                "Events can only be used at top level seq blocks."
+            end
             self.add_block(:par,name,&ruby_block)
         end
 
@@ -4419,6 +4423,10 @@ module HDLRuby::High
         # built from +ruby_block+.
         def seq(name = :"", &ruby_block)
             return :seq unless ruby_block
+            unless name.is_a?(::Symbol) or name.is_a?(::String) then
+              raise AnyError,
+                "Events can only be used at top level seq blocks."
+            end
             self.add_block(:seq,name,&ruby_block)
         end
 
