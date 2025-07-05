@@ -549,12 +549,23 @@ $optparse = OptionParser.new do |opts|
 end
 $optparse.parse!
 
-# show? "options=#{$options}"
+# puts "options=#{$options}"
 
 # Check the compatibility of the options
-if $options.count {|op| [:yaml,:hdr,:verilog,:vhdl,:svg].include?(op) } > 1 then
-    warn("Please choose either YAML, HDLRuby, Verilog HDL, VHDL, SVG (visualize) output.")
-    puts $optparse.help()
+if $options.count {|op,val| [:yaml,:hdr,:verilog,:vhdl,:svg].include?(op) } > 1 then
+    warn("**Warning**: please choose either YAML, HDLRuby, Verilog HDL, VHDL, SVG (visualize) output.")
+    # puts $optparse.help()
+    exit
+end
+if $options.count {|op,val| [:rcsim, :csim, :rsim].include?(op) } > 1 then
+    warn("**Warning**: please choose either RCSIM, CSIM or RSIM simulator.")
+    # puts $optparse.help()
+    exit
+end
+if $options.count {|op,val| [:yaml,:hdr,:verilog,:vhdl,:svg,:rcsim,:csim,:rsim].include?(op) } > 1 then
+    warn("**Warning**: please choose either simulation or code generation.")
+    # puts $optparse.help()
+    exit
 end
 
 # Get the the input and the output files.
