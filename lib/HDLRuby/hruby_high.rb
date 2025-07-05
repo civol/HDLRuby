@@ -2363,6 +2363,10 @@ module HDLRuby::High
                     res = HDLRuby::High.top_user.instance_exec(*args,
                                             *other_block, &ruby_block)
                 end
+                unless res.respond_to?(:to_expr) then
+                  raise AnyError, 
+                    "The last statement of a function must be an expression: #{res}"
+                end
                 res
             end
         else
@@ -2371,6 +2375,10 @@ module HDLRuby::High
                 sub(HDLRuby.uniq_name(name)) do
                     res = HDLRuby::High.top_user.instance_exec(*args,
                                             *other_block, &ruby_block)
+                end
+                unless res.respond_to?(:to_expr) then
+                  raise AnyError, 
+                    "The last statement of a function must be an expression: #{res}"
                 end
                 res
             end
