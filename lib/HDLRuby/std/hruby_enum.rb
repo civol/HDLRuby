@@ -929,6 +929,8 @@ module HDLRuby::High::Std
     HEnumerable.instance_methods.each do |meth|
       define_method(meth,HEnumerable.instance_method(meth))
     end
+
+    alias_method :to_a, :hto_a
   end
 
 
