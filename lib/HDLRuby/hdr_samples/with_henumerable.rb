@@ -360,7 +360,7 @@ system :henmerable_checks do
       sig <= v[0]
     end
 
-    [_h0001, _h0002, _h0003].heach.hwith_index do |v,i|
+    [_h0001, _h0002, _h0003].heach_with_index do |v,i|
       [16].inner :sig
       sig <= v + i
     end

@@ -380,25 +380,6 @@ module HDLRuby::High::Std
       if n > 1 then
         raise "hmax not supported for more than one max element."
       end
-      # # The other max hearch.
-      # ar = self.to_a
-      # sign = self.type.signed?
-      # (n-1).times do
-      #   # Exclude the previous max.
-      #   ar = ar.map do |a|
-      #     if sign then
-      #       HDLRuby::High.top_user.mux(a == m, a, HDLRuby::High.cur_system.send("_b1#{"0" * (a.type.width-1)}"))
-      #     else
-      #       HDLRuby::High.top_user.mux(a == m, a, HDLRuby::High.cur_system.send("_b0#{"0" * (a.type.width-1)}"))
-      #     end
-      #   end
-      #   puts "#2 ar.size=#{ar.size}"
-      #   m = ar.reduce(&max2)
-      # puts "#3"
-      #   res << m
-      # puts "#4"
-      # end
-      # puts "#5"
       if scalar then
         # Scalar result case.
         return m
@@ -781,14 +762,18 @@ module HDLRuby::High::Std
     #     creating a array is very expensive.
     def heach_range(rng,&ruby_block)
       # No block given, returns a new enumerator.
-      return HEnumeratorWrapper.new(self,:heach_range) unless ruby_block
+      if !ruby_block then
+        return HEnumeratorWrapper.new(self,:heach_range)
+      end
       return self.to_a.each_range(rng,&ruby_block)
     end
 
     # Iterates with an index.
     def hwith_index(&ruby_block)
       # No block given, returns a new enumerator.
-      return HEnumeratorWrapper.new(self,:hwith_index) unless ruby_block
+      if !ruby_block then
+        return HEnumeratorWrapper.new(self,:hwith_index)
+      end
       # return self.hto_a.each_with_index(&ruby_block)
       i = 0
       return self.heach do |e|
@@ -801,7 +786,9 @@ module HDLRuby::High::Std
     # Return a new HEnumerator with an arbitrary arbitrary object +obj+.
     def hwith_object(obj)
       # No block given, returns a new enumerator.
-      return HEnumeratorWrapper.new(self,:with_object) unless ruby_block
+      if !ruby_block then
+        return HEnumeratorWrapper.new(self,:with_object)
+      end
       # return self.hto_a.each_with_object(&ruby_block)
       return self.heach do |e|
         ruby_block.call(e,obj)
@@ -896,13 +883,14 @@ module HDLRuby::High::Std
 
     # Create a new HEnumerator wrapper over +enum+ with +iter+ iteration
     # method and +args+ argument.
-    def initialize(enum,iter,*args)
-      if enum.is_a?(HEnumerator) then
-        @enumerator = enum.clone
-      else
-        @enumerator = enum.heach
-      end
-      @iterator  = iter.to_sym
+    def initialize(enum,iter = nil,*args)
+      # if enum.is_a?(HEnumerator) then
+      #   @enumerator = enum.clone
+      # else
+      #   @enumerator = enum.heach
+      # end
+      @enumerator = enum
+      @iterator  = iter ? iter.to_sym : nil
       @arguments = args
     end
 
@@ -936,7 +924,11 @@ module HDLRuby::High::Std
       # No block given, returns self.
       return self unless ruby_block
       # A block is given, iterate.
-      return @enumerator.send(@iterator,*@arguments,&ruby_block)
+      if @iterator then
+        return @enumerator.send(@iterator,*@arguments,&ruby_block)
+      else
+        return @enumerator.heach(*@arguments,&ruby_block)
+      end
     end
   end
 
@@ -975,7 +967,10 @@ module HDLRuby::High::Std
     # Returns an enumerator if no ruby block is given.
     def heach(&ruby_block)
       # No ruby block? Return an enumerator.
-      return self unless ruby_block
+      # return self unless ruby_block
+      if !ruby_block then
+        return HEnumeratorWrapper.new(self)
+      end
       # A block? Apply it on each element.
       # Create a namespace.
       base_block = ruby_block
@@ -1077,11 +1072,13 @@ module HDLRuby::High::Std
     # Enhance the Array class with henumerable methods.
     include HEnumerable
 
-    # Enhance the Array class with extra arguments in interation.
-    include HEnumArg
+    # # Enhance the Array class with extra arguments in interation.
+    # include HEnumArg
 
     def heach(&ruby_block)
-      return self unless ruby_block
+      if !ruby_block then
+        return HEnumeratorWrapper.new(self)
+      end
       # self.each { |e| HDLRuby::High.top_user.sub { ruby_block.call(e) } }
       self.each do |e|
         HDLRuby::High.top_user.sub do
@@ -1097,8 +1094,8 @@ module HDLRuby::High::Std
     # Enhance the Range class with sequencer iteration.
     include HEnumerable
 
-    # Enhance the Array class with extra arguments in interation.
-    include HEnumArg
+    # # Enhance the Array class with extra arguments in interation.
+    # include HEnumArg
 
     # # Conversion to array.
     # def hto_a
