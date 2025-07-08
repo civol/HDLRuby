@@ -183,9 +183,9 @@ module HDLRuby::High::Std
       res = []
       size = self.hsize
       self.heach do |e|
-        break if n == size
+        #   break if n == size
         n += 1
-        res << e
+        res << e if n < size
       end
       return res
     end
@@ -294,8 +294,8 @@ module HDLRuby::High::Std
       # return self.heach.first(n)
       res = []
       self.heach do |e|
-        break if n == 0
-        res << e
+        # break if n == 0
+        res << e if n > 0
         n -= 1
       end
       return res
@@ -327,7 +327,21 @@ module HDLRuby::High::Std
     # HW implementation of the Ruby inject.
     def hinject(*args, &ruby_block)
       # return self.heach.inject(*args,&ruby_block)
-      return self.hto_a.inject(*args,&ruby_block)
+      # return self.hto_a.inject(*args,&ruby_block)
+      if ruby_block then
+        # Case when a block is given.
+        res = args[0]
+        self.heach do |e|
+          res = res ? ruby_block.call(res,e) : e
+        end
+      else
+        # Case when a symbol is given.
+        sym, res = args[0], args[1]
+        self.heach do |e|
+          res = res ? res.send(sym,e) : e
+        end
+      end
+      return res
     end
 
     alias_method :hreduce, :hinject
@@ -617,6 +631,13 @@ module HDLRuby::High::Std
         # The default comparator.
         ruby_block = proc { |a,b| a > b }
       end
+      # Create a namespace.
+      base_block = ruby_block
+      ruby_block = proc do |*args|
+        HDLRuby::High.top_user.sub do
+          base_block.call(*args)
+        end
+      end
       # Generate the compare and swap of two elements.
       compswap = proc do |a,b|
         if b then
@@ -749,37 +770,9 @@ module HDLRuby::High::Std
   end
 
 
-  # Describes hardware enumerator classes that allows to
-  # generate HW iteration over HW or SW objects.
-
-  # This is the abstract Enumerator class.
-  class HEnumerator
-    include Enumerable
-    include HEnumerable
-
-    # The methods that need to be defined.
-    [:size, :type, :clone, :hto_a].each do |name|
-       define_method(:name) do
-         raise "Method '#{name}' must be defined for a valid sequencer enumerator."
-       end
-     end
-
-    # Iterate on each element.
-    def heach(&ruby_block)
-      # No block given, returns self.
-      return self unless ruby_block
-      # return self.hto_a.each(&ruby_block)
-      if self.respond_to?(:[]) then
-        return self.size.times do |i|
-          ruby_block.call(self[i])
-        end
-      else
-        return self.hto_a.each(&ruby_block)
-      end
-    end
-
-    alias_method :each, :heach
-
+  # Module adding args in enumeration functionalities to object including
+  # the to_a method.
+  module HEnumArg
     # Iterator on each of the elements in range +rng+.
     # *NOTE*: 
     #   - Stop iteration when the end of the range is reached or when there
@@ -792,15 +785,10 @@ module HDLRuby::High::Std
       return self.to_a.each_range(rng,&ruby_block)
     end
 
-    # Iterate on each element with arbitrary object +obj+.
-    def heach_with_object(val,&ruby_block)
-      return self.with_object(val,&ruby_block)
-    end
-
     # Iterates with an index.
-    def with_index(&ruby_block)
+    def hwith_index(&ruby_block)
       # No block given, returns a new enumerator.
-      return HEnumeratorWrapper.new(self,:with_index) unless ruby_block
+      return HEnumeratorWrapper.new(self,:hwith_index) unless ruby_block
       # return self.hto_a.each_with_index(&ruby_block)
       i = 0
       return self.heach do |e|
@@ -811,7 +799,7 @@ module HDLRuby::High::Std
     end
 
     # Return a new HEnumerator with an arbitrary arbitrary object +obj+.
-    def with_object(obj)
+    def hwith_object(obj)
       # No block given, returns a new enumerator.
       return HEnumeratorWrapper.new(self,:with_object) unless ruby_block
       # return self.hto_a.each_with_object(&ruby_block)
@@ -819,6 +807,81 @@ module HDLRuby::High::Std
         ruby_block.call(e,obj)
       end
     end
+  end
+
+  # Describes hardware enumerator classes that allows to
+  # generate HW iteration over HW or SW objects.
+
+  # This is the abstract Enumerator class.
+  class HEnumerator
+    include Enumerable
+    include HEnumerable
+    include HEnumArg
+
+    # The methods that need to be defined.
+    [:size, :type, :clone, :hto_a].each do |name|
+       define_method(:name) do
+         raise "Method '#{name}' must be defined for a valid sequencer enumerator."
+       end
+     end
+
+    # Iterate on each element.
+    def heach(&ruby_block)
+      # No block given, returns self.
+      return self unless ruby_block
+      # Create a namespace.
+      base_block = ruby_block
+      ruby_block = proc do |*args| 
+        HDLRuby::High.top_user.sub do
+          base_block.call(*args)
+        end
+      end
+      # Iterate.
+      if self.respond_to?(:[]) then
+        return self.size.times do |i|
+          ruby_block.call(self[i])
+        end
+      else
+        return self.hto_a.each(&ruby_block)
+      end
+    end
+
+    alias_method :each, :heach
+
+    # # Iterator on each of the elements in range +rng+.
+    # # *NOTE*: 
+    # #   - Stop iteration when the end of the range is reached or when there
+    # #     are no elements left
+    # #   - This is not a method from Ruby but one specific for hardware where
+    # #     creating a array is very expensive.
+    # def heach_range(rng,&ruby_block)
+    #   # No block given, returns a new enumerator.
+    #   return HEnumeratorWrapper.new(self,:heach_range) unless ruby_block
+    #   return self.to_a.each_range(rng,&ruby_block)
+    # end
+
+    # # Iterates with an index.
+    # def hwith_index(&ruby_block)
+    #   # No block given, returns a new enumerator.
+    #   return HEnumeratorWrapper.new(self,:hwith_index) unless ruby_block
+    #   # return self.hto_a.each_with_index(&ruby_block)
+    #   i = 0
+    #   return self.heach do |e|
+    #     res = ruby_block.call(e,i)
+    #     i += 1
+    #     res
+    #   end
+    # end
+
+    # # Return a new HEnumerator with an arbitrary arbitrary object +obj+.
+    # def hwith_object(obj)
+    #   # No block given, returns a new enumerator.
+    #   return HEnumeratorWrapper.new(self,:with_object) unless ruby_block
+    #   # return self.hto_a.each_with_object(&ruby_block)
+    #   return self.heach do |e|
+    #     ruby_block.call(e,obj)
+    #   end
+    # end
 
     # Return a new HEnumerator going on iteration over enumerable +obj+
     def +(obj)
@@ -912,11 +975,19 @@ module HDLRuby::High::Std
     # Returns an enumerator if no ruby block is given.
     def heach(&ruby_block)
       # No ruby block? Return an enumerator.
-      # return to_enum(:each) unless ruby_block
       return self unless ruby_block
       # A block? Apply it on each element.
+      # Create a namespace.
+      base_block = ruby_block
+      ruby_block = proc do |*args|
+        HDLRuby::High.top_user.sub do
+          base_block.call(*args)
+        end
+      end
+      # Iterate.
       self.type.range.heach do |i|
-        yield(self[i])
+        # yield(self[i])
+        ruby_block.call(self[i])
       end
     end
 
@@ -1000,15 +1071,34 @@ module HDLRuby::High::Std
 
 
   class ::Array
-    alias :heach :each
+    # alias :heach :each
+    # alias :hto_a :to_a
+    
+    # Enhance the Array class with henumerable methods.
+    include HEnumerable
 
-    alias :hto_a :to_a
+    # Enhance the Array class with extra arguments in interation.
+    include HEnumArg
+
+    def heach(&ruby_block)
+      return self unless ruby_block
+      # self.each { |e| HDLRuby::High.top_user.sub { ruby_block.call(e) } }
+      self.each do |e|
+        HDLRuby::High.top_user.sub do
+          # HDLRuby::High.top_user.instance_exec(e,&ruby_block)
+          ruby_block.call(e)
+        end
+      end
+    end
   end
 
 
   class ::Range
     # Enhance the Range class with sequencer iteration.
     include HEnumerable
+
+    # Enhance the Array class with extra arguments in interation.
+    include HEnumArg
 
     # # Conversion to array.
     # def hto_a
@@ -1024,6 +1114,13 @@ module HDLRuby::High::Std
         # No block given.
         return self unless ruby_block
         # A block is given, iterate on each element of the range
+        # Create a namespace.
+        base_block = ruby_block
+        ruby_block = proc do |*args|
+          HDLRuby::High.top_user.sub do
+            base_block.call(*args)
+          end
+        end
         # converted to values of the right type.
         if first.is_a?(Value) then
           typ = self.first.type

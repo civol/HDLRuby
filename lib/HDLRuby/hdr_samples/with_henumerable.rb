@@ -7,7 +7,7 @@ include HDLRuby::High::Std
 # - The second check is for hany?
 # - The third check is for hchain
 # - The forth check is for hmap
-# - The fifth check is for hmap with with_index
+# - The fifth check is for hmap with hwith_index
 # - The sixth check is for hcompact
 # - The seventh checks is for hcount
 # - The eighth check is for hcycle
@@ -91,11 +91,11 @@ system :henmerable_checks do
 
     bit[8][-8].inner :res14, :res15
 
-    res14 <= vals.hmap.with_index { |val,i| val + i }
+    res14 <= vals.hmap.hwith_index { |val,i| val + i }
 
     par(clk.posedge) do
       # hprint("&0\n");
-      res15 <= vals.hmap.with_index { |val,i| val + i }
+      res15 <= vals.hmap.hwith_index { |val,i| val + i }
     end
 
     bit[8][-8].inner vals2: [ _h00, _h10, _h00, _h0B, _hFE, _h00, _h5C, _h00 ]
@@ -149,14 +149,14 @@ system :henmerable_checks do
 
     par(clk.posedge) do
       # hprint("*0\n")
-      vals.heach_cons(3).with_index { |(a,b,c),i| res27[i] <= a+b+c }
+      vals.heach_cons(3).hwith_index { |(a,b,c),i| res27[i] <= a+b+c }
     end
 
     bit[8][-8].inner :res28
     
     par(clk.posedge) do
       # hprint("/0\n")
-      vals.heach_slice(3).with_index do |(a,b,c),i| 
+      vals.heach_slice(3).hwith_index do |(a,b,c),i| 
         if c then
           res28[i] <= a+b+c
         elsif b then
@@ -286,7 +286,7 @@ system :henmerable_checks do
 
     par(clk.posedge) do
         # hprint("_0\n")
-      (5..10).hreverse_each.with_index { |val,i| res52[i] <= val }
+      (5..10).hreverse_each.hwith_index { |val,i| res52[i] <= val }
     end
 
     bit[8][-10].inner :res53X, :res54X
@@ -327,10 +327,10 @@ system :henmerable_checks do
 
     # res59 <= vals3.huniq
 
-    # par(clk.posedge) do
-    #   # hprint("~0\n")
-    #   res60 <= vals.huniq { |val| val & _h0F }
-    # end
+    # # par(clk.posedge) do
+    # #   # hprint("~0\n")
+    # #   res60 <= vals.huniq { |val| val & _h0F }
+    # # end
 
     bit[8][-8].inner :res61
     bit[8][-8].inner :res62
@@ -352,6 +352,18 @@ system :henmerable_checks do
     [8].inner :res66
 
     res66 <= [_h01, _h02, _h03, _h04].(:+)
+
+
+    # Test signal declarations within iterator block.
+    vals.heach do |v,i|
+      inner :sig
+      sig <= v[0]
+    end
+
+    [_h0001, _h0002, _h0003].heach.hwith_index do |v,i|
+      [16].inner :sig
+      sig <= v + i
+    end
 
 
 

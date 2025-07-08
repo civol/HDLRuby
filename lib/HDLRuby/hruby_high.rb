@@ -310,7 +310,8 @@ module HDLRuby::High
                 unless instance_methods.include?(:inner) then
                     # Declares high-level bit inner signals named +names+.
                     def inner(*names)
-                        self.make_inners(bit,*names)
+                        # self.make_inners(bit,*names)
+                        bit.inner(*names)
                     end
                 end
 
@@ -318,7 +319,8 @@ module HDLRuby::High
                     # Declares high-level untyped constant signals by name and
                     # value given by +hsh+ of the current type.
                     def constant(hsh)
-                        self.make_constants(bit,hsh)
+                        # self.make_constants(bit,hsh)
+                        bit.constant(hsh)
                     end
                 end
             end
@@ -1301,7 +1303,8 @@ module HDLRuby::High
         end
 
         # Declares a sub scope with possible +name+ and built from +ruby_block+.
-        def sub(name = :"", &ruby_block)
+        # def sub(name = :"", &ruby_block)
+        def sub(name = HDLRuby.uniq_name, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             # Creates the new scope.
@@ -4432,7 +4435,8 @@ module HDLRuby::High
 
         # Creates a new block with the current mode with possible +name+ and
         # built from +ruby_block+.
-        def sub(name = :"", &ruby_block)
+        # def sub(name = :"", &ruby_block)
+        def sub(name = HDLRuby.uniq_name, &ruby_block)
             # Ensure there is a block.
             ruby_block = proc {} unless block_given?
             self.add_block(self.mode,name,&ruby_block)

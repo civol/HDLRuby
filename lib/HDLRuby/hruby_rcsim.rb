@@ -943,7 +943,7 @@ module HDLRuby::High
 
         # Generate the C description of the cast.
         def to_rcsim
-            # puts "Cast to width=#{self.type.width} and child=#{self.child}"
+          # puts "Cast to width=#{self.type.width} and child=#{self.child} and child.to_rcsim=#{child.to_rcsim}"
             # Shall we reverse when casting?
             if self.type.direction != self.child.type.direction then
                 # Yes, reverse the direction of the child.
