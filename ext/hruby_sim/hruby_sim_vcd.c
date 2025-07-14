@@ -352,7 +352,7 @@ static void vcd_print_block(Block block) {
     // printf("vcd_print_block\n");
     /* Do not print block with no declaration. */
     // if (block->num_inners == 0) return;
-    if (!vcd_statement_has_decl(block)) return;
+    if (!vcd_statement_has_decl((Statement)block)) return;
 
     /* Declares the block if named. */
     vcd_print("$scope module ");
