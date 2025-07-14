@@ -17,6 +17,15 @@ hdrcc --get-tuto
 
 __What's new_
 
+For HDLRuby version 3.8.0:
+
+* Added parallel enumerators (e.g., heach): can iterate like Ruby for describing parallel hardware.
+
+* Added metaprogramming through standard HDLRuby constructs (e.g., hif): no need to use Ruby code any longer.
+
+* Fixed compile bugs for windows.
+
+
 For HDLRuby version 3.7.9:
 
 * Added Python code generation from the software sequencers.
