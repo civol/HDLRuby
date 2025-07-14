@@ -191,7 +191,7 @@ void calc_ref_rangeS(Reference ref, long long* first, long long *last,
         Cast refc = (Cast)ref;
         /* Compute the range for the child. */
         long long cfirst, clast;
-        calc_ref_rangeS(refc->child,&cfirst,&clast,sig);
+        calc_ref_rangeS((Reference)(refc->child),&cfirst,&clast,sig);
         /* Update first and last using the cast. */
         /* Both first and last should be equal since the type of the cast sets
          * the width */
