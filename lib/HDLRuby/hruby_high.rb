@@ -232,6 +232,7 @@ module HDLRuby::High
         #         integer-constant choice. If only constant integer choices,
         #         use the largest type of them.
         def mux(select,*choices)
+            select = select ? 1 : 0 if [true,false,nil].include?(select)
             if select.respond_to?(:to_i) then
               # The mux can be evaluate straight away. Do metaprograming.
               return choices[select.to_i]
@@ -912,6 +913,7 @@ module HDLRuby::High
       # Adds meta programming capability to a if statement.
       def metaif(condition, &ruby_block)
         @metacond = nil
+        condition = condition ? 1 : 0 if [true,false,nil].include?(condition)
         if condition.respond_to?(:to_i) then
           # The hif can be evaluate straight away. Do metaprograming.
           if condition.to_i != 0 then
@@ -931,6 +933,7 @@ module HDLRuby::High
       def metaelsif(condition, &ruby_block)
         @metacond ||= nil
         if @metacond == :helse then
+          condition = condition ? 1 : 0 if [true,false,nil].include?(condition)
           # Need to convert the elsif to a if since it is not
           # compatible with metaprogramming.
           return :toif unless condition.respond_to?(:to_i)
@@ -954,6 +957,7 @@ module HDLRuby::High
       def metacase(value, &ruby_block)
         @metacond = nil
         @metavalue = nil
+        value = value ? 1 : 0 if [true,false,nil].include?(value)
         if value.respond_to?(:to_i) then
           @metavalue = value.to_i
           return true
@@ -965,6 +969,7 @@ module HDLRuby::High
       def metawhen(match, &ruby_block)
         @metacond ||= nil
         @metavalue ||= nil
+        match = match ? 1 : 0 if [true,false,nil].include?(match)
         if match.respond_to?(:to_i) then
           # The hwen can be evaluate straight away. Do metaprograming.
           if @metavalue == match.to_i then
@@ -3331,16 +3336,18 @@ module HDLRuby::High
          # If +choices+ has only two entries
          # (and it is not a hash), +value+ will be converted to a boolean.
          def mux(*choices)
-             if self.respond_to?(:to_i) then
+             select = self
+             select = select ? 1 : 0 if [true,false,nil].include?(select)
+             if select.respond_to?(:to_i) then
                # The mux can be evaluate straight away. 
                # Do metaprograming.
-               return choices[self.to_i]
+               return choices[select.to_i]
              end
              # Process the choices.
              choices = choices.flatten(1) if choices.size == 1
              choices.map! { |choice| choice.to_expr }
              # Generate the select expression.
-             return Select.new(choices[0].type,"?",self.to_expr,*choices)
+             return Select.new(choices[0].type,"?",select.to_expr,*choices)
          end
 
 
@@ -3366,15 +3373,17 @@ module HDLRuby::High
         # If +choices+ has only two entries
         # (and it is not a hash), +value+ will be converted to a boolean.
         def mux(*choices)
-            if self.respond_to?(:to_i) then
+            select = self
+            select = select ? 1 : 0 if [true,false,nil].include?(select)
+            if select.respond_to?(:to_i) then
               # The mux can be evaluate straight away. Do metaprograming.
-              return choices[self.to_i]
+              return choices[select.to_i]
             end
             # Process the choices.
             choices = choices.flatten(1) if choices.size == 1
             choices.map! { |choice| choice.to_expr }
             # Generate the select expression.
-            return Select.new(choices[0].type,"?",self.to_expr,*choices)
+            return Select.new(choices[0].type,"?",select.to_expr,*choices)
         end
 
     end
