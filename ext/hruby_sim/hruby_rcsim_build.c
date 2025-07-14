@@ -280,7 +280,8 @@ VALUE rcsim_make_behavior(VALUE mod, VALUE timed) {
         register_init_behavior(behavior);
     }
     behavior->active_time = 0;
-    behavior->thread = NULL;
+    // behavior->thread = NULL;
+    behavior->thread = 0;
     /* Returns the C behavior embedded into a ruby VALUE. */
     VALUE res;
     rcsim_to_value(BehaviorS,behavior,res);
@@ -466,7 +467,8 @@ VALUE rcsim_load_c(VALUE mod, VALUE codeV, VALUE libnameV, VALUE funcnameV) {
         fprintf(stderr,"LoadLibrary failed with error code %ld\n", dwError);
         exit(-1);
     }
-    code->function = GetProcAddress(handle,funcname);
+    // code->function = GetProcAddress(handle,funcname);
+    code->function = (void (*)(Code))GetProcAddress(handle,funcname);
     if (code->function == NULL) {
         fprintf(stderr,"Unable to get function: %s\n",code->name);
         exit(-1);
