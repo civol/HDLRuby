@@ -61,8 +61,12 @@ module HDLRuby::High
         include SingletonExtend
 
         # The reserved names
-        RESERVED = [ :user, :initialize, :add_method, :concat_namespace,
-                     :to_namespace, :user?, :user_deep? ]
+        RESERVED = Set.new(
+          [ :user, :initialize, :add_method, :concat_namespace, 
+            :to_namespace, :user?, :user_deep?, 
+
+            :sub, :seq, :par, :hif, :helse, :hcase, :hwhen, :mux, :timed
+          ])
 
         # The construct using the namespace.
         attr_reader :user
