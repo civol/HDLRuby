@@ -970,7 +970,7 @@ module HDLRuby::High
         @metacond ||= nil
         @metavalue ||= nil
         match = match ? 1 : 0 if [true,false,nil].include?(match)
-        if match.respond_to?(:to_i) then
+        if @metavalue and match.respond_to?(:to_i) then
           # The hwen can be evaluate straight away. Do metaprograming.
           if @metavalue == match.to_i then
             HDLRuby::High.top_user.sub do
