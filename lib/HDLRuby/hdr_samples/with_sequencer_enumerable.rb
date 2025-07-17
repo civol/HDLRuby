@@ -164,7 +164,7 @@ system :my_seqencer do
         # hprint("=0\n")
         res13 <= 0
         res14 <= 0
-        res13 <= vals.sfind(-1) { |elem| elem > 0 }
+        res13 <= vals.sfind(-1) { |elem| elem > _h00 }
         res14 <= vals.sfind(-1) { |elem| elem == _hAA }
         # hprint("=1 res13=",res13," res14=",res14,"\n")
     end
