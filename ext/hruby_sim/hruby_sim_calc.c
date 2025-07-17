@@ -3297,6 +3297,7 @@ Value not_equal_value_c(Value src0, Value src1, Value dst) {
  *  @param dst the destination value
  *  @return dst */
 Value greater_value(Value src0, Value src1, Value dst) {
+    // printf("greater_value\n");
     /* Might allocate a new value so save the current pool state. */
     // unsigned int pos = get_value_pos();
     /* Do a numeric computation if possible, otherwise fallback to bitstring
@@ -3308,7 +3309,8 @@ Value greater_value(Value src0, Value src1, Value dst) {
         if (src0->numeric)
             return greater_value_numeric_defined_bitstring(src0,src1,dst);
         if (src1->numeric)
-            return lesser_equal_value_numeric_defined_bitstring(src1,src0,dst);
+            // return lesser_equal_value_numeric_defined_bitstring(src1,src0,dst);
+            return lesser_value_numeric_defined_bitstring(src1,src0,dst);
         /* Both sources can be converted to numeric values. */
         return greater_value_defined_bitstring(src0,src1,dst);
     } else {
@@ -3340,7 +3342,8 @@ Value lesser_value(Value src0, Value src1, Value dst) {
         if (src0->numeric)
             return lesser_value_numeric_defined_bitstring(src0,src1,dst);
         if (src1->numeric)
-            return greater_equal_value_numeric_defined_bitstring(src1,src0,dst);
+            // return greater_equal_value_numeric_defined_bitstring(src1,src0,dst);
+            return greater_value_numeric_defined_bitstring(src1,src0,dst);
         return lesser_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */
@@ -3371,7 +3374,8 @@ Value greater_equal_value(Value src0, Value src1, Value dst) {
         if (src0->numeric)
             return greater_equal_value_numeric_defined_bitstring(src0,src1,dst);
         if (src1->numeric)
-            return lesser_value_numeric_defined_bitstring(src1,src0,dst);
+            // return lesser_value_numeric_defined_bitstring(src1,src0,dst);
+            return lesser_equal_value_numeric_defined_bitstring(src1,src0,dst);
         return greater_equal_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */
@@ -3401,7 +3405,8 @@ Value lesser_equal_value(Value src0, Value src1, Value dst) {
         if (src0->numeric)
             return lesser_equal_value_numeric_defined_bitstring(src0,src1,dst);
         if (src1->numeric)
-            return greater_value_numeric_defined_bitstring(src1,src0,dst);
+            // return greater_value_numeric_defined_bitstring(src1,src0,dst);
+            return greater_equal_value_numeric_defined_bitstring(src1,src0,dst);
         return lesser_equal_value_defined_bitstring(src0,src1,dst);
     } else {
         /* Cannot compute (for now), simply undefines the destination. */

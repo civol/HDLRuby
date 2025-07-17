@@ -4103,9 +4103,11 @@ module HDLRuby::High
         # default produces a Transmit or a Connection.
         def to_expr
             # Remove the connection from the system type.
-            High.top_user.delete_connection(self)
+            High.top_user.delete_connection!(self)
+            self.left.no_parent!
+            self.right.no_parent!
             # Generate an expression.
-            return Binary.new(:<=,self.left,self.right)
+            return Binary.new(self.left.type,:<=,self.left,self.right)
         end
 
         # Creates a new behavior sensitive to +event+ including the connection

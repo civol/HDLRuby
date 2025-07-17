@@ -2,6 +2,19 @@
 
 # A benchmark for the comparators.
 system :comparison_bench do
+
+    [8].inner truc: _h00
+    [8].inner :machin, :macheq
+
+    machin <= (truc > 0)
+    macheq <= (truc >= 0)
+
+    [8].inner bidule: _h00
+    [8].inner :chose, :choeq
+
+    chose <= (bidule < 0)
+    choeq <= (bidule <= 0)
+
     [8].inner :x, :y
     signed[8].inner :u,:v
     inner :ue, :ult, :ule, :ugt, :uge
@@ -61,6 +74,23 @@ system :comparison_bench do
         sleND <= (uND <= vND)
         sgtND <= (uND > vND)
         sgeND <= (uND >= vND)
+    end
+
+    inner :ueC, :ultC, :uleC, :ugtC, :ugeC
+    inner :seC, :sltC, :sleC, :sgtC, :sgeC
+
+    par do
+        ueC  <= (x == 0)
+        ultC <= (x < 0)
+        uleC <= (x <= 0)
+        ugtC <= (x > 0)
+        ugeC <= (x >= 0)
+
+        seC  <= (u == 0)
+        sltC <= (u < 0)
+        sleC <= (u <= 0)
+        sgtC <= (u > 0)
+        sgeC <= (u >= 0)
     end
 
 

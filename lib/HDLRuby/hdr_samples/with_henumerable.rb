@@ -129,7 +129,7 @@ system :henmerable_checks do
 
     [8].inner :res23, :res24
 
-    res23 <= vals.hfind(proc {-1}) { |elem| elem > _h00 }
+    res23 <= vals.hfind(proc {-1}) { |elem| elem > 0 }
 
     par(clk.posedge) do
       # hprint("=0\n")
