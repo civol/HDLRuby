@@ -854,12 +854,12 @@ static Value greater_value_numeric_defined_bitstring(Value src0, Value src1, Val
     long long width0 = type_width(src0->type);
     long long width1 = type_width(src1->type);
     long long width = width0>width1 ? width0 : width1;
-    if (src0->type->flags.sign && (src0_int & (1 << (width0-1)))) {
+    if (src0->type->flags.sign && (src0_int & (1LL << (width0-1)))) {
         if(src1->type->flags.sign && (src1_data[width1-1] == '1')) {
             /* Negative-negative comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '1' : 
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '1' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 0;
@@ -883,7 +883,7 @@ static Value greater_value_numeric_defined_bitstring(Value src0, Value src1, Val
             /* Positive-positive comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '0' : 
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '0' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 0;
@@ -974,15 +974,16 @@ static Value lesser_value_numeric_defined_bitstring(Value src0, Value src1, Valu
 
     unsigned long long src0_int = src0->data_int;
     char* src1_data = src1->data_str;
+    // printf("src1_data=%s\n",src1_data);
     long long width0 = type_width(src0->type);
     long long width1 = type_width(src1->type);
     long long width = width0>width1 ? width0 : width1;
-    if (src0->type->flags.sign && (src0_int & (1 << (width0-1)))) {
+    if (src0->type->flags.sign && (src0_int & (1LL << (width0-1)))) {
         if(src1->type->flags.sign && src1_data[width1-1] == '1') {
             /* Negative-negative comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '1' : 
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '1' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 1;
@@ -1006,8 +1007,9 @@ static Value lesser_value_numeric_defined_bitstring(Value src0, Value src1, Valu
             /* Positive-positive comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '0' :
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '0' : src1_data[i];
+                // printf("%d: d0=%d d1=%d\n",i,d0,d1);
                 if (d0 < d1) {
                     dst->data_int = 1;
                     return dst;
@@ -1100,12 +1102,12 @@ static Value greater_equal_value_numeric_defined_bitstring(Value src0, Value src
     long long width0 = type_width(src0->type);
     long long width1 = type_width(src1->type);
     long long width = width0>width1 ? width0 : width1;
-    if (src0->type->flags.sign && (src0_int & (1 <<(width0-1)))) {
+    if (src0->type->flags.sign && (src0_int & (1LL <<(width0-1)))) {
         if(src1->type->flags.sign && src1_data[width1-1] == '1') {
             /* Negative-negative comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '1' :
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '1' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 0;
@@ -1129,7 +1131,7 @@ static Value greater_equal_value_numeric_defined_bitstring(Value src0, Value src
             /* Positive-positive comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '0' : 
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '0' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 0;
@@ -1223,12 +1225,12 @@ static Value lesser_equal_value_numeric_defined_bitstring(Value src0, Value src1
     long long width0 = type_width(src0->type);
     long long width1 = type_width(src1->type);
     long long width = width0>width1 ? width0 : width1;
-    if (src0->type->flags.sign && (src0_int & (1 << (width0-1)))) {
+    if (src0->type->flags.sign && (src0_int & (1LL << (width0-1)))) {
         if(src1->type->flags.sign && src1_data[width1-1] == '1') {
             /* Negative-negative comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '1' :
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '1' : src1_data[i];
                 if (d0 < d1) {
                     dst->data_int = 1;
@@ -1252,7 +1254,7 @@ static Value lesser_equal_value_numeric_defined_bitstring(Value src0, Value src1
             /* Positive-positive comparison. */
             for(long long i=width-1; i >= 0; --i) {
                 char d0 = i >= width0 ? '0' :
-                    ((src0_int & (1 << i)) ? '1' : '0');
+                    ((src0_int & (1LL << i)) ? '1' : '0');
                 char d1 = i >= width1 ? '0' : src1_data[i];
                 // printf("d0=%c d1=%c\n",d0,d1);
                 if (d0 < d1) {

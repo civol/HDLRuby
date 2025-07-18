@@ -15,6 +15,12 @@ system :comparison_bench do
     chose <= (bidule < 0)
     choeq <= (bidule <= 0)
 
+    [8].inner two: _h02
+    [8].inner :twoc, :twod
+
+    twoc <= (two > 1)
+    twod <= (two < 3)
+
     [8].inner :x, :y
     signed[8].inner :u,:v
     inner :ue, :ult, :ule, :ugt, :uge
