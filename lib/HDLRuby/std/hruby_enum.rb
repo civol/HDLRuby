@@ -336,7 +336,7 @@ module HDLRuby::High::Std
         end
       else
         # Case when a symbol is given.
-        sym, res = args[0], args[1]
+        res, sym = args[0], args[1]
         self.heach do |e|
           res = res ? res.send(sym,e) : e
         end
