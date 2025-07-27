@@ -427,6 +427,19 @@ module HDLRuby::High
             return RefObject.new(this,self)
         end
 
+        def [](num,name)
+          name = name.to_sym
+          this = self
+          res = []
+          num.to_i.times do |i|
+            High.top_user.instance_eval do
+              res << send(this.name,HDLRuby.uniq_name(name.to_s + "_#{i}"))
+            end
+          end
+          High.space_reg(name) { res }
+          res
+        end
+
         # Creates and adds a set of inputs typed +type+ from a list of +names+.
         #
         # NOTE: a name can also be a signal, is which case it is duplicated. 
