@@ -2155,7 +2155,9 @@ module HDLRuby::High::Std
 
         # HW times iteration.
         def stimes(&ruby_block)
-            # return (0..self-1).seach(&ruby_block)
+            # Ensures there is a ruby block. This allows to use empty while
+            # statement.
+            ruby_block = proc { } unless ruby_block
             return AnyRange.new(0,self-1).seach(&ruby_block)
         end
 
@@ -2320,6 +2322,9 @@ module HDLRuby::High::Std
 
         # HW times iteration.
         def stimes(&ruby_block)
+            # Ensures there is a ruby block. This allows to use empty while
+            # statement.
+            ruby_block = proc { } unless ruby_block
             return (0..self-1).seach(&ruby_block)
         end
 
