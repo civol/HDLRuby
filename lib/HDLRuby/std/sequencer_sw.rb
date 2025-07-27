@@ -179,41 +179,6 @@ module RubyHDL::High
       method_missing(m,*args,&ruby_block)
   end
 
-  # # Handling of new names.
-  # class ::Object
-  #   alias_method :old_method_missing, :method_missing
-
-  #   def method_missing(m, *args, &ruby_block)
-  #     # print "method_missing in class=#{self.class} with m=#{m}\n"
-  #     # Not a value, but maybe it is in the stack of SW blocks
-  #     SBLOCK_STACK.reverse_each do |sblock|
-  #       if sblock.respond_to?(m) then
-  #         return sblock.send(m,*args,&ruby_block)
-  #       end
-  #     end
-  #     # puts "here: #{m}"
-  #     # No, true error
-  #     self.old_method_missing(m,*args,&ruby_block)
-  #   end
-  # end
-
-
-  # RUBY_OPERATOR = {
-  #   # Unary operators.
-  #   :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
-  #   :abs => "(%s).abs",
-  #   :boolean => "%s", :bit => "%s", 
-  #   :signed => "%s", :unsigned => "(%s) & 0xFFFFFFFFFFFFFFFF",
-
-  #   # Binary operators.
-  #   :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
-  #   :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "(%s)**(%s)",
-  #   :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
-  #   :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
-  #   :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
-  #   :"<" => "(%s)<(%s)", :">" => "(%s)>(%s)", 
-  #   :"<=" => "(%s)<=(%s)",:">=" => "(%s)>=(%s)"
-  # }
 
   # The translation of operators into Ruby code.
   RUBY_OPERATOR = {
@@ -238,10 +203,29 @@ module RubyHDL::High
     :">=" => "((%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}) ? 1:0"
   }
 
+  # The translation of operators into C code.
+  C_OPERATOR = {
+    # Unary operators.
+    :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
+    :abs => "(%s).abs",
+    :boolean => "%s", :bit => "%s", 
+    :signed => "%s", :unsigned => "(%s) & 0xFFFFFFFFFFFFFFFF",
+
+    # Binary operators.
+    :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
+    :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "pow((%s),(%s))",
+    :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
+    :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
+    :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
+    :"<" => "(%s)<(%s)", :">" => "(%s)>(%s)", 
+    :"<=" => "(%s)<=(%s)",:">=" => "(%s)>=(%s)"
+  }
+
+  # The translation of operators into Python code.
   PYTHON_OPERATOR = {
     # Unary operators.
     :"-@" => "-(%{l})", :"+@" => "+(%{l})", :"~" => "~(%{l})",
-    :abs => "(%{l}).abs",
+    :abs => "abs(%{l})",
     :boolean => "%{l}", :bit => "%{l}", 
     :signed => "%{l}", :unsigned => "(%{l}) & 0xFFFFFFFFFFFFFFFF",
 
@@ -260,22 +244,31 @@ module RubyHDL::High
     :">=" => "1 if ((%{l}) & %{m}%{s} >=(%{r}) & %{m}%{s}) else 0"
   }
 
-  # The translation of operators into C code.
-  C_OPERATOR = {
+  # The translation of operators into TensorFlow code.
+  TF_OPERATOR = {
     # Unary operators.
-    :"-@" => "-(%s)", :"+@" => "+(%s)", :"~" => "~(%s)",
-    :abs => "(%s).abs",
-    :boolean => "%s", :bit => "%s", 
-    :signed => "%s", :unsigned => "(%s) & 0xFFFFFFFFFFFFFFFF",
+    :"-@" => "-(%{l})", :"+@" => "+(%{l})", 
+    :"~" => "tf.bitwise.bitwise_not(%{l})",
+    :abs => "tf.abs(%{l})",
+    :boolean => "%{l}", :bit => "%{l}", 
+    :signed => "%{l}", 
+    :unsigned => "tf.bitwise.bitwise_and(%{l}),0xFFFFFFFFFFFFFFFF",
 
     # Binary operators.
-    :"+" => "(%s)+(%s)", :"-" => "(%s)-(%s)",  :"*" => "(%s)*(%s)",
-    :"/" => "(%s)/(%s)", :"%" => "(%s)%%(%s)", :"**" => "pow((%s),(%s))",
-    :"&" => "(%s)&(%s)", :"|" => "(%s)|(%s)",  :"^" => "(%s)^(%s)",
-    :"<<" => "(%s)<<(%s)", :">>" => "(%s)>>(%s)",
-    :"==" => "(%s)==(%s)", :"!=" => "(%s)!=(%s)",
-    :"<" => "(%s)<(%s)", :">" => "(%s)>(%s)", 
-    :"<=" => "(%s)<=(%s)",:">=" => "(%s)>=(%s)"
+    :"+" => "(%{l})+(%{r})", :"-" => "(%{l})-(%{r})", 
+    :"*" => "(%{l})*(%{r})", :"/" => "(%{l})/(%{r})", 
+    :"%" => "(%{l})%%(%{r})", :"**" => "(%{l})**(%{r})",
+    :"&" => "tf.bitwise.bitwise_and((%{l}),(%{r}))", 
+    :"|" => "tf.bitwise.bitwise_or((%{l}),(%{r}))", 
+    :"^" => "tf.bitwise.bitwise_xor((%{l}),(%{r}))",
+    :"<<" => "tf.bitwise.bitwise_left_shift((%{l}),(%{r}))", 
+    :">>" => "tf.bitwise.bitwise_right_shift((%{l}),(%{r}))",
+    :"==" => "tf.equal(%{l},%{r})", 
+    :"!=" => "tf.not_equal(%{l},%{r})",
+    :"<" =>  "tf.less(%{l},%{r})", 
+    :">" =>  "tf.greater(%{l},%{r})", 
+    :"<=" => "tf.less_equal(%{l},%{r})",
+    :">=" => "tf.greater_equal(%{l},%{r})"
   }
 
 
@@ -599,6 +592,310 @@ module RubyHDL::High
   end
 
 
+  # Module adding functionalities to object including the +heach+ method.
+  module HEnumerable
+
+    # Iterator on each of the elements in range +rng+.
+    # *NOTE*: 
+    #   - Stop iteration when the end of the range is reached or when there
+    #     are no elements left
+    #   - This is not a method from Ruby but one specific for hardware where
+    #     creating a array is very expensive.
+    def heach_range(rng,&ruby_block)
+      self.heach.heach_range(rng,&ruby_block)
+    end
+
+    # Tell if all the elements respect a given criterion given either
+    # as +arg+ or as block.
+    def hall?(arg = nil,&ruby_block)
+      self.heach.hall?(arg,&ruby_block)
+    end
+
+    # Tell if any of the elements respects a given criterion given either
+    # as +arg+ or as block.
+    def hany?(arg = nil,&ruby_block)
+      self.heach.hany?(arg,&ruby_block)
+    end
+
+    # Returns an HEnumerator generated from current enumerable and +arg+
+    def hchain(arg)
+      self.heach.hchain(arg)
+    end
+
+    # HW implementation of the Ruby chunk.
+    # NOTE: to do, or may be not.
+    def hchunk(*args,&ruby_block)
+      raise "hchunk is not supported yet."
+    end
+
+    # HW implementation of the Ruby chunk_while.
+    # NOTE: to do, or may be not.
+    def hchunk_while(*args,&ruby_block)
+      raise "hchunk_while is not supported yet."
+    end
+
+    # Returns a vector containing the execution result of the given block 
+    # on each element. If no block is given, return an HEnumerator.
+    # NOTE: be carful that the resulting vector can become huge if there
+    # are many element.
+    def hmap(&ruby_block)
+      self.heach.hmap(&ruby_block)
+    end
+
+    # HW implementation of the Ruby flat_map.
+    # NOTE: actually due to the way HDLRuby handles vectors, should work
+    #       like smap
+    def hflat_map(&ruby_block)
+      self.heach.hflat_map(&ruby_block)
+    end
+
+    # HW implementation of the Ruby compact, but remove 0 values instead
+    # on nil (since nil that does not have any meaning in HW).
+    def hcompact
+      self.heach.hcompact(&ruby_block)
+    end
+
+
+    # WH implementation of the Ruby count.
+    def hcount(obj = nil, &ruby_block)
+      self.heach.hcount(obj,&ruby_block)
+    end
+
+    # HW implementation of the Ruby cycle.
+    def hcycle(n = nil,&ruby_block)
+      self.heach.hcycle(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby find.
+    # NOTE: contrary to Ruby, if_none_proc is mandatory since there is no
+    #       nil in HW. Moreover, the argument can also be a value.
+    def hfind(if_none_proc, &ruby_block)
+      self.seach.hfind(if_non_proc,&ruby_block)
+    end
+
+    # HW implementation of the Ruby drop.
+    def hdrop(n)
+      self.heach.sdrop(n)
+    end
+
+    # HW implementation of the Ruby drop_while.
+    def hdrop_while(&ruby_block)
+      self.heach.sdrop_while(n)
+    end
+
+    # HW implementation of the Ruby each_cons
+    def heach_cons(n,&ruby_block)
+      self.heach.heach_cons(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby each_entry.
+    # NOTE: to do, or may be not.
+    def heach_entry(*args,&ruby_block)
+      raise "heach_entry is not supported yet."
+    end
+
+    # HW implementation of the Ruby each_slice
+    def heach_slice(n,&ruby_block)
+      self.heach.heach_slice(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby each_with_index.
+    def heach_with_index(*args,&ruby_block)
+      self.heach.hwith_index(*args,&ruby_block)
+    end
+
+    # HW implementation of the Ruby each_with_object.
+    def heach_with_object(obj,&ruby_block)
+      self.heach.hwith_object(obj,&ruby_block)
+    end
+
+    # HW implementation of the Ruby to_a.
+    def hto_a
+      self.heach.hto_a
+    end
+
+    # HW implementation of the Ruby select.
+    def hselect(&ruby_block)
+      self.heach.hselect(&ruby_block)
+    end
+
+    # HW implementation of the Ruby find_index.
+    def hfind_index(obj = nil, &ruby_block)
+      self.heach.hfind_index(obj,&ruby_block)
+    end
+
+    # HW implementation of the Ruby first.
+    def hfirst(n=1)
+      self.heach.hfirst(n)
+    end
+
+    # HW implementation of the Ruby grep.
+    # NOTE: to do, or may be not.
+    def hgrep(*args,&ruby_block)
+      raise "hgrep is not supported yet."
+    end
+
+    # HW implementation of the Ruby grep_v.
+    # NOTE: to do, or may be not.
+    def hgrep_v(*args,&ruby_block)
+      raise "hgrep_v is not supported yet."
+    end
+
+    # HW implementation of the Ruby group_by.
+    # NOTE: to do, or may be not.
+    def hgroup_by(*args,&ruby_block)
+      raise "hgroup_by is not supported yet."
+    end
+
+    # HW implementation of the Ruby include?
+    def hinclude?(obj)
+      return self.heach.hinclude?(obj)
+    end
+
+    # HW implementation of the Ruby inject.
+    def hinject(*args,&ruby_block)
+      return self.heach.hinject(*args,&ruby_block)
+    end
+
+    # HW implementation of the Ruby reduce.
+    def hreduce(*args,&ruby_block)
+      return self.heach.hreduce(*args,&ruby_block)
+    end
+
+    # HW implementation of the Ruby lazy.
+    # NOTE: to do, or may be not.
+    def hlazy(*args,&ruby_block)
+      raise "hlazy is not supported yet."
+    end
+
+    # HW implementation of the Ruby max.
+    def hmax(n = nil, &ruby_block)
+      return self.heach.hmax(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby max_by.
+    def hmax_by(n = nil, &ruby_block)
+      return self.heach.hmax_by(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby min.
+    def hmin(n = nil, &ruby_block)
+      return self.heach.hmin(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby min_by.
+    def hmin_by(n = nil, &ruby_block)
+      return self.heach.hmin_by(n,&ruby_block)
+    end
+
+    # HW implementation of the Ruby minmax.
+    def hminmax(&ruby_block)
+      return self.heach.hminmax(&ruby_block)
+    end
+
+    # HW implementation of the Ruby minmax_by.
+    def hminmax_by(&ruby_block)
+      return self.heach.hminmax_by(&ruby_block)
+    end
+
+    # Tell if none of the elements respects a given criterion given either
+    # as +arg+ or as block.
+    def hnone?(arg = nil,&ruby_block)
+      return self.heach.hnone?(arg,&ruby_block)
+    end
+
+    # Tell if one and only one of the elements respects a given criterion
+    # given either as +arg+ or as block.
+    def hone?(arg = nil,&ruby_block)
+      return self.heach.hone?(arg,&ruby_block)
+    end
+
+    # HW implementation of the Ruby partition.
+    # NOTE: to do, or may be not.
+    def hpartition(*args,&ruby_block)
+      raise "hpartition is not supported yet."
+    end
+
+    # HW implementatiob of the Ruby reject.
+    def hreject(&ruby_block)
+      return self.heach.hreject(&ruby_block)
+    end
+
+    # HW implementatiob of the Ruby reverse_each.
+    def hreverse_each(*args,&ruby_block)
+      return self.heach.hreverse_each(*args,&ruby_block)
+    end
+
+    # HW implementation of the Ruby slice_after.
+    # NOTE: to do, or may be not.
+    def hslice_after(pattern = nil,&ruby_block)
+      raise "hslice_after is not supported yet."
+    end
+
+    # HW implementation of the Ruby slice_before.
+    # NOTE: to do, or may be not.
+    def hslice_before(*args,&ruby_block)
+      raise "hslice_before is not supported yet."
+    end
+
+    # HW implementation of the Ruby slice_when.
+    # NOTE: to do, or may be not.
+    def hslice_when(*args,&ruby_block)
+      raise "hslice_before is not supported yet."
+    end
+
+    # HW implementation of the Ruby sort.
+    def hsort(&ruby_block)
+      return self.heach.hsort(&ruby_block)
+    end
+
+    # HW implementation of the Ruby sort.
+    def hsort_by(&ruby_block)
+      return self.heach.hsort_by(&ruby_block)
+    end
+
+    # HW implementation of the Ruby sum.
+    def hsum(initial_value = nil,&ruby_block)
+      return self.heach.hsum(initial_value,&ruby_block)
+    end
+
+    # The HW implementation of the Ruby take.
+    def htake(n)
+      return self.heach.htake(n)
+    end
+
+    # The HW implementation of the Ruby take_while.
+    def htake_while(&ruby_block)
+      return self.heach.htake_while(&ruby_block)
+    end
+
+    # HW implementation of the Ruby tally.
+    # NOTE: to do, or may be not.
+    def htally(h = nil)
+      raise "htally is not supported yet."
+    end
+
+    # HW implementation of the Ruby to_h.
+    # NOTE: to do, or may be not.
+    def hto_h(h = nil)
+      raise "hto_h is not supported yet."
+    end
+
+    # HW implementation of the Ruby uniq.
+    def huniq(&ruby_block)
+      return self.heach.huniq(&ruby_block)
+    end
+
+    # HW implementation of the Ruby zip.
+    # NOTE: for now szip is deactivated untile tuples are properly
+    #       handled by HDLRuby.
+    def hzip(obj,&ruby_block)
+      return self.heach.hzip(obj,&ruby_block)
+    end
+
+  end
+
+
   # Modify String to act as Ruby code generator.
   refine ::String do
     # Convert to Ruby code.
@@ -612,6 +909,11 @@ module RubyHDL::High
     # Convert to Python.
     def to_python(l = "")
       to_ruby
+    end
+
+    # Convert to TensorFlow
+    def to_tf(l = "")
+      to_python
     end
   end
 
@@ -640,6 +942,10 @@ module RubyHDL::High
       return self.to_s
     end
 
+    def to_tf(l = "")
+      return self.to_s
+    end
+
     # Enhance the Integer class with sequencer iterations.
 
     # HW times iteration.
@@ -647,14 +953,29 @@ module RubyHDL::High
       self.to_value.stimes(&ruby_block)
     end
 
+    # HW times iteration. (parallel version)
+    def htimes(&ruby_block)
+      self.to_value.htimes(&ruby_block)
+    end
+
     # HW upto iteration.
     def supto(val,&ruby_block)
       self.to_value.supto(&ruby_block)
     end
 
+    # HW upto iteration. (parallel version)
+    def hupto(val,&ruby_block)
+      self.to_value.hupto(&ruby_block)
+    end
+
     # HW downto iteration.
     def sdownto(val,&ruby_block)
       self.to_value.sdownto(&ruby_block)
+    end
+
+    # HW downto iteration.
+    def hdownto(val,&ruby_block)
+      self.to_value.hdownto(&ruby_block)
     end
   end
 
@@ -675,15 +996,74 @@ module RubyHDL::High
     def to_python(l = "")
       return "range(#{self.first.to_python}, #{self.last.to_python} + 1)"
     end
+
+    def to_tf(l = "")
+      return "tf.range(#{self.first.to_python}, #{self.last.to_python} + 1)"
+    end
   end
 
   # Modify Range to support HW iterators.
   refine ::Enumerable do
     import_methods SEnumerable
+
     # HW iteration on each element.
     def seach(&ruby_block)
        return Siter.new(RubyHDL::High.top_sblock.sequencer,self,"each",&ruby_block)
     end
+
+    # HW iterations. (parallel version)
+    alias_method :hall?,        :all?
+    alias_method :hany?,        :any?
+    alias_method :hchain,       :chain
+    alias_method :hchunk,       :chunk
+    alias_method :hchunk_while, :chunk_while
+    alias_method :hmap,         :map
+    alias_method :hflat_map,    :flat_map
+    alias_method :hcompact,     :compact
+    alias_method :hcount,       :count
+    alias_method :hcycle,       :cycle
+    alias_method :hfind,        :find
+    alias_method :hdrop,        :drop
+    alias_method :hdrop_while,  :drop_while
+    alias_method :heach_cons,   :each_cons
+    alias_method :heach_entry,  :each_entry
+    alias_method :heach_slice,  :each_slice
+    alias_method :heach_with_index,  :each_with_index
+    alias_method :heach_with_object, :each_with_object
+    alias_method :hto_a,        :to_a
+    alias_method :hselect,      :select
+    alias_method :hfind_index,  :find_index
+    alias_method :hfirst,       :first
+    alias_method :hgrep,        :grep
+    alias_method :hgrep_v,      :grep_v
+    alias_method :hgroup_by,    :group_by
+    alias_method :hinclude?,    :include?
+    alias_method :hinject,      :inject
+    alias_method :hreduce,      :reduce
+    alias_method :hlazy,        :lazy
+    alias_method :hmax,         :max
+    alias_method :hmax_by,      :max_by
+    alias_method :hmin,         :min
+    alias_method :hmin_by,      :min_by
+    alias_method :hminmax,      :minmax
+    alias_method :hminmax_by,   :minmax_by
+    alias_method :hnone?,       :none?
+    alias_method :hone?,        :one?
+    alias_method :hpartition,   :partition
+    alias_method :hreject,      :reject
+    alias_method :hreverse_each,:reverse_each
+    alias_method :hslice_after, :slice_after
+    alias_method :hslice_before,:slice_before
+    alias_method :hslice_when,  :slice_when
+    alias_method :hsort,        :sort
+    alias_method :hsort_by,     :sort_by
+    alias_method :hsum,         :sum
+    alias_method :htake,        :take
+    alias_method :htake_while,  :take_while
+    alias_method :htally,       :tally
+    alias_method :hto_h,        :to_h
+    alias_method :huniq,        :uniq
+    alias_method :hzip,         :zip
   end
 
 
@@ -728,6 +1108,9 @@ module RubyHDL::High
       # Generate the resulting signals.
       return type.inner(*names)
     end
+
+    # HW iteration on each element. (parallel version)
+    alias_method :heach, :each
   end
 
 
@@ -1099,6 +1482,11 @@ module RubyHDL::High
       # By default: 0
       return "0"
     end
+
+    # Convert to tensorflow initialization code.
+    def to_tf_init
+      return "tf.constant(0)"
+    end
   end
 
 
@@ -1393,6 +1781,18 @@ module RubyHDL::High
         return "[" + ([base_init] * self.size.to_i).join(",") + "]"
       else
         return "0"
+      end
+    end
+
+    # Convert to tensorflow initialization code.
+    def to_tf_init
+      if @base.is_a?(TypeVector) then
+        # Array type case.
+        base_init = @base.to_python_init
+        return "tf.constant([" + 
+          ([base_init] * self.size.to_i).join(",") + "])"
+      else
+        return "tf.constant(0)"
       end
     end
   end
@@ -1791,6 +2191,8 @@ module RubyHDL::High
   class Expression
     using RubyHDL::High
 
+    include HEnumerable
+
     attr_reader :type
     # Create a new expression with +type+ data type.
     def initialize(type)
@@ -1821,6 +2223,11 @@ module RubyHDL::High
 
     # Convert to Python code.
     def to_python(l = "")
+      raise "to_python not defined for class: #{self.class}."
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
       raise "to_python not defined for class: #{self.class}."
     end
 
@@ -1950,6 +2357,14 @@ module RubyHDL::High
       RubyHDL::High.top_sblock << 
       Siter.new(RubyHDL::High.top_sblock.sequencer,self,"downto",&ruby_block)
     end
+
+    # HW iteration on each element. (parallel version)
+    def heach(&ruby_block)
+      return self unless ruby_block
+      self.type.width.each do |i|
+        ruby_block.call(self[i])
+      end
+    end
   end
 
 
@@ -1970,6 +2385,15 @@ module RubyHDL::High
       return self
     end
 
+    # Convert to an integer.
+    def to_i
+      if @content.is_a?(::Array) then
+        raise "Cannot convert an array Value to an integer."
+      else
+        return @content.to_i
+      end
+    end
+
     # Convert to Ruby code.
     def to_ruby
       return @content.to_s
@@ -1988,6 +2412,12 @@ module RubyHDL::High
     def to_python(l = "")
       return @content.to_s
     end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return @content.to_s
+    end
+
   end
 
   
@@ -2016,6 +2446,11 @@ module RubyHDL::High
     # Convert to Python code.
     def to_python(l = "")
       return PYTHON_OPERATOR[@operator] % { l: @child.to_python }
+    end
+
+    # Convert to Python code.
+    def to_tf(l = "")
+      return TF_OPERATOR[@operator] % { l: @child.to_tf }
     end
   end
   
@@ -2057,6 +2492,12 @@ module RubyHDL::High
       return PYTHON_OPERATOR[@operator] % 
         { l: @left.to_python, r: @right.to_python, m: @mask, s: @sign_fix }
     end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return TF_OPERATOR[@operator] % 
+        { l: @left.to_tf, r: @right.to_tf, m: @mask, s: @sign_fix }
+    end
   end
   
   # Describes the software implementation of an select operation.
@@ -2071,10 +2512,11 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return @sequencer.clk_up + "\ncase(#{@sel.to_ruby}) ; " +
-        @choices.map.with_index do |choice,i|
-          "when #{i} ; #{choice.to_ruby} ; "
-        end.join + "end\n" + @sequencer.clk_up
+      # return "\ncase(#{@sel.to_ruby}) ; " +
+      #   @choices.map.with_index do |choice,i|
+      #     "when #{i} ; #{choice.to_ruby} ; "
+      #   end.join + "end\n"
+      return "[" + @choices.map(&:to_ruby) + "][#{@sel.to_ruby}]"
     end
 
     # Convert to C code.
@@ -2083,18 +2525,31 @@ module RubyHDL::High
       #   @choices.map.with_index do |choice,i|
       #     "case #{i}:\n#{choice.to_c}\nbreak;"
       #   end.join("\n") + "\n}"
-      return @sequencer.clk_up_c + 
-        "\n#{@sel.to_c} ? #{@choices[1].to_c} : #{@choices[0].to_c}" +
-        @sequencer.clk_up_c
+      selc = @sel.to_c
+      return @choices.map.with_index do |choice, i|
+        "#{selc} == #{i} ? #{choice} : "
+      end.join + "0"
     end
 
     # Convert to Python code.
     def to_python(l = "")
-      return @sequencer.clk_up_python(l) + 
-        "\n#{l}match #{@sel.to_python}:\n" +
-        @choices.map.with_index do |choice,i|
-          "#{l}  case #{i}:\n    #{choice.to_python(l + "  ")}\n"
-        end.join + @sequencer.clk_up_pyhton(l)
+      # return "\n#{l}match #{@sel.to_python}:\n" +
+      #   @choices.map.with_index do |choice,i|
+      #     "#{l}  case #{i}:\n    #{choice.to_python(l + "  ")}\n"
+      #   end.join 
+      return "[" + @choices.map(&:to_python) + "][#{@sel.to_python}]"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      # return "tf.switch_case(tf.cast(#{@sel.to_tf},tf.int32)," +
+      #   "\nbranch_fns={" +
+      #   @choices.map.with_index do |choice,i|
+      #     (i < @choices.size-1) ? 
+      #       "\n#{i}: lambda: #{choice.to_tf(l + "  ")}," :
+      #       "\n#{i}: lambda: #{choice.to_tf(l + "  ")}},"
+      #   end.join + ")"
+      return "tf.constant([" + @choices.map(&:to_python) + "])[#{@sel.to_python}]"
     end
   end
 
@@ -2140,6 +2595,11 @@ module RubyHDL::High
     def to_python(l = "")
       return to_ruby
     end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return to_tf
+    end
   end
 
   # Describes a SW implementation of an index reference.
@@ -2152,6 +2612,7 @@ module RubyHDL::High
       super(type)
       @base = base.to_expr
       @idx = idx.to_expr
+      @npow = 2 ** @idx.type.width
     end
 
     # Get the final base object of the binary if it is an [] operator.
@@ -2197,17 +2658,22 @@ module RubyHDL::High
 
     # Convert to Ruby code.
     def to_ruby
-      return "#{@base.to_ruby}[#{@idx.to_ruby}]"
+      return "#{@base.to_ruby}[(#{@idx.to_ruby}) % #{@npow}]"
     end
 
     # Convert to C code.
     def to_c
-      return "#{@base.to_c}[#{@idx.to_c}]"
+      return "#{@base.to_c}[(#{@idx.to_c}) % #{@npow}]"
     end
 
     # Convert to Python code.
     def to_python(l = "")
-      return "#{@base.to_python}[#{@idx.to_python}]"
+      return "#{@base.to_python}[(#{@idx.to_python}) % #{@npow}]"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "#{@base.to_tf}[#{@idx.to_tf} % #{@npow}]"
     end
   end
 
@@ -2292,7 +2758,12 @@ module RubyHDL::High
 
     # Convert to Python code.
     def to_python(l = "")
-      return "#{@base.to_python}[#{@rng.last.to_python}:#{@rng.first.to_python}]"
+      return "#{@base.to_python}[#{@rng.last.to_python}:#{(@rng.first+1).to_python}]"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "#{@base.to_tf}[#{@rng.last.to_tf}:#{(@rng.first+1).to_tf}]"
     end
   end
 
@@ -2410,7 +2881,35 @@ module RubyHDL::High
         return "#{l}#{@left.to_python} = #{@right.to_python}"
       end
     end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      righttf = @right.to_tf
+      # Right value must be a tf object.
+      righttf = "tf.constant(#{righttf})" if righttf.to_i.to_s == righttf
+      # Generate the transmit.
+      if (@left.is_a?(RefIndex) or @left.is_a?(RefRange)) then
+        if @left.base.type.base.is_a?(TypeVector) then
+          # Assign inside array.
+          return "#{l}#{@left.to_tf} = #{righttf}"
+        else
+          # Get the access range.
+          rng = @left.range
+          # Compute the writing and clearing masks
+          smask = (1.to_value<<(rng.first+1-rng.last))-1
+          cmask = ~(smask << rng.last)
+          # Get the final base.
+          base = left.final_base.to_ruby
+          # Generate the ruby code.
+          return "#{l}#{base} = tf.bitwise.bitwise_and(#{base},#{cmask.to_tf})\n" +
+            "#{l}#{base} = tf.bitwise.bitwise_or(#{base},(tf.bitwise.bitwise_left_shift(tf.bitwise.bitwise_and(#{righttf},#{smask.to_tf}),(#{rng.last.to_tf}))))"
+        end
+      else
+        return "#{l}#{@left.to_tf} = #{righttf}"
+      end
+    end
   end
+
 
   # Describes a SW implementation of a sif statement.
   class Sif < Statement
@@ -2486,7 +2985,7 @@ module RubyHDL::High
     # Convert to Python code.
     def to_python(l = "")
       res = @sequencer.clk_up_python(l) + 
-        "\n#{l}if (#{@condition.to_ruby}) != 0:\n" +
+        "\n#{l}if (#{@condition.to_python}) != 0:\n" +
         "#{@yes_blk.to_python(l + "  ")}\n"
       @elsifs.each do |(cond,blk)|
         res << "#{l}elif (#{cond.to_python}) != 0:\n" +
@@ -2496,6 +2995,21 @@ module RubyHDL::High
         res << "#{l}else:\n#{@else_blk.to_python(l + "  ")}\n"
       end
       return res + @sequencer.clk_up_python(l)
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      res =  "\n#{l}tf.cond(#{@condition.to_tf},\n" +
+             "\n#{l}        lambda: #{@yes_blk.to_f(l + "  ")},\n"
+      @elseif.each do |(cond,blk)|
+        res<<"\n#{l}        lambda: tf.cond(#{cond.to_tf}, lambda: #{blk}),\n" 
+      end
+      if @else_blk then
+        res << "\n#{l}      lambda: #{else_blk.to_tf(l + "  ")})\n"
+      else
+        res << "\n#{l}      lambda: tf.constant0)\n"
+      end
+      return res
     end
   end
 
@@ -2535,6 +3049,21 @@ module RubyHDL::High
       end
       if @else_blk then
         res << "#{l}else:\n#{@else_blk.to_python(l + "  ")}\n"
+      end
+      return res
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      res =  "\n#{l}tf.cond(#{@condition.to_tf},\n" +
+             "\n#{l}        lambda: #{@yes_blk.to_f(l + "  ")},\n"
+      @elseif.each do |(cond,blk)|
+        res<<"\n#{l}        lambda: tf.cond(#{cond.to_tf}, lambda: #{blk}),\n" 
+      end
+      if @else_blk then
+        res << "\n#{l}      lambda: #{else_blk.to_tf(l + "  ")})\n"
+      else
+        res << "\n#{l}      lambda: tf.constant0)\n"
       end
       return res
     end
@@ -2579,6 +3108,12 @@ module RubyHDL::High
     def to_python(l = "")
       return "#{l}while True:\n#{@blk.to_python(l + "  ")}\n" +
         @sequencer.clk_up_python(l + "  ")
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "#{l}tf.while_loop(lambda: tf.constant(0)," + 
+        "_: tf.constant(0) == 0, #{@blk.to_tf(l + "  ")})"
     end
   end
 
@@ -2627,6 +3162,12 @@ module RubyHDL::High
         "#{@yes_blk.to_python(l + "  ")}\n" +
         @sequencer.clk_up_python(l + "  ")
     end
+
+    # Convert to Tensorflow code.
+    def to_tf(l = "")
+      return "#{l}tf.while_loop(lambda: tf.constant(0)," + 
+        "_: #{@condition.to_tf} == 0, #{@yes_blk.to_tf(l + "  ")})"
+    end
   end
 
   # Describes a SW implementation of a step statement.
@@ -2650,6 +3191,11 @@ module RubyHDL::High
     def to_python(l = "")
       return @sequencer.clk_up_python(l)
     end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return ""
+    end
   end
 
   # Describes a SW implementation of a break statement.
@@ -2671,7 +3217,12 @@ module RubyHDL::High
 
     # Convert to Python code.
     def to_python(l = "")
-      return @sequencer.clk_up_python(l) + "\n#{l}brea;"
+      return @sequencer.clk_up_python(l) + "\n#{l}break;"
+    end
+
+    # Convert to Tensorflow code.
+    def to_tf(l = "")
+      return "return tf.constant(0)"
     end
   end
 
@@ -2695,6 +3246,11 @@ module RubyHDL::High
     # Convert to Python code.
     def to_python(l = "")
       return @sequencer.clk_up_python(l) + "\n#{l}continue"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      raise "continue not supported in TensorFlow yet."
     end
   end
 
@@ -2721,7 +3277,12 @@ module RubyHDL::High
 
     # Convert to Python code.
     def to_python(l = "")
-      return @sequencer.clk_up_python(l) + "\n#{l}return #{@value.to_c}"
+      return @sequencer.clk_up_python(l) + "\n#{l}return #{@value.to_python}"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "\n#{l}return #{@value.to_tf}"
     end
   end
 
@@ -2747,6 +3308,11 @@ module RubyHDL::High
     # Convert to Python code.
     def to_python(l = "")
       return @sequencer.clk_up_python(l) + "\n#{l}return;"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "\n#{l}return;"
     end
   end
 
@@ -2779,6 +3345,11 @@ module RubyHDL::High
 
     # Convert to Python code.
     def to_python(l = "")
+      return "#{l}yield()"
+    end
+
+    # Convert to Tensorflow code.
+    def to_tf(l = "")
       return "#{l}yield()"
     end
   end
@@ -2848,6 +3419,11 @@ module RubyHDL::High
     def to_python(l = "")
       raise "Ruby objects cannot be converted to Python yet."
     end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      raise "Ruby objects cannot be converted to Python yet."
+    end
   end
 
 
@@ -2890,6 +3466,11 @@ module RubyHDL::High
     # Convert to Python code.
     def to_python(l = "")
       return "#{l}\n__#{@name}(" + @args.map {|arg| arg.to_python}.join(",") + ")"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "#{l}\n__#{@name}(" + @args.map {|arg| arg.to_tf}.join(",") + ")"
     end
 
     # Create an iterator for a given method +meth+.
@@ -3289,6 +3870,23 @@ module RubyHDL::High
       res << "\n"
       return res
     end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "" if @arguments.empty?
+      res = "#{l}print("
+      @arguments.each do |arg|
+        if arg.is_a?(::String) then
+          res << "\"#{arg}\""
+        else
+          res << arg.to_tf
+        end
+        res << ","
+      end
+      res[-1] = ")"
+      res << "\n"
+      return res
+    end
   end
 
 
@@ -3355,6 +3953,23 @@ module RubyHDL::High
       res = @sequencer.clk_up_python(l) + "\n" +
         @commands.map { |command| command.to_python }.join("_")
       return res + "(#{@blk.to_python})"
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      if @commands[1] == "times" then
+        # Simple times loop case.
+        if @blk.each_arg.none? then
+          raise "Require an index for loop conversion to TensorFlow."
+        end
+        arg = @blk.each_arg.to_a[0]
+        val = @commands[0]
+        return "#{l}#{arg.to_tf} = tf.range(0.0,#{val.to_tf},1.0)\n" +
+               @blk.to_tf(l)
+      else
+        res =  @commands.map { |command| command.to_tf }.join("_")
+        return res + "(#{@blk.to_tf})"
+      end
     end
 
     # Create an iterator for a given method +meth+.
@@ -3696,6 +4311,7 @@ module RubyHDL::High
   end
 
 
+
   # Describes a SW implementation of a signal.
   class SignalI < Expression
     using RubyHDL::High
@@ -3738,6 +4354,11 @@ module RubyHDL::High
 
     # Convert to Python code.
     def to_python(l = "")
+      return "__" + self.name.to_s
+    end
+
+    # Convert to Tensorflow code.
+    def to_tf(l = "")
       return "__" + self.name.to_s
     end
 
@@ -3917,6 +4538,16 @@ module RubyHDL::High
       return res
     end
 
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      res = ""
+      # Generate the statements.
+      res += @statements.map do |stmnt|
+        stmnt.to_tf(l) + "\n"
+      end.join
+      return res
+    end
+
     # The interface for describing statements and expressions.
 
     # Mark a step.
@@ -4024,9 +4655,72 @@ module RubyHDL::High
       self << RubyHDL::High::Ruby.new(str,&ruby_block)
     end
 
-    # Some arbitrary code whose text is to add direction.
-    def text(str)
-      self << str.to_s
+    # Some arbitrary text statement without any processing.
+    def text(str,*args)
+      self << RubyHDL::High::VerbatimStatement.new(str,*args)
+    end
+
+    # Some arbitrary expression code whose text is to add direction.
+    def expression(type,str,*args)
+      RubyHDL::High::VerbatimExpression.new(type,str,*args)
+    end
+  end
+
+
+
+  # Describe some statement text code to paste as is in the result.
+  class VerbatimStatement < Statement
+    using RubyHDL::High
+
+    # Create a new verbatim with +str+ of type +type+ as main text and
+    # +args+ as arguments for the text.
+    def initialize(str,*args)
+      @str = str.to_s
+      @args = args
+    end
+
+    # Convert to Ruby code.
+    def to_ruby
+      return @str % @args.map(&:to_ruby)
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{l}" + @str % @args.map(&:to_python)
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "#{l}" + @str % @args.map(&:to_tf)
+    end
+  end
+
+
+  # Describe some expression text code to paste as is in the result.
+  class VerbatimExpression < Expression
+    using RubyHDL::High
+
+    # Create a new verbatim with +str+ of type +type+ as main text and
+    # +args+ as arguments for the text.
+    def initialize(type,str,*args)
+      @type = type.to_type
+      @str = str.to_s
+      @args = args
+    end
+
+    # Convert to Ruby code.
+    def to_ruby
+      return @str % @args.map(&:to_ruby)
+    end
+
+    # Convert to Python code.
+    def to_python(l = "")
+      return "#{l}" + @str % @args.map(&:to_python)
+    end
+
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      return "#{l}" + @str % @args.map(&:to_tf)
     end
   end
 
@@ -4070,6 +4764,12 @@ module RubyHDL::High
     def to_python(l = "")
       return "#{l}def __#{name}(#{@args.map {|arg| "__" + arg.to_ruby}.join(",")}):\n#{@blk.sequencer.clk_python(l + "  ")}\n#{@blk.to_python(l + "  ")}\n"
     end
+
+    # Convert to Python code.
+    def to_tf(l = "")
+      return "#{l}@tf.function\n" +
+        "#{l}def __#{name}(#{@args.map {|arg| "__" + arg.to_ruby}.join(",")}):\n#{@blk.to_tf(l + "  ")}\n"
+    end
   end
 
 
@@ -4077,6 +4777,7 @@ module RubyHDL::High
 
   # Describes a SW implementation of a sequencer.
   class SequencerT 
+    using RubyHDL::High
 
     # The source code (in ruby).
     attr_reader :source
@@ -4145,7 +4846,7 @@ Fiber.new do
 end
 BUILD
       # puts "building code_txt=" + @source
-      self.reset!
+      # self.reset!
     end
 
     # Get the Ruby code.
@@ -4221,6 +4922,44 @@ BUILDPYTHON
     end
 
 
+    # Convert to TensorFlow code.
+    def to_tf(l = "")
+      typ = nil
+      res = <<-BUILDTF
+#{RubyHDL::High.global_sblock.each_signal.map do |signal|
+      typ = signal.type
+      if signal.value? then
+        if signal.array? then
+          res = signal.to_tf + "= [0] * #{signal.type.range.size}"
+          signal.value.each_with_index do |v,i|
+            res += "\n" + signal.to_tf + "[#{i}]=#{v.to_tf}"
+          end
+          res
+        else
+          signal.to_tf + "=" + signal.value.inspect
+        end
+      else
+        if signal.array? then
+          signal.to_tf + " = " + typ.to_tf_init
+        else
+          signal.to_tf + "=" + typ.to_tf_init
+        end
+      end
+end.join("\n")}
+
+#{@sfunctions.map {|n,f| f.to_c }.join("\n\n")}
+
+@tf.function
+def sequencer():
+#{RubyHDL::High.global_sblock.each_signal.map do |signal|
+   "  global #{signal.to_tf}"
+end.join("\n")}
+#{@blk.to_tf("  ")}
+BUILDTF
+      return res
+    end
+
+
 
 
 
@@ -4258,6 +4997,7 @@ BUILDPYTHON
 
     # Executes the sequencer.
     def resume
+      reset! unless @code
       # @code.call
       @code.resume
     end
