@@ -1100,7 +1100,7 @@ module HDLRuby::Low
             res << "begin\n"
             # Adds the wait.
             res << " " * ((level+1)*3)
-            res << "wait for " << self.delay.to_vhdl(level) << ";\n" 
+            res << "wait for " << self.number.to_vhdl(level) << ";\n" 
             # Generate the remaining of the body.
             res << self.statement.to_vhdl(vars,level+1)
             # Close the process.
