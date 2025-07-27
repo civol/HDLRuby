@@ -133,7 +133,7 @@ module HDLRuby::Low
             # Generate the inners declaration.
             self.each_inner do |inner|
                 res << " " * (level*3)
-                res << inner.type.to_high(level) 
+                res << inner.type.to_hdr(level) 
                 res << ".inner :" << Low2HDR.hdr_decl_name(inner.name) << "\n"
             end
             # Generate the instances.
@@ -331,7 +331,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_hdr(level = 0)
             # Should never be here.
-            raise AnyError, "Internal error: to_high should be implemented in class :#{self.class}"
+            raise AnyError, "Internal error: to_hdr should be implemented in class :#{self.class}"
         end
     end
 
@@ -449,7 +449,7 @@ module HDLRuby::Low
             # The resulting string.
             res = " " * (level*3)
             # Generate the wait.
-            res << "wait " << self.delay.to_hdr(level) << "\n" 
+            res << "!" << self.delay.to_hdr(level) << "\n" 
             # Return the resulting string.
             return res
         end
@@ -465,7 +465,8 @@ module HDLRuby::Low
             # The resulting string.
             res = " " * (level*3)
             # Generate the header.
-            res << "repeat " << self.delay.to_hdr(level) << " do\n"
+            # res << "repeat " << self.delay.to_hdr(level) << " do\n"
+            res << "repeat " << self.number.to_hdr(level) << " do\n"
             # Generate the statement to repeat.
             res << self.statement.to_hdr(level+1)
             # Close the repeat.
@@ -554,7 +555,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_hdr(level = 0)
             # Should never be here.
-            raise AnyError, "Internal error: to_high should be implemented in class :#{self.class}"
+            raise AnyError, "Internal error: to_hdr should be implemented in class :#{self.class}"
         end
     end
 
@@ -566,7 +567,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_hdr(level = 0)
             if self.content.is_a?(HDLRuby::BitString) then
-                return "_#{self.content}"
+                return "_b#{self.content}"
             else
                 return self.content.to_s
             end
@@ -593,7 +594,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_hdr(level = 0)
             # Should never be here.
-            raise AnyError, "Internal error: to_high should be implemented in class :#{self.class}"
+            raise AnyError, "Internal error: to_hdr should be implemented in class :#{self.class}"
         end
     end
 
@@ -672,7 +673,7 @@ module HDLRuby::Low
         # +level+ is the hierachical level of the object.
         def to_hdr(level = 0)
             # Should never be here.
-            raise AnyError, "Internal error: to_high should be implemented in class :#{self.class}"
+            raise AnyError, "Internal error: to_hdr should be implemented in class :#{self.class}"
         end
     end
 
