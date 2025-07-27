@@ -5,9 +5,56 @@ systems.
 
 __Note__:
 
+If you want to know how to describe a circuit with HDLRuby please jump to the following section:
+
+* [HDLRuby Programming Guide](#hdlruby-programming-guide)
+
+ - [Introduction](#introduction)
+
+ - [How does HDLRuby work](#how-does-hdlruby-work)
+
+ - [Naming rules](#naming-rules)
+
+ - [Systems and Signals](#systems-and-signals)
+
+ - [Events](#events)
+
+ - [Statements](#statements)
+
+ - [Types](#types)
+
+ - [Expressions](#expressions)
+
+ - [Functions](#functions)
+
+ - [Software code](#software-code)
+
+ - [Time](#time)
+
+ - [High-level programming features](#high-level-programming-features)
+
+ - [Extending HDLRuby](#extending-hdlruby)
+
+A lot of feature of HDLRuby are present in its standard libraries, we
+strongly recommend to consult the corresponding section:
+
+* [Standard libraries](#standard-libraries)
+
+ - [Clocks](#clocks)
+
+ - [Decoder](#decoder)
+
+ - [FSM](#fsm)
+
+ - [Parallel Enumerators](#parallel-enumerator)
+
+ - [Sequencer (software-like hardware coding)](#sequencer-software-like-hardware coding)
+
+ - [Fixed-point](#fixed-point)
+
 If you are new to HDLRuby, it is recommended that you consult first the following tutorial (even if you are a hardware person):
 
- * [HDLRuby tutorial for software people](https://github.com/civol/HDLRuby/blob/master/tuto/tutorial_sw.md) [md]
+ * [HDLRuby Tutorial for Software People](https://github.com/civol/HDLRuby/blob/master/tuto/tutorial_sw.md) [md]
 
 And if you want an html version the following command with create a `tuto` folder containing all the required files, then just open `tuto/tutorial_sw.html`:
 
@@ -17,11 +64,23 @@ hdrcc --get-tuto
 
 __What's new_
 
+For HDLRuby version 3.8.3:
+
+* Fixed various bugs including ones in interactive mode.
+
+* Updated the documentation: 
+
+  - Rewrote the beginning of the [HDLRuby Programming Guide](#hdlruby-programming-guide).
+
+  - Updated the documentation about the interactive mode.
+
+  - Updated the [High-Level Programming Features](#high-level-programming-features) chapter.
+
 For HDLRuby version 3.8.0:
 
 * Added parallel enumerators (e.g., heach): can iterate like Ruby for describing parallel hardware.
 
-* Added metaprogramming through standard HDLRuby constructs (e.g., hif): no need to use Ruby code any longer.
+* Added generic programming through standard HDLRuby constructs (e.g., hif): no need to use Ruby code any longer.
 
 * Fixed compile bugs for windows.
 
@@ -34,7 +93,7 @@ For HDLRuby version 3.7.9:
 
 For HDLRuby versions 3.7.7/3.7.8:
 
-* Various fixes regqrding the software sequencers.
+* Various fixes regarding the software sequencers.
 
 For HDLRuby version 3.7.6:
 
@@ -265,7 +324,7 @@ When running in interactive mode, the HDLRuby framework starts a REPL prompt and
 * Compile an HDLRuby module:
 
 ```ruby
-hdr_make(<module>)
+hdr_make(<module>[,<parameters])
 ```
 
 * Generate and display the IR of the compiled module in YAML form:
@@ -280,13 +339,13 @@ hdr_yaml
 hdr_hdr
 ```
 
-* Generate and output in the working directory the Verilog HDL RTL of the compiled module:
+* Generate and output in the working directory the Verilog HDL RTL of the compiled module (the result will be saved in the directory `HDLRubyWorkspace`):
 
 ```ruby
 hdr_verilog
 ```
 
-* Generate and output in the working directory the Verilog HDL RTL of the compiled module:
+* Generate and output in the working directory the Verilog HDL RTL of the compiled module (the result will be saved in the directory `HDLRubyWorkspace`):
 
 ```ruby
 hdr_vhdl
@@ -297,6 +356,20 @@ hdr_vhdl
 ```ruby
 hdr_sim
 ```
+
+* Simulate the compiled module outputting the simulation trace in VCD format (the result will be saved in the directory `HDLRubyWorkspace`):
+
+```
+hdr_sim_vcd
+```
+
+* Simulate the compiled module in mute mode:
+
+```
+hdr_sim_mute
+```
+
+
 
 ## HDLRuby files.
 
@@ -318,7 +391,6 @@ __Notes__:
 ## Introduction
 
 This introduction gives a glimpse of the possibilities of the language.
-However, we do recommend consulting the section about the [high-level programming features](#high-level-programming-features) to have a more complete view of the advanced possibilities of this language.
 
 At first glance, HDLRuby appears like any other HDL (like Verilog HDL or VHDL), for instance, the following code describes a simple D-FF:
 
@@ -333,9 +405,71 @@ system :dff do
 end
 ```
 
-As can be seen in the code above, `system` is the keyword used for describing a digital circuit. This keyword is the equivalent of the Verilog HDL `module`. In such a system, signals are declared using a `<type>.<direction>` construct where `type` is the data type of the signal (e.g., `bit` as in the code above) and `direction` indicates if the signal is an input, an output, an inout or an inner one; and executable blocks (similar to `always` block of Verilog HDL) are described using the `par` keyword when they are parallel and `seq` when they are sequential (i.e., with respectively non-blocking and blocking assignments).
+As can be seen in the code above, `system` is the keyword used for describing a digital circuit. This keyword is the equivalent of the Verilog HDL `module`. In such a system, signals are declared using a `<type>.<direction>` construct where `type` is the data type of the signal (e.g., `bit` as in the code above) and `direction` indicates if the signal is an input, an output, an inout or an inner one; and processes (similar to `always` block of Verilog HDL) are described using the `par` keyword when they use non-blocking assignments and `seq` when they are using blocking blocking assignments (i.e., with respectively non-blocking and blocking assignments).
 
-After such a system has been defined, it can be instantiated. For example, a single instance of the `dff` system named `dff0` can be declared as follows:
+As second example, here is an 8-bit adder:
+
+```ruby
+system :adder8 do
+   bit[7..0].input :x, :y
+   bit[7..0].output :z
+   bit.output :cout
+
+   [cout,z] <= x.as(bit[8..0]) + y
+end
+```
+
+This example shows how to declare vector types, e.g., `x` and `y` and `z`
+are 8-bit unsigned vectors. If signed values are required, `bit` is to be
+replaced by `signed`. It also show how to declare a connection (the
+`assign` statement in Verilog HDL) line 6. For this case, `cout` and `z`
+are concatenate together and connected to the output of the addition
+between `x` and `y`. You can notice that `x` has been casted to a 9-bit
+value before the addition. This this for keeping the output carry: in
+HDLRuby, contrary to Verilog HDL, the data type of the operands is
+preserved, so that adding two 8-bit values will produce an 8-bit result
+You can notice that `x` has been casted to a 9-bit value before the
+addition. This this for keeping the output carry: in HDLRuby, contrary to
+Verilog HDL, the data type of the operands is strictly preserved, so that
+adding two 8-bit values will produce an 8-bit result. The goal is to
+avoid the ambiguities that arise with Verilog HDL while not being as
+heavy syntactically as VHDL.
+
+The common RTL language also support conditional statements in their
+processes. HDLRuby also have such statements, but the are not limited to
+the processes: they can be used anywhere in the body of a module. These
+statements  include the `hif`/`helsif`/`helse` for the if conditionals,
+the `hcase`/`hwhen`/`helse` statements for the case conditionals, 
+and the `mux` expression for the multiplexers. This later construct is a
+generalization of the`?:` operator used in Verilog HDL. For example, the
+adder previously described can be enhanced to be an adder-subtracter as
+follows:
+
+```ruby
+system :adder_suber8 do
+   bit.input :addbsub
+   bit[7..0].input :x, :y
+   bit[7..0].output :z
+   bit.output :cout
+
+   hif(addbsub) { [cout,z] <= x.as(bit[8..0]) + ~y + 1 }
+   helse        { [cout,z] <= x.as(bit[8..0]) + y }
+end
+```
+
+The code above can also be written using the `mux` expression as follows
+(only the `hif`/`helse` part):
+
+```ruby
+  [cout,z] <= x.as(bit[8..0]) + mux(addbsub, y, ~y + 1)
+```
+
+
+---
+
+After a module has been described, it can be instantiated. For example, a
+single instance of the `dff` module named `dff0` can be declared as
+follows:
 
 ```ruby
 dff :dff0
@@ -343,47 +477,28 @@ dff :dff0
 
 The ports of this instance can then be accessed to be used like any other signals, e.g., `dff0.d` for accessing the `d` input of the FF.
 
-Several instances can also be declared in a single statement. For example, a 2-bit counter based on the previous `dff` circuits can be described as follows:
-
-```ruby
-system :counter2 do
-   input :clk,:rst
-   output :q
-
-   dff [ :dff0, :dff1 ]
-
-   dff0.clk <= clk
-   dff0.rst <= rst
-   dff0.d   <= ~dff0.q
-
-   dff1.clk <= ~dff0.q 
-   dff1.rst <= rst
-   dff1.d   <= ~dff1.q
-
-   q <= dff1.q
-end
-```
-
 The instances can also be connected while being declared. For example, the code above can be rewritten as follows:
 
 ```ruby
 system :counter2 do
-   input :clk, :rst
-   output :q
+   bit.input :clk, :rst
+   bit.output :q
 
    dff(:dff0).(clk: clk, rst: rst, d: ~dff0.q)
    dff(:dff1).(~dff0.q, rst, ~dff1.q, q)
 end
 ```
 
-In the code above, two possible connection methods are shown: for `dff0` ports are connected by name, and for `dff1` ports are connected in declaration order. Please notice that it is also possible to connect only a subset of the ports while declaring, as well as to reconnect already connected ports in further statements.
+In the code above, two possible connection methods are shown: for `dff0`
+ports are connected by name, and for `dff1` ports are connected in
+declaration order. Please notice that it is also possible to connect
+only a subset of the ports while declaring, as well as to reconnect already connected ports in further statements.
 
-While a circuit can be generated from the code given above, a benchmark must
-be provided to test it. Such a benchmark is described by constructs called
-timed behavior that give the evolution of signals depending on the time.
-For example, the following code simulates the previous D-FF for 4 cycles
-of 20ns each, with a reset on the first cycle, set of signal `d` to 1 for
-the third cycle and set this signal to 0 for the last.
+For simulating such a circuit a test bench must be written. Such a test
+bench is described by constructs called timed behavior that give the
+evolution of signals depending on the time. For example, the following
+code simulates the previous D-FF with a clock of 20 ns switching the
+input `d` every two clock cycle ten times.
 
 ```ruby
 system :dff_bench do
@@ -400,26 +515,24 @@ system :dff_bench do
       dff0.rst <= 0
       dff0.d   <= 1
       !10.ns
-      dff0.clk <= 1
-      !10.ns
-      dff0.clk <= 0
-      !10.ns
-      dff0.clk <= 1
-      !10.ns
-      dff0.clk <= 0
-      dff0.d   <= 1
-      !10.ns
-      dff0.clk <= 1
-      !10.ns
+      repeat(10) do
+         repeat(4) { !10.ns ; dff0.clk <= ~dff0.clk }
+         dff0.d   <= ~dff0.d
+      end
    end
 end
 ```
+
+As seen in the code above, waiting a given amount of physical time is
+done using the `!<time>.<unit>` statement, where the unit can be from
+fento second `fs` to second `s`. The command `repeat(<times>)` repeats 
+a given number of times its block.
 
 ---
 
 The code describing a `dff` given above is not much different from its equivalent in any other HDL.  However, HDLRuby provides several features for achieving higher productivity when describing hardware. We will now describe a few of them.
 
-First, several syntactic sugars exist that allow shorter code, for instance, the following code is strictly equivalent to the previous description of `dff`:
+First, several syntactic sugars exist that allow shorter code, for instance, the following code is strictly equivalent to the previous description of `dff`.
 
 ```ruby
 system :dff do
@@ -430,46 +543,106 @@ system :dff do
 end
 ```
 
-Then, it often happens that a system will end up with only one instance.
-In such a case, the system declaration can be omitted, and an instance can be directly declared as follows:
+As seen in the code above, the `bit` type can be omitted when declaring a
+signal, and when a clocked process contains only one statement, it can be
+described using the `as` method.
+
+Similarly, the `adder8` module can be described as follows:
 
 ```ruby
-instance :dff_single do
-   input :clk, :rst, :d
-   output :q
+system :adder8 do
+   [8].input :x, :y
+   [8].output :z
+   output :cout
 
-   (q <= d & ~rst).at(clk.posedge)
+   [cout,z] <= x.as(bit[9]) + y
 end
 ```
 
-In the example above, `dff_single` is an instance describing, again, a D-FF, but whose system is anonymous.
+Here, `bit` has again been omitted when declaring signals, and in
+addition, their bit range is abbreviated to their bit width, i.e., `7..0`
+is replaced  by `8`. Please notice that, while the `bit` data type can be
+omitted when declaring a vector signal, it cannot be omitted in the other
+cases.
 
-Furthermore, generic parameters can be used for anything in HDLRuby.
-For instance, the following code describes an 8-bit register without any parameterization:
+---
+
+Second, several high-level constructs allow to describe more easily
+complex structure.
+
+For example, the `sequencer` construct allows to describe finite state
+machines using software code-like statements, including conditionals,
+loops and function calls. For example the following module describes a 
+simple 8-bit serializing circuit that emmits bit every 10 clock cycle.
+
+```ruby
+system :serial do
+  [8].input :din
+  input :clk, :rst, :req
+  output :ack, :bout
+
+  [8].inner :buf
+
+  bout <= buf[0]
+
+  sequencer(clk,rst) do
+    sloop do
+      ack <= 0 ; buf <= 0
+      swhile(~req)
+      buf <= din ; ack <= 1
+      8.stimes do
+        buf <= buf >> 1
+        9.stimes
+      end
+    end
+  end
+end
+```
+
+In the code above, `sloop` is the statement for an infinite loop,
+`swhile` is for a while loop, and `stimes` is a short-cut for looping a
+given number of times. When a loop doesn't have a body, as it is the case
+for the `swhile` here, it loops doing nothing until its condition is met.
+A sequencer runs according to a clock signal (`clk` here) and is
+initialized when a reset signal (`rst` here) is set to 1. Moreover, each
+branch in the control flow corresponds to a state transition and
+therefore takes exactly one clock cycle.
+
+Other high-level contructs includes for example iterators (parallel and
+sequentials), decoders or fixedpoint handling.
+
+---
+
+Third, generic parameters can be used for anything in HDLRuby. For
+instance, the following code describes an 8-bit register without any
+parameterization:
 
 ```ruby
 system :reg8 do
    input :clk, :rst
-   [7..0].input :d
-   [7..0].output :q
+   [8].input :d
+   [8].output :q
 
    (q <= d & [~rst]*8).at(clk.posedge)
 end
 ```
 
-But it is also possible to describe a register of arbitrary size as follows, where `n` is the parameter giving the number of bits of the register:
+But it is also possible to describe a register of arbitrary size as
+follows, where `n` is the parameter giving the number of bits of the
+register:
 
 ```ruby
 system :regn do |n|
    input :clk, :rst
-   [n-1..0].input :d
-   [n-1..0].output :q
+   [n].input :d
+   [n].output :q
 
    (q <= d & [~rst]*n).at(clk.posedge)
 end
 ```
 
-Or, even further, it is possible to describe a register of arbitrary type (not only bit vectors) as follows:
+Or, even further, it is possible to describe a register of arbitrary type
+(not only bit vectors) as follows:
 
 ```ruby
 system :reg do |typ|
@@ -481,7 +654,13 @@ system :reg do |typ|
 end
 ```
 
-Wait... I have just realized that D-FF without any inverted output does not look very serious. So, let us extend the existing `dff` to provide an inverted output. There are three ways to do this. First, inheritance can be used: a new system is built inheriting from `dff` as it is done in the following code.
+---
+
+Forth, it is possible to extend modules and instance after declaration. 
+For instance, let us extend the existing `dff` to provide an
+inverted output. There are three ways to do this. First, inheritance can
+be used: a new system is built inheriting from `dff` as it is done in the
+following code.
 
 ```ruby
 system :dff_full, dff do
@@ -499,7 +678,9 @@ dff.open do
 end
 ```
 
-The third possibility is to modify directly a single instance of `dff` which requires an inverted output, using again the `open` method, as in the following code:
+The third possibility is to modify directly a single instance of `dff`
+which requires an inverted output, using again the `open` method, as in
+the following code:
 
 ```ruby
 # Declare dff0 as an instance of dff
@@ -512,10 +693,18 @@ dff0.open do
 end
 ```
 
-In this latter case, only `dff0` will have an inverted output, the other instances of `dff` will not change.
+In this latter case, only `dff0` will have an inverted output, the other
+instances of `dff` will not change.
 
-Now assuming we opted for the first solution, we have now `dff_full`, a highly advanced D-FF with such unique features as an inverted output. So, we would like to use it in other designs, for example, a shift register of `n` bits. Such a system will include a generic number of `dff_full` instances and can be
-described as follows making use of the native Ruby method `each_cons` for connecting them:
+---
+
+Five, instantiations can be performed and handled in group like signals.
+For example we can use the `dff_full` module it in other designs, for
+example, a shift register of `n` bits using this approach. Such a system
+will include a generic number of `dff_full` instances and can be
+described as follows making use of the parallel iterating methods `heach`
+and `heach_cons` (whose behavior corresponds to the Ruby methods `each`
+and `each_cons`):
 
 ```ruby
 system :shifter do |n|
@@ -523,26 +712,24 @@ system :shifter do |n|
    input :i0
    output :o0, :o0b
 
+   dff_full :dffr
+
+   dffr.clk <= clk
+
    # Instantiating n D-FF
-   [n].dff_full :dffIs
-   
+   dff_full[n,:dffIs]
+
    # Connect the clock and the reset.
-   dffIs.each { |ff| ff.clk <= clk ; ff.rst <= rst }
+   dffIs.heach { |ff| ff.clk <= clk ; ff.rst <= rst }
 
    # Interconnect them as a shift register
-   dffIs[0..-1].each_cons(2) { |ff0,ff1| ff1.d <= ff0.q }
+   dffIs[0..-1].heach_cons(2) { |ff0,ff1| ff1.d <= ff0.q }
 
    # Connects the input and output of the circuit
    dffIs[0].d <= i0
    o0 <= dffIs[-1].q
    o0b <= dffIs[-1].qb
 end
-```
-
-As can be seen in the above examples, in HDLRuby, any construct is an object and therefore includes methods. For instance, declaring a signal of a given `type` and direction (input, output, or inout) is done as follows so that `direction` is a method of the type, and the signal names are the arguments of this method (symbols or string are supported.)
-
-```ruby
-<type>.<direction> <list of symbols representing the signal>
 ```
 
 Of course, if you do not need to use the specific component `dff_full` you can describe a shift register more simply as follows:
@@ -556,14 +743,22 @@ system :shifter do |n|
    
    par (clk.posedge) do
       hif(rst) { sh <= 0 }
-      helse { sh <= [sh[n-2..0], i0] }
+      helse { sh <= ((sh << 1)|i0) }
    end
    
    o0 <= sh[n-1]
 end
 ```
 
-Now, let us assume you want to design a circuit that performs a sum of products of several inputs with constant coefficients. For the case of 4 16-bit signed inputs and given coefficients as 3, 4, 5, and 6. The corresponding basic code could be as follows:
+---
+
+There are many other features in HDLRuby. Here are a few of them shown in
+the following examples.
+
+Let us assume you want to design a circuit that performs a sum of
+products of several inputs with constant coefficients. For the case of 4
+16-bit signed inputs and given coefficients as 3, 4, 5, and 6. The
+corresponding basic code could be as follows:
 
 ```ruby
 system :sumprod_16_3456 do
@@ -578,93 +773,137 @@ The description above is straightforward, but it would be necessary to rewrite i
 
 ```ruby
 system :sumprod do |typ,coefs|
-   typ[coefs.size].input :ins
+   typ[-coefs.size].input :ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_b0) do |sum,(coef,i)|
-      sum + ins[i]*coef
+   o <= coefs.hzip(ins).hreduce(0) do |sum,(i,c)|
+      sum + i*c
    end
 end
 ```
 
-In the code above, there are two generic parameters,
-`typ`, which indicates the data type of the circuit, and `coefs`, which is assumed to be an array of coefficients. Since the number of inputs depends on the number of provided coefficients, it is declared as an array of `width` bit signed whose size is equal to the number of coefficients.
+In the code above, there are two generic parameters, `typ`, which
+indicates the data type of the circuit, and `coefs`, which is assumed to
+be an array of coefficients. Since the number of inputs depends on the
+number of provided coefficients, it is declared as an array of `width`
+bit signed whose size is equal to the number of coefficients. The input
+`ins` is an array of `coefs.size` values. Since arrays are usually
+indexed in  reverse corresponding to how bits are indexed in a value, a
+negative value is used. Concretly, `-coefs.size` is equivalent to the
+range `0..coefs.size` when declaring the signal.
 
-The description of the sum of products may be more difficult to understand for people not familiar with the Ruby language. The `each_with_index` method iterates over the coefficients adding their index as an iteration variable, the resulting operation (i.e., the iteration loop) is then modified by the `reduce` method that accumulates the code passed as arguments. This code, starting by `|sum,coef,i|` performs the addition of the current accumulation result (`sum`) with the product of the current coefficient (`coef`) and input (`ins[i]`, where `i` is the index) in the iteration. The argument `_b0` initializes the sum to `0`.
+The description of the sum of products may be more difficult to
+understand for people not familiar with the Ruby language. The
+`hzip` method (equivalent to the Ruby `zip` methods) iterates over each couple of elements of both `coefs` and `ins` and the method `hreduce` (equivalent to the Ruby `reduce` method) generates the hardware that accumulates
+the code passed as arguments. This code, starting by `|sum,(i,c)|`
+performs the addition of the current accumulation result (`sum`) with the
+product of the current coefficient (`c`) and input (`i`). The argument
+`0` initializes the sum to `0`.
 
-While slightly longer than the previous description, this description allows declaring a circuit implementing a sum of products with any bit width and any number of coefficients. For instance, the following code describes a signed 32-bit sum of products with  16 coefficients (just random numbers here).
+While slightly longer than the previous description, this description
+allows declaring a circuit implementing a sum of products with any bit
+width and any number of coefficients. For instance, the following code
+describes a signed 32-bit sum of products with  16 coefficients (just
+random numbers here).
 
 ```ruby
 sumprod(signed[32], [3,78,43,246, 3,67,1,8, 47,82,99,13, 5,77,2,4]).(:my_circuit)  
 ```
 
-As seen in the code above, when passing a generic argument for instantiating a generic system, the name of the instance is put between brackets to avoid confusion.
+As seen in the code above, when passing a generic argument for
+instantiating a generic system, the name of the instance is put between
+brackets to avoid confusion.
 
-While the description `sumprod` is already usable in a wide range of cases, it still uses standard addition and multiplication. However, there are cases where specific components are to be used for these operations, either for the sake of performance, compliance with constraints, or because functionally different operations are required (e.g., saturated computations). This can be solved by using functions implementing such computation in place of operators, for example, as follows:
+
+While the description `sumprod` is already usable in a wide range of
+cases, it still uses standard addition and multiplication. However, there
+are cases where specific components are to be used for these operations,
+either for the sake of performance, compliance with constraints, or
+because functionally different operations are required (e.g., saturated
+computations). This can be solved by using functions implementing such
+computation in place of operators, for example, as follows:
 
 ```ruby
 system :sumprod_func do |typ,coefs|
-   typ[coefs.size].input ins
+   typ[-coefs.size].input :ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_b0) do 
-   |sum,(coef,i)|
-      add(sum, mult(ins[i]*coef))
+   o <= coefs.hzip(ins).hreduce(0) do |sum,(c,i)|
+      add(sum, mult(i,c))
    end
 end
 ```
 
-Where `add` and `mult` are functions implementing the required specific operations. HDLRuby functions are equivalent to the Verilog HDL ones. In our example, an addition that saturates at 1000 could be described as follows:
+Where `add` and `mult` are functions implementing the required specific
+operations. HDLRuby functions are equivalent to the Verilog HDL ones. In
+our example, an addition that saturates at 1000 could be described as
+follows:
 
 ```ruby
 hdef :add do |x,y|
    inner :res
    seq do
       res <= x + y
-      (res <= 1000).hif(res > 1000)
+      hif(res > 1000) { res <= 1000 }
    end
+   res
 end
 ```
 
-With HDLRuby functions, the result of the last statement in the return value, in this case, that will be the value of res. The code above is also an example of the usage of the postfixed if statement, it is an equivalent of the following code:
+With HDLRuby functions, the result of the last statement in the return
+value, in this case, that will be the value of res.
 
-```ruby
-      hif(res>1000) { res <= 1000 }
-```
-
-With functions, it is enough to change their content to obtain a new kind of circuit without changing the main code. This approach suffers from two drawbacks though: first, the level of saturation is hard coded in the function, and second, it would be preferable to be able to select the function to execute instead of modifying its code. For the first problem, a simple approach is to add an argument to the function given the saturation level. Such an add function would therefore be as follows:
+With functions, it is enough to change their content to obtain a new kind
+of circuit without changing the main code. This approach suffers from two
+drawbacks though: first, the level of saturation is hard coded in the
+function, and second, it would be preferable to be able to select the
+function to execute instead of modifying its code. For the first problem,
+a simple approach is to add an argument to the function given the
+saturation level. Such an add function would therefore be as follows:
 
 ```ruby
 hdef :add do |max, x, y|
    inner :res
    seq do
       res <= x + y
-      (res <= max).hif(res > max)
+      hif(res > max) { res <= max }
    end
+   res
 end
 ```
 
-It would however be necessary to add this argument when invoking the function, e.g., `add(1000,sum,mult(...))`. While this argument is relevant for addition with saturation, it is not for the other kinds of addition operations, and hence, the code of `sumprod` has no general purpose.
+It would however be necessary to add this argument when invoking the
+function, e.g., `add(1000,sum,mult(...))`. While this argument is
+relevant for addition with saturation, it is not for the other kinds of
+addition operations, and hence, the code of `sumprod` has no general
+purpose.
 
-HDLRuby provides two ways to address such issues. First, it is possible to pass code as an argument. In the case of `sumprod`, it would then be enough to add two arguments that perform the required addition and multiplication. The example is below:
+HDLRuby provides two ways to address such issues. First, it is possible
+to pass code as an argument. In the case of `sumprod`, it would then be
+enough to add two arguments that perform the required addition and
+multiplication. The example is below:
 
 ```ruby
 system :sumprod_proc do |add,mult,typ,coefs|
-   typ[coefs.size].input ins
+   typ[coefs.size].input :ins
    typ.output :o
    
-   o <= coefs.each_with_index.reduce(_b0) do 
-   |sum,(coef,i)|
-      add.(sum, mult.(ins[i]*coef))
+   o <= coefs.hzip(ins).hreduce(0) do |sum,(c,i)|
+      add.(sum, mult.(i*c))
    end
 end
 ```
 
 __Note__: 
  
-- With HDLRuby, when some code is passed as an argument, it is invoked using the `.()` operator, and not simple parenthesis-like functions.
+- With HDLRuby, when some code is passed as an argument, it is invoked
+  using the `.()` operator, and not simple parenthesis-like functions.
 
-Assuming the addition with saturation is now implemented by a function named `add_sat` and a multiplication with saturation is implemented by a function named `mult_sat` (with similar arguments), a circuit implementing a signed 16-bit sum of product saturating at 1000 with 16 coefficients could be described as follows:
+Assuming the addition with saturation is now implemented by a function
+named `add_sat` and a multiplication with saturation is implemented by a
+function named `mult_sat` (with similar arguments), a circuit
+implementing a signed 16-bit sum of product saturating at 1000 with 16
+coefficients could be described as follows:
 
 ```ruby
 sumprod_proc( 
@@ -675,21 +914,26 @@ sumprod_proc(
          47,82,99,13, 5,77,2,4]).(:my_circuit)
 ```
 
-As seen in the example above, a piece of code is passed as an argument using the proc keyword.
+As seen in the example above, a piece of code is passed as an argument
+using the proc keyword.
 
-A second possible approach provided by HDLRuby is to declare a new data type with redefined addition and multiplication operators. For the case of a 16-bit saturated addition and multiplication the following generic data type can be defined (for signed computations):
+A second possible approach provided by HDLRuby is to declare a new data
+type with redefined addition and multiplication operators. For the case
+of a 16-bit saturated addition and multiplication the following generic
+data type can be defined (for signed computations):
 
 ```
 signed[16].typedef(:sat16_1000)
 
 sat16_1000.define_operator(:+) do |x,y|
-      tmp = x + y
-      mux(tmp > 1000,tmp,1000)
-   end
+   tmp = x + y
+   mux(tmp > 1000,tmp,1000)
 end
 ```
 
-In the code above, the first line defines the new type `sat16_1000` to be 16-bit signed, and the remaining overloads (redefines) the `+` operator for this type (the same should be done for the `*` operator).
+In the code above, the first line defines the new type `sat16_1000` to be
+16-bit signed, and the remaining overloads (redefines) the `+` operator
+for this type (the same should be done for the `*` operator).
 Then, the initial version of `sumprod` can be used with this type to achieve saturated computations as follows:
 
 ```ruby
@@ -707,9 +951,8 @@ end
 
 
 sat.define_operator(:+) do |width,max, x,y|
-      tmp = x + y
-      mux(tmp > max, tmp, max)
-   end
+   tmp = x + y
+   mux(tmp > max, tmp, max)
 end
 ```
 
@@ -725,18 +968,6 @@ sumprod(sat(16,1000),
          47,82,99,13, 5,77,2,4]).(:my_circuit)
 ```
 
-
-Lastly note, HDLRuby is also a language with supports reflection for all its constructs. For example, the system of an instance can be accessed using the `systemT` method, and this latter can be used to create other instances. For example, previously, `dff_single` was declared with an anonymous system (i.e., it cannot be accessed by name). This system can however be used as follows to generate another instance:
-
-```ruby
-dff_single.systemT.instantiate(:dff_not_single)
-```
-
-In the above example, `dff_not_single` is declared to be an instance
-of the same system as `dff_single`.
-
-This reflection capability can also be used for instance, for accessing the data type of a signal (`sig.type`), but also the current basic block (`cur_block`), the current process (`cur_behavior`), and so on.
-The standard library of HDLRuby includes several hardware constructs like finite state machine descriptors and is mainly based on using these reflection features.
 
 
 
@@ -844,7 +1075,7 @@ For example, system `mem8_16` declared in the previous section can be instantiat
 mem8_16 :mem8_16I
 ```
 
-It is also possible to declare multiple instances of the same system at a time as follows:
+It is possible to declare multiple instances of the same system at a time as follows:
 
 ```ruby
 <system name> [list of colon-separated instance names]
@@ -854,6 +1085,19 @@ For example, the following code declares two instances of system `mem8_16`:
 
 ```ruby
 mem8_16 [ :mem8_16I0, :mem8_16I1 ]
+```
+
+It is also possible to declare an array of instances as follows:
+
+```ruby
+<system name>[<number>,<array name>]
+```
+
+For example, the following code declares an array of 5 instances of
+system `mem8_16`:
+
+```ruby
+mem8_16[5,:mem8_18Is]
 ```
 
 Interconnecting instances may require internal signals in the system.
@@ -1283,7 +1527,7 @@ __Note__:
  - While of no practical use for simple circuit descriptions, this feature can be used in advanced generic component descriptions.
 
 
-### Reconfiguration
+<!-- ### Reconfiguration
 
 In HDLRuby, dynamically reconfigurable devices are modeled by instances having more than one system. Adding systems to an instance is done as follows:
 
@@ -1320,6 +1564,7 @@ dev012.configure(2)
 ```
 
 These reconfiguration commands are treated as regular RTL statements in HDLRuby and are supported by the simulator. However, in the current version of the HDLRuby, these statements are ignored when generating Verilog HDL or VHDL code.
+-->
 
 
 ## Events
@@ -3093,7 +3338,7 @@ include HDLRuby::High::Std
 
 
 
-## Clocks: `std/clocks.rb`
+## Clocks
 <a name="clocks"></a>
 
 The `clocks` library provides utilities for easier handling of clock synchronizations.
@@ -3115,7 +3360,8 @@ end
 
 __Note__: this library generates all the RTL code for the circuit handling the frequency division. 
 
-## Counters: `std/counters.rb`
+<!--
+## Counters
 <a name="counters"></a>
 
 This library provides two new constructs for implementing synthesizable wait statements.
@@ -3135,9 +3381,9 @@ Where:
 This statement can be used inside a clocked behavior where the clock event of the behavior is used for the counter unless specified otherwise. 
 
 The second construct is the `before` statement that activates a block until a given number of clock cycles is passed. Its syntax and usage are identical to the `after` statement.
+-->
 
-
-## Decoder: `std/decoder.rb`
+## Decoder
 <a name="decoder"></a>
 
 This library provides a new set of control statements for easily describing an instruction decoder.
@@ -3167,7 +3413,7 @@ end
 
 It can be noticed for field `z` in the example above that the bits are not required to be contiguous.
 
-## FSM: `std/fsm.rb`
+## FSM
 <a name="fsm"></a>
 
 This library provides a new set of control statements for easily describing a finite state machine (FSM).
@@ -3272,8 +3518,8 @@ end
 ```
 
 
-## Parallel Enumerators:: `std/hruby_enum.rb`
-<a name="enumertor"></a>
+## Parallel Enumerators
+<a name="enumerator"></a>
 
 HDLRuby parallel enumerators are objects for generating hardware processing series of signals in parallel. They are created using the method `heach` on parallel enumerable objects.
 
@@ -3390,7 +3636,7 @@ With this basis, several algorithms have been implemented using enumerators and 
 <!-- - `huniq`: HW implementation the Ruby `uniq` method. Returns a vector signal containing the selected elements. -->
 
 
-## Sequencer (software-like hardware coding):: `std/sequencer.rb`
+## Sequencer (software-like hardware coding)
 <a name="sequencer"></a>
 
 This library provides a new set of software-like control statements for describing the behavior of a circuit. Behind the curtain, these constructs build a finite state machine where states are deduced from the control points within the description. Eventhough sequencers are ment to describe hardware, they are software-compatible so that they can efficiently be executed as software programs as explain in section about [software sequencers](#sequencers-as-software-code).
@@ -3987,11 +4233,11 @@ end
 It is also possible to generate C or Python code from the sequencer using the `to_c` and `to_python` methods, respectively. For example, the commands below generate a C file and a Python file from `my_seq`. However, the synchronization commands are not yet supported.
 
 ```ruby
-File.open("seqiemcer_in_c.c","w" do |f|
+File.open("sequencer_in_c.c","w" do |f|
    f << my_seq.to_c
 end
 
-File.open("seqiemcer_in_python.py","w" do |f|
+File.open("sequencer_in_python.py","w" do |f|
    f << my_seq.to_python
 end
 ```
@@ -4169,7 +4415,7 @@ end
 
 
 
-## Fixed-point (fixpoint): `std/fixpoint.rb`
+## Fixed-point
 <a name="fixpoint"></a>
 
 This library provides a new fixed point set of data types. These new data types can be bit vectors, unsigned or signed values and are declared respectively as follows:
@@ -4200,8 +4446,9 @@ For example, the following code converts a floating-point value to a fixed-point
 3.178.to_fix(16)
 ```
 
+<!--
 
-## Channel: `std/channel.rb`
+## Channel
 <a name="channel"></a>
 
 This library provides a unified interface to complex communication protocols through a new kind of component called the channels that abstract the details of communication protocols. The channels can be used similarly to the ports of a system and are used through a unified interface so that changing the kind of channel, i.e., the communication protocol, does not require any modification of the code.
@@ -4380,6 +4627,8 @@ end
 __Note__:
 
  * The code of the circuits, in the examples `producer8`, `consumer8`, and `producer_consummer8` is independent of the content of the channel. For example, the sample `with_channel.rb` (please see [samples](#sample-hdlruby-descriptions)) uses the same circuits with a channel implementing handshaking.
+
+-->
 
 <!---
 
