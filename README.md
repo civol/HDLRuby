@@ -71,6 +71,21 @@ hdrcc --get-tuto
 
 __What's New__
 
+For HDLRuby version 3.9.0:
+
+* Added the parallel enumerators to the software sequencers.
+
+* Added experimental TensorFlow code generation from the software sequencers.
+
+* Added the possibility to declare vectors of instances.
+
+* Added the possibility to fix the data type for the accumulation with the hinject and sinject enumerators.
+
+* Fixed various bugs.
+
+* Made an overhaul of the documentation.
+
+
 For HDLRuby version 3.8.3:
 
 * Fixed various bugs including some in interactive mode.
