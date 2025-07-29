@@ -239,6 +239,7 @@ system :my_seqencer do
     end
 
     [8].inner :res26, :res27
+    [7].inner :res26X, :res27X
 
     sequencer(clk.posedge,rst) do
         # hprint(":0\n")
@@ -246,6 +247,8 @@ system :my_seqencer do
         res27 <= 0
         res26 <= vals.sinject(_h01) { |a,b| a+b }
         res27 <= vals.sinject(:+)
+        res26X <= vals.sinject(bit[4]) { |a,b| a+b }
+        res27X <= vals.sinject(bit[4],:+)
         # hprint(":1 res26=",res26," res27=",res27,"\n")
     end
 

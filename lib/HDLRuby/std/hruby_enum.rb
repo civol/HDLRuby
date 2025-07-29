@@ -331,14 +331,35 @@ module HDLRuby::High::Std
       if ruby_block then
         # Case when a block is given.
         res = args[0]
-        self.heach do |e|
-          res = res ? ruby_block.call(res,e) : e
+        # HDLRuby special: the argument can also be the type.
+        if res.respond_to?(:to_type) then
+          typ = res.to_type
+          res = nil
+          self.heach do |e|
+            res = res ? ruby_block.call(res,e.as(typ)) : e.as(typ)
+          end
+        else
+          self.heach do |e|
+            res = res ? ruby_block.call(res,e) : e
+          end
         end
       else
         # Case when a symbol is given.
         res, sym = args[0], args[1]
-        self.heach do |e|
-          res = res ? res.send(sym,e) : e
+        if res.is_a?(::Symbol) then
+          sym = res
+          res = nil
+        end
+        if res.respond_to?(:to_type) then
+          typ = res.to_type
+          res = nil
+          self.heach do |e|
+            res = res ? res.send(sym,e.as(typ)) : e.as(typ)
+          end
+        else
+          self.heach do |e|
+            res = res ? res.send(sym,e) : e
+          end
         end
       end
       return res

@@ -947,7 +947,12 @@ module HDLRuby::High::Std
             enum = self.seach
             # Define the computation type: from the initial value if any,
             # otherwise from the enum.
-            typ = init ? init.to_expr.type : enum.type
+            if init.respond_to?(:to_type) then
+              typ = init.to_type
+              init = nil
+            else
+              typ = init ? init.to_expr.type : enum.type
+            end
             # Generate the result signal.
             res  = nil
             HDLRuby::High.cur_system.open do

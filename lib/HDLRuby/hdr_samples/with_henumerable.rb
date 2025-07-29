@@ -201,12 +201,16 @@ system :henmerable_checks do
     end
 
     [8].inner :res35, :res36
+    [7].inner :res35X, :res36X
 
     res35 <= vals.hinject(_h01) { |a,b| a+b }
+
+    res35X <= vals.hinject(bit[4]) { |a,b| a+b }
 
     par(clk.posedge) do
       # hprint(":0\n")
       res36 <= vals.(:+)
+      res36X <= vals.(bit[4],:+)
     end
 
     [8].inner :res37
