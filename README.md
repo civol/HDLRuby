@@ -9,48 +9,48 @@ If you want to learn how to describe a circuit with HDLRuby, please jump to the 
 
 * [HDLRuby Programming Guide](#hdlruby-programming-guide)
 
-  - [Introduction](#introduction)
+  * [Introduction](#introduction)
 
-  - [How HDLRuby Works](#how-hdlruby-works)
+  * [How HDLRuby Works](#how-hdlruby-works)
 
-  - [Naming rules](#naming-rules)
+  * [Naming rules](#naming-rules)
 
-  - [Systems and Signals](#systems-and-signals)
+  * [Systems and Signals](#systems-and-signals)
 
-  - [Events](#events)
+  * [Events](#events)
 
-  - [Statements](#statements)
+  * [Statements](#statements)
 
-  - [Types](#types)
+  * [Types](#types)
 
-  - [Expressions](#expressions)
+  * [Expressions](#expressions)
 
-  - [Functions](#functions)
+  * [Functions](#functions)
 
-  - [Software code](#software-code)
+  * [Software code](#software-code)
 
-  - [Time](#time)
+  * [Time](#time)
 
-  - [High-Level Programming Features](#high-level-programming-features)
+  * [High-Level Programming Features](#high-level-programming-features)
 
-  - [Extending HDLRuby](#extending-hdlruby)
+  * [Extending HDLRuby](#extending-hdlruby)
 
 Many of HDLRuby's features are available through its standard libraries.
 We strongly recommend consulting the corresponding section:
 
 * [Standard Libraries](#standard-libraries)
 
-  - [Clocks](#clocks)
+  * [Clocks](#clocks)
 
-  - [Decoder](#decoder)
+  * [Decoder](#decoder)
 
-  - [FSM](#fsm)
+  * [FSM](#fsm)
 
-  - [Parallel Enumerators](#parallel-enumerators)
+  * [Parallel Enumerators](#parallel-enumerators)
 
-  - [Sequencer (Software-like Hardware Coding)](#sequencer-software-like-hardware-coding)
+  * [Sequencer (Software-like Hardware Coding)](#sequencer-software-like-hardware-coding)
 
-  - [Fixed-Point](#fixed-point)
+  * [Fixed-Point](#fixed-point)
 
 Samples are also available: [Sample HDLRuby descriptions](#sample-hdlruby-descriptions)
 
@@ -92,11 +92,11 @@ For HDLRuby version 3.8.3:
 
 * Updated the documentation: 
 
-  - Rewrote the beginning of the [HDLRuby Programming Guide](#hdlruby-programming-guide).
+  * Rewrote the beginning of the [HDLRuby Programming Guide](#hdlruby-programming-guide).
 
-  - Updated the documentation for interactive mode.
+  * Updated the documentation for interactive mode.
 
-  - Updated the [High-Level Programming Features](#high-level-programming-features) chapter.
+  * Updated the [High-Level Programming Features](#high-level-programming-features) chapter.
 
 For HDLRuby version 3.8.0:
 
@@ -170,7 +170,7 @@ For HDLRuby version 3.4.0:
 
 * Added [v2hdr](#converting-verilog-hdl-to-hdlruby), a standalone tool for converting Verilog HDL files to HDLRuby (experimental).
 
-* Added a HDLRuby command for [loading a Verilog HDL file from a HDLRuby description](#loading-verilog-hdl-from-hdlruby).
+* Added a HDLRuby command for [loading a Verilog HDL file from a HDLRuby description](#converting-verilog-hdl-to-hdlruby).
 
 
 For HDLRuby version 3.3.0:
@@ -235,8 +235,9 @@ git clone https://github.com/civol/HDLRuby.git
 
 __Warning__: 
 
- - HDLRuby is still under active development, and the API may change before a stable release.
- - It is highly recommended that users have a basic understanding of both the Ruby programming language and hardware description languages before using HDLRuby.
+* HDLRuby is still under active development, and the API may change before a stable release.
+
+* It is highly recommended that users have a basic understanding of both the Ruby programming language and hardware description languages before using HDLRuby.
 
 
 # Compiling HDLRuby Descriptions
@@ -419,8 +420,8 @@ Another key feature of HDLRuby is its native support for all features of the Rub
 
 __Notes__:
 
-- It is possible to extend HDLRuby to support hardware descriptions at a higher level of abstraction than RTL. See [Extending HDLRuby](#extending-hdlruby) for more details.
-- Throughout this guide, HDLRuby constructs are often compared to their Verilog HDL or VHDL equivalents to aid understanding.
+* It is possible to extend HDLRuby to support hardware descriptions at a higher level of abstraction than RTL. See [Extending HDLRuby](#extending-hdlruby) for more details.
+* Throughout this guide, HDLRuby constructs are often compared to their Verilog HDL or VHDL equivalents to aid understanding.
 
 ## Introduction
 
@@ -714,45 +715,48 @@ Fourth, HDLRuby allows you to extend modules and instances after their declarati
 
 Let us say you want to extend an existing `dff` module to include an inverted output (`qb`). There are three ways to do this:
 
- 1. Inheriting from a Module.
-    You can define a new system that inherits from the existing `dff`:
+1. Inheriting from a Module.
 
-   ```ruby
-   system :dff_full, dff do
-      output :qb
-      qb <= ~q
-   end
-   ```
+  You can define a new system that inherits from the existing `dff`:
 
-    This creates a new module `dff_full` that includes all the functionality of `dff`, with the additional inverted output.
+  ```ruby
+  system :dff_full, dff do
+     output :qb
+     qb <= ~q
+  end
+  ```
 
-  2. Reopening a Module.
-     You can modify the original `dff` module after its declaration using the open method:
+  This creates a new module `dff_full` that includes all the functionality of `dff`, with the additional inverted output.
 
-   ```ruby
-   dff.open do
-      output :qb
-      qb <= ~q
-   end
-   ```
+2. Reopening a Module.
 
-     This approach modifies `dff` itself, and the added behavior (`qb <= ~q`) will apply to all future instances of `dff`.
+  You can modify the original `dff` module after its declaration using the open method:
 
-  3. Reopening a Specific Instance.
-     You can also modify a single instance of a module without affecting the others:
+  ```ruby
+  dff.open do
+     output :qb
+     qb <= ~q
+  end
+  ```
 
-   ```ruby
-   # Declare dff0 as an instance of dff
-   dff :dff0
-   
-   # Modify it
-   dff0.open do
-      output :qb
-      qb <= ~q
-   end
-   ```
+  This approach modifies `dff` itself, and the added behavior (`qb <= ~q`) will apply to all future instances of `dff`.
 
-     In this case, only `dff0` will have the qb inverted output. Other instances of `dff` remain unchanged.
+ 3. Reopening a Specific Instance.
+
+  You can also modify a single instance of a module without affecting the others:
+
+  ```ruby
+  # Declare dff0 as an instance of dff
+  dff :dff0
+  
+  # Modify it
+  dff0.open do
+     output :qb
+     qb <= ~q
+  end
+  ```
+
+  In this case, only `dff0` will have the qb inverted output. Other instances of `dff` remain unchanged.
 
 In summary, HDLRuby supports:
 
@@ -1095,19 +1099,19 @@ system(:box) {}
 
 __Notes__:
 
- - Since this is Ruby code, the block can also be written using `do...end` syntax. In that case, parentheses around the name are optional:
+* Since this is Ruby code, the block can also be written using `do...end` syntax. In that case, parentheses around the name are optional:
  
 
-```ruby
-system :box do
-end
-```
+  ```ruby
+  system :box do
+  end
+  ```
 
- - Although HDLRuby internally stores names as Ruby symbols, you can also use strings. For example, the following is equally valid:
+* Although HDLRuby internally stores names as Ruby symbols, you can also use strings. For example, the following is equally valid:
 
-```ruby
-system("box") {}
-```
+  ```ruby
+  system("box") {}
+  ```
 
 ### Declaring a system with an interface
 
@@ -1307,9 +1311,9 @@ __Notes__:
 
 * By default:
    
-   - Ruby integers (e.g., `42`) are treated as 64-bit HDLRuby values.
+  * Ruby integers (e.g., `42`) are treated as 64-bit HDLRuby values.
 
-   - HDLRuby literals prefixed with `_` (e.g., `_b1010`, `_h0F`) have a bit-width corresponding to their representation.
+  * HDLRuby literals prefixed with `_` (e.g., `_b1010`, `_h0F`) have a bit-width corresponding to their representation.
 
 * When initializing ROM or arrays of values, make sure that the bit-width of the values matches the declared type -- otherwise, misalignments or synthesis issues may occur.
 
@@ -1582,17 +1586,17 @@ end
 
 __Notes__:
 
-  - `helse seq` ensures that the block of the hardware `else` is in blocking assignment mode.
+* `helse seq` ensures that the block of the hardware `else` is in blocking assignment mode.
 
-  - `hif(rst)` could also have been set to blocking assignment mode as follows:
-    
-    ```ruby
-       hif rst, seq do
-          reg <= 0
-       end
-    ```
+* `hif(rst)` could also have been set to blocking assignment mode as follows:
+   
+   ```ruby
+      hif rst, seq do
+         reg <= 0
+      end
+   ```
 
-  - non-blocking mode can be set the same way using `par`.
+* Non-blocking mode can be set the same way using `par`.
 
 
 ### Extra Features for the Description of Processes
@@ -2469,21 +2473,21 @@ In this declaration:
 
 * `programming_language` is a symbol indicating the language used for the software. Currently supported options are:
 
-  - `:ruby` -- for programs written in Ruby.
+  * `:ruby` -- for programs written in Ruby.
 
-  - `:c` --  for programs written in C. (In fact, any language that can be compiled into a shared library linkable with C is supported.)
+  * `:c` --  for programs written in C. (In fact, any language that can be compiled into a shared library linkable with C is supported.)
 
 * `function_name` is the name of the software function that is executed when an activation event occurs. Only one such function can be specified per program, but multiple programs can be declared within the same module.
 
 * `location of the software files and description of its interface` may include the following declarations:
 
-  - `actport <list of events>` -- Declares the events that activate the program (i.e., trigger execution of the program’s start function).
+  * `actport <list of events>` -- Declares the events that activate the program (i.e., trigger execution of the program’s start function).
 
-  - `inport <port_name: signal>` -- Declares input ports that can be read by the software.
+  * `inport <port_name: signal>` -- Declares input ports that can be read by the software.
 
-  - `outport <port_name: signal>` -- Declares output ports that the software can write to.
+  * `outport <port_name: signal>` -- Declares output ports that the software can write to.
 
-  - `code <list_of_filenames>` -- Specifies the software source file(s).
+  * `code <list_of_filenames>` -- Specifies the software source file(s).
 
 __Example:__
 
@@ -2508,9 +2512,9 @@ end
 
 __Notes:__ 
 
- * The bit width of an input or output port matches that of the signal it is connected to. From the software perspective, however, all port values are converted to the C type `long long`.
+* The bit width of an input or output port matches that of the signal it is connected to. From the software perspective, however, all port values are converted to the C type `long long`.
 
- * If the language is Ruby, the `code` section can use a Ruby `Proc` objecct in place of a file name.
+* If the language is Ruby, the `code` section can use a Ruby `Proc` objecct in place of a file name.
 
 
 
@@ -3369,9 +3373,9 @@ __Warnings__:
 
 * In the example above, the semantics of some_arrow change depending on the context in which it is called:
 
-  - Within a module: interpreted as a static connection.
+  * Within a module: interpreted as a static connection.
 
-  - Within a process: interpreted as a behavioral assignment.
+  * Within a process: interpreted as a behavioral assignment.
 
 * Using Ruby methods to describe hardware can lead to fragile or incorrect code if not used carefully. For example, consider the following:1
 
@@ -3398,21 +3402,21 @@ __Warnings__:
 
   In this case:
 
-  - `sys0` works correctly. 
+  * `sys0` works correctly. 
 
-  - `sys1` raises an error due to redeclaration of `in0`.
+  * `sys1` raises an error due to redeclaration of `in0`.
 
-  - `sys2` raises an error because `input` declarations are not allowed inside a process.
+  * `sys2` raises an error because `input` declarations are not allowed inside a process.
 
 __Using Ruby Method Features__
 
 Ruby methods in HDLRuby support all standard Ruby features, including:
 
- * Variadic arguments (`*args`)
+* Variadic arguments (`*args`)
 
- * Named (keyword) arguments
+* Named (keyword) arguments
 
- * Block arguments (`&block`)
+* Block arguments (`&block`)
 
 For example, the following method connects a single driver signal to multiple targets:
 
@@ -3804,11 +3808,11 @@ The available state kinds are:
 
 * `reset`: The state entered when the FSM is reset.
 
-  - If name is `:sync`, the reset is forced to be synchronous.
+  * If name is `:sync`, the reset is forced to be synchronous.
 
-  - If name is `:async`, the reset is forced to be asynchronous.
+  * If name is `:async`, the reset is forced to be asynchronous.
 
-  - If name is omitted, the mode defaults to that of the FSM.
+  * If name is omitted, the mode defaults to that of the FSM.
 
 * `state`: A regular state that follows the FSM’s default mode.
 
@@ -4894,9 +4898,9 @@ When a `sync` command is encountered during execution:
 
 * The paused sequencer can later be resumed by either:
 
-  - Calling it again using the call operator (`my_seq.()`), or
+  * Calling it again using the call operator (`my_seq.()`), or
 
-  - Setting its associated start signal to `1`.
+  * Setting its associated start signal to `1`.
 
 __Example: Pausing and Resuming a Sequencer__
 
