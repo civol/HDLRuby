@@ -9,48 +9,48 @@ If you want to learn how to describe a circuit with HDLRuby, please jump to the 
 
 * [HDLRuby Programming Guide](#hdlruby-programming-guide)
 
- - [Introduction](#introduction)
+  - [Introduction](#introduction)
 
- - [How HDLRuby Works](#how-hdlruby-works)
+  - [How HDLRuby Works](#how-hdlruby-works)
 
- - [Naming rules](#naming-rules)
+  - [Naming rules](#naming-rules)
 
- - [Systems and Signals](#systems-and-signals)
+  - [Systems and Signals](#systems-and-signals)
 
- - [Events](#events)
+  - [Events](#events)
 
- - [Statements](#statements)
+  - [Statements](#statements)
 
- - [Types](#types)
+  - [Types](#types)
 
- - [Expressions](#expressions)
+  - [Expressions](#expressions)
 
- - [Functions](#functions)
+  - [Functions](#functions)
 
- - [Software code](#software-code)
+  - [Software code](#software-code)
 
- - [Time](#time)
+  - [Time](#time)
 
- - [High-Level Programming Features](#high-level-programming-features)
+  - [High-Level Programming Features](#high-level-programming-features)
 
- - [Extending HDLRuby](#extending-hdlruby)
+  - [Extending HDLRuby](#extending-hdlruby)
 
 Many of HDLRuby's features are available through its standard libraries.
 We strongly recommend consulting the corresponding section:
 
 * [Standard Libraries](#standard-libraries)
 
- - [Clocks](#clocks)
+  - [Clocks](#clocks)
 
- - [Decoder](#decoder)
+  - [Decoder](#decoder)
 
- - [FSM](#fsm)
+  - [FSM](#fsm)
 
- - [Parallel Enumerators](#parallel-enumerator)
+  - [Parallel Enumerators](#parallel-enumerators)
 
- - [Sequencer (Software-like Hardware Coding)](#sequencer-software-like-hardware coding)
+  - [Sequencer (Software-like Hardware Coding)](#sequencer-software-like-hardware-coding)
 
- - [Fixed-Point](#fixed-point)
+  - [Fixed-Point](#fixed-point)
 
 Samples are also available: [Sample HDLRuby descriptions](#sample-hdlruby-descriptions)
 
@@ -111,7 +111,7 @@ For HDLRuby version 3.7.9:
 
 * Added Python code generation from software sequencers.
 
-* Added [Parallel Enumerators](#parallel-enumerators-stdhruby_enumrb). 
+* Added [Parallel Enumerators](#parallel-enumerators). 
 
 For HDLRuby versions 3.7.7/3.7.8:
 
@@ -197,7 +197,7 @@ For HDLRuby version 3.2.0:
 
 For HDLRuby version 3.1.0:
 
-* Added [Functions for sequencers](#sequencer-specific-function-std-sequencer_func-rb), including support for recursion.
+* Added [functions for sequencers](#sequencer-specific-functions), including support for recursion.
 
 * Replaced the `function` keyword with `hdef` for consistency with sequencer functions (`sdef`).
 
@@ -211,7 +211,7 @@ For HDLRuby version 3.0.0:
 
 * Intruduced this changelog section.
 
-* Added [Sequencers](#sequencer-software-like-hardware-coding-stdsequencerrb) for software-like hardware design.
+* Added [Sequencers](#sequencer-software-like-hardware-coding) for software-like hardware design.
 
 * Added a [tutorial](tuto/tutorial_sw.md) for software developers.
 
@@ -467,7 +467,7 @@ These include:
 
 * `mux`, an expression-level construct for multiplexers, which supports multiple inputs, unlike the ?: ternary operator in Verilog, which only handles two
 
-__Note__:  These statements are also called "parallel conditionals" in HDLRuby, to contrast with the ones used in the `sequencer` constructs (see [Sequencer](##sequencer-software-like-Hardware-coding)).
+__Note__:  These statements are also called "parallel conditionals" in HDLRuby, to contrast with the ones used in the `sequencer` constructs (see [Sequencer](#sequencer-software-like-Hardware-coding)).
 
 For example, we can upgrade the 8-bit adder to an adder-subtractor:
 
@@ -4149,7 +4149,7 @@ __Using Enumerators in Sequences__
 
 Within sequencer blocks, HDLRuby provides enumerator methods similar to Ruby’s `each`. These include:
 
-* `<object>.seach`: `object` can be any Ruby enumerable or HDLRuby signal. If a block is given, it behaves like sfor; otherwise, it returns an HDLRuby enumerator (see [enumerator](#hdlruby-enumerators-and-enumerable-objects-stdsequencerrb) for details).
+* `<object>.seach`: `object` can be any Ruby enumerable or HDLRuby signal. If a block is given, it behaves like sfor; otherwise, it returns an HDLRuby enumerator (see [enumerator](#hdlruby-enumerators-and-enumerable-objects) for details).
 
 * `<object>.stimes`: Can be used on integers and is equivalent to calling seach on the range `0..object-1`.
 
