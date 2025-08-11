@@ -934,10 +934,16 @@ module HDLRuby::High
         if condition.respond_to?(:to_i) then
           # The hif can be evaluate straight away. Do metaprograming.
           if condition.to_i != 0 then
+            caught = false
             HDLRuby::High.top_user.sub do
-              ruby_block.call
+              caught = true
+              catch(:HDLRubyThrow) do
+                ruby_block.call
+                caught = false
+              end
             end
             @metacond = :hif
+            throw(:HDLRubyThrow) if caught
           else
             @metacond = :helse
           end
@@ -956,10 +962,16 @@ module HDLRuby::High
           return :toif unless condition.respond_to?(:to_i)
           # The hif can be evaluate straight away. Do metaprograming.
           if condition.to_i != 0 then
+            caught = false
             HDLRuby::High.top_user.sub do
-              ruby_block.call
+              caught = true
+              catch(:HDLRubyThrow) do
+                ruby_block.call
+                caught = false
+              end
             end
             @metacond = :hif
+            throw(:HDLRubyThrow) if caught
           else
             @metacond = :helse
           end
@@ -990,10 +1002,16 @@ module HDLRuby::High
         if @metavalue and match.respond_to?(:to_i) then
           # The hwen can be evaluate straight away. Do metaprograming.
           if @metavalue == match.to_i then
+            caught = false
             HDLRuby::High.top_user.sub do
-              ruby_block.call
+              caught = true
+              catch(:HDLRubyThrow) do
+                ruby_block.call
+                caught = false
+              end
             end
             @metacond = :hwhen
+            throw(:HDLRubyThrow) if caught
           else
             @metacond = :helse
           end
@@ -1008,11 +1026,17 @@ module HDLRuby::High
         if @metacond then
           if @metacond == :helse then
             if ruby_block then
+              caught = false
               HDLRuby::High.top_user.sub do
-                ruby_block.call
+                caught = true
+                catch(:HDLRubyThrow) do
+                  ruby_block.call
+                  caught = false
+                end
               end
             end
             @metacond = nil
+            throw(:HDLRubyThrow) if caught
           end
           return true
         end

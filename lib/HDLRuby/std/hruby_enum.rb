@@ -557,7 +557,7 @@ module HDLRuby::High::Std
       if !ruby_block then
         return HEnumeratorWrapper.new(self,:hreverse_each,*args)
       end
-      return self.to_a.reverse_each(&ruby_block)
+      return self.hto_a.reverse_each(&ruby_block)
     end
 
     # HW implementation of the Ruby slice_after.
@@ -786,7 +786,7 @@ module HDLRuby::High::Std
       if !ruby_block then
         return HEnumeratorWrapper.new(self,:heach_range)
       end
-      return self.to_a.each_range(rng,&ruby_block)
+      return self.hto_a.each_range(rng,&ruby_block)
     end
 
     # Iterates with an index.
@@ -839,18 +839,26 @@ module HDLRuby::High::Std
       return self unless ruby_block
       # Create a namespace.
       base_block = ruby_block
+      caught = false
       ruby_block = proc do |*args| 
         HDLRuby::High.top_user.sub do
-          base_block.call(*args)
+          caught = true
+          catch(:HDLRubyThrow) do
+            base_block.call(*args)
+            caught = false
+          end
         end
+        throw(:HDLRubyThrow) if caught
       end
       # Iterate.
-      if self.respond_to?(:[]) then
-        return self.size.times do |i|
-          ruby_block.call(self[i])
+      catch(:HDLRubyThrow) do
+        if self.respond_to?(:[]) then
+          return self.size.htimes do |i|
+            ruby_block.call(self[i])
+          end
+        else
+          return self.hto_a.each(&ruby_block)
         end
-      else
-        return self.hto_a.each(&ruby_block)
       end
     end
 
@@ -995,10 +1003,16 @@ module HDLRuby::High::Std
       # A block? Apply it on each element.
       # Create a namespace.
       base_block = ruby_block
+      caught = false
       ruby_block = proc do |*args|
         HDLRuby::High.top_user.sub do
-          base_block.call(*args)
+          caught = true
+          catch(:HDLRubyThrow) do
+            base_block.call(*args)
+            caught = false
+          end
         end
+        throw(:HDLRubyThrow) if caught
       end
       # Iterate.
       self.type.range.heach do |i|
@@ -1101,10 +1115,18 @@ module HDLRuby::High::Std
         return HEnumeratorWrapper.new(self)
       end
       # self.each { |e| HDLRuby::High.top_user.sub { ruby_block.call(e) } }
-      self.each do |e|
-        HDLRuby::High.top_user.sub do
-          # HDLRuby::High.top_user.instance_exec(e,&ruby_block)
-          ruby_block.call(e)
+      catch(:HDLRubyThrow) do
+        caught = false
+        self.each do |e|
+          HDLRuby::High.top_user.sub do
+            caught = true
+            catch(:HDLRubyThrow) do
+              # HDLRuby::High.top_user.instance_exec(e,&ruby_block)
+              ruby_block.call(e)
+              caught = false
+            end
+          end
+          throw(:HDLRubyThrow) if caught
         end
       end
     end
@@ -1134,10 +1156,16 @@ module HDLRuby::High::Std
         # A block is given, iterate on each element of the range
         # Create a namespace.
         base_block = ruby_block
+        caught = false
         ruby_block = proc do |*args|
           HDLRuby::High.top_user.sub do
-            base_block.call(*args)
+            caught = true
+            catch(:HDLRubyThrow) do
+              base_block.call(*args)
+              caught = false
+            end
           end
+          throw(:HDLRubyThrow) if caught
         end
         # converted to values of the right type.
         if first.is_a?(Value) then
@@ -1147,21 +1175,25 @@ module HDLRuby::High::Std
         end
         first = self.first.to_i
         last = self.last.to_i
-        if first <= last then
-          (first..last).each do |i|
-            ruby_block.call(i.as(typ))
-          end
-        else
-          (last..first).reverse_each do |i|
-            ruby_block.call(i.as(typ))
+        catch(:HDLRubyThrow) do
+          if first <= last then
+            (first..last).each do |i|
+              ruby_block.call(i.as(typ))
+            end
+          else
+            (last..first).reverse_each do |i|
+              ruby_block.call(i.as(typ))
+            end
           end
         end
       else
         # Other range cases.
-        if self.first <= self.last then
-          return self.each(&ruby_block)
-        else
-          return (self.last..self.first).reverse_each(&ruby_block)
+        catch(:HDLRubyThrow) do
+          if self.first <= self.last then
+            return self.each(&ruby_block)
+          else
+            return (self.last..self.first).reverse_each(&ruby_block)
+          end
         end
       end
     end
@@ -1176,13 +1208,57 @@ module HDLRuby::High::Std
     # Enhance the Integer class with sequencer iterations.
 
     # HW times iteration.
-    alias_method :htimes, :times
+    # alias_method :htimes, :times
+    def htimes(&ruby_block)
+      return HEnumeratorWrapper.new(self,:htimes) unless ruby_block
+      self.times do |i|
+        ruby_block.call(i)
+      end
+    end
 
     # HW upto iteration.
-    alias_method :hupto, :upto
+    # alias_method :hupto, :upto
+    def hupto(val,&ruby_block)
+      return HEnumeratorWrapper.new(self,:hupto) unless ruby_block
+      self.upto(val) do |i|
+        ruby_block.call(i)
+      end
+    end
 
     # HW downto iteration.
-    alias_method :hdownto, :downto
+    # alias_method :hdownto, :downto
+    def hdownto(val,&ruby_block)
+      return HEnumeratorWrapper.new(self,:hdownto) unless ruby_block
+      self.downto(val) do |i|
+        ruby_block.call(i)
+      end
+    end
+  end
+
+
+  # Handle the enumeration exits.
+  module HEnumeratorExit
+    # Parallel break.
+    def hbreak
+      throw(:"HDLRubyThrow")
+    end
+
+    # Parallel continue.
+    def hcontinue
+      raise("hcontinue not implemented yet.")
+    end
+  end
+
+
+  class HDLRuby::High::Scope
+    include HEnumeratorExit
+  end
+
+  module HDLRuby::High::HBlock
+    # Also adds the methods of HEnumerable.
+    HEnumeratorExit.instance_methods.each do |meth|
+      define_method(meth,HEnumeratorExit.instance_method(meth))
+    end
   end
 
 end
