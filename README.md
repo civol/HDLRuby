@@ -71,7 +71,11 @@ hdrcc --get-tuto
 
 __What's New__
 
-For HDLRuby version 3.9.0:
+For HDKRuby version 3.9.2:
+
+* Added the `hbreak` command for exiting parallel enumerator loops.
+
+For HDLRuby version 3.9.0/3.9.1:
 
 * Added the parallel enumerators to the software sequencers.
 
