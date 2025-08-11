@@ -3981,6 +3981,10 @@ Parallel enumerators provide several control methods:
 
 * `+`: Concatenates two enumerators.
 
+Additionaly, it is possible to exit an enumeration loop using the following command:
+
+* `hbreak`: Exits the current enumeration loop.
+
 __Hardware Implementations of Enumerable Methods__
 
 Using parallel enumerators, HDLRuby provides hardware implementations of many Ruby Enumerable methods. These are available for any enumerable object and can be used inside or outside processes.
