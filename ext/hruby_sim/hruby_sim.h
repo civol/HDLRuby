@@ -252,6 +252,12 @@ extern Value not_value(Value src, Value dst);
  *  @return dst */
 extern Value reduce_or_value(Value src, Value dst);
 
+/** Compute the and of the bits a a value.
+ *  @param src the source value
+ *  @param dst the destination value
+ *  @return dst */
+extern Value reduce_and_value(Value src, Value dst);
+
 /** Computes the AND of two values.
  *  @param src0 the first source value of the and
  *  @param src1 the second source value of the and

@@ -156,7 +156,7 @@ module HDLRuby
         
 
         # And
-        def &(type)
+        def &(type = nil)
             # # puts "compute types with=#{self} and #{type}"
             # # Resolve the type class.
             # resolved = self.resolve(type)
@@ -178,7 +178,11 @@ module HDLRuby
             #     return resolved.make(:"",resolved.base,res_lsb..res_msb)
             # end
             # The result is the resolve result now!
-            return self.resolve(type)
+            if type then
+              return self.resolve(type)
+            else
+              return self
+            end
         end
 
         # Or

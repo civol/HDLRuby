@@ -3297,14 +3297,18 @@ module HDLRuby::High
             end
         end
 
-        # Adds the binary operations generation.
+        # Adds the binary or unary-reduction operations generation.
         [:"+",:"-",:"*",:"/",:"%",:"**",
          :"&",:"|",:"^",
          :"<<",:">>",# :ls,:rs,:lr,:rr, # ls, rs lr and rr are treated separately
          :"==",:"!=",:"<",:">",:"<=",:">="].each do |operator|
-             meth = proc do |right|
+             meth = proc do |right = nil|
                  expr = self.to_expr
-                 return expr.type.binary(operator,expr,right.to_expr)
+                 if right then
+                   return expr.type.binary(operator,expr,right.to_expr)
+                 else
+                   return expr.type.unary(operator,expr)
+                 end
              end
              # Defines the operator method.
              define_method(operator,&meth) 

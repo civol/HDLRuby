@@ -760,6 +760,8 @@ VALUE rcsim_make_unary(VALUE mod, VALUE type, VALUE operator, VALUE child) {
     switch(sym_to_char(operator)) {
         case (unsigned char)'~':         unary->oper = not_value; break;
         case (unsigned char)('-'+'@'*2): unary->oper = neg_value; break;
+        case (unsigned char)'|':   unary->oper = reduce_or_value; break;
+        case (unsigned char)'&':  unary->oper = reduce_and_value; break;
         default: perror("Invalid operator for unary.");
     }
     value_to_rcsim(ExpressionS,child,unary->child);
