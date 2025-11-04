@@ -355,10 +355,24 @@ module HDLRuby::High::Std
         def make_inners(typ,*names)
             res = nil
             if SequencerT.current then
-                unames = names.map {|name| HDLRuby.uniq_name(name) }
-                res = HDLRuby::High.cur_scope.make_inners(typ, *unames)
-                names.zip(unames).each do |name,uname|
+                # unames = names.map {|name| HDLRuby.uniq_name(name) }
+                # res = HDLRuby::High.cur_scope.make_inners(typ, *unames)
+                # names.zip(unames).each do |name,uname|
+                #     HDLRuby::High.space_reg(name) { send(uname) }
+                # end
+                names.each do |name|
+                  if name.respond_to?(:to_sym) then
+                    uname = HDLRuby.uniq_name(name)
+                    res = HDLRuby::High.cur_scope.make_inners(typ, uname)
                     HDLRuby::High.space_reg(name) { send(uname) }
+                  elsif name.is_a?(Hash) then
+                    name.each do |key,value|
+                      uname = HDLRuby.uniq_name(key)
+                      res = HDLRuby::High.cur_scope.make_inners(typ,
+                                              uname => value)
+                      HDLRuby::High.space_reg(key) { send(uname) }
+                    end
+                  end
                 end
             else
                 # self.old_make_inners(typ,*names)
