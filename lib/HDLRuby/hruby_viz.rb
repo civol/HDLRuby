@@ -1,4 +1,4 @@
-# An IC netlist mrdel and SVG-based vizualizer for HDLRuby 
+# An IC netlist model and SVG-based vizualizer for HDLRuby 
 
 # require 'stackprof'
 
@@ -675,6 +675,7 @@ module HDLRuby::Viz
         nd = child.dports.size * @port_width
         child.height = nl > nr ? nl : nr
         child.width  = nu > nd ? nu : nd
+        puts "For assign" if child.type == :assign
         puts "First width=#{child.width} height=#{child.height} [#{child.lports.size},#{child.uports.size},#{child.rports.size},#{child.dports.size}]"
         # Ensure IC have some thickness.
         if child.type != :register then
@@ -684,15 +685,17 @@ module HDLRuby::Viz
           child.width = @port_width if child.width < @port_width
           # But enlarge if more than one port horizontally or
           # vertically for easier routing and readability.
-          if child.lports.size + child.rports.size > 1 and
-              child.height == @port_width and
-              child.width == @port_width then
-            child.width *= 2
-          end
-          if child.uports.size + child.dports.size > 1 and 
-              child.width == @port_width and
-              child.height == @port_width then
-            child.height *= 2
+          if child.type != :assign then # However assign are treated appart
+            if child.lports.size + child.rports.size > 1 and
+                child.height == @port_width and
+                child.width == @port_width then
+              child.width *= 2
+            end
+            if child.uports.size + child.dports.size > 1 and 
+                child.width == @port_width and
+                child.height == @port_width then
+              child.height *= 2
+            end
           end
           # Also ensure the chip is wide enough.
           if child.type == :assign then
@@ -728,8 +731,9 @@ module HDLRuby::Viz
             child.height = 3 if child.height < @port_width
             child.width = 3 if child.width < @port_width
           end
-          puts "for register: #{child.name} ports.size=#{child.ports.size}, width=#{child.width} height=#{child.height}"
+          # puts "for register: #{child.name} ports.size=#{child.ports.size}, width=#{child.width} height=#{child.height}"
         end
+        puts "Then width=#{child.width} height=#{child.height} [#{child.lports.size},#{child.uports.size},#{child.rports.size},#{child.dports.size}]"
 
       end
     end
@@ -804,7 +808,7 @@ module HDLRuby::Viz
           if ic.type == :instance then
             ic.width = iW
             ic.height = iH
-          else
+          elsif ic.type == :process then
             puts "For process #{ic.name} setting size from #{ic.width},#{ic.height} to #{pW},#{pH}"
             ic.width = pW
             ic.height = pH
@@ -1278,6 +1282,7 @@ module HDLRuby::Viz
       # Also place the ports of the current IC.
       poses = []
       @lports.each do |lport|
+        next unless lport.targets[0] # Skip if no target.
         lport.ypos = lport.targets[0].ypos
         lport.ypos += 1 if lport.targets[0].side == UP
         lport.ypos -= 1 if lport.targets[0].side == DOWN
@@ -1531,41 +1536,127 @@ module HDLRuby::Viz
     end
 
     # Get the neighbor free positions for port.
-    # def free_neighbors(port,cpos)
     def free_neighbors(port0,port1,cpos)
       res = []
-      # Left neighbor.
-      lpos = [cpos[0]-1,cpos[1]]
-      if lpos[0] >= 0 then
-        elem = @route_matrix[lpos[1]][lpos[0]]
-        # res << lpos if elem.free_from_right?(port)
-        res << lpos if elem.free_from_right?(port0,port1) and
-          !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
-      end
-      # Up neighbor.
-      upos = [cpos[0],cpos[1]+1]
-      if upos[1] < @route_height then
-        elem = @route_matrix[upos[1]][upos[0]]
-        # res << upos if elem.free_from_down?(port)
-        res << upos if elem.free_from_down?(port0,port1) and
-          !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
-      end
-      # Right neighbor.
-      rpos = [cpos[0]+1,cpos[1]]
-      if rpos[0] < @route_width then
-        elem = @route_matrix[rpos[1]][rpos[0]]
-        # res << rpos if elem.free_from_left?(port)
-        res << rpos if elem.free_from_left?(port0,port1) and
-          !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
-      end
-      # Down neighbor.
-      dpos = [cpos[0],cpos[1]-1]
-      if dpos[1] >= 0 then
-        elem = @route_matrix[dpos[1]][dpos[0]]
-        # res << dpos if elem.free_from_up?(port)
-        res << dpos if elem.free_from_up?(port0,port1) and
-          !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
-      end
+      # For cosmetic reasons of the wires, the order of processing depends
+      # on the relative position of the ports.
+      if port0.xpos < port1.xpos and port0.ypos < port1.ypos then
+        # Left neighbor.
+        lpos = [cpos[0]-1,cpos[1]]
+        if lpos[0] >= 0 then
+          elem = @route_matrix[lpos[1]][lpos[0]]
+          res << lpos if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        end
+        # Up neighbor.
+        upos = [cpos[0],cpos[1]+1]
+        if upos[1] < @route_height then
+          elem = @route_matrix[upos[1]][upos[0]]
+          res << upos if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        end
+        # Right neighbor.
+        rpos = [cpos[0]+1,cpos[1]]
+        if rpos[0] < @route_width then
+          elem = @route_matrix[rpos[1]][rpos[0]]
+          res << rpos if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        end
+        # Down neighbor.
+        dpos = [cpos[0],cpos[1]-1]
+        if dpos[1] >= 0 then
+          elem = @route_matrix[dpos[1]][dpos[0]]
+          res << dpos if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        end
+      elsif port0.xpos < port1.xpos and port0.ypos > port1.ypos then
+        # Left neighbor.
+        lpos = [cpos[0]-1,cpos[1]]
+        if lpos[0] >= 0 then
+          elem = @route_matrix[lpos[1]][lpos[0]]
+          res << lpos if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        end
+        # Down neighbor.
+        dpos = [cpos[0],cpos[1]-1]
+        if dpos[1] >= 0 then
+          elem = @route_matrix[dpos[1]][dpos[0]]
+          res << dpos if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        end
+        # Right neighbor.
+        rpos = [cpos[0]+1,cpos[1]]
+        if rpos[0] < @route_width then
+          elem = @route_matrix[rpos[1]][rpos[0]]
+          res << rpos if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        end
+        # Up neighbor.
+        upos = [cpos[0],cpos[1]+1]
+        if upos[1] < @route_height then
+          elem = @route_matrix[upos[1]][upos[0]]
+          res << upos if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        end
+      elsif port0.xpos > port1.xpos and port0.ypos > port1.ypos then
+        # Right neighbor.
+        rpos = [cpos[0]+1,cpos[1]]
+        if rpos[0] < @route_width then
+          elem = @route_matrix[rpos[1]][rpos[0]]
+          res << rpos if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        end
+        # Down neighbor.
+        dpos = [cpos[0],cpos[1]-1]
+        if dpos[1] >= 0 then
+          elem = @route_matrix[dpos[1]][dpos[0]]
+          res << dpos if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        end
+        # Left neighbor.
+        lpos = [cpos[0]-1,cpos[1]]
+        if lpos[0] >= 0 then
+          elem = @route_matrix[lpos[1]][lpos[0]]
+          res << lpos if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        end
+        # Up neighbor.
+        upos = [cpos[0],cpos[1]+1]
+        if upos[1] < @route_height then
+          elem = @route_matrix[upos[1]][upos[0]]
+          res << upos if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        end
+      else 
+        # Right neighbor.
+        rpos = [cpos[0]+1,cpos[1]]
+        if rpos[0] < @route_width then
+          elem = @route_matrix[rpos[1]][rpos[0]]
+          res << rpos if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        end
+        # Up neighbor.
+        upos = [cpos[0],cpos[1]+1]
+        if upos[1] < @route_height then
+          elem = @route_matrix[upos[1]][upos[0]]
+          res << upos if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        end
+        # Left neighbor.
+        lpos = [cpos[0]-1,cpos[1]]
+        if lpos[0] >= 0 then
+          elem = @route_matrix[lpos[1]][lpos[0]]
+          res << lpos if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        end
+        # Down neighbor.
+        dpos = [cpos[0],cpos[1]-1]
+        if dpos[1] >= 0 then
+          elem = @route_matrix[dpos[1]][dpos[0]]
+          res << dpos if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        end
+      end 
       # Return the free neigbor positions.
       return res
     end
@@ -1651,29 +1742,16 @@ module HDLRuby::Viz
       pos0 = [port0.xpos,port0.ypos]
       pos1 = [port1.xpos,port1.ypos]
       oset = [pos0]
-      # oset = Set.new
       oset << pos0
       from = { }
-      # gscore = Hash.new(1/0.0)
-      # gscore[pos0] = 0
       gscore = Array.new(@route_matrix.size) { Array.new(@route_matrix[0].size) { 1/0.0 } }
       gscore[pos0[1]][pos0[0]] = 0
-      # fscore = Hash.new(1/0.0)
-      # fscore[pos0] = taxi_distance(pos0,pos1)
       fscore = Array.new(@route_matrix.size) { [] }
       fscore[pos0[1]][pos0[0]] = taxi_distance(pos0,pos1)
       while oset.any? do
         # Pick the position from oset with the minimum fscore.
         cpos = nil          # Current position
         mscore = 1/0.0      # Minimum score
-        # oset.each do |pos|
-        #   # score = fscore[pos]
-        #   score = fscore[pos[1]][pos[0]]
-        #   if score < mscore then
-        #     mscore = score
-        #     cpos = pos
-        #   end
-        # end
         # The best score is necessily at the end of oset.
         cpos = oset.pop
         # puts "cpos=#{cpos}"
@@ -1682,23 +1760,16 @@ module HDLRuby::Viz
           from[pos1] = cpos
           return reconstruct_path(port0,port1,from,pos1)
         end
-        # oset.delete(cpos) # No need anymore since pop
         # Get the neighbor positions for port.
-        # poses = free_neighbors(port0,cpos)
         poses = free_neighbors(port0,port1,cpos)
         poses.each do |pos|
           # Try it.
-          # tscore = gscore[cpos] + cost_position(port0,pos)
           tscore = gscore[cpos[1]][cpos[0]] + cost_position(port0,pos)
-          # if tscore < gscore[pos] then
           if tscore < gscore[pos[1]][pos[0]] then
             # This path to neigbor is better than any previous one, keep it.
             from[pos]   = cpos
-            # gscore[pos] = tscore
             gscore[pos[1]][pos[0]] = tscore
-            # fscore[pos] = tscore + taxi_distance(pos,pos1)
             fscore[pos[1]][pos[0]] = tscore + taxi_distance(pos,pos1)
-            # oset << pos unless oset.include?(pos)
             idx = oset.bsearch_index {|p| fscore[p[1]][p[0]] <= fscore[pos[1]][pos[0]] }
             if idx then
               oset.insert(idx,pos)
@@ -2377,14 +2448,26 @@ module HDLRuby::Viz
       id = Viz.to_svg_id(ic.name)
       # Determine the side of the inputs (and consequently of the outputs),
       # and the number of inputs.
-      iside = LEFT # Default side: left
+      iside = nil 
       inum = 0
       ic.ports.each do |port|
         if port.direction == :input then
           iside = port.side
           inum += 1
+        elsif port.direction == :output then
+          case port.side
+          when LEFT
+            iside = RIGHT
+          when RIGHT 
+            iside = LEFT
+          when UP
+            iside = DOWN
+          when DOWN
+            iside = UP
+          end
         end
       end
+      raise "Connection with no port for #{ic.name}" unless iside
       # NOTE: inum is zero in case of a constant, force at least 1.
       inum = 1 if inum < 1
       # The length of a leg
@@ -2498,6 +2581,8 @@ module HDLRuby::Viz
         res = "<rect fill=\"#88f\" stroke=\"#000\" " 
       when :negedge
         res = "<rect fill=\"#f88\" stroke=\"#000\" " 
+      when :anyedge
+        res = "<rect fill=\"#888\" stroke=\"#000\" " 
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
@@ -2517,6 +2602,8 @@ module HDLRuby::Viz
         res = "<rect fill=\"#88f\" stroke=\"#000\" " 
       when :negedge
         res = "<rect fill=\"#f88\" stroke=\"#000\" " 
+      when :anyedge
+        res = "<rect fill=\"#888\" stroke=\"#000\" " 
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
@@ -2551,6 +2638,8 @@ module HDLRuby::Viz
         res = "<rect fill=\"#88f\" stroke=\"#000\" " 
       when :negedge
         res = "<rect fill=\"#f88\" stroke=\"#000\" " 
+      when :anyedge
+        res = "<rect fill=\"#888\" stroke=\"#000\" " 
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
@@ -2570,6 +2659,8 @@ module HDLRuby::Viz
         res = "<rect fill=\"#88f\" stroke=\"#000\" " 
       when :negedge
         res = "<rect fill=\"#f88\" stroke=\"#000\" " 
+      when :anyedge
+        res = "<rect fill=\"#888\" stroke=\"#000\" " 
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
@@ -2614,6 +2705,8 @@ module HDLRuby::Viz
         return name + " \u2197"
       when :negedge
         return name + " \u2198"
+      when :anyedge
+        return name + " \u2195"
       else
         return name
       end
@@ -2820,9 +2913,17 @@ module HDLRuby::Viz
                 "x=\"#{(port.xpos)*@scale-pT}\" "+
                 "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + # port.name +
                 self.port_str(port) + "</text>\n"
-            else
+            elsif (child.type == :assign and port.direction == :input and
+                   child.ports.size.even? and child.ports.index(port) == child.ports.size/2) then
+              # Middle input of an alu, slide it bellow to avoid collision
+              # with the output port.
               res += "<text class=\"small#{self.idC}\" x=\"#{(port.xpos)*@scale+pT}\" "+
-                "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + # port.name + 
+                "y=\"#{(port.ypos+0.8)*@scale+sF/2.5}\">" + # port.name + 
+                self.port_str(port) + "</text>\n"
+            else
+              # General case.
+              res += "<text class=\"small#{self.idC}\" x=\"#{(port.xpos)*@scale+pT}\" "+
+                "y=\"#{(port.ypos+0.45)*@scale+sF/2.5}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -2886,10 +2987,18 @@ module HDLRuby::Viz
                 "x=\"#{(port.xpos+1)*@scale+pT}\" " +
                 "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + # port.name +
                 self.port_str(port) + "</text>\n"
+            elsif (child.type == :assign and port.direction == :input and
+                   child.ports.size.even? and child.ports.index(port) == child.ports.size/2) then
+              # Middle input of an alu, slide it bellow to avoid collision
+              # with the output port.
+              res += "<text class=\"small#{self.idC}\" style=\"text-anchor: end\" " +
+                "x=\"#{(port.xpos+1)*@scale-pT}\" "+
+                "y=\"#{(port.ypos+0.8)*@scale+sF/2.5}\">" + # port.name + 
+                self.port_str(port) + "</text>\n"
             else
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: end\" " +
                 "x=\"#{(port.xpos+1)*@scale-pT}\" "+
-                "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + # port.name + 
+                "y=\"#{(port.ypos+0.45)*@scale+sF/2.5}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -4407,8 +4516,9 @@ class HDLRuby::Low::SystemT
       end
       reg = regs[rname]
       next unless reg
-      # Connect the register, once per ic and direction.
-      subs.uniq {|p| [p.ic,p.direction] }.each do |p|
+      # # Connect the register, once per ic and direction.
+      # Connect the register, once per ic, direction and type.
+      subs.uniq {|p| [p.ic,p.direction,p.type] }.each do |p|
         # puts "Connect to register port name #{name} in ic=#{world.name} with port=#{p.name}"
         if p.direction == :output then
           world.connect(p,ports[HDLRuby::Viz.reg2input_name(name)][0])
@@ -4546,16 +4656,6 @@ class HDLRuby::Low::Scope
         # Explicit port connect case.
         links << [ connection.left.to_viz_names[0],
                    connection.right.to_viz_names[0] ]
-        # # Get the right refered name.
-        # rname = connection.right.to_viz_names[0]
-        # # If it is a register make the name its output.
-        # rname = HDLRuby::Viz.reg2output_name(rname) if regs[rname]
-        # # Get the left refered name.
-        # lname = connection.left.to_viz_names[0]
-        # # If it is a register make the name its input.
-        # lname = HDLRuby::Viz.reg2input_name(lname) if regs[lname]
-        # # Make the explicit port connect.
-        # links << [ lname, rname ]
         # Add the explicit port connection.
         puts "added link between #{links[-1][0]} and #{links[-1][1]}"
         next
@@ -4595,14 +4695,15 @@ class HDLRuby::Low::Scope
       behavior.each_event do |ev|
         name = ev.ref.to_viz_names[0]
         next if ic.port?(name) # The port has already been added.
-        # Is it a clocked event?
-        if ev.on_edge? then
-          # Yes.
-          ports[name] << ic.add_port(name, :input, ev.type)
-        else
-          # No, use a standard port.
-          ports[name] << ic.add_port(name, :input)
-        end
+        # # Is it a clocked event?
+        # if ev.on_edge? then
+        #   # Yes.
+        #   ports[name] << ic.add_port(name, :input, ev.type)
+        # else
+        #   # No, use a standard port.
+        #   ports[name] << ic.add_port(name, :input)
+        # end
+        ports[name] << ic.add_port(name, :input, ev.type)
       end
       # Recurse on its blocks.
       # behavior.block.to_viz(world,ic,ports)
@@ -4767,20 +4868,22 @@ class HDLRuby::Low::Block
       end
 
       next unless stmnt.is_a?(HDLRuby::Low::Transmit)
-      name = stmnt.left.to_viz_names[0]
+      lnames = stmnt.left.to_viz_names
+      name = lnames[0]
       if iports.key?(name) then
         # Change to inout port.
         iports[name].direction = :inout
-        next
-      end
+        # next
+      # end
       # Add one port by output name.
-      unless oports.key?(name) then
+      # unless oports.key?(name) then
+      elsif !oports.key?(name) then
         puts "Adding output port #{name} to #{ic.name}"
         port = ic.add_port(name, :output)
         ports[name] << port
         oports[name] = port
       end
-      stmnt.right.to_viz_names.each do |name|
+      (stmnt.right.to_viz_names+lnames[1..-1]).each do |name|
         if oports.key?(name) then
           # Change to inout port.
           oports[name].direction = :inout
