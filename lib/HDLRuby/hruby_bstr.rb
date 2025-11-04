@@ -100,7 +100,8 @@ module HDLRuby
             if @content.size < width then
                 @content.concat(content[-1]*(width-@content.size))
             else
-                @content.trunc!(width)
+                # @content.trunc!(width)
+              @content.slice!(width..-1)
             end
             @content.reverse!
         end

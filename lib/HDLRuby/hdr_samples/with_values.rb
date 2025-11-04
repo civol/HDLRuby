@@ -9,6 +9,8 @@ system :with_values do
     [64].inner :v64
     [96].inner :v96
 
+    _CST = _u8b1111_0000
+
 
     timed do
         v1  <= _b0
@@ -70,6 +72,8 @@ system :with_values do
         v96 <= 0x1000000000000000
         !10.ns
         v96 <= 0x1000000000000000000
+        !10.ns
+        v8 <= _CST
         !10.ns
     end
 end
