@@ -739,6 +739,7 @@ module VerilogTools
     EVENT_TOK      = "event"
     DEFPARAM_TOK   = "defparam"
     PARAMETER_TOK  = "parameter"
+    LOCALPARAM_TOK = "localparam"
     SCALARED_TOK   = "scalared"
     VECTORED_TOK   = "vectored"
 
@@ -979,7 +980,7 @@ module VerilogTools
     REAL_REX       = /\G#{S}(real)/
     EVENT_REX      = /\G#{S}(event)/
     DEFPARAM_REX   = /\G#{S}(defparam)/
-    PARAMETER_REX  = /\G#{S}(parameter)/
+    PARAMETER_REX  = /\G#{S}(parameter|localparam)/
     SCALARED_REX   = /\G#{S}(scalared)/
     VECTORED_REX   = /\G#{S}(vectored)/
 
@@ -1272,8 +1273,8 @@ module VerilogTools
                           EQUAL_EQUAL_EQUAL_TOK, NOT_EQUAL_EQUAL_TOK ]
     EQUAL_OPERATOR_REX = /\G#{S}(#{EQUAL_OPERATOR_TOKS.join("|")})/
 
-    COMPARISON_OPERATOR_TOKS = [ INFERIOR_TOK, SUPERIOR_TOK,
-                                 INFERIOR_EQUAL_TOK, SUPERIOR_EQUAL_TOK ]
+    COMPARISON_OPERATOR_TOKS = [ INFERIOR_EQUAL_TOK, SUPERIOR_EQUAL_TOK,
+                                 INFERIOR_TOK, SUPERIOR_TOK ]
     COMPARISON_OPERATOR_REX = /\G#{S}(#{COMPARISON_OPERATOR_TOKS.join("|")})/
 
     SHIFT_OPERATOR_TOKS = [ LEFT_SHIFT_TOK,  RIGHT_SHIFT_TOK, 
@@ -1515,7 +1516,7 @@ ___
       self.parse_error("opening parenthesis expected") unless self.get_token(OPEN_PAR_REX)
       self.parse_error("parameter expected") unless self.get_token(PARAMETER_REX)
       list_of_param_assignments = self.list_of_param_assignments_parse
-      self.parse_error("paramter assignment expected") unless list_of_param_assignments
+      self.parse_error("parameter assignment expected") unless list_of_param_assignments
       self.parse_error("closing parenthesis expected") unless self.get_token(CLOSE_PAR_REX)
       return pre_parameter_declaration_hook(list_of_param_assignments)
     end
@@ -1766,7 +1767,7 @@ ___
       name = self.name_of_variable_parse
       const0, const1 = nil, nil
       if self.get_token(OPEN_BRA_REX) then
-        const0 = self.constant_expression_prase
+        const0 = self.constant_expression_parse
         self.parse_error("constant expression expected") unless const0
         if self.get_token(COLON_REX) then
           const1 = self.constant_expression_parse
@@ -2622,10 +2623,10 @@ ___
     # Auth: Verilog HDL also supports output wire, reg and so on as well
     # as signed, so modified the rule as follows:
     # <output_declaration>
-    # ::= output OUTPUTTYPE? SIGNED? <range>? <list_of_variables> ;
+    # ::= output OUTPUTTYPE? SIGNED? <range>? <list_of_register_variables> ;
     RULES[:output_declaration] = <<-___
 <output_declaration>
-	::= output OUTPUTTYPE? SIGNED? <range>? <list_of_variables> ;
+	::= output OUTPUTTYPE? SIGNED? <range>? <list_of_register_variables> ;
 ___
 
     ORIGIN_RULES[:output_declaration] = <<-___
@@ -2641,7 +2642,7 @@ ___
       type = self.get_token(OUTPUTTYPE_REX)
       sign = self.get_token(SIGNED_REX)
       range = self.range_parse
-      list_of_variables = self.list_of_variables_parse
+      list_of_variables = self.list_of_register_variables_parse
       # list_of_variables = self.list_of_output_variables_parse
       # # Auth: semicolon included in list_of_output_variables!
       self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
@@ -2711,7 +2712,7 @@ ___
           expandrange = self.expandrange_parse
           delay = self.delay_parse
           list_of_variables = self.list_of_variables_parse
-          self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+          self.parse_error("semicolon expected HERE #1") unless self.get_token(SEMICOLON_REX)
           return net_declaration_hook(nettype,sign,expandrange,delay,
                                       list_of_variables)
         else
@@ -2719,7 +2720,7 @@ ___
           expandrange = self.expandrange_parse
           delay = self.delay_parse
           list_of_assignments = self.list_of_assignments_parse
-          self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+          self.parse_error("semicolon expected HERE #2") unless self.get_token(SEMICOLON_REX)
           return net_declaration_hook(nettype,sign,expandrange,delay,
                                       list_of_assignments)
         end
@@ -2732,7 +2733,7 @@ ___
         expandrange = self.expandrange_parse
         delay = self.delay_parse
         list_of_variables = self.list_of_variables_parse
-        self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+        self.parse_error("semicolon expected HERE #3") unless self.get_token(SEMICOLON_REX)
         return net_declaration_hook(charge_strength,sign,expandrange,delay,
                                     list_of_variables)
       end
@@ -2828,7 +2829,7 @@ ___
     # ::= reg SIGNED? <range>? <list_of_register_variables> ;
     RULES[:reg_declaration] = <<-___
 <reg_declaration>
-	::= reg SIGNED? <range>? <list_of_register_variables> ;
+	::= reg SIGNED? <range>? <list_of_register_variables>;
 ___
 
     ORIGIN_RULES[:reg_declaration] = <<-___
@@ -2844,7 +2845,7 @@ ___
       sign = self.get_token(SIGNED_REX)
       range = self.range_parse
       list_of_register_variables = self.list_of_register_variables_parse
-      self.parse_error("semicolon exptected") unless self.get_token(SEMICOLON_REX)
+      self.parse_error("semicolon exptected HERE #4") unless self.get_token(SEMICOLON_REX)
       return reg_declaration_hook(sign,range,list_of_register_variables)
     end
 
@@ -2860,11 +2861,16 @@ ___
 
     def time_declaration_parse
       # puts "time_declaration_parse"
+      parse_state = self.state
       unless self.get_token(TIME_REX) then
         return nil
       end
       list_of_register_variables = self.list_of_register_variables_parse
-      self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+      # self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+      unless self.get_token(SEMICOLON_REX) then
+        self.state = parse_state
+        return nil
+      end
       return time_declaration_hook(list_of_register_variables)
     end
 
@@ -2952,7 +2958,7 @@ ___
         drive_strength = self.drive_strength_parse
         delay = self.delay_parse
         list_of_assignments = self.list_of_assignments_parse
-        self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+        self.parse_error("semicolon expected HERE #5") unless self.get_token(SEMICOLON_REX)
         return continuous_assignment_hook(ASSIGN_TOK,
                                           drive_strength,nil,
                                           delay,list_of_assignments)
@@ -2963,7 +2969,7 @@ ___
         expandrange = self.expandrange_parse
         delay = self.delay_parse
         list_of_assignments = self.list_of_assignments_parse
-        self.parse_error("semicolon expected") unless self.get_token(SEMICOLON_REX)
+        self.parse_error("semicolon expected HERE #6") unless self.get_token(SEMICOLON_REX)
         return continuous_assignment_hook(nettype,
                                           drive_strength,expandrange,
                                           delay,list_of_assignments)
@@ -3059,7 +3065,14 @@ ___
     end
 
 
+    # Auth: there seems ot be a mistake in this rule: 
+    # initial assignments are also possible.
     RULES[:register_variable] = <<-___
+<register_variable>
+	::= <name_of_register> [ = <expression> ]
+	||= <name_of_memory> [ <constant_expression> : <constant_expression> ]
+___
+    ORIGIN_RULES[:register_variable] = <<-___
 <register_variable>
 	::= <name_of_register>
 	||= <name_of_memory> [ <constant_expression> : <constant_expression> ]
@@ -3081,7 +3094,14 @@ ___
       else
         self.state = parse_state
         name_of_register = self.name_of_register_parse
-        return register_variable_hook(name_of_register,nil,nil)
+        # Handle the initialization if any.
+        if self.get_token(EQUAL_REX) then
+          expression = self.expression_parse
+          self.parse_error("expression expected") unless expression
+        else
+          expression = nil
+        end
+        return register_variable_hook(name_of_register,expression,nil)
       end
     end
 
@@ -4371,7 +4391,7 @@ ___
     # <task_enable>
     # ::= <name_of_task> ;
     # ||= <name_of_task ( <expression <,<expression>>* ) ;
-    ORIGIN_RULES[:task_enable] = <<-___
+    RULES[:task_enable] = <<-___
 <task_enable>
 	::= <name_of_task> ;
 	||= <name_of_task> ( <expression> <,<expression>>* ) ;

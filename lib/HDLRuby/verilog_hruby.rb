@@ -5,6 +5,14 @@ require "HDLRuby/verilog_parser"
 
 module VerilogTools
 
+  # Table for fixing the reserved names in HDLRuby.
+  RESERVED_FIX = {
+    "load" => "_load",
+    "select" => "_select",
+    "in"   => "_in",
+    "sub"   => "_sub"
+  }
+
   # The possible levels in HDLRuby generation.
   HDLRubyLevels  = [ :top, :system, :hdef, :<=, :seq, :par, :timed, :expr ]
   NoEventLevels  = [ :hdef, :<=, :seq, :par, :timed ]
@@ -111,7 +119,10 @@ module VerilogTools
       # HDLRuby names cannot start with a $ or a capital letter.
       # To fix that add an "_", but then to avoid confusion, also
       # convert starting "_" to "__" if any.
+      name = "_Z" if name == "Z" # _Z mean something in HDLRuby
       return "_" + name
+    elsif RESERVED_FIX.key?(name) then
+      return RESERVED_FIX[name]
     else
       return name
     end
@@ -432,17 +443,49 @@ module VerilogTools
 
 
     TO_HDLRuby[:output_declaration] = lambda do |ast,state|
-      # Ignore the OUTPUTTYPE not used in HDLRuby
+      # # Ignore the OUTPUTTYPE not used in HDLRuby
+      # # Get the sign if any.
+      # sign = ast[1]
+      # sign = "" unless sign
+      # # Get the range.
+      # range = ast[2]
+      # range = range ? range.to_HDLRuby(state) + "." : ""
+      # # Get the names.
+      # names = ast[3].to_HDLRuby(state)
+      # # Genereate the resulting declaration.
+      # return state.indent + sign + range +"output " + names + "\n"
+
       # Get the sign if any.
       sign = ast[1]
       sign = "" unless sign
       # Get the range.
       range = ast[2]
       range = range ? range.to_HDLRuby(state) + "." : ""
-      # Get the names.
-      names = ast[3].to_HDLRuby(state)
-      # Genereate the resulting declaration.
-      return state.indent + sign + range +"output " + names + "\n"
+      res_txt = ""
+      ast[3][0].each do |reg|
+        if reg[0].type == :name_of_memory then
+          # It is a memory, it must be declared.
+          sign = "bit" if sign.empty?
+          res_txt += state.indent + sign + range[0..-2] + 
+            "[" + reg[1].to_HDLRuby(state) + ".." + 
+            reg[2].to_HDLRuby(state)  + "].output :" +
+            reg[0].to_HDLRuby(state) + "\n"
+        else
+          # It is a standard register, it may override a previous
+          # declaration and in such case can be omitted in HDLRuby.
+          n = reg[0].to_HDLRuby(state)
+          v = reg[1]
+          v = v.to_HDLRuby(state) if v
+          unless state.port_names.include?(n) then
+            if v then
+              res_txt += state.indent + sign + range + "output " + n + ": #{v}\n"
+            else
+              res_txt += state.indent + sign + range + "output :" + n + "\n"
+            end
+          end
+        end
+      end
+      return res_txt
     end
 
 
@@ -492,15 +535,6 @@ module VerilogTools
       # Get the range.
       range = ast[1]
       range = range ? range.to_HDLRuby(state) + "." : ""
-      # # Get the name.
-      # names = ast[2].to_HDLRuby(state)
-      # if names.empty? then
-      #   # There is actually no new inner.
-      #   return ""
-      # end
-      # Registers can also be memory, so treat each name independantly.
-      # # Genereate the resulting declaration.
-      # return state.indent + sign + range +"inner " + names + "\n"
       res_txt = ""
       ast[2][0].each do |reg|
         if reg[0].type == :name_of_memory then
@@ -514,12 +548,18 @@ module VerilogTools
           # It is a standard register, it may override a previous
           # declaration and in such case can be omitted in HDLRuby.
           n = reg[0].to_HDLRuby(state)
+          v = reg[1]
+          v = v.to_HDLRuby(state) if v
           unless state.port_names.include?(n) then
-            res_txt += state.indent + sign + range + "inner :" + n + "\n"
+            if v then
+              res_txt += state.indent + sign + range + "inner " + n + ": #{v}\n"
+            else
+              res_txt += state.indent + sign + range + "inner :" + n + "\n"
+            end
           end
         end
       end
-        return res_txt
+      return res_txt
     end
 
 
@@ -771,7 +811,7 @@ module VerilogTools
             if !content_txt.empty? then
               # There is a content, add it to the list.
               seq_par_txt[-1][1] = content_txt
-              content_txt == ""
+              content_txt = ""
             end
             # Add a new block.
             seq_par_txt << [seq_par, ""]
@@ -831,7 +871,7 @@ module VerilogTools
         # Generate the case items.
         case_txt += ast[2].map do |item|
           res_txt = ""
-          if item[0] then
+          if item[0] != "default" then
             # hwhen case.
             res_txt += indent + "hwhen(" 
             res_txt += item[0].map {|e| e.to_HDLRuby(state) }.join(",")
@@ -868,8 +908,8 @@ module VerilogTools
 
 
     TO_HDLRuby[:assignment] = lambda do |ast,state|
-      return state.indent + ast[0].to_HDLRuby(state) + " <= " +
-        ast[1].to_HDLRuby(state) + "\n"
+      return state.indent + ast[0].to_HDLRuby(state) + " <= (" +
+        ast[1].to_HDLRuby(state) + ")\n"
     end
 
 
@@ -880,8 +920,8 @@ module VerilogTools
       if ast[1] then
         raise "Internal error: unsupported delay or event in assingment yet."
       end
-      return state.indent + ast[0].to_HDLRuby(state)  + " <= " +
-        ast[2].to_HDLRuby(state)  + "\n"
+      return state.indent + ast[0].to_HDLRuby(state)  + " <= (" +
+        ast[2].to_HDLRuby(state)  + ")\n"
     end
 
     TO_HDLRuby[:non_blocking_assignment] = TO_HDLRuby[:blocking_assignment]
@@ -1001,10 +1041,12 @@ module VerilogTools
           return VerilogTools.operator_to_HDLRuby(op) + primary_txt
         when "&", "|", "^", "^|"
           return primary_txt + 
-            ".each.reduce(:" + VerilogTools.operator_to_HDLRuby(op) + ")"
+            # ".heach.reduce(:" + VerilogTools.operator_to_HDLRuby(op) + ")"
+            "." + VerilogTools.operator_to_HDLRuby(op) + "()"
         when "~&", "~|", "~^"
           return "~" + primary_txt + 
-            ".each.reduce(:" + VerilogTools.operator_to_HDLRuby(op[1]) +")"
+            # ".heach.reduce(:" + VerilogTools.operator_to_HDLRuby(op[1]) +")"
+            "." + VerilogTools.operator_to_HDLRuby(op) + "()"
         else
           raise "Internal error: unknown unary operator #{op}"
         end
@@ -1056,16 +1098,16 @@ module VerilogTools
       case base
       when "'b"
         # Binary encoding.
-        return "_#{number0}b#{number1}"
+        return "_u#{number0}b#{number1}"
       when "'o"
         # Octal encoding.
-        return "_#{number0}o#{number1}"
+        return "_u#{number0}o#{number1}"
       when "'d"
         # Decimal encoding.
-        return "_#{number0}d#{number1}"
+        return "_s#{number0}d#{number1}"
       when "'h"
         # Hexadecimal encoding.
-        return "_#{number0}h#{number1}"
+        return "_u#{number0}h#{number1}"
       when ""
         # Simple number.
         return number0
