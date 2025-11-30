@@ -12,6 +12,21 @@ module HDLRuby::Viz
   DOWN    = 8
   BLOCKED = 16
 
+  # Get the base name of the port.
+  def self.port_base_name(name)
+    return name.sub(/\[.*\]\z/,"")
+  end
+
+  # Get the bit part of the port name if any.
+  def self.port_bit_name(name)
+    return name.match(/\[.*\]\z/)[0]
+  end
+
+  # Tell if a port name is for a sub port.
+  def self.port_bit_name?(name)
+    return name =~ /\[.*\]\z/
+  end
+
 
   # An IC Port
   class Port
@@ -110,6 +125,9 @@ module HDLRuby::Viz
 
     # Give the size of the IC in number of statements.
     def number_statements
+      if self.type == :instance then
+        return self.system.number_statements
+      end
       # Get the number from the branches.
       snum = @branches.reduce(0) do |sum,branch|
         sum + branch.number_statements
@@ -118,6 +136,7 @@ module HDLRuby::Viz
       snum += @children.reduce(0) do |sum,child|
         sum + child.number_statements
       end
+      return snum
     end
 
 
@@ -269,43 +288,54 @@ module HDLRuby::Viz
       @uports.clear
       @rports.clear
       @dports.clear
+      # Ports sides by direction and base name.
+      @port_base_dir = {}
+      # Process the ports.
       @ports.each do |port|
-        if port.targets.empty? then
-          puts "Dangling port: #{port.name} (of #{port.ic.name})"
-          # Not connected port, put it on the side with the less ports.
-          if port.direction == :input then
-            if lports.size <= uports.size then
-              port.side = LEFT
-            else
-              port.side = UP
-            end
-          else
-            if rports.size <= dports.size then
-              port.side = RIGHT
-            else
-              port.side = DOWN
-            end
-          end
+        # Maybe there is a port with the same direction.
+        side = @port_base_dir[[HDLRuby::Viz.port_base_name(port.name),
+                               port.direction]]
+        if side then
+          port.side = side
         else
-          # The port is connected.
-          if port.direction == :input then
-            # For now, use the first target only for deciding.
-            d_left  = port.targets[0].ic.xpos - @box[0]
-            d_up    = @box[3] - 
-              port.targets[0].ic.ypos + port.targets[0].ic.height
-            if d_left <= d_up then
-              port.side = LEFT
+          # No, process to port.
+          if port.targets.empty? then
+            puts "Dangling port: #{port.name} (of #{port.ic.name})"
+            # Not connected port, put it on the side with the less ports.
+            if port.direction == :input then
+              if lports.size <= uports.size then
+                port.side = LEFT
+              else
+                port.side = UP
+              end
             else
-              port.side = UP
+              if rports.size <= dports.size then
+                port.side = RIGHT
+              else
+                port.side = DOWN
+              end
             end
           else
-            d_right = @box[2] - 
-              port.targets[0].ic.xpos + port.targets[0].ic.width
-            d_down  = port.targets[0].ic.ypos - @box[1]
-            if d_right <= d_down then
-              port.side = RIGHT
+            # The port is connected.
+            if port.direction == :input then
+              # For now, use the first target only for deciding.
+              d_left  = port.targets[0].ic.xpos - @box[0]
+              d_up    = @box[3] - 
+                port.targets[0].ic.ypos + port.targets[0].ic.height
+              if d_left <= d_up then
+                port.side = LEFT
+              else
+                port.side = UP
+              end
             else
-              port.side = DOWN
+              d_right = @box[2] - 
+                port.targets[0].ic.xpos + port.targets[0].ic.width
+              d_down  = port.targets[0].ic.ypos - @box[1]
+              if d_right <= d_down then
+                port.side = RIGHT
+              else
+                port.side = DOWN
+              end
             end
           end
         end
@@ -321,6 +351,9 @@ module HDLRuby::Viz
         when DOWN
           @dports << port
         end
+        # Also for the handling of bits.
+        @port_base_dir[[HDLRuby::Viz.port_base_name(port.name),
+                        port.direction]] = port.side
       end
     end
 
@@ -763,6 +796,7 @@ module HDLRuby::Viz
         puts "With number of statements: #{num} are base area=#{area}"
         # First compute the target area, and width and height of each type.
         ics.each do |ic|
+          puts "For ic=#{ic.name}"
           # Update the target area.
           n_area = ic.width * ic.height
           area = n_area if n_area > area
@@ -786,11 +820,13 @@ module HDLRuby::Viz
             pH = ic.height if ic.height > pH
             # Ensure the target area is reached.
             if ic.branches[0].type == :par then
-              # For par processes, increase squarely.
-              if pW <= pH then
-                pW += 1
-              else
-                pH += 1
+              while pW*pW < area do
+                # For par processes, increase squarely.
+                if pW <= pH then
+                  pW += 1
+                else
+                  pH += 1
+                end
               end
             else
               # For non par processes, increase vertically.
@@ -808,7 +844,7 @@ module HDLRuby::Viz
           if ic.type == :instance then
             ic.width = iW
             ic.height = iH
-          elsif ic.type == :process then
+          elsif [:process, :clocked_process, :timed_process]. include?(ic.type) then
             puts "For process #{ic.name} setting size from #{ic.width},#{ic.height} to #{pW},#{pH}"
             ic.width = pW
             ic.height = pH
@@ -1282,7 +1318,7 @@ module HDLRuby::Viz
       # Also place the ports of the current IC.
       poses = []
       @lports.each do |lport|
-        next unless lport.targets[0] # Skip if no target.
+        next unless lport.targets[0] # Skip dangling port.
         lport.ypos = lport.targets[0].ypos
         lport.ypos += 1 if lport.targets[0].side == UP
         lport.ypos -= 1 if lport.targets[0].side == DOWN
@@ -1295,10 +1331,10 @@ module HDLRuby::Viz
       end
       poses = []
       @uports.each do |uport|
+        next unless uport.targets[0] # Skip dangling port.
         uport.xpos = uport.targets[0].xpos
         uport.xpos -= 1 if uport.targets[0].side == LEFT
         uport.xpos += 1 if uport.targets[0].side == RIGHT
-        puts "Now uport.xpos=#{uport.xpos}"
         # Ensure ports do not overlap.
         while poses[uport.xpos] do
           uport.xpos += 1
@@ -1308,6 +1344,7 @@ module HDLRuby::Viz
       end
       poses = []
       @rports.each do |rport|
+        next unless rport.targets[0] # Skip dangling port.
         rport.ypos = rport.targets[0].ypos
         rport.ypos += 1 if rport.targets[0].side == UP
         rport.ypos -= 1 if rport.targets[0].side == DOWN
@@ -1320,6 +1357,7 @@ module HDLRuby::Viz
       end
       poses = []
       @dports.each do |dport|
+        next unless dport.targets[0] # Skip dangling port.
         dport.xpos = dport.targets[0].xpos
         dport.xpos -= 1 if dport.targets[0].side == LEFT
         dport.xpos += 1 if dport.targets[0].side == RIGHT
@@ -2696,9 +2734,14 @@ module HDLRuby::Viz
     # Generate the string representing a port for display in the SVG
     def port_str(port)
       # Generate the port name (strip everything before the last ".")
-      name = port.name.sub(/^.*\./,"")
+      # name = port.name.sub(/^.*\./,"")
+      name = port.name.split(/(?<!\.)\.(?!\.)/).last
       # Strip the suffix $I and $O
       name = name.sub(/\$(I|O)$/,"")
+      # For registers' bit ports, only keep the bit number.
+      if port.ic.type==:register and HDLRuby::Viz.port_bit_name?(name) then
+        name = HDLRuby::Viz.port_bit_name(name)
+      end
       # Add a suffix for edge properties.
       case port.type
       when :posedge
@@ -2753,7 +2796,10 @@ module HDLRuby::Viz
       # Sets the styles.
       res += "<style>\n"
       # Fonts
-      res += ".small#{self.idC}  { font: #{sF}px sans-serif; }\n"
+      res += ".small#{self.idC}  { font: #{sF}px sans-serif; " # }\n" # +
+      res += "stroke=\"yellow\"; stroke-width=\"6\"; paint-order=\"stroke fill;\" }\n"
+        # "border: 2px solid black; padding: 10px; display: inline-block; " +
+        # " background-color: rgba(0, 128, 255, 0.2); }\n"
       res += ".medium#{self.idC} { font: #{mF}px sans-serif; }\n"
       res += ".large#{self.idC}  { font: #{lF}px sans-serif; }\n"
       res += "</style>\n"
@@ -2911,19 +2957,19 @@ module HDLRuby::Viz
             if child == self then
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: end\" " +
                 "x=\"#{(port.xpos)*@scale-pT}\" "+
-                "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + # port.name +
+                "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + 
                 self.port_str(port) + "</text>\n"
             elsif (child.type == :assign and port.direction == :input and
                    child.ports.size.even? and child.ports.index(port) == child.ports.size/2) then
               # Middle input of an alu, slide it bellow to avoid collision
               # with the output port.
               res += "<text class=\"small#{self.idC}\" x=\"#{(port.xpos)*@scale+pT}\" "+
-                "y=\"#{(port.ypos+0.8)*@scale+sF/2.5}\">" + # port.name + 
+                "y=\"#{(port.ypos+0.8)*@scale+sF/2.5}\">" +
                 self.port_str(port) + "</text>\n"
             else
               # General case.
               res += "<text class=\"small#{self.idC}\" x=\"#{(port.xpos)*@scale+pT}\" "+
-                "y=\"#{(port.ypos+0.45)*@scale+sF/2.5}\">" + # port.name + 
+                "y=\"#{(port.ypos+0.45)*@scale+sF/2.5}\">" + 
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -3082,14 +3128,15 @@ module HDLRuby::Viz
             cty += 1
           end
         end
-        # Leave a space for left or right ports if any.
-        sl = child.ports.any? {|p| p.side == LEFT } ? 1.0 : 0.0
-        sr = child.ports.any? {|p| p.side == RIGHT } ? 1.0 : 0.0
+        # # Leave a space for left or right ports if any.
+        # sl = (child.ports.any? {|p| p.side == LEFT }) ? 1.0 : 0.0
+        # sr = (child.ports.any? {|p| p.side == RIGHT }) ? 1.0 : 0.0
         # Recompute the scale.
         fit = [
-          (target.width+sl+sr+(bT/@scale)) / (cwidth),
-          (target.height+(bT/@scale)) / (cheight),
-          3.0
+          # (target.width+sl+sr+(bT/@scale/2.0)) / (cwidth),
+          (target.width+(bT/@scale/2.0)) / (cwidth),
+          (target.height+(bT/@scale/2.0)) / (cheight),
+          1.0# 3.0
         ].max
         target.scale = @scale / fit
         puts "fit=#{fit} target.scale=#{target.scale}"
@@ -4491,7 +4538,7 @@ class HDLRuby::Low::SystemT
     # ports.each_value do |subs|
     ports.each do |name,subs|
       # Skip connection to registers, they are processed later.
-      next if regs[name]
+      next if regs[HDLRuby::Viz.port_base_name(name)]
       # Not a register, can go on.
       subs.each do |p0|
         subs.each do |p1|
@@ -4509,7 +4556,8 @@ class HDLRuby::Low::SystemT
       # Check if there is a register corresponding to the port
       # (full port or sub port of the register).
       next if name.include?("$") # Skip register ports which are targets.
-      rname = name
+      # rname = name
+      rname = HDLRuby::Viz.port_base_name(name)
       while !regs.key?(rname) do
         break unless rname.include?(".")
         rname = rname.gsub(/\.[^.]*$/,"")
@@ -4554,16 +4602,48 @@ class HDLRuby::Low::SystemT
       # NOTE: p0 or p1 may be empty if outside current module.
       world.connect(p0,p1) unless (!p0 or !p1 or p0.targets.include?(p1))
     end
-    # Remove the dangling input ports in registers (they are ROMS).
+    # # Remove the dangling input ports in registers (they are ROMS).
+    # regs.each_value do |reg|
+    #   to_remove_input = reg.ports.select {|p| p.direction==:input }.all? do
+    #     |p|
+    #     p.targets.none?
+    #   end
+    #   if to_remove_input then
+    #     reg.ports.delete_if {|p| p.direction == :input }
+    #   end
+    # end
+    # Remove the dangling ports in registers (they are ROMS).
     regs.each_value do |reg|
-      to_remove_input = reg.ports.select {|p| p.direction==:input }.all? do
-        |p|
-        p.targets.none?
-      end
-      if to_remove_input then
-        reg.ports.delete_if {|p| p.direction == :input }
+      reg.ports.delete_if {|p| p.targets.none? }
+    end
+
+    # Gather the bit ports by owner port.
+    port2bits = {}
+    ports.each do |name,subs|
+      subs.each do |port|
+        port2bits[port.name] = []
       end
     end
+    ports.each do |name,subs|
+      subs.each do |port|
+        if HDLRuby::Viz.port_bit_name?(port.name) then
+          port2bits[HDLRuby::Viz.port_base_name(port.name)] << port
+        end
+      end
+    end
+    # Remove the dangling ports that are accessed by sub ports.
+    ports.each do |name,subs|
+      subs.each do |port|
+        if port.targets.none? then
+          # This is a dangling port, is it connected by bits.
+          if port2bits[port.name].any? then
+            # Yes, remove it.
+            port.ic.ports.delete(port)
+          end
+        end
+      end
+    end
+
     # Return the resulting visualization.
     return world
   end
@@ -4592,18 +4672,23 @@ class HDLRuby::Low::Scope
       # name = sname + inner.name.to_s
       # name = inner.name.to_s
       name = sname + inner.name.to_s
-      # Create the viz for the "register"
-      if typ.is_a?(HDLRuby::Low::TypeVector) and
-          typ.base.width > 1 then
-        puts "Adding scope register #{name} to #{world.name}"
-        # This is in fact a memory matrix.
-        reg = HDLRuby::Viz::IC.new(name,:memory,world)
-      else
-        puts "Adding plain register #{name} to #{world.name}"
-        # This is a plain register.
-        reg = HDLRuby::Viz::IC.new(name,:register,world)
+      # But first cut of the index if any for the register.
+      rname = HDLRuby::Viz.port_base_name(name)
+      reg = regs[rname]
+      unless reg then
+        # Create the viz for the "register"
+        if typ.is_a?(HDLRuby::Low::TypeVector) and
+            typ.base.width > 1 then
+          puts "Adding scope register #{rname} to #{world.name}"
+          # This is in fact a memory matrix.
+          reg = HDLRuby::Viz::IC.new(rname,:memory,world)
+        else
+          puts "Adding plain register #{rname} to #{world.name}"
+          # This is a plain register.
+          reg = HDLRuby::Viz::IC.new(rname,:register,world)
+        end
+        regs[reg.name] = reg
       end
-      regs[reg.name] = reg
       # Create the corresponding input and output ports.
       iname = HDLRuby::Viz.reg2input_name(name)
       puts "Adding input port #{iname} to reg #{reg.name}"
@@ -4660,7 +4745,7 @@ class HDLRuby::Low::Scope
         puts "added link between #{links[-1][0]} and #{links[-1][1]}"
         next
       end
-      ic = HDLRuby::Viz::IC.new(HDLRuby.uniq_name("cxn"),:assign,world)
+      ic = HDLRuby::Viz::IC.new(HDLRuby.uniq_name("cnx"),:assign,world)
       # Add its ports.
       # Output.
       name = connection.left.to_viz_names[0]
@@ -4792,14 +4877,19 @@ class HDLRuby::Low::Block
     self.each_inner do |inner|
       name = bname + inner.name.to_s
       puts "Adding block register #{name} to #{world.name}"
-      # Create the viz for the "register"
-      if inner.type.base.width > 1 then
-        # This is in fact a memory matrix.
-        reg = HDLRuby::Viz::IC.new(name,:memory,world)
-      else
-        reg = HDLRuby::Viz::IC.new(name,:register,world)
+      # But first cut of the index if any for the register.
+      rname = HDLRuby::Viz.port_base_name(name)
+      reg = regs[rname]
+      unless reg then
+        # Create the viz for the "register"
+        if inner.type.base.width > 1 then
+          # This is in fact a memory matrix.
+          reg = HDLRuby::Viz::IC.new(rname,:memory,world)
+        else
+          reg = HDLRuby::Viz::IC.new(rname,:register,world)
+        end
+        regs[reg.name] = reg
       end
-      regs[reg.name] = reg
       # Create the corresponding input and output ports.
       iname = HDLRuby::Viz.reg2input_name(name)
       puts "Adding input port #{iname} to #{world.name}"
