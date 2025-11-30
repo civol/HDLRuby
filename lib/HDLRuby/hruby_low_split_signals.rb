@@ -25,30 +25,33 @@ module HDLRuby::Low
 
       # Split the signals of a system if they have determined bit or range 
       # accessed.
-      def split_signals
+      def split_signals(signals_splits = nil)
+        # puts "split_signals for systemT=#{self.name}"
         # Gather the signals to split and their splitting.
-        signal_splits = self.get_signal_splits unless signals
+        signal_splits = self.get_signal_splits unless signals_splits
 
         # Do the splitting.
-        signal_split.each do |sig,splits|
+        signal_splits.each do |sig,splits|
           # Get the owner of the signal.
           owner = sig.parent
-          # Remove the signal from the owner since it is split.
-          case sig.direction
-          when :input
-            owner.delete_input!(sig)
-          when :output
-            owner.delete_output!(sig)
-          when :inout
-            owner.delete_inout!(sig)
-          when :inner
-            owner.delete_inner!(sig)
-          end
+          dir = sig.direction
+          # # Remove the signal from the owner since it is split.
+          # case dir
+          # when :input
+          #   owner.delete_input!(sig)
+          # when :output
+          #   owner.delete_output!(sig)
+          # when :inout
+          #   owner.delete_inout!(sig)
+          # when :inner
+          #   owner.delete_inner!(sig)
+          # end
 
           # Add instead the corresponding sub signals.
-          splits.each do |sub,places|
+          splits.each do |idx,(sub,places)|
+            # puts "owner.class=#{owner.class} sub.class=#{sub.class}"
             # In the owner.
-            case sig.direction
+            case dir
             when :input
               owner.add_input(sub)
             when :output
@@ -62,7 +65,7 @@ module HDLRuby::Low
             # Replace the references of the signal by its subs.
             places.each do |place|
               place.parent.map_nodes! do |node|
-                node == place ? HDLRuby::Low::RefName.new(sub.name) : node
+                node == place ? HDLRuby::Low::RefName.new(Bit,RefThis.new,sub.name) : node
               end
             end
           end
@@ -110,12 +113,19 @@ module HDLRuby::Low
       # resulting sub signals.
       # The result is to be put in the +res+ table.
       def get_signal_splits(res = {})
-        if self.ref.is_a?(RefIndex) and self.ref.ref.is_a?(RefName)
-          and self.ref.index.is_a?(RefIndex) then
+        if self.ref.is_a?(RefIndex) and self.ref.ref.is_a?(RefName) and
+           self.ref.index.is_a?(Value) then
           sigref = self.ref
           # A split is found. Get the signal upward.
           sig = self.parent.parent.get_signal_upward(self.ref.name)
-          sig.split_to(self.ref.index,res)
+          sig.split_to_index(self.ref.index,res)
+        elsif self.ref.is_a?(RefRange) and self.ref.ref.is_a?(RefName) and
+          self.ref.range.first.is_a?(Value) and 
+          self.ref.range.last.is_a?(Value) then
+          sigref = self.ref
+          # A split is found. Get the signal upward.
+          sig = self.parent.parent.get_signal_upward(self.ref.name)
+          sig.split_to_range(self.ref.range,res)
         end
         return res
       end
@@ -139,12 +149,22 @@ module HDLRuby::Low
       def get_signal_splits(res = {})
         # Recurse on the sub statements.
         self.each_statement_deep do |stmnt|
-          stmnt.each_expression_deep do |expr|
-            if expr.is_a?(RefIndex) and expr.ref.is_a?(RefName)
-              and expr.index.is_a?(RefIndex) then
+          stmnt.each_node_deep do |expr|
+            if expr.is_a?(RefIndex) and expr.ref.is_a?(RefName) and
+               expr.index.is_a?(Value) then
               # A split is found. Get the signal upward.
-              sig = self.block.get_signal_up(self.ref.name)
-              sig.split_to(expr,expr.index,res)
+              blk = self.block
+              sig = blk ? blk.get_signal_up(expr.ref.name) : 
+                self.scope.get_signal_up(expr.ref.name)
+              sig.split_to_index(expr,expr.index,res)
+            elsif expr.is_a?(RefRange) and expr.ref.is_a?(RefName) and
+              expr.range.first.is_a?(Value) and
+              expr.range.last.is_a?(Value) then
+              # A split is found. Get the signal upward.
+              blk = self.block
+              sig = blk ? blk.get_signal_up(expr.ref.name) : 
+                self.scope.get_signal_up(expr.ref.name)
+              sig.split_to_range(expr,expr.range,res)
             end
           end
         end
@@ -156,17 +176,35 @@ module HDLRuby::Low
     class SignalI
       # Split the signal at place +place+ for +index+ and register it to
       # +res+ table.
-      def split_to(place ,index, res)
+      def split_to_index(place ,index, res)
         index = index.to_i
-        entry = res[sig]
+        entry = res[self]
         unless entry then
           entry = {}
-          res[sig] = entry
+          res[self] = entry
         end
         split = entry[index]
         unless split then
-          split = [new SginalI(self.name.to_s + "[#{index}]",Bit), []]
+          split = [SignalI.new(self.name.to_s + "[#{index}]",Bit), []]
           entry[index] = split
+        end
+        split[1] << place
+        return res
+      end
+
+      # Split the signal at place +place+ for +index+ and register it to
+      # +res+ table.
+      def split_to_range(place ,range, res)
+        range = range.first.to_i..range.last.to_i
+        entry = res[self]
+        unless entry then
+          entry = {}
+          res[self] = entry
+        end
+        split = entry[range]
+        unless split then
+          split = [SignalI.new(self.name.to_s + "[#{range}]",Bit), []]
+          entry[range] = split
         end
         split[1] << place
         return res

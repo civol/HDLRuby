@@ -419,15 +419,15 @@ module HDLRuby::Low
             return @inouts[name.to_sym]
         end
 
-        # # Gets an inner signal by +name+.
-        # def get_inner(name)
-        #     return @inners[name.to_sym]
-        # end
-
         # Gets a signal by +name+.
         def get_signal(name)
-            return get_input(name) || get_output(name) || get_inout(name) # ||
-                   # get_inner(name)
+            return get_input(name) || get_output(name) || get_inout(name) 
+        end
+
+        # Gets a signal by +name+ up to the systemT.
+        # Here it is a systemT, so stop here if not found.
+        def get_signal_up(name)
+          return self.get_signal(name)
         end
 
         # Gets an interface signal by order of declaration +i+.
@@ -435,41 +435,6 @@ module HDLRuby::Low
             return @interface[i]
         end
 
-        # # Deletes input +signal+.
-        # def delete_input(signal)
-        #     if @inputs.key?(signal) then
-        #         # The signal is present, delete it.
-        #         @inputs.delete(signal.name)
-        #         @interface.delete(signal)
-        #         # And remove its parent.
-        #         signal.parent = nil
-        #     end
-        #     signal
-        # end
-
-        # # Deletes output +signal+.
-        # def delete_output(signal)
-        #     if @outputs.key?(signal) then
-        #         # The signal is present, delete it.
-        #         @outputs.delete(signal.name)
-        #         @interface.delete(signal)
-        #         # And remove its parent.
-        #         signal.parent = nil
-        #     end
-        #     signal
-        # end
-
-        # # Deletes inout +signal+.
-        # def delete_inout(signal)
-        #     if @inouts.key?(signal) then
-        #         # The signal is present, delete it.
-        #         @inouts.delete(signal.name)
-        #         @interface.delete(signal)
-        #         # And remove its parent.
-        #         signal.parent = nil
-        #     end
-        #     signal
-        # end
     
         # Iterates over each object deeply.
         #
@@ -993,56 +958,20 @@ module HDLRuby::Low
             return @inners[name.to_sym]
         end
 
-        # ## Gets a signal by +path+.
-        # #
-        # #  NOTE: +path+ can also be a single name or a reference object.
-        # def get_signal(path)
-        #     path = path.path_each if path.respond_to?(:path_each) # Ref case.
-        #     if path.respond_to?(:each) then
-        #         # Path is iterable: look for the first name.
-        #         path = path.each
-        #         name = path.each.next
-        #         # Maybe it is a system instance.
-        #         systemI = self.get_systemI(name)
-        #         if systemI then
-        #             # Yes, look for the remaining of the path into the
-        #             # corresponding system type.
-        #             return systemI.systemT.get_signal(path)
-        #         else
-        #             # Maybe it is a signal name.
-        #             return self.get_signal(name)
-        #         end
-        #     else
-        #         # Path is a single name, look for the signal in the system's
-        #         # Try in the inputs.
-        #         signal = get_input(path)
-        #         return signal if signal
-        #         # Try in the outputs.
-        #         signal = get_output(path)
-        #         return signal if signal
-        #         # Try in the inouts.
-        #         signal = get_inout(path)
-        #         return signal if signal
-        #         # Not found yet, look into the inners.
-        #         return get_inner(path)
-        #     end
-        # end
-
         # Gets an inner signal by +name+, equivalent to get_inner.
         def get_signal(name)
             return @inners[name]
         end
 
-        # # Deletes inner +signal+.
-        # def delete_inner(signal)
-        #     if @inners.key?(signal) then
-        #         # The signal is present, delete it. 
-        #         @inners.delete(signal.name)
-        #         # And remove its parent.
-        #         signal.parent = nil
-        #     end
-        #     signal
-        # end
+        # Gets a signal by +name+ up to the systemT.
+        # Here it is a systemT, so stop here if not found.
+        def get_signal_up(name)
+          # Maybe its an inner.
+          sig = self.get_inner(name)
+          # If not, look in the parent.
+          sig = self.parent.get_signal(name) unless sig
+          return sig
+        end
 
         # Handling the connections.
 
@@ -2556,6 +2485,13 @@ module HDLRuby::Low
         def parent_system
             return self.top_scope.parent
         end
+
+        # Gets a signal by +name+ up to the systemT.
+        # Here it is a systemT, so stop here if not found.
+        def get_signal_up(name)
+          # Look in the parent.
+          return self.parent.get_signal(name)
+        end
     end
 
 
@@ -2708,6 +2644,24 @@ module HDLRuby::Low
         def immutable?
             # By default, signals are not immutable.
             false
+        end
+
+        # Give the direction of the signal if possible.
+        def direction
+          # No parent? No direction.
+          return nil unless self.parent
+          if self.parent.is_a?(Block) or self.parent.is_a?(Scope) then
+            # Inner direction.
+            return :inner
+          else
+            if parent.get_input(self.name) then
+              return :input
+            elsif parent.get_output(self.name) then
+              return :output
+            else
+              return :inout
+            end
+          end
         end
 
         # Adds sub signal +sig+
@@ -2938,6 +2892,7 @@ module HDLRuby::Low
                        :each_signal, :each_signal_deep,
                        :get_input, :get_output, :get_inout, :get_inner,
                        :get_signal, :get_interface,
+                       :get_signal_up,
                        :each_systemI, :get_systemI,
                        :each_connection, :each_connection_deep,
                        :each_statement_deep, :each_arrow_deep,
@@ -4699,6 +4654,16 @@ module HDLRuby::Low
             return @inners[name.to_sym]
         end
         alias_method :get_signal, :get_inner
+
+        # Gets a signal by +name+ up to the systemT.
+        # Here it is a systemT, so stop here if not found.
+        def get_signal_up(name)
+          # Maybe its an inner.
+          sig = self.get_inner(name)
+          # If not, look in the parent.
+          sig = self.parent.get_signal_up(name) unless sig
+          return sig
+        end
 
         # Iterates over all the signals of the block and its sub block's ones.
         def each_signal_deep(&ruby_block)

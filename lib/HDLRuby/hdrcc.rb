@@ -1079,6 +1079,9 @@ elsif $options[:vhdl] then
         end
     end
 elsif $options[:svg] then
+    # Requires to split the signals for better visibility and routability.
+    require "HDLRuby/hruby_low_split_signals.rb"
+    $top_system.split_signals
     # Requires the viz library.
     require "HDLRuby/hruby_viz.rb"
     # Generate the viz structure.
