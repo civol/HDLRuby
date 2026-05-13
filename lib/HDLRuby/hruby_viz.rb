@@ -1547,152 +1547,342 @@ module HDLRuby::Viz
       return (pos0[0] - pos1[0]).abs + (pos0[1] - pos1[1]).abs
     end
 
-    # Check if there is a port at location +pos+ in +side+ that conflict
-    # with both +port0+ and +port1+.
-    def ic_port_conflict(port0,port1,pos,side)
-      return false unless @route_matrix[pos[1]]
-      return false unless @route_matrix[pos[1]][pos[0]]
-      ic = @route_matrix[pos[1]][pos[0]].ic
-      return false unless ic # No IC here, so not possible port to conflict
-      # There is an IC get the port at pos from side if any.
-      p = nil
-      case side
-      when LEFT
-        port = ic.lports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
-      when UP
-        port = ic.uports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
-      when RIGHT
-        port = ic.rports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
-      when DOWN
-        port = ic.dports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
-      end
-      if port and port != port0 and port != port1 then
-        return true
-      else
-        return false
+    # Build a can for wire conflicting with port.
+    def build_port_conflict_cache
+      @port_conflict_cache = {}
+      @route_matrix.each do |row|
+        row.each do |elem|
+          next unless elem&.ic
+          ic = elem.ic
+          ic.lports.each  do |p|
+            key = p.xpos + p.ypos * 10000 + LEFT * 100000000
+            @port_conflict_cache[key] = p
+          end
+          ic.uports.each do |p| 
+            key = p.xpos + p.ypos * 10000 + UP * 100000000
+            @port_conflict_cache[key] = p
+          end
+          ic.rports.each do |p| 
+            key = p.xpos + p.ypos * 10000 + RIGHT * 100000000
+            @port_conflict_cache[key] = p
+          end
+          ic.dports.each do |p| 
+            key = p.xpos + p.ypos * 10000 + DOWN * 100000000
+            @port_conflict_cache[key] = p
+          end
+        end
       end
     end
 
+    # Check if there is a port at location +pos+ in +side+ that conflict
+    # with both +port0+ and +port1+.
+    # def ic_port_conflict(port0,port1,pos,side)
+    ic_port = nil
+    def ic_port_conflict(port0,port1,pos0,pos1,side)
+      # return false unless @route_matrix[pos[1]]
+      # return false unless @route_matrix[pos[1]][pos[0]]
+      # ic = @route_matrix[pos[1]][pos[0]].ic
+      # return false unless ic # No IC here, so not possible port to conflict
+      # # There is an IC get the port at pos from side if any.
+      # p = nil
+      # case side
+      # when LEFT
+      #   port = ic.lports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
+      # when UP
+      #   port = ic.uports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
+      # when RIGHT
+      #   port = ic.rports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
+      # when DOWN
+      #   port = ic.dports.find {|p| p.xpos==pos[0] && p.ypos==pos[1] }
+      # end
+      # if port and port != port0 and port != port1 then
+      #   return true
+      # else
+      #   return false
+      # end
+
+      ic_port = @port_conflict_cache[pos0 + pos1 * 10000 + side * 100000000]
+      return ic_port && ic_port != port0 && ic_port != port1
+    end
+
+    # # Get the neighbor free positions for port.
+    # def free_neighbors(port0,port1,cpos)
+    #   res = []
+    #   # For cosmetic reasons of the wires, the order of processing depends
+    #   # on the relative position of the ports.
+    #   if port0.xpos < port1.xpos and port0.ypos < port1.ypos then
+    #     # Left neighbor.
+    #     lpos = [cpos[0]-1,cpos[1]]
+    #     if lpos[0] >= 0 then
+    #       elem = @route_matrix[lpos[1]][lpos[0]]
+    #       res << lpos if elem.free_from_right?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+    #         !ic_port_conflict(port0,port1,lpos[0]-1,lpos[1],RIGHT)
+    #     end
+    #     # Up neighbor.
+    #     upos = [cpos[0],cpos[1]+1]
+    #     if upos[1] < @route_height then
+    #       elem = @route_matrix[upos[1]][upos[0]]
+    #       res << upos if elem.free_from_down?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+    #         !ic_port_conflict(port0,port1,upos[0],upos[1]+1,DOWN)
+    #     end
+    #     # Right neighbor.
+    #     rpos = [cpos[0]+1,cpos[1]]
+    #     if rpos[0] < @route_width then
+    #       elem = @route_matrix[rpos[1]][rpos[0]]
+    #       res << rpos if elem.free_from_left?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+    #         !ic_port_conflict(port0,port1,rpos[0]+1,rpos[1],LEFT)
+    #     end
+    #     # Down neighbor.
+    #     dpos = [cpos[0],cpos[1]-1]
+    #     if dpos[1] >= 0 then
+    #       elem = @route_matrix[dpos[1]][dpos[0]]
+    #       res << dpos if elem.free_from_up?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+    #         !ic_port_conflict(port0,port1,dpos[0],dpos[1]-1,UP)
+    #     end
+    #   elsif port0.xpos < port1.xpos and port0.ypos > port1.ypos then
+    #     # Left neighbor.
+    #     lpos = [cpos[0]-1,cpos[1]]
+    #     if lpos[0] >= 0 then
+    #       elem = @route_matrix[lpos[1]][lpos[0]]
+    #       res << lpos if elem.free_from_right?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+    #         !ic_port_conflict(port0,port1,lpos[0]-1,lpos[1],RIGHT)
+    #     end
+    #     # Down neighbor.
+    #     dpos = [cpos[0],cpos[1]-1]
+    #     if dpos[1] >= 0 then
+    #       elem = @route_matrix[dpos[1]][dpos[0]]
+    #       res << dpos if elem.free_from_up?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+    #         !ic_port_conflict(port0,port1,dpos[0],dpos[1]-1,UP)
+    #     end
+    #     # Right neighbor.
+    #     rpos = [cpos[0]+1,cpos[1]]
+    #     if rpos[0] < @route_width then
+    #       elem = @route_matrix[rpos[1]][rpos[0]]
+    #       res << rpos if elem.free_from_left?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+    #         !ic_port_conflict(port0,port1,rpos[0]+1,rpos[1],LEFT)
+    #     end
+    #     # Up neighbor.
+    #     upos = [cpos[0],cpos[1]+1]
+    #     if upos[1] < @route_height then
+    #       elem = @route_matrix[upos[1]][upos[0]]
+    #       res << upos if elem.free_from_down?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+    #         !ic_port_conflict(port0,port1,upos[0],upos[1]+1,DOWN)
+    #     end
+    #   elsif port0.xpos > port1.xpos and port0.ypos > port1.ypos then
+    #     # Right neighbor.
+    #     rpos = [cpos[0]+1,cpos[1]]
+    #     if rpos[0] < @route_width then
+    #       elem = @route_matrix[rpos[1]][rpos[0]]
+    #       res << rpos if elem.free_from_left?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+    #         !ic_port_conflict(port0,port1,rpos[0]+1,rpos[1],LEFT)
+    #     end
+    #     # Down neighbor.
+    #     dpos = [cpos[0],cpos[1]-1]
+    #     if dpos[1] >= 0 then
+    #       elem = @route_matrix[dpos[1]][dpos[0]]
+    #       res << dpos if elem.free_from_up?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+    #         !ic_port_conflict(port0,port1,dpos[0],dpos[1]-1,UP)
+    #     end
+    #     # Left neighbor.
+    #     lpos = [cpos[0]-1,cpos[1]]
+    #     if lpos[0] >= 0 then
+    #       elem = @route_matrix[lpos[1]][lpos[0]]
+    #       res << lpos if elem.free_from_right?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+    #         !ic_port_conflict(port0,port1,lpos[0]-1,lpos[1],RIGHT)
+    #     end
+    #     # Up neighbor.
+    #     upos = [cpos[0],cpos[1]+1]
+    #     if upos[1] < @route_height then
+    #       elem = @route_matrix[upos[1]][upos[0]]
+    #       res << upos if elem.free_from_down?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+    #         !ic_port_conflict(port0,port1,upos[0],upos[1]+1,DOWN)
+    #     end
+    #   else 
+    #     # Right neighbor.
+    #     rpos = [cpos[0]+1,cpos[1]]
+    #     if rpos[0] < @route_width then
+    #       elem = @route_matrix[rpos[1]][rpos[0]]
+    #       res << rpos if elem.free_from_left?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+    #         !ic_port_conflict(port0,port1,rpos[0]+1,rpos[1],LEFT)
+    #     end
+    #     # Up neighbor.
+    #     upos = [cpos[0],cpos[1]+1]
+    #     if upos[1] < @route_height then
+    #       elem = @route_matrix[upos[1]][upos[0]]
+    #       res << upos if elem.free_from_down?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+    #         !ic_port_conflict(port0,port1,upos[0],upos[1]+1,DOWN)
+    #     end
+    #     # Left neighbor.
+    #     lpos = [cpos[0]-1,cpos[1]]
+    #     if lpos[0] >= 0 then
+    #       elem = @route_matrix[lpos[1]][lpos[0]]
+    #       res << lpos if elem.free_from_right?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+    #         !ic_port_conflict(port0,port1,lpos[0]-1,lpos[1],RIGHT)
+    #     end
+    #     # Down neighbor.
+    #     dpos = [cpos[0],cpos[1]-1]
+    #     if dpos[1] >= 0 then
+    #       elem = @route_matrix[dpos[1]][dpos[0]]
+    #       res << dpos if elem.free_from_up?(port0,port1) and
+    #         # !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+    #         !ic_port_conflict(port0,port1,dpos[0],dpos[1]-1,UP)
+    #     end
+    #   end 
+    #   # Return the free neigbor positions.
+    #   return res
+    # end
     # Get the neighbor free positions for port.
+    res = p0 = p1 = nil
     def free_neighbors(port0,port1,cpos)
       res = []
       # For cosmetic reasons of the wires, the order of processing depends
       # on the relative position of the ports.
       if port0.xpos < port1.xpos and port0.ypos < port1.ypos then
         # Left neighbor.
-        lpos = [cpos[0]-1,cpos[1]]
-        if lpos[0] >= 0 then
-          elem = @route_matrix[lpos[1]][lpos[0]]
-          res << lpos if elem.free_from_right?(port0,port1) and
-            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        p0 = cpos[0]-1
+        p1 = cpos[1]
+        if p0 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0-1,p1,RIGHT)
         end
         # Up neighbor.
-        upos = [cpos[0],cpos[1]+1]
-        if upos[1] < @route_height then
-          elem = @route_matrix[upos[1]][upos[0]]
-          res << upos if elem.free_from_down?(port0,port1) and
-            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        p0 = cpos[0]
+        p1 = cpos[1]+1
+        if p1 < @route_height then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1+1,DOWN)
         end
         # Right neighbor.
-        rpos = [cpos[0]+1,cpos[1]]
-        if rpos[0] < @route_width then
-          elem = @route_matrix[rpos[1]][rpos[0]]
-          res << rpos if elem.free_from_left?(port0,port1) and
-            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        p0 = cpos[0]+1
+        p1 = cpos[1]
+        if p0 < @route_width then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0+1,p1,LEFT)
         end
         # Down neighbor.
-        dpos = [cpos[0],cpos[1]-1]
-        if dpos[1] >= 0 then
-          elem = @route_matrix[dpos[1]][dpos[0]]
-          res << dpos if elem.free_from_up?(port0,port1) and
-            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        p0 = cpos[0]
+        p1 = cpos[1]-1
+        if p1 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1-1,UP)
         end
       elsif port0.xpos < port1.xpos and port0.ypos > port1.ypos then
         # Left neighbor.
-        lpos = [cpos[0]-1,cpos[1]]
-        if lpos[0] >= 0 then
-          elem = @route_matrix[lpos[1]][lpos[0]]
-          res << lpos if elem.free_from_right?(port0,port1) and
-            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        p0 = cpos[0]-1
+        p1 = cpos[1]
+        if p0 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0-1,p1,RIGHT)
         end
         # Down neighbor.
-        dpos = [cpos[0],cpos[1]-1]
-        if dpos[1] >= 0 then
-          elem = @route_matrix[dpos[1]][dpos[0]]
-          res << dpos if elem.free_from_up?(port0,port1) and
-            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        p0 = cpos[0]
+        p1 = cpos[1]-1
+        if p1 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1-1,UP)
         end
         # Right neighbor.
-        rpos = [cpos[0]+1,cpos[1]]
-        if rpos[0] < @route_width then
-          elem = @route_matrix[rpos[1]][rpos[0]]
-          res << rpos if elem.free_from_left?(port0,port1) and
-            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        p0 = cpos[0]+1
+        p1 = cpos[1]
+        if p0 < @route_width then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0+1,p1,LEFT)
         end
         # Up neighbor.
-        upos = [cpos[0],cpos[1]+1]
-        if upos[1] < @route_height then
-          elem = @route_matrix[upos[1]][upos[0]]
-          res << upos if elem.free_from_down?(port0,port1) and
-            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        p0 = cpos[0]
+        p1 = cpos[1]+1
+        if p1 < @route_height then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1+1,DOWN)
         end
       elsif port0.xpos > port1.xpos and port0.ypos > port1.ypos then
         # Right neighbor.
-        rpos = [cpos[0]+1,cpos[1]]
-        if rpos[0] < @route_width then
-          elem = @route_matrix[rpos[1]][rpos[0]]
-          res << rpos if elem.free_from_left?(port0,port1) and
-            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        p0 = cpos[0]+1
+        p1 = cpos[1]
+        if p0 < @route_width then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0+1,p1,LEFT)
         end
         # Down neighbor.
-        dpos = [cpos[0],cpos[1]-1]
-        if dpos[1] >= 0 then
-          elem = @route_matrix[dpos[1]][dpos[0]]
-          res << dpos if elem.free_from_up?(port0,port1) and
-            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        p0 = cpos[0]
+        p1 = cpos[1]-1
+        if p1 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1-1,UP)
         end
         # Left neighbor.
-        lpos = [cpos[0]-1,cpos[1]]
-        if lpos[0] >= 0 then
-          elem = @route_matrix[lpos[1]][lpos[0]]
-          res << lpos if elem.free_from_right?(port0,port1) and
-            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        p0 = cpos[0]-1
+        p1 = cpos[1]
+        if p0 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0-1,p1,RIGHT)
         end
         # Up neighbor.
-        upos = [cpos[0],cpos[1]+1]
-        if upos[1] < @route_height then
-          elem = @route_matrix[upos[1]][upos[0]]
-          res << upos if elem.free_from_down?(port0,port1) and
-            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        p0 = cpos[0]
+        p1 = cpos[1]+1
+        if p1 < @route_height then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1+1,DOWN)
         end
       else 
         # Right neighbor.
-        rpos = [cpos[0]+1,cpos[1]]
-        if rpos[0] < @route_width then
-          elem = @route_matrix[rpos[1]][rpos[0]]
-          res << rpos if elem.free_from_left?(port0,port1) and
-            !ic_port_conflict(port0,port1,[rpos[0]+1,rpos[1]],LEFT)
+        p0 = cpos[0]+1
+        p1 = cpos[1]
+        if p0 < @route_width then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_left?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0+1,p1,LEFT)
         end
         # Up neighbor.
-        upos = [cpos[0],cpos[1]+1]
-        if upos[1] < @route_height then
-          elem = @route_matrix[upos[1]][upos[0]]
-          res << upos if elem.free_from_down?(port0,port1) and
-            !ic_port_conflict(port0,port1,[upos[0],upos[1]+1],DOWN)
+        p0 = cpos[0]
+        p1 = cpos[1]+1
+        if p1 < @route_height then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_down?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1+1,DOWN)
         end
         # Left neighbor.
-        lpos = [cpos[0]-1,cpos[1]]
-        if lpos[0] >= 0 then
-          elem = @route_matrix[lpos[1]][lpos[0]]
-          res << lpos if elem.free_from_right?(port0,port1) and
-            !ic_port_conflict(port0,port1,[lpos[0]-1,lpos[1]],RIGHT)
+        p0 = cpos[0]-1
+        p1 = cpos[1]
+        if p0 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_right?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0-1,p1,RIGHT)
         end
         # Down neighbor.
-        dpos = [cpos[0],cpos[1]-1]
-        if dpos[1] >= 0 then
-          elem = @route_matrix[dpos[1]][dpos[0]]
-          res << dpos if elem.free_from_up?(port0,port1) and
-            !ic_port_conflict(port0,port1,[dpos[0],dpos[1]-1],UP)
+        p0 = cpos[0]
+        p1 = cpos[1]-1
+        if p1 >= 0 then
+          elem = @route_matrix[p1][p0]
+          res << [p0,p1] if elem.free_from_up?(port0,port1) and
+            !ic_port_conflict(port0,port1,p0,p1-1,UP)
         end
       end 
       # Return the free neigbor positions.
@@ -1772,6 +1962,20 @@ module HDLRuby::Viz
               ((pos0[1]-pos1[1]).abs < 2 and pos0[0] == pos1[0]))
     end
 
+    #BENDCOST
+    # Compute the direction between two positions in a path.
+    def path_dir(pos0, pos1)
+        if pos0[0] > pos1[0] then
+          return LEFT
+        elsif pos0[0] < pos1[0] then
+          return RIGHT
+        elsif pos0[1] > pos1[1] then
+          return UP
+        else
+          return DOWN
+        end
+    end
+
     # Route from +port0+ to +port1.
     # NOTE: uses the A* algorithm with taxi cab distance.
     def connection_route(port0,port1)
@@ -1780,18 +1984,22 @@ module HDLRuby::Viz
       pos0 = [port0.xpos,port0.ypos]
       pos1 = [port1.xpos,port1.ypos]
       oset = [pos0]
-      oset << pos0
       from = { }
       gscore = Array.new(@route_matrix.size) { Array.new(@route_matrix[0].size) { 1/0.0 } }
       gscore[pos0[1]][pos0[0]] = 0
-      fscore = Array.new(@route_matrix.size) { [] }
+      # fscore = Array.new(@route_matrix.size) { [] }
+      fscore = Array.new(@route_matrix.size) { Array.new(@route_matrix[0].size) { 1/0.0 } }
       fscore[pos0[1]][pos0[0]] = taxi_distance(pos0,pos1)
+
+      closed = { } # Closed set
       while oset.any? do
         # Pick the position from oset with the minimum fscore.
-        cpos = nil          # Current position
-        mscore = 1/0.0      # Minimum score
+        # cpos = nil          # Current position
+        # mscore = 1/0.0      # Minimum score
         # The best score is necessily at the end of oset.
         cpos = oset.pop
+        next if closed[cpos] # Skip already teated position
+        closed[cpos] = true
         # puts "cpos=#{cpos}"
         if touch?(cpos,pos1) then
           # The goal is reached.
@@ -1800,20 +2008,31 @@ module HDLRuby::Viz
         end
         # Get the neighbor positions for port.
         poses = free_neighbors(port0,port1,cpos)
+        #BENDCOST
+        ppos = poses.first
+        pdir = nil
         poses.each do |pos|
           # Try it.
-          tscore = gscore[cpos[1]][cpos[0]] + cost_position(port0,pos)
+          # tscore = gscore[cpos[1]][cpos[0]] + cost_position(port0,pos)
+          # BENDCOST
+          dir = path_dir(ppos,pos)
+          tscore = gscore[cpos[1]][cpos[0]] + cost_position(port0,pos) +
+            ((dir != pdir) ? 1024 : 0)
           if tscore < gscore[pos[1]][pos[0]] then
             # This path to neigbor is better than any previous one, keep it.
             from[pos]   = cpos
             gscore[pos[1]][pos[0]] = tscore
             fscore[pos[1]][pos[0]] = tscore + taxi_distance(pos,pos1)
-            idx = oset.bsearch_index {|p| fscore[p[1]][p[0]] <= fscore[pos[1]][pos[0]] }
+            # idx = oset.bsearch_index {|p| fscore[p[1]][p[0]] <= fscore[pos[1]][pos[0]] }
+            idx = oset.bsearch_index {|p| fscore[p[1]][p[0]] < fscore[pos[1]][pos[0]] }
             if idx then
               oset.insert(idx,pos)
             else
               oset << pos
             end
+            #BENDCOST
+            ppos = pos
+            pdir = dir
           end
         end
       end
@@ -1856,6 +2075,7 @@ module HDLRuby::Viz
       (to_route.size/2).times do |epoch|
         puts "Routing epoch=#{epoch}..."
         self.init_route    # Reinitialize the route matrix.
+      build_port_conflict_cache
         routed_pairs = []  # The list of already routed pair of ports.
         @routes = []       # The list of created routes.
         # Do the routing.
@@ -1947,6 +2167,7 @@ module HDLRuby::Viz
             route.path.append([eport.xpos,eport.ypos-1])
           end
         end
+        # Add the wires to the tiles.
         route.path.each_cons(3).with_index do |((x0,y0),(x1,y1),(x2,y2)),i|
           # puts "x0,y0=#{x0},#{y0} x1,y1=#{x1},#{y1} x2,y2=#{x2},#{y2}"
           # puts "i=#{i} dir=#{dir}"
@@ -2314,51 +2535,54 @@ module HDLRuby::Viz
     # Generate a system description SVG text for +ic+
     def system_svg(ic)
       return "<rect fill=\"#fff\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/8.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/8.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
     end
 
     # Generate an instance description SVG text for +ic+
     def instance_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       # The rectangle representing the instance.
       res = "<rect id=\"#{id}\" fill=\"#eee\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       # Its name.
       sy = (ic.lports.size.even? and ic.rports.size.even? ) ? 0 : -0.5 # Shift to avoid ports
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0 + sy)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0 + sy)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{id}",(ic.width-0.6)*@scale,
-                               0.6*@scale)
+      res += Viz.svg_text_fit("text#{id}",
+                              ((ic.width-0.6)*@scale).round(3),
+                              (0.6*@scale).round(3))
       return res
     end
 
     # Generate a process description SVG text for +ic+
     def process_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       res = "<rect id=\"#{id}\" fill=\"#eee\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "rx=\"#{@scale.round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       # Its name.
       sy = (ic.lports.size.even? and ic.rports.size.even? ) ? 0 : -0.5 # Shift to avoid ports
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0 + sy)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0 + sy)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
       res += Viz.svg_text_fit("text#{id}",(ic.width-0.6)*@scale,
@@ -2368,26 +2592,27 @@ module HDLRuby::Viz
 
     # Generate a clocked process description SVG text for +ic+
     def clocked_process_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       res = "<rect fill=\"#ddd\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/32.0}\" " +
-        "x=\"#{(ic.xpos-1/16.0)*@scale}\" y=\"#{(ic.ypos-1/16.0)*@scale}\" " +
-        "rx=\"#{(1+1/16.0)*@scale}\" " +
-        "width=\"#{(ic.width+1/8.0)*@scale}\" "+
-        "height=\"#{(ic.height+1/8.0)*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/32.0).round(3)}\" " +
+        "x=\"#{((ic.xpos-1/16.0)*@scale).round(3)}\" y=\"#{((ic.ypos-1/16.0)*@scale).round(3)}\" " +
+        "rx=\"#{((1+1/16.0)*@scale).round(3)}\" " +
+        "width=\"#{((ic.width+1/8.0)*@scale).round(3)}\" "+
+        "height=\"#{((ic.height+1/8.0)*@scale).round(3)}\"/>\n"
       res += "<rect id=\"#{id}\" fill=\"#ddd\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/32.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/32.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "rx=\"#{@scale.round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       # Its name.
       sy = (ic.lports.size.even? and ic.rports.size.even? ) ? 0 : -0.5 # Shift to avoid ports
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0 + sy)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0 + sy)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
       res += Viz.svg_text_fit("text#{id}",(ic.width-0.6)*@scale,
@@ -2397,20 +2622,21 @@ module HDLRuby::Viz
 
     # Generate a timed process description SVG text for +ic+
     def timed_process_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       res = "<rect id=\"#{id}\" fill=\"#bbb\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/8.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/8.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "rx=\"#{@scale.round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       # Its name.
       sy = (ic.lports.size.even? and ic.rports.size.even? ) ? 0 : -0.5 # Shift to avoid ports
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0 + sy)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0 + sy)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
       res += Viz.svg_text_fit("text#{id}",(ic.width-0.6)*@scale,
@@ -2420,20 +2646,21 @@ module HDLRuby::Viz
 
     # Generate a register description SVG text for +ic+
     def register_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       res = "<rect id=\"#{id}\" fill=\"#fff\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale/4}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "rx=\"#{(@scale/4).round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       # Its name.
       sy = (ic.lports.size <= 2 or ic.lports.size.even?) ? 0 : -0.5 # Shift to avoid ports (Note: register prots are symetrics, so check left only).
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0+sy)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0+sy)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
       res += Viz.svg_text_fit("text#{id}",(ic.width-0.6)*@scale,
@@ -2443,37 +2670,38 @@ module HDLRuby::Viz
 
     # Generate a memory description SVG text for +ic+
     def memory_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       res = "<rect id=\"#{id}\" fill=\"#fff\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale/4}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "rx=\"#{(@scale/4).round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       res += "<rect fill=\"#fff\" stroke=\"#333\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x=\"#{(ic.xpos+1/4.0)*@scale}\" "+
-        "y=\"#{(ic.ypos+1/4.0)*@scale}\" " +
-        "width=\"#{(ic.width-1/2.0)*@scale}\" "+
-        "height=\"#{(ic.height-1/2.0)*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "x=\"#{((ic.xpos+1/4.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos+1/4.0)*@scale).round(3)}\" " +
+        "width=\"#{((ic.width-1/2.0)*@scale).round(3)}\" "+
+        "height=\"#{((ic.height-1/2.0)*@scale).round(3)}\"/>\n"
       res += "<line stroke=\"#333\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x1=\"#{(ic.xpos+1/4.0+1/8.0)*@scale}\" "+
-        "y1=\"#{(ic.ypos+1/4.0)*@scale}\" " +
-        "x2=\"#{(ic.xpos+1/4.0+1/8.0)*@scale}\" "+
-        "y2=\"#{(ic.ypos+ic.height-1/4.0)*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "x1=\"#{((ic.xpos+1/4.0+1/8.0)*@scale).round(3)}\" "+
+        "y1=\"#{((ic.ypos+1/4.0)*@scale).round(3)}\" " +
+        "x2=\"#{((ic.xpos+1/4.0+1/8.0)*@scale).round(3)}\" "+
+        "y2=\"#{((ic.ypos+ic.height-1/4.0)*@scale).round(3)}\"/>\n"
       res += "<line stroke=\"#333\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x1=\"#{(ic.xpos+1/4.0)*@scale}\" "+
-        "y1=\"#{(ic.ypos+1/4.0+1/8.0)*@scale}\" " +
-        "x2=\"#{(ic.xpos+ic.width-1/4.0)*@scale}\" "+
-        "y2=\"#{(ic.ypos+1/4.0+1/8.0)*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "x1=\"#{((ic.xpos+1/4.0)*@scale).round(3)}\" "+
+        "y1=\"#{((ic.ypos+1/4.0+1/8.0)*@scale).round(3)}\" " +
+        "x2=\"#{((ic.xpos+ic.width-1/4.0)*@scale).round(3)}\" "+
+        "y2=\"#{((ic.ypos+1/4.0+1/8.0)*@scale).round(3)}\"/>\n"
       # Its name.
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0 + 1/10.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0 + 1/10.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
       res += Viz.svg_text_fit("text#{id}",(ic.width-1.0)*@scale,
@@ -2483,7 +2711,8 @@ module HDLRuby::Viz
 
     # Generate an ALU description SVG text for +ic+
     def alu_svg(ic)
-      id = Viz.to_svg_id(ic.name)
+      # id = Viz.to_svg_id(ic.name)
+      id = ic.__id__.to_s
       # Determine the side of the inputs (and consequently of the outputs),
       # and the number of inputs.
       iside = nil 
@@ -2516,80 +2745,72 @@ module HDLRuby::Viz
       end
       # Generate the resulting polygon.
       res = "<polygon id=\"#{id}\" fill=\"#eee\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
         "points=\""
       # The result depends on the size of the input.
       case(iside)
       when LEFT
         # The left side
-        res += "#{ic.xpos*@scale} #{(ic.ypos)*@scale} "
+        res += "#{(ic.xpos*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
         (inum-1).times do |i|
-          res += "#{(ic.xpos)*@scale} #{(ic.ypos+i*leg+0.25)*@scale} "
-          res += "#{(ic.xpos)*@scale} #{(ic.ypos+(i+1)*leg-0.25)*@scale} "
-          res += "#{(ic.xpos+0.25)*@scale} #{(ic.ypos+(i+1)*leg)*@scale} "
-          res += "#{(ic.xpos)*@scale} #{(ic.ypos+(i+1)*leg+0.25)*@scale} "
+          res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+i*leg+0.25)*@scale).round(3)} "
+          res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+(i+1)*leg-0.25)*@scale).round(3)} "
+          res += "#{((ic.xpos+0.25)*@scale).round(3)} #{((ic.ypos+(i+1)*leg)*@scale).round(3)} "
+          res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+(i+1)*leg+0.25)*@scale).round(3)} "
         end
-        res += "#{(ic.xpos)*@scale} #{(ic.ypos+inum*leg)*@scale} "
+        res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+inum*leg)*@scale).round(3)} "
         # The up side
-        # res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+inum*leg-1)*@scale} "
-        res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+ic.height*0.7)*@scale} "
+        res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos+ic.height*0.7)*@scale).round(3)} "
         # The right side.
-        # res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+1)*@scale}"
-        res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+ic.height*0.3)*@scale}"
+        res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos+ic.height*0.3)*@scale).round(3)}"
         # The down side is not necessary, close the shape.
         res += "\"/>"
       when UP
         # The right side
-        res += "#{(ic.xpos)*@scale} #{(ic.ypos+ic.height)*@scale} "
+        res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)} "
         (inum-1).times do |i|
-          res += "#{(ic.xpos+i*leg+0.25)*@scale} #{(ic.ypos+ic.height)*@scale} "
-          res += "#{(ic.xpos+(i+1)*leg-0.25)*@scale} #{(ic.ypos+ic.height)*@scale} "
-          res += "#{(ic.xpos+(i+1)*leg)*@scale} #{(ic.ypos-0.25+ic.height)*@scale} "
-          res += "#{(ic.xpos+(i+1)*leg+0.25)*@scale} #{(ic.ypos+ic.height)*@scale} "
+          res += "#{((ic.xpos+i*leg+0.25)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)} "
+          res += "#{((ic.xpos+(i+1)*leg-0.25)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)} "
+          res += "#{((ic.xpos+(i+1)*leg)*@scale).round(3)} #{((ic.ypos-0.25+ic.height)*@scale).round(3)} "
+          res += "#{((ic.xpos+(i+1)*leg+0.25)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)} "
         end
-        res += "#{(ic.xpos+inum*leg)*@scale} #{(ic.ypos+ic.height)*@scale} "
+        res += "#{((ic.xpos+inum*leg)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)} "
         # The up side
-        # res += "#{(ic.xpos+inum*leg-1)*@scale} #{(ic.ypos)*@scale} "
-        res += "#{(ic.xpos+ic.width*0.7)*@scale} #{(ic.ypos)*@scale} "
+        res += "#{((ic.xpos+ic.width*0.7)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
         # The right side.
-        # res += "#{(ic.xpos+1)*@scale} #{(ic.ypos)*@scale}"
-        res += "#{(ic.xpos+ic.width*0.3)*@scale} #{(ic.ypos)*@scale}"
+        res += "#{((ic.xpos+ic.width*0.3)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)}"
         # The down side is not necessary, close the shape.
         res += "\"/>"
       when RIGHT
         # The right side
-        res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos)*@scale} "
+        res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
         (inum-1).times do |i|
-          res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+i*leg+0.25)*@scale} "
-          res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+(i+1)*leg-0.25)*@scale} "
-          res += "#{(ic.xpos-0.25+ic.width)*@scale} #{(ic.ypos+(i+1)*leg)*@scale} "
-          res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+(i+1)*leg+0.25)*@scale} "
+          res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos+i*leg+0.25)*@scale).round(3)} "
+          res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos+(i+1)*leg-0.25)*@scale).round(3)} "
+          res += "#{((ic.xpos-0.25+ic.width)*@scale).round(3)} #{((ic.ypos+(i+1)*leg)*@scale).round(3)} "
+          res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos+(i+1)*leg+0.25)*@scale).round(3)} "
         end
-        res += "#{(ic.xpos+ic.width)*@scale} #{(ic.ypos+inum*leg)*@scale} "
+        res += "#{((ic.xpos+ic.width)*@scale).round(3)} #{((ic.ypos+inum*leg)*@scale).round(3)} "
         # The up side
-        # res += "#{(ic.xpos)*@scale} #{(ic.ypos+inum*leg-1)*@scale} "
-        res += "#{(ic.xpos)*@scale} #{(ic.ypos+ic.height*0.7)*@scale} "
+        res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+ic.height*0.7)*@scale).round(3)} "
         # The right side.
-        # res += "#{(ic.xpos)*@scale} #{(ic.ypos+1)*@scale}"
-        res += "#{(ic.xpos)*@scale} #{(ic.ypos+ic.height*0.3)*@scale}"
+        res += "#{((ic.xpos)*@scale).round(3)} #{((ic.ypos+ic.height*0.3)*@scale).round(3)}"
         # The down side is not necessary, close the shape.
         res += "\"/>"
       when DOWN
         # The down side
-        res += "#{ic.xpos*@scale} #{(ic.ypos)*@scale} "
+        res += "#{(ic.xpos*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
         (inum-1).times do |i|
-          res += "#{(ic.xpos+i*leg+0.25)*@scale} #{(ic.ypos)*@scale} "
-          res += "#{(ic.xpos+(i+1)*leg-0.25)*@scale} #{(ic.ypos)*@scale} "
-          res += "#{(ic.xpos+(i+1)*leg)*@scale} #{(ic.ypos+0.25)*@scale} "
-          res += "#{(ic.xpos+(i+1)*leg+0.25)*@scale} #{(ic.ypos)*@scale} "
+          res += "#{((ic.xpos+i*leg+0.25)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
+          res += "#{((ic.xpos+(i+1)*leg-0.25)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
+          res += "#{((ic.xpos+(i+1)*leg)*@scale).round(3)} #{((ic.ypos+0.25)*@scale).round(3)} "
+          res += "#{((ic.xpos+(i+1)*leg+0.25)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
         end
-        res += "#{(ic.xpos+inum*leg)*@scale} #{(ic.ypos)*@scale} "
+        res += "#{((ic.xpos+inum*leg)*@scale).round(3)} #{((ic.ypos)*@scale).round(3)} "
         # The up side
-        # res += "#{(ic.xpos+inum*leg-1)*@scale} #{(ic.ypos+ic.height)*@scale} "
-        res += "#{(ic.xpos+ic.width*0.7)*@scale} #{(ic.ypos+ic.height)*@scale} "
+        res += "#{((ic.xpos+ic.width*0.7)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)} "
         # The right side.
-        # res += "#{(ic.xpos+1)*@scale} #{(ic.ypos+ic.height)*@scale}"
-        res += "#{(ic.xpos+ic.width*0.3)*@scale} #{(ic.ypos+ic.height)*@scale}"
+        res += "#{((ic.xpos+ic.width*0.3)*@scale).round(3)} #{((ic.ypos+ic.height)*@scale).round(3)}"
         # The down side is not necessary, close the shape.
         res += "\"/>"
       else
@@ -2601,8 +2822,8 @@ module HDLRuby::Viz
       res += "<text id=\"text#{id}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0 + sy)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0 + sy)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       # Its text resizing.
       res += Viz.svg_text_fit("text#{id}",(ic.width-0.6)*@scale,
@@ -2624,12 +2845,12 @@ module HDLRuby::Viz
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
-      res += "x=\"#{xpos}\" y=\"#{ypos}\" " + 
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+      res += "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " + 
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos},#{ypos+height/2.0} #{xpos+width},#{ypos} " +
-        "#{xpos+width},#{ypos+height}\"/>\n"
+        "points=\"#{xpos.round(3)},#{(ypos+height/2.0).round(3)} #{(xpos+width).round(3)},#{ypos.round(3)} " +
+        "#{(xpos+width).round(3)},#{(ypos+height).round(3)}\"/>\n"
       return res
     end
 
@@ -2645,27 +2866,27 @@ module HDLRuby::Viz
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
-      res += "x=\"#{xpos}\" y=\"#{ypos}\" " + 
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+      res += "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " + 
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos},#{ypos} #{xpos+width},#{ypos+height/2.0} " +
-        "#{xpos},#{ypos+height}\"/>\n"
+        "points=\"#{xpos.round(3)},#{ypos.round(3)} #{(xpos+width).round(3)},#{(ypos+height/2.0).round(3)} " +
+        "#{xpos.round(3)},#{(ypos+height).round(3)}\"/>\n"
       return res
     end
 
     # Generate a left-right port description SVG text.
     def left_right_port_svg(name,type,xpos,ypos,width,height)
       res = "<rect fill=\"#FF0\" stroke=\"#000\" " +
-        "x=\"#{xpos}\" y=\"#{ypos}\" " + 
+        "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " + 
         "stroke-width=\"#{@scale/16.0}\" " +
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos},#{ypos+height/2} #{xpos+width},#{ypos} " +
-        "#{xpos+width},#{ypos+height}\"/>\n"
+        "points=\"#{xpos.round(3)},#{(ypos+height/2).round(3)} #{(xpos+width).round(3)},#{ypos.round(3)} " +
+        "#{(xpos+width).round(3)},#{(ypos+height).round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos},#{ypos} #{xpos+width},#{ypos+height/2.0} " +
-        "#{xpos},#{ypos+height}\"/>\n"
+        "points=\"#{xpos.round(3)},#{ypos.round(3)} #{(xpos+width).round(3)},#{(ypos+height/2.0).round(3)} " +
+        "#{xpos.round(3)},#{(ypos+height).round(3)}\"/>\n"
       return res
     end
 
@@ -2681,12 +2902,12 @@ module HDLRuby::Viz
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
-      res += "x=\"#{xpos}\" y=\"#{ypos}\" " + 
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+      res += "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " + 
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos},#{ypos} #{xpos+width/2.0},#{ypos+height} " +
-        "#{xpos+width},#{ypos}\"/>\n"
+        "points=\"#{xpos.round(3)},#{ypos.round(3)} #{(xpos+width/2.0).round(3)},#{(ypos+height).round(3)} " +
+        "#{(xpos+width).round(3)},#{ypos.round(3)}\"/>\n"
       return res
     end
 
@@ -2702,27 +2923,27 @@ module HDLRuby::Viz
       else
         res = "<rect fill=\"#ff0\" stroke=\"#000\" " 
       end
-      res += "x=\"#{xpos}\" y=\"#{ypos}\" " + 
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+      res += "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " + 
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos+width/2.0},#{ypos} #{xpos},#{ypos+height} " +
-        "#{xpos+width},#{ypos+height}\"/>\n"
+        "points=\"#{(xpos+width/2.0).round(3)},#{ypos.round(3)} #{xpos.round(3)},#{(ypos+height).round(3)} " +
+        "#{(xpos+width).round(3)},#{(ypos+height).round(3)}\"/>\n"
       return res
     end
 
     # Generate an up-down port description SVG text.
     def up_down_port_svg(name,type,xpos,ypos,width,height)
       res = "<rect fill=\"#FF0\" stroke=\"#000\" " +
-        "x=\"#{xpos}\" y=\"#{ypos}\" " + 
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+        "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " + 
+        "stroke-width=\"#{(@scale/16.0).round(3)}\" " +
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos},#{ypos} #{xpos+width/2},#{ypos+height} " +
-        "#{xpos+width},#{ypos}\"/>\n"
+        "points=\"#{xpos.round(3)},#{ypos.round(3)} #{(xpos+width/2).round(3)},#{(ypos+height).round(3)} " +
+        "#{(xpos+width).round(3)},#{ypos.round(3)}\"/>\n"
       res += "<polygon fill=\"#000\" stroke=\"none\" " +
-        "points=\"#{xpos+width/2.0},#{ypos} #{xpos},#{ypos+height} " +
-        "#{xpos+width},#{ypos+height}\"/>\n"
+        "points=\"#{(xpos+width/2.0).round(3)},#{ypos.round(3)} #{xpos.round(3)},#{(ypos+height).round(3)} " +
+        "#{(xpos+width).round(3)},#{(ypos+height).round(3)}\"/>\n"
       return res
     end
 
@@ -2805,17 +3026,19 @@ module HDLRuby::Viz
       res += "</style>\n"
 
       # Generate the group containing all the IC description.
-      res += "<g id=\"#{self.name}\" visibility=\"#{visibility}\" " +
+      # res += "<g id=\"#{self.name}\" visibility=\"#{visibility}\" " +
+      #        "transform=\"translate(#{tx},#{ty})\">\n"
+      res += "<g id=\"#{self.__id__}\" visibility=\"#{visibility}\" " +
              "transform=\"translate(#{tx},#{ty})\">\n"
       # Generate the rectangle of the bounding box.
       res += "<rect fill=\"#bbb\" stroke=\"#555\" " +
-        "stroke-width=\"#{@scale/4.0}\" " +
+        "stroke-width=\"#{(@scale/4.0).round(3)}\" " +
         # "x=\"#{x0-bT*2.5}\" y=\"#{y0-bT*2.5}\" "+
-        "x=\"#{x0}\" y=\"#{y0}\" "+
+        "x=\"#{x0.round(3)}\" y=\"#{y0.round(3)}\" "+
         "width=\"#{width}\" height=\"#{height}\"/>\n"
 
       # Generate the group containing the top system and its contents.
-      res += "<g transform=\"translate(#{stx},#{sty})\">\n"
+      res += "<g transform=\"translate(#{stx.round(3)},#{sty.round(3)})\">\n"
 
       # Generate current IC's box.
       # The SVG object representing a system.
@@ -2826,9 +3049,9 @@ module HDLRuby::Viz
         row.each_with_index do |tile,x|
           # # Draw the tiles contour for debug.
           # res += "<rect fill=\"none\" stroke=\"#00F\" " +
-          #   "x=\"#{x*@scale}\" " +
-          #   "y=\"#{y*@scale}\" " +
-          #   "width=\"#{@scale}\" height=\"#{@scale}\"/>\n"
+          #   "x=\"#{(x*@scale).round(3)}\" " +
+          #   "y=\"#{(y*@scale).round(3)}\" " +
+          #   "width=\"#{@scale.round(3)}\" height=\"#{@scale.round(3)}\"/>\n"
           #
           # Draw the wires.
           tile.wires.each do |wire_dir|
@@ -2836,69 +3059,69 @@ module HDLRuby::Viz
             # Draw the wire (as a thin rectangle).
             case wire_dir
             when LEFT|RIGHT
-              res += "<line stroke=\"#000\" stroke-width=\"#{wT}\" " +
+              res += "<line stroke=\"#000\" stroke-width=\"#{wT.round(3)}\" " +
                 "stroke-linecap=\"round\" " +
-                "x1=\"#{(x)*@scale}\" " +
-                "y1=\"#{(y+0.5)*@scale}\" " +
-                "x2=\"#{(x+1)*@scale}\" " +
-                "y2=\"#{(y+0.5)*@scale}\" />\n"
+                "x1=\"#{((x)*@scale).round(3)}\" " +
+                "y1=\"#{((y+0.5)*@scale).round(3)}\" " +
+                "x2=\"#{((x+1)*@scale).round(3)}\" " +
+                "y2=\"#{((y+0.5)*@scale).round(3)}\" />\n"
             when RIGHT|DOWN
-              res += "<line stroke=\"#000\" stroke-width=\"#{wT}\" " +
+              res += "<line stroke=\"#000\" stroke-width=\"#{wT.round(3)}\" " +
                 "stroke-linecap=\"round\" " +
-                "x1=\"#{(x+1)*@scale}\" " +
-                "y1=\"#{(y+0.5)*@scale}\" " +
-                "x2=\"#{(x+0.5)*@scale}\" " +
-                "y2=\"#{(y)*@scale}\" />\n"
+                "x1=\"#{((x+1)*@scale).round(3)}\" " +
+                "y1=\"#{((y+0.5)*@scale).round(3)}\" " +
+                "x2=\"#{((x+0.5)*@scale).round(3)}\" " +
+                "y2=\"#{((y)*@scale).round(3)}\" />\n"
             when RIGHT|UP
-              res += "<line stroke=\"#000\" stroke-width=\"#{wT}\" " +
+              res += "<line stroke=\"#000\" stroke-width=\"#{wT.round(3)}\" " +
                 "stroke-linecap=\"round\" " +
-                "x1=\"#{(x+1)*@scale}\" " +
-                "y1=\"#{(y+0.5)*@scale}\" " +
-                "x2=\"#{(x+0.5)*@scale}\" " +
-                "y2=\"#{(y+1)*@scale}\" />\n"
+                "x1=\"#{((x+1)*@scale).round(3)}\" " +
+                "y1=\"#{((y+0.5)*@scale).round(3)}\" " +
+                "x2=\"#{((x+0.5)*@scale).round(3)}\" " +
+                "y2=\"#{((y+1)*@scale).round(3)}\" />\n"
             when LEFT|DOWN
-              res += "<line stroke=\"#000\" stroke-width=\"#{wT}\" " +
+              res += "<line stroke=\"#000\" stroke-width=\"#{wT.round(3)}\" " +
                 "stroke-linecap=\"round\" " +
-                "x1=\"#{(x+0.5)*@scale}\" " +
-                "y1=\"#{(y)*@scale}\" " +
-                "x2=\"#{(x)*@scale}\" " +
-                "y2=\"#{(y+0.5)*@scale}\" />\n"
+                "x1=\"#{((x+0.5)*@scale).round(3)}\" " +
+                "y1=\"#{((y)*@scale).round(3)}\" " +
+                "x2=\"#{((x)*@scale).round(3)}\" " +
+                "y2=\"#{((y+0.5)*@scale).round(3)}\" />\n"
             when LEFT|UP
-              res += "<line stroke=\"#000\" stroke-width=\"#{wT}\" " +
+              res += "<line stroke=\"#000\" stroke-width=\"#{wT.round(3)}\" " +
                 "stroke-linecap=\"round\" " +
-                "x1=\"#{(x+0.5)*@scale}\" " +
-                "y1=\"#{(y+1)*@scale}\" " +
-                "x2=\"#{(x)*@scale}\" " +
-                "y2=\"#{(y+0.5)*@scale}\" />\n"
+                "x1=\"#{((x+0.5)*@scale).round(3)}\" " +
+                "y1=\"#{((y+1)*@scale).round(3)}\" " +
+                "x2=\"#{((x)*@scale).round(3)}\" " +
+                "y2=\"#{((y+0.5)*@scale).round(3)}\" />\n"
             when UP|DOWN
-              res += "<line stroke=\"#000\" stroke-width=\"#{wT}\" " +
+              res += "<line stroke=\"#000\" stroke-width=\"#{wT.round(3)}\" " +
                 "stroke-linecap=\"round\" " +
-                "x1=\"#{(x+0.5)*@scale}\" " +
-                "y1=\"#{(y)*@scale}\" " +
-                "x2=\"#{(x+0.5)*@scale}\" " +
-                "y2=\"#{(y+1)*@scale}\" />\n"
+                "x1=\"#{((x+0.5)*@scale).round(3)}\" " +
+                "y1=\"#{((y)*@scale).round(3)}\" " +
+                "x2=\"#{((x+0.5)*@scale).round(3)}\" " +
+                "y2=\"#{((y+1)*@scale).round(3)}\" />\n"
             end
           end
 
           # Draw the connection points.
           tile.dots.each do |dot_pos|
             res += "<rect fill=\"#000\" stroke=\"#000\" " +
-                   "stroke-width=\"#{wT}\" "
+              "stroke-width=\"#{wT.round(3)}\" "
             case dot_pos
             when LEFT
-              res += "x=\"#{(x+0.0)*@scale-wT*2}\" " + 
-                "y=\"#{(y+0.5)*@scale-wT*2}\" "
+              res += "x=\"#{((x+0.0)*@scale-wT*2).round(3)}\" " + 
+                "y=\"#{((y+0.5)*@scale-wT*2).round(3)}\" "
             when UP
-              res += "x=\"#{(x+0.5)*@scale-wT*2}\" " + 
-                "y=\"#{(y+1.0)*@scale-wT*2}\" "
+              res += "x=\"#{((x+0.5)*@scale-wT*2).round(3)}\" " + 
+                "y=\"#{((y+1.0)*@scale-wT*2).round(3)}\" "
             when RIGHT
-              res += "x=\"#{(x+1.0)*@scale-wT*2}\" " + 
-                "y=\"#{(y+0.5)*@scale-wT*2}\" "
+              res += "x=\"#{((x+1.0)*@scale-wT*2).round(3)}\" " + 
+                "y=\"#{((y+0.5)*@scale-wT*2).round(3)}\" "
             when DOWN
-              res += "x=\"#{(x+0.5)*@scale-wT*2}\" " + 
-                "y=\"#{(y+0.0)*@scale-wT*2}\" "
+              res += "x=\"#{((x+0.5)*@scale-wT*2).round(3)}\" " + 
+                "y=\"#{((y+0.0)*@scale-wT*2).round(3)}\" "
             end
-            res += "width=\"#{wT*4}\" height=\"#{wT*4}\"/>\n"
+            res += "width=\"#{(wT*4).round(3)}\" height=\"#{(wT*4).round(3)}\"/>\n"
           end
         end
       end
@@ -2956,20 +3179,20 @@ module HDLRuby::Viz
               port.direction != :none) or child.sub_port?(port) then
             if child == self then
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: end\" " +
-                "x=\"#{(port.xpos)*@scale-pT}\" "+
-                "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + 
+                "x=\"#{((port.xpos)*@scale-pT).round(3)}\" "+
+                "y=\"#{((port.ypos+0.5)*@scale+sF/2.5).round(3)}\">" + 
                 self.port_str(port) + "</text>\n"
             elsif (child.type == :assign and port.direction == :input and
                    child.ports.size.even? and child.ports.index(port) == child.ports.size/2) then
               # Middle input of an alu, slide it bellow to avoid collision
               # with the output port.
-              res += "<text class=\"small#{self.idC}\" x=\"#{(port.xpos)*@scale+pT}\" "+
-                "y=\"#{(port.ypos+0.8)*@scale+sF/2.5}\">" +
+              res += "<text class=\"small#{self.idC}\" x=\"#{((port.xpos)*@scale+pT).round(3)}\" "+
+                "y=\"#{((port.ypos+0.8)*@scale+sF/2.5).round(3)}\">" +
                 self.port_str(port) + "</text>\n"
             else
               # General case.
-              res += "<text class=\"small#{self.idC}\" x=\"#{(port.xpos)*@scale+pT}\" "+
-                "y=\"#{(port.ypos+0.45)*@scale+sF/2.5}\">" + 
+              res += "<text class=\"small#{self.idC}\" x=\"#{((port.xpos)*@scale+pT).round(3)}\" "+
+                "y=\"#{((port.ypos+0.45)*@scale+sF/2.5).round(3)}\">" + 
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -2997,13 +3220,13 @@ module HDLRuby::Viz
               port.direction != :none) or child.sub_port?(port) then
             if child == self then
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: middle\" " +
-                "x=\"#{(port.xpos+0.5)*@scale}\" "+
-                "y=\"#{(port.ypos+1.0)*@scale+pT+sF/2}\">" + # port.name + 
+                "x=\"#{((port.xpos+0.5)*@scale).round(3)}\" "+
+                "y=\"#{((port.ypos+1.0)*@scale+pT+sF/2).round(3)}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             else
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: middle\" " +
-                "x=\"#{(port.xpos+0.5)*@scale}\" "+
-                "y=\"#{(port.ypos+1.0)*@scale-pT}\">" + # port.name +
+                "x=\"#{((port.xpos+0.5)*@scale).round(3)}\" "+
+                "y=\"#{((port.ypos+1.0)*@scale-pT).round(3)}\">" + # port.name +
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -3030,21 +3253,21 @@ module HDLRuby::Viz
               port.direction != :none) or child.sub_port?(port) then
             if child == self then
               res += "<text class=\"small#{self.idC}\" " +
-                "x=\"#{(port.xpos+1)*@scale+pT}\" " +
-                "y=\"#{(port.ypos+0.5)*@scale+sF/2.5}\">" + # port.name +
+                "x=\"#{((port.xpos+1)*@scale+pT).round(3)}\" " +
+                "y=\"#{((port.ypos+0.5)*@scale+sF/2.5).round(3)}\">" + # port.name +
                 self.port_str(port) + "</text>\n"
             elsif (child.type == :assign and port.direction == :input and
                    child.ports.size.even? and child.ports.index(port) == child.ports.size/2) then
               # Middle input of an alu, slide it bellow to avoid collision
               # with the output port.
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: end\" " +
-                "x=\"#{(port.xpos+1)*@scale-pT}\" "+
-                "y=\"#{(port.ypos+0.8)*@scale+sF/2.5}\">" + # port.name + 
+                "x=\"#{((port.xpos+1)*@scale-pT).round(3)}\" "+
+                "y=\"#{((port.ypos+0.8)*@scale+sF/2.5).round(3)}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             else
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: end\" " +
-                "x=\"#{(port.xpos+1)*@scale-pT}\" "+
-                "y=\"#{(port.ypos+0.45)*@scale+sF/2.5}\">" + # port.name + 
+                "x=\"#{((port.xpos+1)*@scale-pT).round(3)}\" "+
+                "y=\"#{((port.ypos+0.45)*@scale+sF/2.5).round(3)}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -3071,14 +3294,13 @@ module HDLRuby::Viz
               port.direction != :none) or child.sub_port?(port) then
             if child == self then
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: middle\" " +
-                "x=\"#{(port.xpos+0.5)*@scale}\" "+
-                "y=\"#{(port.ypos)*@scale-pT}\">" + # port.name + 
+                "x=\"#{((port.xpos+0.5)*@scale).round(3)}\" "+
+                "y=\"#{((port.ypos)*@scale-pT).round(3)}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             else
               res += "<text class=\"small#{self.idC}\" style=\"text-anchor: middle\" " +
-                "x=\"#{(port.xpos+0.5)*@scale}\" "+
-                # "y=\"#{(port.ypos)*@scale+pT+sF}\">" + # port.name + 
-                "y=\"#{(port.ypos)*@scale+pT+sF/2.0}\">" + # port.name + 
+                "x=\"#{((port.xpos+0.5)*@scale).round(3)}\" "+
+                "y=\"#{((port.ypos)*@scale+pT+sF/2.0).round(3)}\">" + # port.name + 
                 self.port_str(port) + "</text>\n"
             end
           end
@@ -3144,7 +3366,8 @@ module HDLRuby::Viz
         res += target.to_svg(false,ctx*@scale,cty*@scale,
                              cwidth*scale,cheight*scale)
         # Generate the closing button element.
-        res += Viz.closing_svg(target.name + '_close',pT,(ctx+cwidth)*@scale-pT,cty*@scale)
+        # res += Viz.closing_svg(target.name + '_close',pT,(ctx+cwidth)*@scale-pT,cty*@scale)
+        res += Viz.closing_svg(target.__id__.to_s + '_close',pT,(ctx+cwidth)*@scale-pT,cty*@scale)
       end
 
       # Close the group containing the top system and its content.
@@ -3168,20 +3391,20 @@ module HDLRuby::Viz
         next unless target # No target? Skip.
         res += <<~SCRIPT
 <script>
-diagram.getElementById('#{child.name}').addEventListener("click", (e) => {
+diagram.getElementById('#{child.__id__}').addEventListener("click", (e) => {
     // For the element.
-    let elem = diagram.getElementById('#{target.name}');
+    let elem = diagram.getElementById('#{target.__id__}');
     elem.setAttribute('visibility','visible');
     // And its closing button.
-    elem = diagram.getElementById('#{target.name}_close');
+    elem = diagram.getElementById('#{target.__id__}_close');
     elem.setAttribute('visibility','visible');
 });
-diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => {
+diagram.getElementById('#{target.__id__}_close').addEventListener("click", (e) => {
     // For the element.
-    let elem = diagram.getElementById('#{target.name}');
+    let elem = diagram.getElementById('#{target.__id__}');
     elem.setAttribute('visibility','hidden');
     // And its closing button.
-    elem = diagram.getElementById('#{target.name}_close');
+    elem = diagram.getElementById('#{target.__id__}_close');
     elem.setAttribute('visibility','hidden');
 });
 
@@ -3706,27 +3929,22 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def assign_svg(n)
       # The shape representing the instance.
       res = "<path fill=\"#B0E2FF\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        # "d=\"M #{n.xpos*@scale} #{(n.ypos + n.height/2.0)*@scale} " +
-        # "L #{(n.xpos + 1.0)*@scale} #{n.ypos*@scale} " + 
-        # "L #{(n.xpos + n.width-n.height/2.0)*@scale} #{n.ypos*@scale} " + 
-        # "A #{n.height/2.0*@scale} #{n.height/2.0*@scale} 0 0 1 " +
-        # "#{(n.xpos + n.width-n.height/2.0)*@scale} #{(n.ypos+n.height)*@scale} " +
-        # "L #{(n.xpos + 1.0)*@scale} #{(n.ypos+n.height)*@scale} " + 
-        "d=\"M #{n.xpos*@scale} #{(n.ypos + n.height)*@scale} " +
-        "L #{(n.xpos + 1.0)*@scale} #{n.ypos*@scale} " + 
-        "L #{(n.xpos + n.width)*@scale} #{n.ypos*@scale} " + 
-        "L #{(n.xpos + n.width-1.0)*@scale} #{(n.ypos+n.height)*@scale} " +
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "d=\"M #{(n.xpos*@scale).round(3)} #{((n.ypos + n.height)*@scale).round(3)} " +
+        "L #{((n.xpos + 1.0)*@scale).round(3)} #{(n.ypos*@scale).round(3)} " + 
+        "L #{((n.xpos + n.width)*@scale).round(3)} #{(n.ypos*@scale).round(3)} " + 
+        "L #{((n.xpos + n.width-1.0)*@scale).round(3)} #{((n.ypos+n.height)*@scale).round(3)} " +
         "Z \" />\n"
       # Its text.
-      res += "<text id=\"text#{n.name}\" " +
+      # res += "<text id=\"text#{n.name}\" " +
+      res += "<text id=\"text#{n.__id__}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(n.xpos + n.width/2.0)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0)*@scale}\">" +
+        "x=\"#{((n.xpos + n.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0)*@scale).round(3)}\">" +
         n.to_s + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{n.name}",(n.width-2)*@scale,
+      res += Viz.svg_text_fit("text#{n.__id__}",(n.width-2)*@scale,
                                0.6*@scale)
       return res
     end
@@ -3734,35 +3952,12 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     # Generate a block description SVG text for node +n+
     def block_svg(n)
       res = "<rect fill=\"#fff\" fill-opacity=\"0.4\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/10.0}\" " +
-        "stroke-dasharray=\"#{@scale/10.0},#{@scale/10.0}\" " +
-        # "x=\"#{n.xpos*@scale}\" y=\"#{n.ypos*@scale}\" " +
-        # "rx=\"#{@scale*2.0}\" " +
-        # "width=\"#{n.width*@scale}\" "+
-        # "height=\"#{n.height*@scale}\"/>\n"
-        "x=\"#{(n.xpos-0.3)*@scale}\" y=\"#{(n.ypos-0.3)*@scale}\" " +
-        "rx=\"#{@scale*0.6}\" " +
-        "width=\"#{(n.width+0.6)*@scale}\" "+
-        "height=\"#{(n.height+0.6)*@scale}\"/>\n"
-      return res
-    end
-
-    # Generate an operator description SVG text for node +n+
-    def operator_svg(n)
-      ICIICI
-      res = "<rect fill=\"#eee\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/16.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
-      # Its name.
-      res += "<text class=\"medium#{self.idC}\" " +
-        "style=\"inline-size=#{ic.width*@scale}px; text-anchor: middle; " +
-        "dominant-baseline: middle;\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0)*@scale}\">" +
-        ic.name + "</text>\n"
+        "stroke-width=\"#{(@scale/10.0).round(3)}\" " +
+        "stroke-dasharray=\"#{(@scale/10.0).round(3)},#{(@scale/10.0).round(3)}\" " +
+        "x=\"#{((n.xpos-0.3)*@scale).round(3)}\" y=\"#{((n.ypos-0.3)*@scale).round(3)}\" " +
+        "rx=\"#{(@scale*0.6).round(3)}\" " +
+        "width=\"#{((n.width+0.6)*@scale).round(3)}\" "+
+        "height=\"#{((n.height+0.6)*@scale).round(3)}\"/>\n"
       return res
     end
 
@@ -3770,23 +3965,23 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def terminal_svg(n)
       ICIICI
       res = "<rect fill=\"#ddd\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/32.0}\" " +
-        "x=\"#{(ic.xpos-1/16.0)*@scale}\" y=\"#{(ic.ypos-1/16.0)*@scale}\" " +
-        "rx=\"#{(1+1/16.0)*@scale}\" " +
-        "width=\"#{(ic.width+1/8.0)*@scale}\" "+
-        "height=\"#{(ic.height+1/8.0)*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/32.0).round(3)}\" " +
+        "x=\"#{((ic.xpos-1/16.0)*@scale).round(3)}\" y=\"#{((ic.ypos-1/16.0)*@scale).round(3)}\" " +
+        "rx=\"#{((1+1/16.0)*@scale).round(3)}\" " +
+        "width=\"#{((ic.width+1/8.0)*@scale).round(3)}\" "+
+        "height=\"#{((ic.height+1/8.0)*@scale).round(3)}\"/>\n"
       res += "<rect fill=\"#ddd\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/32.0}\" " +
-        "x=\"#{ic.xpos*@scale}\" y=\"#{ic.ypos*@scale}\" " +
-        "rx=\"#{@scale}\" " +
-        "width=\"#{ic.width*@scale}\" "+
-        "height=\"#{ic.height*@scale}\"/>\n"
+        "stroke-width=\"#{(@scale/32.0).round(3)}\" " +
+        "x=\"#{(ic.xpos*@scale).round(3)}\" y=\"#{(ic.ypos*@scale).round(3)}\" " +
+        "rx=\"#{@scale.round(3)}\" " +
+        "width=\"#{(ic.width*@scale).round(3)}\" "+
+        "height=\"#{(ic.height*@scale).round(3)}\"/>\n"
       # Its name.
       res += "<text class=\"medium#{self.idC}\" " +
         "style=\"inline-size=#{ic.width*@scale}px; text-anchor: middle; " +
         "dominant-baseline: middle;\" " +
-        "x=\"#{(ic.xpos + ic.width/2.0)*@scale}\" "+
-        "y=\"#{(ic.ypos + ic.height/2.0)*@scale}\">" +
+        "x=\"#{((ic.xpos + ic.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((ic.ypos + ic.height/2.0)*@scale).round(3)}\">" +
         ic.name + "</text>\n"
       return res
     end
@@ -3796,36 +3991,39 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def if_svg(n,no=false)
       # The shape representing the instance.
       res = "<path fill=\"#B0E2FF\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        "d=\"M #{(n.xpos)*@scale} #{(n.ypos+n.height/2.0)*@scale} " +
-        "L #{(n.xpos+n.width/2.0)*@scale} #{(n.ypos+n.height)*@scale} " + 
-        "L #{(n.xpos+n.width)*@scale} #{(n.ypos+n.height/2.0)*@scale} " +
-        "L #{(n.xpos+n.width/2.0)*@scale} #{(n.ypos)*@scale} " + 
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "d=\"M #{((n.xpos)*@scale).round(3)} #{((n.ypos+n.height/2.0)*@scale).round(3)} " +
+        "L #{((n.xpos+n.width/2.0)*@scale).round(3)} #{((n.ypos+n.height)*@scale).round(3)} " + 
+        "L #{((n.xpos+n.width)*@scale).round(3)} #{((n.ypos+n.height/2.0)*@scale).round(3)} " +
+        "L #{((n.xpos+n.width/2.0)*@scale).round(3)} #{((n.ypos)*@scale).round(3)} " + 
         "Z \" />\n"
       # Its text.
-      res += "<text id=\"text#{n.name}\" " +
+      # res += "<text id=\"text#{n.name}\" " +
+      res += "<text id=\"text#{n.__id__}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(n.xpos + n.width/2.0)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0)*@scale}\">" +
+        "x=\"#{((n.xpos + n.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0)*@scale).round(3)}\">" +
         n.to_s + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{n.name}",(n.width-3)*@scale,
+      # res += Viz.svg_text_fit("text#{n.name}",(n.width-3)*@scale,
+      #                          0.6*@scale)
+      res += Viz.svg_text_fit("text#{n.__id__}",(n.width-3)*@scale,
                                0.6*@scale)
       # The yes text.
       res += "<text " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
-        "font-family=\"monospace\" font-size=\"#{@scale/2.0}px\" " +
-        "x=\"#{(n.xpos + n.width+0.1)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0+0.5)*@scale}\">" +
+        "font-family=\"monospace\" font-size=\"#{(@scale/2.0).round(3)}px\" " +
+        "x=\"#{((n.xpos + n.width+0.1)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0+0.5)*@scale).round(3)}\">" +
         "Yes" + "</text>\n"
       # The no text if any.
       if no then
         res += "<text " +
           "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
-          "font-family=\"monospace\" font-size=\"#{@scale/2.0}px\" " +
-          "x=\"#{(n.xpos + n.width/2.0+0.7)*@scale}\" "+
-          "y=\"#{(n.ypos + n.height+0.3)*@scale}\">" +
+          "font-family=\"monospace\" font-size=\"#{(@scale/2.0).round(3)}px\" " +
+          "x=\"#{((n.xpos + n.width/2.0+0.7)*@scale).round(3)}\" "+
+          "y=\"#{((n.ypos + n.height+0.3)*@scale).round(3)}\">" +
           "No" + "</text>\n"
       end
       return res
@@ -3836,36 +4034,39 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def case_svg(n,no=false)
       # The shape representing the instance.
       res = "<path fill=\"#B0E2FF\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        "d=\"M #{(n.xpos)*@scale} #{(n.ypos+n.height/2.0)*@scale} " +
-        "L #{(n.xpos+n.width/2.0)*@scale} #{(n.ypos+n.height)*@scale} " + 
-        "L #{(n.xpos+n.width)*@scale} #{(n.ypos+n.height/2.0)*@scale} " +
-        "L #{(n.xpos+n.width/2.0)*@scale} #{(n.ypos)*@scale} " + 
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "d=\"M #{((n.xpos)*@scale).round(3)} #{((n.ypos+n.height/2.0)*@scale).round(3)} " +
+        "L #{((n.xpos+n.width/2.0)*@scale).round(3)} #{((n.ypos+n.height)*@scale).round(3)} " + 
+        "L #{((n.xpos+n.width)*@scale).round(3)} #{((n.ypos+n.height/2.0)*@scale).round(3)} " +
+        "L #{((n.xpos+n.width/2.0)*@scale).round(3)} #{((n.ypos)*@scale).round(3)} " + 
         "Z \" />\n"
       # Its text.
-      res += "<text id=\"text#{n.name}\" " +
+      # res += "<text id=\"text#{n.name}\" " +
+      res += "<text id=\"text#{n.__id__}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(n.xpos + n.width/2.0)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0)*@scale}\">" +
+        "x=\"#{((n.xpos + n.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0)*@scale).round(3)}\">" +
         n.to_s + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{n.name}",(n.width-3)*@scale,
+      # res += Viz.svg_text_fit("text#{n.name}",(n.width-3)*@scale,
+      #                          0.6*@scale)
+      res += Viz.svg_text_fit("text#{n.__id__}",(n.width-3)*@scale,
                                0.6*@scale)
       # The yes text.
       res += "<text " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
-        "font-family=\"monospace\" font-size=\"#{@scale/2.0}px\" " +
-        "x=\"#{(n.xpos + n.width+0.1)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0+0.5)*@scale}\">" +
+        "font-family=\"monospace\" font-size=\"#{(@scale/2.0).round(3)}px\" " +
+        "x=\"#{((n.xpos + n.width+0.1)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0+0.5)*@scale).round(3)}\">" +
         "Yes" + "</text>\n"
       # The no text if any.
       if no then
         res += "<text " +
           "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
-          "font-family=\"monospace\" font-size=\"#{@scale/2.0}px\" " +
-          "x=\"#{(n.xpos + n.width/2.0+0.7)*@scale}\" "+
-          "y=\"#{(n.ypos + n.height+0.3)*@scale}\">" +
+          "font-family=\"monospace\" font-size=\"#{(@scale/2.0).round(3)}px\" " +
+          "x=\"#{((n.xpos + n.width/2.0+0.7)*@scale).round(3)}\" "+
+          "y=\"#{((n.ypos + n.height+0.3)*@scale).round(3)}\">" +
           "No" + "</text>\n"
       end
       return res
@@ -3875,22 +4076,25 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def wait_svg(n)
       # The shape representing the instance.
       res = "<path fill=\"#B0E2FF\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        "d=\"M #{n.xpos*@scale} #{(n.ypos)*@scale} " +
-        "L #{(n.xpos + n.width-n.height/2.0)*@scale} #{n.ypos*@scale} " + 
-        "A #{n.height/2.0*@scale} #{n.height/2.0*@scale} 0 0 1 " +
-        "#{(n.xpos + n.width-n.height/2.0)*@scale} #{(n.ypos+n.height)*@scale} " +
-        "L #{(n.xpos)*@scale} #{(n.ypos+n.height)*@scale} " + 
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "d=\"M #{(n.xpos*@scale).round(3)} #{((n.ypos)*@scale).round(3)} " +
+        "L #{((n.xpos + n.width-n.height/2.0)*@scale).round(3)} #{(n.ypos*@scale).round(3)} " + 
+        "A #{(n.height/2.0*@scale).round(3)} #{(n.height/2.0*@scale).round(3)} 0 0 1 " +
+        "#{((n.xpos + n.width-n.height/2.0)*@scale).round(3)} #{((n.ypos+n.height)*@scale).round(3)} " +
+        "L #{((n.xpos)*@scale).round(3)} #{((n.ypos+n.height)*@scale).round(3)} " + 
         "Z \" />\n"
       # Its text.
-      res += "<text id=\"text#{n.name}\" " +
+      # res += "<text id=\"text#{n.name}\" " +
+      res += "<text id=\"text#{n.__id__}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(n.xpos + n.width/2.0)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0)*@scale}\">" +
+        "x=\"#{((n.xpos + n.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0)*@scale).round(3)}\">" +
         n.to_s + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{n.name}",(n.width-1)*@scale,
+      # res += Viz.svg_text_fit("text#{n.name}",(n.width-1)*@scale,
+      #                          0.6*@scale)
+      res += Viz.svg_text_fit("text#{n.__id__}",(n.width-1)*@scale,
                                0.6*@scale)
       return res
     end
@@ -3905,21 +4109,24 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def terminate_svg(n)
       # The shape representing the instance.
       res = "<ellipse fill=\"#CC0202\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        "cx=\"#{n.xpos*@scale+n.width*@scale/2.0}\" " +
-        "cy=\"#{(n.ypos)*@scale+n.height*@scale/2.0}\" " +
-        "rx=\"#{n.width*@scale/2.0}\" ry=\"#{n.height*@scale/2.0}\" " +
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "cx=\"#{(n.xpos*@scale+n.width*@scale/2.0).round(3)}\" " +
+        "cy=\"#{((n.ypos)*@scale+n.height*@scale/2.0).round(3)}\" " +
+        "rx=\"#{(n.width*@scale/2.0).round(3)}\" ry=\"#{(n.height*@scale/2.0).round(3)}\" " +
         "/>\n"
       # Its text.
-      res += "<text id=\"text#{n.name}\" " +
+      # res += "<text id=\"text#{n.name}\" " +
+      res += "<text id=\"text#{n.__id__}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
         "fill=\"white\" " +
-        "x=\"#{(n.xpos + n.width/2.0)*@scale}\" " +
-        "y=\"#{(n.ypos + n.height/2.0)*@scale}\">" +
+        "x=\"#{((n.xpos + n.width/2.0)*@scale).round(3)}\" " +
+        "y=\"#{((n.ypos + n.height/2.0)*@scale).round(3)}\">" +
         "Terminate" + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{n.name}",(n.width-1)*@scale,
+      # res += Viz.svg_text_fit("text#{n.name}",(n.width-1)*@scale,
+      #                          0.6*@scale)
+      res += Viz.svg_text_fit("text#{n.__id__}",(n.width-1)*@scale,
                                0.6*@scale)
       return res
     end
@@ -3928,19 +4135,22 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
     def print_svg(n)
       # The shape representing the instance.
       res = "<rect fill=\"#B0E2FF\" stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" " +
-        "x=\"#{n.xpos*@scale}\" y=\"#{(n.ypos)*@scale}\" " +
-        "width=\"#{n.width*@scale}\" height=\"#{n.height*@scale}\" " +
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" " +
+        "x=\"#{(n.xpos*@scale).round(3)}\" y=\"#{((n.ypos)*@scale).round(3)}\" " +
+        "width=\"#{(n.width*@scale).round(3)}\" height=\"#{(n.height*@scale).round(3)}\" " +
         "/>\n"
       # Its text.
-      res += "<text id=\"text#{n.name}\" " +
+      # res += "<text id=\"text#{n.name}\" " +
+      res += "<text id=\"text#{n.__id__}\" " +
         "style=\"text-anchor: middle; dominant-baseline: middle;\" " +
         "font-family=\"monospace\" font-size=\"1px\" " +
-        "x=\"#{(n.xpos + n.width/2.0)*@scale}\" "+
-        "y=\"#{(n.ypos + n.height/2.0)*@scale}\">" +
+        "x=\"#{((n.xpos + n.width/2.0)*@scale).round(3)}\" "+
+        "y=\"#{((n.ypos + n.height/2.0)*@scale).round(3)}\">" +
         n.to_s + "</text>\n"
       # Its text resizing.
-      res += Viz.svg_text_fit("text#{n.name}",(n.width-1)*@scale,
+      # res += Viz.svg_text_fit("text#{n.name}",(n.width-1)*@scale,
+      #                          0.6*@scale)
+      res += Viz.svg_text_fit("text#{n.__id__}",(n.width-1)*@scale,
                                0.6*@scale)
       return res
     end
@@ -3951,39 +4161,39 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
       # Draw the line.
         # Vertical part
       res =  "<line stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" stroke-linecap=\"round\" " +
-        "x1=\"#{x0*@scale}\" " +
-        "y1=\"#{y0*@scale}\" " +
-        "x2=\"#{x0*@scale}\" " +
-        "y2=\"#{y1*@scale}\" " +
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" stroke-linecap=\"round\" " +
+        "x1=\"#{(x0*@scale).round(3)}\" " +
+        "y1=\"#{(y0*@scale).round(3)}\" " +
+        "x2=\"#{(x0*@scale).round(3)}\" " +
+        "y2=\"#{(y1*@scale).round(3)}\" " +
         "/>\n"
         # Horizontal part
       res += "<line stroke=\"#000\" " +
-        "stroke-width=\"#{@scale/12.0}\" stroke-linecap=\"round\" " +
-        "x1=\"#{x0*@scale}\" " +
-        "y1=\"#{y1*@scale}\" " +
-        "x2=\"#{x1*@scale}\" " +
-        "y2=\"#{y1*@scale}\" " +
+        "stroke-width=\"#{(@scale/12.0).round(3)}\" stroke-linecap=\"round\" " +
+        "x1=\"#{(x0*@scale).round(3)}\" " +
+        "y1=\"#{(y1*@scale).round(3)}\" " +
+        "x2=\"#{(x1*@scale).round(3)}\" " +
+        "y2=\"#{(y1*@scale).round(3)}\" " +
         "/>\n"
       # The head.
       if x0 == x1 then
         # Vertical case
         res += "<polygon fill=\"#000\" stroke=\"none\" " +
-          "points=\"#{(x1-1/4.0)*@scale},#{(y1-1/2.0-1/8.0)*@scale} " +
-          "#{(x1+1/4.0)*@scale},#{(y1-1/2.0-1/8.0)*@scale} " +
-          "#{(x1)*@scale},#{(y1)*@scale}\"/>\n"
+          "points=\"#{((x1-1/4.0)*@scale).round(3)},#{((y1-1/2.0-1/8.0)*@scale).round(3)} " +
+          "#{((x1+1/4.0)*@scale).round(3)},#{((y1-1/2.0-1/8.0)*@scale).round(3)} " +
+          "#{((x1)*@scale).round(3)},#{((y1)*@scale).round(3)}\"/>\n"
       elsif x0 < x1 then
         # Horizontal left case: always end horizontally.
         res += "<polygon fill=\"#000\" stroke=\"none\" " +
-          "points=\"#{(x1-1/2.0)*@scale},#{(y1-1/4.0)*@scale} " +
-          "#{(x1-1/2.0)*@scale},#{(y1+1/4.0)*@scale} " +
-          "#{(x1+1/8.0)*@scale},#{(y1)*@scale}\"/>\n"
+          "points=\"#{((x1-1/2.0)*@scale).round(3)},#{((y1-1/4.0)*@scale).round(3)} " +
+          "#{((x1-1/2.0)*@scale).round(3)},#{((y1+1/4.0)*@scale).round(3)} " +
+          "#{((x1+1/8.0)*@scale).round(3)},#{((y1)*@scale).round(3)}\"/>\n"
       else
         # Horizontal right case: always end horizontally.
         res += "<polygon fill=\"#000\" stroke=\"none\" " +
-          "points=\"#{(x1)*@scale},#{(y1+1/4.0)*@scale} " +
-          "#{(x1)*@scale},#{(y1-1/4.0)*@scale} " +
-          "#{(x1-1/8.0-1/2.0)*@scale},#{(y1)*@scale}\"/>\n"
+          "points=\"#{((x1)*@scale).round(3)},#{((y1+1/4.0)*@scale).round(3)} " +
+          "#{((x1)*@scale).round(3)},#{((y1-1/4.0)*@scale).round(3)} " +
+          "#{((x1-1/8.0-1/2.0)*@scale).round(3)},#{((y1)*@scale).round(3)}\"/>\n"
       end
       return res
     end
@@ -4076,17 +4286,18 @@ diagram.getElementById('#{target.name}_close').addEventListener("click", (e) => 
       # res += "</style>\n"
 
       # Generate the group containing all the flow description.
-      res += "<g id=\"#{self.name}\" visibility=\"#{visibility}\" " +
-             "transform=\"translate(#{tx},#{ty})\">\n"
+      # res += "<g id=\"#{self.name}\" visibility=\"#{visibility}\" " +
+      #        "transform=\"translate(#{tx},#{ty})\">\n"
+      res += "<g id=\"#{self.__id__}\" visibility=\"#{visibility}\" " +
+        "transform=\"translate(#{tx.round(3)},#{ty.round(3)})\">\n"
       # Generate the rectangle of the bounding box.
       res += "<rect fill=\"#4682B4\" stroke=\"#007\" " +
-        "stroke-width=\"#{@scale/4.0}\" " +
-        # "x=\"#{x0-bT*2.5}\" y=\"#{y0-bT*2.5}\" "+
-        "x=\"#{x0}\" y=\"#{y0}\" "+
-        "width=\"#{width}\" height=\"#{height}\"/>\n"
+        "stroke-width=\"#{(@scale/4.0).round(3)}\" " +
+        "x=\"#{x0.round(3)}\" y=\"#{y0.round(3)}\" "+
+        "width=\"#{width.round(3)}\" height=\"#{height.round(3)}\"/>\n"
 
       # Generate the group containing the top system and its contents.
-      res += "<g transform=\"translate(#{stx},#{sty})\">\n"
+      res += "<g transform=\"translate(#{stx.round(3)},#{sty.round(3)})\">\n"
 
       # Generate the node boxes.
       puts "Generate node box for self.type=#{self.type}"
@@ -4243,19 +4454,19 @@ SVG
       res  = "<g id=\"#{name}\" visibility=\"#{visibility}\">\n"
     end
     res += "<rect fill=\"#cd5c5c\" "+
-      "stroke=\"#000\" stroke-width=\"#{side/8.0}\" " +
-      "x=\"#{xpos}\" y=\"#{ypos}\" " +
-      "width=\"#{side}\" height=\"#{side}\" />\n"
+      "stroke=\"#000\" stroke-width=\"#{(side/8.0).round(3)}\" " +
+      "x=\"#{xpos.round(3)}\" y=\"#{ypos.round(3)}\" " +
+      "width=\"#{side.round(3)}\" height=\"#{side.round(3)}\" />\n"
     # The cross lines.
-    res += "<line stroke=\"#000\" stroke-width=\"#{side/8.0}\" " +
+    res += "<line stroke=\"#000\" stroke-width=\"#{(side/8.0).round(3)}\" " +
       "stroke-linecap=\"butt\" " +
-      "x1=\"#{xpos}\" y1=\"#{ypos}\" " +
-      "x2=\"#{xpos+side}\" y2=\"#{ypos+side}\" " +
+      "x1=\"#{xpos.round(3)}\" y1=\"#{ypos.round(3)}\" " +
+      "x2=\"#{(xpos+side).round(3)}\" y2=\"#{(ypos+side).round(3)}\" " +
       " />\n"
-    res += "<line stroke=\"#000\" stroke-width=\"#{side/8.0}\" " +
+    res += "<line stroke=\"#000\" stroke-width=\"#{(side/8.0).round(3)}\" " +
       "stroke-linecap=\"butt\" " +
-      "x1=\"#{xpos+side}\" y1=\"#{ypos}\" " +
-      "x2=\"#{xpos}\" y2=\"#{ypos+side}\" " +
+      "x1=\"#{(xpos+side).round(3)}\" y1=\"#{ypos.round(3)}\" " +
+      "x2=\"#{xpos.round(3)}\" y2=\"#{(ypos+side).round(3)}\" " +
       " />\n"
     res += "</g>"
   end
@@ -4268,10 +4479,10 @@ SVG
 // Helping button.
 <g id="$help$_open">
   <rect fill="yellow" stroke="#000" stroke-width="3"
-   x="#{x0+width-62/fit}" y="#{y0+2/fit}" width="#{60/fit}" height="#{30/fit}" />
+   x="#{(x0+width-62/fit).round(3)}" y="#{(y0+2/fit).round(3)}" width="#{(60/fit).round(3)}" height="#{(30/fit).round(3)}" />
   <text style="text-anchor: middle; dominant-baseline: middle;" 
-        font-family="monospace" font-size="#{20/fit}px"
-        x="#{x0+width-32/fit}" y="#{y0+17/fit}" >
+        font-family="monospace" font-size="#{(20/fit).round(3)}px"
+        x="#{(x0+width-32/fit).round(3)}" y="#{(y0+17/fit).round(3)}" >
     Help
   </text>
 </g>
@@ -4279,53 +4490,46 @@ SVG
 // Helping panel.
 <g id="$help$" visibility="hidden">
   <rect fill="#ffffd7" stroke="#000" stroke-width="6"
-   x="#{x0}" y="#{y0}" width="#{width}" height="#{height}" />
-   <text font-size="#{40/fit}px" font-family="serif" font-weight="bold"
-    x="#{x0+width/2}" y="#{y0+40/fit}" >
+   x="#{x0.round(3)}" y="#{y0.round(3)}" width="#{width.round(3)}" height="#{height.round(3)}" />
+   <text font-size="#{(40/fit).round(3)}px" font-family="serif" font-weight="bold"
+    x="#{(x0+width/2).round(3)}" y="#{(y0+40/fit).round(3)}" >
     Help
    </text>
 
-   <text font-size="#{30/fit}px" font-family="serif" font-weight="bold"
-    x="#{x0+15/fit}" y="#{y0+100/fit}" >
+   <text font-size="#{(30/fit).round(3)}px" font-family="serif" font-weight="bold"
+    x="#{(x0+15/fit).round(3)}" y="#{(y0+100/fit).round(3)}" >
    Navigation:
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+25/fit}" y="#{y0+140/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+25/fit).round(3)}" y="#{(y0+140/fit).round(3)}" >
    Zoom in/out:
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+190/fit}" y="#{y0+140/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+190/fit).round(3)}" y="#{(y0+140/fit).round(3)}" >
    mouse wheel.
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+25/fit}" y="#{y0+170/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+25/fit).round(3)}" y="#{(y0+170/fit).round(3)}" >
    Move diagram:
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+190/fit}" y="#{y0+170/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+190/fit).round(3)}" y="#{(y0+170/fit).round(3)}" >
    left click and drag, or arrow keys.
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+25/fit}" y="#{y0+200/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+25/fit).round(3)}" y="#{(y0+200/fit).round(3)}" >
    Open element:
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+190/fit}" y="#{y0+200/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+190/fit).round(3)}" y="#{(y0+200/fit).round(3)}" >
    left click on element.
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+25/fit}" y="#{y0+230/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+25/fit).round(3)}" y="#{(y0+230/fit).round(3)}" >
    Close element:
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+190/fit}" y="#{y0+230/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+190/fit).round(3)}" y="#{(y0+230/fit).round(3)}" >
    left click on the close button at the top right of the element.
    </text>
 
-   <text font-size="#{30/fit}px" font-family="serif" font-weight="bold"
-    x="#{x0+15/fit}" y="#{y0+300/fit}" >
+   <text font-size="#{(30/fit).round(3)}px" font-family="serif" font-weight="bold"
+    x="#{(x0+15/fit).round(3)}" y="#{(y0+300/fit).round(3)}" >
    Types of elements:
    </text>
    #{
-   # ic = IC.new("Instance",:instance)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+15/fit) / ic.scale
-   # ic.ypos = 330/fit / ic.scale
-   # ic.width = 300/fit / ic.scale
-   # ic.height = 100/fit / ic.scale
-   # ic.instance_svg(ic)
    ic = IC.new("Instance",:instance)
    ic.scale = 35.0/fit
    ic.xpos = (x0+15)/fit / ic.scale
@@ -4335,23 +4539,6 @@ SVG
    ic.instance_svg(ic)
    }
    #{
-   # ic = IC.new("Continuous assignment",:alu)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+(15+300+15)/fit) / ic.scale
-   # ic.ypos = 305/fit / ic.scale
-   # ic.width = 300/fit / ic.scale
-   # ic.height = 150/fit / ic.scale
-   # p0 = Port.new("in0",ic,:input)
-   # p0.side = LEFT
-   # ic.ports << p0
-   # p1 = Port.new("in1",ic,:input)
-   # p1.side = LEFT
-   # ic.ports << p1
-   # p2 = Port.new("out",ic,:output)
-   # p2.side = RIGHT
-   # ic.alu_svg(ic)
-   # ic.ports << p2
-   # ic.alu_svg(ic)
    ic = IC.new("Continuous assignment",:alu)
    ic.scale = 35.0/fit
    ic.xpos = (x0+(15+300+15))/fit / ic.scale
@@ -4371,13 +4558,6 @@ SVG
    ic.alu_svg(ic)
    }
    #{
-   # ic = IC.new("Combinatorial process",:process)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+15/fit) / ic.scale
-   # ic.ypos = 480/fit / ic.scale
-   # ic.width = 300/fit / ic.scale
-   # ic.height = 100/fit / ic.scale
-   # ic.process_svg(ic)
    ic = IC.new("Combinatorial process",:process)
    ic.scale = 35.0/fit
    ic.xpos = (x0+15)/fit / ic.scale
@@ -4387,13 +4567,6 @@ SVG
    ic.process_svg(ic)
    }
    #{
-   # ic = IC.new("Clocked process",:clocked_process)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+(15+300+15)/fit) / ic.scale
-   # ic.ypos = 480/fit / ic.scale
-   # ic.width = 300/fit / ic.scale
-   # ic.height = 100/fit / ic.scale
-   # ic.clocked_process_svg(ic)
    ic = IC.new("Clocked process",:clocked_process)
    ic.scale = 35.0/fit
    ic.xpos = (x0+(15+300+15))/fit / ic.scale
@@ -4403,13 +4576,6 @@ SVG
    ic.clocked_process_svg(ic)
    }
    #{
-   # ic = IC.new("Time process",:timed_process)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+(15+300+15+300+15)/fit) / ic.scale
-   # ic.ypos = 480/fit / ic.scale
-   # ic.width = 300/fit / ic.scale
-   # ic.height = 100/fit / ic.scale
-   # ic.timed_process_svg(ic)
    ic = IC.new("Time process",:timed_process)
    ic.scale = 35.0/fit
    ic.xpos = (x0+(15+300+15+300+15))/fit / ic.scale
@@ -4419,13 +4585,6 @@ SVG
    ic.timed_process_svg(ic)
    }
    #{
-   # ic = IC.new("Signal",:register)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+15/fit) / ic.scale
-   # ic.ypos = 600/fit / ic.scale
-   # ic.width = 150/fit / ic.scale
-   # ic.height = 75/fit / ic.scale
-   # ic.register_svg(ic)
    ic = IC.new("Signal",:register)
    ic.scale = 35.0/fit
    ic.xpos = (x0+15)/fit / ic.scale
@@ -4435,13 +4594,6 @@ SVG
    ic.register_svg(ic)
    }
    #{
-   # ic = IC.new("Memory",:memory)
-   # ic.scale = 35.0
-   # ic.xpos = (x0+(15+200+15)/fit) / ic.scale
-   # ic.ypos = 600/fit / ic.scale
-   # ic.width = 200/fit / ic.scale
-   # ic.height = 100/fit / ic.scale
-   # ic.memory_svg(ic)
    ic = IC.new("Memory",:memory)
    ic.scale = 35.0/fit
    ic.xpos = (x0+(15+200+15))/fit / ic.scale
@@ -4451,11 +4603,11 @@ SVG
    ic.memory_svg(ic)
    }
 
-   <text font-size="#{30/fit}px" font-family="serif" font-weight="bold"
-    x="#{x0+15/fit}" y="#{y0+800/fit}" >
+   <text font-size="#{(30/fit).round(3)}px" font-family="serif" font-weight="bold"
+    x="#{(x0+15/fit).round(3)}" y="#{(y0+800/fit).round(3)}" >
    Contents of processes and assigments:
    </text>
-   <text font-size="#{25/fit}px" font-family="serif" x="#{x0+25/fit}" y="#{y0+840/fit}" >
+   <text font-size="#{(25/fit).round(3)}px" font-family="serif" x="#{(x0+25/fit).round(3)}" y="#{(y0+840/fit).round(3)}" >
    Represented as sets of parallel flow charts.
    </text>
 
@@ -4485,11 +4637,11 @@ SVG
   def self.svg_text_fit(name,width,max_size)
     return <<~SCRIPT
 <script> 
-    fitWidth=#{width};
+    fitWidth=#{width.round(3)};
     textNode = document.getElementById("#{self.to_svg_id(name)}");
     textBB = textNode.getBBox();
     fitSize = fitWidth / textBB.width;
-    if (fitSize > #{max_size}) fitSize = #{max_size};
+    if (fitSize > #{max_size.round(3)}) fitSize = #{max_size.round(3)};
     textNode.setAttribute("font-size", fitSize + "px")
  </script>
 SCRIPT
@@ -4850,6 +5002,9 @@ class HDLRuby::Low::Case
     # self.default.to_viz_node(node) if self.default
     # return node
     node = parent
+    # NOROM
+    count = 0
+    # END NOROM
     # Generate one node per possible value.
     self.each_when do |w|
       sub = HDLRuby::Viz::Node.new(:case,node)
@@ -4857,6 +5012,12 @@ class HDLRuby::Low::Case
       w.match.to_viz_node(sub)
       w.statement.to_viz_node(sub)
       node = sub if node == parent # Set the first node
+      # NOROM
+      count += 1
+      if count > 16 then
+        break
+      end
+      # END NOROM
     end
     self.default.to_viz_node(node) if self.default
     return node
@@ -4999,10 +5160,19 @@ class HDLRuby::Low::Block
   def to_viz_node(parent)
     node = HDLRuby::Viz::Node.new(self.mode,parent)
     prev = nil
+    # NOROM
+    count = 0
+    # END NOROM
     self.each_statement do |stmnt| 
       succ = stmnt.to_viz_node(node)
       prev.successor = succ if prev
       prev = succ
+      # NOROM
+      count += 1
+      if count > 256 then
+        break
+      end
+      # END NOROM
     end
     unless prev then
       # There were no statement in the block, create a dummy one
