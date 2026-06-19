@@ -156,7 +156,7 @@ module HDLRuby::Low
               blk = self.block
               sig = blk ? blk.get_signal_up(expr.ref.name) : 
                 self.scope.get_signal_up(expr.ref.name)
-              sig.split_to_index(expr,expr.index,res)
+              sig.split_to_index(expr,expr.index,res) if sig
             elsif expr.is_a?(RefRange) and expr.ref.is_a?(RefName) and
               expr.range.first.is_a?(Value) and
               expr.range.last.is_a?(Value) then
@@ -164,7 +164,7 @@ module HDLRuby::Low
               blk = self.block
               sig = blk ? blk.get_signal_up(expr.ref.name) : 
                 self.scope.get_signal_up(expr.ref.name)
-              sig.split_to_range(expr,expr.range,res)
+              sig.split_to_range(expr,expr.range,res) if sig
             end
           end
         end
