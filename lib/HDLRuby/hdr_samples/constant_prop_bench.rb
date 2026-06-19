@@ -16,8 +16,8 @@ system :dff_bench do
     [8].inner :count
     [8].constant inc: 5
 
-    # counter(:my_counter).(clk,rst,inc,count)
-    counter(:my_counter).(clk,rst,5,count)
+    counter(:my_counter).(clk,rst,inc,count)
+    # counter(:my_counter).(clk,rst,5,count)
 
     # par do
     #     my_counter.inc <= 5
