@@ -5604,7 +5604,7 @@ module HDLRuby::High
                 # Check the value
                 return nil unless value.match(/^[0-9]+$/)
                 # Compute it (base 10 values cannot be 4-state!)
-                value = value.to_i.to_s(2)
+                value = value.to_i.to_s(2).rjust(width,"0")
             when "h" then
                 # base 16, compute the width
                 width = width ? width.to_i : value.size * 4
