@@ -86,6 +86,7 @@ module HDLRuby::Viz
       @cwidths  = []   # The widths of each column in number of routes
       # @border   = 2    # The IC border size for routing to external ports.
       @border   =  4   # The IC border size for routing to external ports.
+      # @cell_border = 4 # The cell border size
       @cell_border = 4 # The cell border size
       @routes   = []   # The connection routes.
       @port_width = 3  # The width in tiles for a port
@@ -172,8 +173,8 @@ module HDLRuby::Viz
 
     # Compute the distance between to IC.
     def distance(ic0,ic1)
-      res = Math.sqrt((ic0.xpos-ic1.xpos)**2+(ic0.ypos-ic1.ypos)**2)
-      # res = (ic0.xpos-ic1.xpos).abs+(ic0.ypos-ic1.ypos).abs
+      # res = Math.sqrt((ic0.xpos-ic1.xpos)**2+(ic0.ypos-ic1.ypos)**2)
+      res = (ic0.xpos-ic1.xpos).abs+(ic0.ypos-ic1.ypos).abs
       return res
     end
 
@@ -360,7 +361,8 @@ module HDLRuby::Viz
 
     # Select the side of the ports of the children according to the
     # position of their targets.
-    def side_children
+    # def side_children
+    def side_children(ic_matrix_coordinates)
       @children.each do |child|
         puts "side_children for child=#{child.name} with #{child.ports.size} ports"
         # Resets the port sides.
@@ -372,8 +374,9 @@ module HDLRuby::Viz
         # (Information used for certain types of IC).
         left_for, up_for, right_for, down_for = nil, nil, nil, nil
         # Recompute the ports sides.
-        cx = child.xpos
-        cy = child.ypos
+        # cx = child.xpos
+        # cy = child.ypos
+        cx,cy = ic_matrix_coordinates[child]
         child.ports.each do |port|
           puts "For port: #{port.name} (of #{port.ic.name})"
           unless left_for || up_for || right_for || down_for then
@@ -398,58 +401,89 @@ module HDLRuby::Viz
                 # Current IC, do not use its position, but the side.
                 case port.targets[0].side
                 when LEFT
-                  tx = cx + 1.0
+                  # tx = cx + 1.0
+                  tx = cx + 1
                   ty = cy
                 when UP
                   tx = cx
-                  ty = -cy - 1.0
+                  # ty = -cy - 1.0
+                  ty = -cy - 1
                 when RIGHT
-                  tx = -cx - 1.0
+                  # tx = -cx - 1.0
+                  tx = -cx - 1
                   ty = cy
                 when DOWN
                   tx = cx
-                  ty = cy + 1.0
+                  # ty = cy + 1.0
+                  ty = cy + 1
                 end
               else
-                tx = port.targets[0].ic.xpos
-                ty = port.targets[0].ic.ypos
+                # tx = port.targets[0].ic.xpos
+                # ty = port.targets[0].ic.ypos
+                tx,ty = ic_matrix_coordinates[port.targets[0].ic]
               end
               dx = cx-tx
               dy = cy-ty
-              if dx > 0 then
+              puts "cx=#{cx} cy=#{cy} tx=#{tx} ty=#{ty} dx=#{dx} dy=#{dy}"
+              if dx == 0 then
                 if dy > 0 then
-                  if dx > dy then
-                    port.side = this_port ? RIGHT : LEFT
-                  else
-                    port.side = this_port ? UP : DOWN
-                  end
+                  port.side = this_port ? UP : DOWN
                 else
-                  if dx > -dy then
-                    port.side = this_port ? RIGHT : LEFT
-                  else
-                    port.side = this_port ? DOWN : UP
-                  end
+                  port.side = this_port ? DOWN : UP
+                end
+              elsif dy == 0 then
+                if dx > 0 then
+                  port.side = this_port ? RIGHT : LEFT
+                else
+                  port.side = this_port ? LEFT : RIGHT
+                end
+
+              # if dx > 0 then
+              elsif dx > 0 then
+                # if dy > 0 then
+                #   if dx > dy then
+                #     port.side = this_port ? RIGHT : LEFT
+                #   else
+                #     port.side = this_port ? UP : DOWN
+                #   end
+                # else
+                #   if dx > -dy then
+                #     port.side = this_port ? RIGHT : LEFT
+                #   else
+                #     port.side = this_port ? DOWN : UP
+                #   end
+                # end
+                if dy > 0 then
+                  port.side = this_port ? RIGHT : LEFT
+                else
+                  # port.side = this_port ? UP : DOWN
+                  port.side = this_port ? DOWN : UP
                 end
               else
+                # if dy > 0 then
+                #   if -dx > dy then
+                #     port.side = this_port ? LEFT : RIGHT
+                #   else
+                #     port.side = this_port ? UP : DOWN
+                #   end
+                # else
+                #   if -dx > -dy then
+                #     port.side = this_port ? LEFT : RIGHT
+                #   else
+                #     port.side = this_port ? DOWN : UP
+                #   end
+                # end
                 if dy > 0 then
-                  if -dx > dy then
-                    port.side = this_port ? LEFT : RIGHT
-                  else
-                    port.side = this_port ? UP : DOWN
-                  end
+                  port.side = this_port ? LEFT : RIGHT
                 else
-                  if -dx > -dy then
-                    port.side = this_port ? LEFT : RIGHT
-                  else
-                    port.side = this_port ? DOWN : UP
-                  end
+                  port.side = this_port ? DOWN : UP
                 end
               end
             end
           end
           # Case of IC of type assign or register if a side is used for
           # output, the opposite must be used for input, and vice versa.
-          if child.type == :assign or child.type == :register then
+          if child.type == :assign then # or child.type == :register then
             # puts "left_for=#{left_for} up_for=#{up_for} right_for=#{right_for} down_for=#{down_for}"
             if left_for then
               if port.direction == left_for then
@@ -869,6 +903,10 @@ module HDLRuby::Viz
           cw = @cwidths[j]
           @cwidths[j]  = child.width if child.width > cw
           @rheights[i] = child.height if child.height > rh
+          # fix_size = child.width > child.height ? child.width : child.height
+          # @cwidths[j]  = fix_size if fix_size > cw
+          # @rheights[i] = fix_size if fix_size > rh
+
         end
       end 
       # Increase the space to allow placing the routes.
@@ -925,9 +963,9 @@ module HDLRuby::Viz
         elsif child.lports.any? then
           step = child.height / child.lports.size
           child.lports.each_with_index do |port,i|
-            puts "Preplace left port=#{port.name}"
             port.xpos = xpos
             port.ypos = ypos + i*step + step/2
+            puts "Preplace left port=#{port.name} ypos=#{port.ypos}"
           end
         end
         # The up ports.
@@ -939,9 +977,9 @@ module HDLRuby::Viz
         elsif child.uports.any? then
           step = child.width / child.uports.size
           child.uports.each_with_index do |port,i|
-            puts "Preplace up port=#{port.name}"
             port.xpos = xpos + i*step + step/2
             port.ypos = ypos + height - 1
+            puts "Preplace up port=#{port.name} xpos=#{port.xpos}"
           end
         end
         # The right ports.
@@ -953,9 +991,9 @@ module HDLRuby::Viz
         elsif child.rports.any? then
           step = child.height / child.rports.size
           child.rports.each_with_index do |port,i|
-            puts "Preplace right port=#{port.name}"
             port.xpos = xpos + width - 1
             port.ypos = ypos + i*step + step/2
+            puts "Preplace right port=#{port.name} ypos=#{port.ypos}"
           end
         end
         # The down ports.
@@ -967,13 +1005,14 @@ module HDLRuby::Viz
         elsif child.dports.any? then
           step = child.width / child.dports.size
           child.dports.each_with_index do |port,i|
-            puts "Preplace down port=#{port.name}"
             port.xpos = xpos + i*step + step/2
             port.ypos = ypos
+            puts "Preplace down port=#{port.name} xpos=#{port.xpos}"
           end
         end
       end
 
+      # TRUCMUCHE
       # Optimize the place.
       @children.each do |child|
         xpos = child.xpos
@@ -986,11 +1025,11 @@ module HDLRuby::Viz
           step = child.height / child.lports.size
           lefts = child.lports.clone
           
-          # Sort the ports by reverse order y difference with their
+          # Sort the ports by reverse order in difference with their
           # targets.
           lefts.sort! do |p0,p1| 
-            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.ypos - p0.ypos } <=>
-            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.ypos - p1.ypos }
+            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.ypos - p0.ypos).abs } <=>
+            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.ypos - p1.ypos).abs }
           end
           # Apply the order.
           lefts.each_with_index do |port,i|
@@ -1007,8 +1046,8 @@ module HDLRuby::Viz
           # Sort the ports by reverse order x difference with their
           # targets.
           ups.sort! do |p0,p1| 
-            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.xpos - p0.xpos } <=>
-            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.xpos - p1.xpos }
+            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.xpos - p0.xpos).abs } <=>
+            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.xpos - p1.xpos).abs }
           end
           # Apply the order.
           ups.each_with_index do |port,i|
@@ -1026,8 +1065,8 @@ module HDLRuby::Viz
           # targets.
           rights.sort! do |p0,p1| 
             # puts "p0=#{p0.name} p1=#{p1.name}"
-            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.ypos - p0.ypos } <=>
-            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.ypos - p1.ypos }
+            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.ypos - p0.ypos).abs } <=>
+            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.ypos - p1.ypos).abs }
           end
           # Apply the order.
           rights.each_with_index do |port,i|
@@ -1044,8 +1083,8 @@ module HDLRuby::Viz
           # Sort the ports by reverse order x difference with their
           # targets.
           downs.sort! do |p0,p1| 
-            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.xpos - p0.xpos } <=>
-            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + t.xpos - p1.xpos }
+            p0.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.xpos - p0.xpos).abs } <=>
+            p1.targets.uniq {|t| t.ic }.reduce(0) {|sum,t| sum + (t.xpos - p1.xpos).abs }
           end
           # Apply the order.
           downs.each_with_index do |port,i|
@@ -1061,112 +1100,8 @@ module HDLRuby::Viz
     # Also fine-place the ports of the current IC to also increase the
     # aligment of connected ports.
     def place_children_port_matrix
-      # xpos, ypos = 0, 0
-      # @matrix.each_with_index do |row,i|
-      #   xpos = 0
-      #   mypos = ypos + @rheights[i]
-      #   row.each_with_index do |child,j|
-      #     mxpos = xpos + @cwidths[j]
-      #     if child then
-      #       # Tune x position.
-      #       # Find the best delta.
-      #       bdx = 0       # Best y delta
-      #       bcost = 1/0.0 # Best score
-      #       xpos_in_cell = child.xpos - xpos  # Initial position in cell
-      #       xpos_in_cell -= @border if j == 0 # Do not go inside the border
-      #       (@cwidths[j]-child.width).times do |dx|
-      #         dx = dx - xpos_in_cell # Adjust delta x to the initial position
-      #         cost = child.ports.reduce(0) do |sum,port|
-      #           pxpos = port.xpos + dx
-      #           sum + port.targets.reduce(0) do |subsum,tport|
-      #             # There is cost when the port is not align with the target.
-      #             if (port.side == LEFT and tport.side == RIGHT) or
-      #                 (port.side == UP and tport.side == UP) then
-      #               # For left to right or up yo up connections, 
-      #               # the first side should be 2 tiles on the left for
-      #               # straight wire or avoiding routing conjestion.
-      #               subsum + (pxpos-tport.xpos-2) != 0 ? 1 : 0
-      #             elsif (port.side == RIGHT and tport.side == LEFT) or
-      #                 (port.side == DOWN and tport.side == DOWN) then
-      #               # For right to left or down to down connections,
-      #               # the first side should be 2 tiles on the right for
-      #               # straight wire or avoiding routing conjestion.
-      #               subsum + (pxpos-tport.xpos+2) != 0 ? 1 : 0
-      #             else
-      #               # Otherwise, perfect aligment is the best.
-      #               subsum + (pxpos-tport.xpos) != 0 ? 1 : 0
-      #             end
-      #           end
-      #         end
-      #         if cost < bcost then
-      #           bcost = cost
-      #           bdx = dx
-      #         end
-      #       end
-      #       # Ensure the child does not goes out of its cell.
-      #       if child.xpos + bdx < xpos then
-      #         bdx = xpos - child.xpos
-      #       elsif child.xpos + child.width + bdx >= mxpos then
-      #         bdx = mxpos - child.xpos - child.width - 1
-      #       end
-      #       # Apply the best delta.
-      #       child.xpos += bdx
-      #       # Update the ports position.
-      #       child.ports.each {|port| port.xpos += bdx }
 
-      #       # Tune y position.
-      #       puts "for child=#{child.name}"
-      #       # Find the best delta.
-      #       bdy = 0       # Best x delta
-      #       bcost = 1/0.0 # Best score
-      #       ypos_in_cell = child.ypos - ypos  # Initial position in cell
-      #       ypos_in_cell -= @border if i == 0 # Do not go to the outer border
-      #       (@rheights[i]-child.height).times do |dy|
-      #         dy = dy - ypos_in_cell # Adjust dela y with initial position
-      #         cost = child.ports.reduce(0) do |sum,port|
-      #           pypos = port.ypos + dy
-      #           sum + port.targets.reduce(0) do |subsum,tport|
-      #             # There is cost when the port is not align with the target.
-      #             if (port.side == UP and tport.side == DOWN) or
-      #                 (port.side == RIGHT and tport.side == RIGHT) then
-      #               # For up to down or right to right connections,
-      #               # the first side should be 2 tiles on the right for
-      #               # straight wire or avoiding routing conjestion.
-      #               subsum + (pypos-tport.ypos+2) != 0 ? 1 : 0
-      #             elsif (port.side == DOWN and tport.side == UP) or
-      #                 (port.side == LEFT and tport.side == LEFT) then
-      #               # For down to up or left to left connections,
-      #               # the forst side should be 2 tiles on the down for
-      #               # straight wire or avoiding routing conjestion.
-      #               subsum + (pypos-tport.ypos-2) != 0 ? 1 : 0
-      #             else
-      #               subsum + (pypos-tport.ypos) != 0 ? 1 : 0 
-      #             end
-      #           end
-      #         end
-      #         if cost < bcost then
-      #           bcost = cost
-      #           bdy = dy
-      #         end
-      #       end
-      #       # puts "mypos=#{mypos} child.ypos=#{child.ypos} bdy=#{bdy}"
-      #       # Ensure the child does not goes out of its cell.
-      #       if child.ypos + bdy < ypos then
-      #         bdy = ypos - child.ypos 
-      #       elsif child.ypos + child.height + bdy >= mypos then
-      #         bdy = mypos - child.ypos - child.height - 1
-      #       end
-      #       # Apply the best delta.
-      #       child.ypos += bdy
-      #       # Update the ports position.
-      #       child.ports.each {|port| port.ypos += bdy }
-      #     end
-      #     xpos += @cwidths[j]
-      #   end
-      #   ypos += @rheights[i]
-      # end
-
-      # First prepare the algorthims: sort the children for
+      # First prepare the algorthms: sort the children for
       # vertical and horizontal processing and locate their
       # respective row and column intervals.
       # Sort the children by decreasing number of left and right ports, 
@@ -2406,6 +2341,14 @@ module HDLRuby::Viz
       puts "matrix:"
       matrix.each { |row| puts "#{row.map{|ic| ic ? ic.name : "   " }}" }
 
+      # And the ic to coordinate table. TRUCMUCHE
+      ic_matrix_coordinates = {}
+      matrix.each_with_index do |row,y|
+        row.each_with_index do |ic,x|
+          ic_matrix_coordinates[ic] = [x,y] if ic
+        end
+      end
+
       # Compute the side of the ports.
       self.bounding_children
 
@@ -2422,7 +2365,8 @@ module HDLRuby::Viz
       end
 
       # For the children.
-      self.side_children
+      # self.side_children
+      self.side_children(ic_matrix_coordinates)
 
       puts "Children ports side results: "
       self.children.each_with_index do |child|
