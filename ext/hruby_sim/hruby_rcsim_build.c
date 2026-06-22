@@ -688,6 +688,7 @@ VALUE rcsim_make_value_numeric(VALUE mod, VALUE typeV, VALUE contentV) {
     /* Get the type. */
     Type type;
     value_to_rcsim(TypeS,typeV,type);
+    // printf("type=%llu\n",type_width(type));
     /* Create the value. */
     Value value = make_value(type,0);
     // printf("value=%p\n",value);
@@ -696,6 +697,28 @@ VALUE rcsim_make_value_numeric(VALUE mod, VALUE typeV, VALUE contentV) {
     value->capacity = 0;
     value->data_str = NULL;
     value->data_int = NUM2LL(contentV);
+    // printf("value->data_int=%lld\n",value->data_int);
+    /* Returns the C value embedded into a ruby VALUE. */
+    VALUE res;
+    rcsim_to_value(ValueS,value,res);
+    return res;
+}
+
+/* Creating a numeric value C object forcing bit 63 to one. */
+VALUE rcsim_make_value_numeric_63one(VALUE mod, VALUE typeV, VALUE contentV) {
+    // printf("rcsim_make_value_numeric_63one\n");
+    /* Get the type. */
+    Type type;
+    value_to_rcsim(TypeS,typeV,type);
+    // printf("type=%llu\n",type_width(type));
+    /* Create the value. */
+    Value value = make_value(type,0);
+    // printf("value=%p\n",value);
+    /* Set it to numeric. */
+    value->numeric = 1;
+    value->capacity = 0;
+    value->data_str = NULL;
+    value->data_int = NUM2LL(contentV) | 0x8000000000000000ULL;
     // printf("value->data_int=%lld\n",value->data_int);
     /* Returns the C value embedded into a ruby VALUE. */
     VALUE res;
@@ -1906,6 +1929,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_hcase",rcsim_make_hcase,2);
     rb_define_singleton_method(mod,"rcsim_make_block",rcsim_make_block,1);
     rb_define_singleton_method(mod,"rcsim_make_value_numeric",rcsim_make_value_numeric,2);
+    rb_define_singleton_method(mod,"rcsim_make_value_numeric_63one",rcsim_make_value_numeric_63one,2);
     rb_define_singleton_method(mod,"rcsim_make_value_bitstring",rcsim_make_value_bitstring,2);
     rb_define_singleton_method(mod,"rcsim_make_cast",rcsim_make_cast,2);
     rb_define_singleton_method(mod,"rcsim_make_unary",rcsim_make_unary,3);

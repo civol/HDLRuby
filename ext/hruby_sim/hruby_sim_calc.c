@@ -327,6 +327,7 @@ Value copy_value(Value src, Value dst) {
     /* Copy the data. */
     if (src->numeric) {
         /* Numeric copy. */
+        // printf("copy_value with data_in: %llu\n", src->data_int);
         dst->data_int = fix_numeric_type(dst->type,src->data_int);
     } else {
         // printf("copy_value with bit string: %.*s\n",src->capacity,src->data_str);
@@ -2166,7 +2167,6 @@ fix_numeric_type(Type type, unsigned long long val) {
     if (type->flags.sign) {
         /* Yes, perform sign extension. */
         int is_neg = (val >> (width-1)) & 1;
-        // printf("is_neg=%i\n",is_neg);
         if (is_neg) {
             /* Negative sign extension. */
             return val | mask;

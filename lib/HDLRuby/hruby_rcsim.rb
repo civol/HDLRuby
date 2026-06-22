@@ -904,8 +904,13 @@ module HDLRuby::High
                         return RCSim.rcsim_make_value_numeric(self.type.to_rcsim,
                                                               self.content)
                     else
+                      if (self.content >= 0 and self.content & 0x8000_0000_0000_0000 == 0) then
                         return RCSim.rcsim_make_value_numeric(self.type.to_rcsim,
-                                                              self.content & 0xFFFFFFFFFFFF)
+                                                              self.content & 0x7FFF_FFFF_FFFF_FFFF)
+                      else
+                        return RCSim.rcsim_make_value_numeric_63one(self.type.to_rcsim,
+                                                              self.content & 0x7FFF_FFFF_FFFF_FFFF)
+                      end
                     end
                 else
                     if self.content < 0 then

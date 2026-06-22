@@ -2267,7 +2267,11 @@ module HDLRuby::High::Std
             # Create the hardware iterator.
             this = self
             # size = this.size ? this.size : this.last - this.first + 1
-            size = this.last.to_i - this.first.to_i + 1
+            if this.last.is_a?(SignalI) or this.first.is_a?(SignalI) then
+              size = this.last.to_expr - this.first.to_expr + 1
+            else
+              size = this.last.to_i - this.first.to_i + 1
+            end
             size = size.to_expr.as(typ)
             # hw_enum = SEnumeratorBase.new(signed[32],size) do |idx|
             hw_enum = SEnumeratorBase.new(typ,size) do |idx|
