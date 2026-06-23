@@ -71,7 +71,7 @@ hdrcc --get-tuto
 
 __What's New__
 
-For HDLRuby version 3.9.3/3.9.4:
+For HDLRuby version 3.9.3/3.9.4/3.9.5:
 
 * Improved the graphical representation of the RTL code in SVG format for faster generation and better rendering. The tool is still experimental though.
 
