@@ -71,7 +71,14 @@ hdrcc --get-tuto
 
 __What's New__
 
-For HDKRuby version 3.9.2:
+For HDLRuby version 3.9.3/3.9.4:
+
+* Improved the graphical representation of the RTL code in SVG format for faster generation and better rendering. The tool is still experimental though.
+
+* Fixed various bugs.
+
+
+For HDLRuby version 3.9.2:
 
 * Added the `hbreak` command for exiting parallel enumerator loops.
 
