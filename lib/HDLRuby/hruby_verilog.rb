@@ -2154,7 +2154,7 @@ module HDLRuby::Low
             inout = self.each_inout.to_a
 
             # Spelling necessary for simulation.
-            code = "`timescale 1ps/1ps\n\n"
+            code = "`timescale 10ps/1ps\n\n"
 
             # self.properties[:verilog_name] = vname
             # Output the module name.
