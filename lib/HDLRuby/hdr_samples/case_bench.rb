@@ -1,4 +1,4 @@
-# Test the comparison operators.
+# Test the case.
 
 # A benchmark for the case statement.
 system :case_bench do
