@@ -1738,7 +1738,11 @@ module HDLRuby::Low
 
             result = " " * spc # Indented based on space_count.
 
-            result << "case(#{self.value.to_verilog})\n"
+            if @mode == :casez then
+              result << "casez(#{self.value.to_verilog})\n"
+            else
+              result << "case(#{self.value.to_verilog})\n"
+            end
 
             # n the case statement, each branch is partitioned by when. Process each time when.
             self.each_when do |whens| 

@@ -27,6 +27,7 @@ typedef struct TransmitS_ TransmitS;
 typedef struct PrintS_ PrintS;
 typedef struct HIfS_ HIfS;
 typedef struct HCaseS_ HCaseS;
+typedef struct HCaseZS_ HCaseZS;
 typedef struct TimeWaitS_ TimeWaitS;
 typedef struct TimeRepeatS_ TimeRepeatS;
 typedef struct TimeTerminateS_ TimeTerminateS;
@@ -63,6 +64,7 @@ typedef struct TransmitS_* Transmit;
 typedef struct PrintS_* Print;
 typedef struct HIfS_* HIf;
 typedef struct HCaseS_* HCase;
+typedef struct HCaseZS_* HCaseZ;
 typedef struct TimeWaitS_* TimeWait;
 typedef struct TimeRepeatS_* TimeRepeat;
 typedef struct TimeTerminateS_* TimeTerminate;
@@ -91,7 +93,7 @@ typedef enum {
 #endif
     OBJECT, SYSTEMT, SIGNALI, SCOPE, BEHAVIOR, SYSTEMI, CODE, BLOCK, EVENT,
 #ifdef RCSIM
-    /* Statements */  TRANSMIT, PRINT, HIF, HCASE, 
+    /* Statements */  TRANSMIT, PRINT, HIF, HCASE, HCASEZ,
                       TIME_WAIT, TIME_REPEAT, TIME_TERMINATE,
     /* Expressions */ UNARY, BINARY, SELECT, CONCAT, CAST,
     /* References */  REF_OBJECT, REF_INDEX, REF_RANGE, REF_CONCAT,
@@ -300,12 +302,26 @@ Value shift_right_value(Value src0, Value src1, Value dst);
  *  @return dst */
 extern Value equal_value(Value src0, Value src1, Value dst);
 
+/** Computes the equal (NXOR) of two values treating Z as wildcards.
+ *  @param src0 the first source value of the comparison
+ *  @param src1 the second source value of the comparison
+ *  @param dst the destination value
+ *  @return dst */
+extern Value equal_value_z(Value src0, Value src1, Value dst);
+
 /** Computes the C equal of two general values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
  *  @param dst the destination value
  *  @return the destination value */
 extern Value equal_value_c(Value src0, Value src1, Value dst);
+
+/** Computes the C equal of two general values treating Z as wildcards.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+extern Value equal_value_z_c(Value src0, Value src1, Value dst);
 
 /** Computes the C not equal of two general values.
  *  @param src0 the first source value of the addition
@@ -700,6 +716,18 @@ typedef struct HCaseS_ {
     Statement* stmnts;  /* The corresponding statements. */
     Statement defolt;   /* The default statement. */
 } HCaseS;
+
+/** The C model of a hardware casez statement. */
+typedef struct HCaseZS_ {
+    Kind kind;          /* The kind of object. */
+    Object owner;       /* The owner of the object if any. */
+
+    Expression value;   /* The value to match. */
+    int num_whens;      /* The number of possible cases. */
+    Expression* matches;/* The cases matching values. */
+    Statement* stmnts;  /* The corresponding statements. */
+    Statement defolt;   /* The default statement. */
+} HCaseZS;
 
 /** The C model of a time wait statement. */
 typedef struct TimeWaitS_ {

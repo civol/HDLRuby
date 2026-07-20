@@ -1733,44 +1733,44 @@ static Value shift_right_value_bitstring(Value src0, Value src1, Value dst) {
 }
 
 
-/** Computes the equal (!XOR) of two bitstring values.
+/** computes the equal (!xor) of two bitstring values.
  *  @param src0 the first source value of the and
  *  @param src1 the second source value of the and
  *  @param dst the destination value
  *  @return dst */
 static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
     // printf("equal_value_bitstring.\n");
-    /* Compute the width of sources in bits. */
+    /* compute the width of sources in bits. */
     unsigned long long width0 = type_width(src0->type);
     unsigned long long width1 = type_width(src1->type);
 
-    /* Update the destination capacity if required. */
+    /* update the destination capacity if required. */
     resize_value(dst,width0);
-    /* Set the type and size of the destination from the type of the source.*/
+    /* set the type and size of the destination from the type of the source.*/
     dst->type = src0->type;
     dst->numeric = 0;
 
-    /* Get access to the data of the sources. */
+    /* get access to the data of the sources. */
     char *src0_data = src0->data_str;
     char *src1_data = src1->data_str;
-    /* Get access to the data of the destination. */
+    /* get access to the data of the destination. */
     char *dst_data = dst->data_str;
 
-    /* Get the sign extension character of source 1 and convert it to a bit.*/
+    /* get the sign extension character of source 1 and convert it to a bit.*/
     int ext = bitstring_ext(src1);
 
-    /* Perform the !xor. */
+    /* perform the !xor. */
     unsigned long long count;
-    /* Check if values are the same. */
+    /* check if values are the same. */
     char same = '1';
     for(count = 0; count < width0; ++count) {
-        char d0 = src0_data[count] - '0'; /* Get and convert to bit. */
+        char d0 = src0_data[count] - '0'; /* get and convert to bit. */
         char d1;
         if (count < width1) {
-            /* Still within source 1. */
-            d1 = src1_data[count] - '0';/* Get and convert to bit. */
+            /* still within source 1. */
+            d1 = src1_data[count] - '0';/* get and convert to bit. */
         } else {
-            /* Outside source 1, use the sign extension. */
+            /* outside source 1, use the sign extension. */
             d1 = ext;
         }
         if (d0 == (d0&1)) {
@@ -1782,22 +1782,98 @@ static Value equal_value_bitstring(Value src0, Value src1, Value dst) {
                     break;
                 }
             } else  {
-                /* Undefined. */
+                /* undefined. */
                 same = 'x';
                 break;
             }
         } else {
-            /* Undefined. */
+            /* undefined. */
             same = 'x';
             break;
         }
     }
-    /* Set the destination to 0 or 1 depending of different. */
+    /* set the destination to 0 or 1 depending of different. */
     dst_data[0] = same;
     for(count = 1; count < width0; ++count) {
         dst_data[count] = '0';
     }
-    /* Return the destination. */
+    /* return the destination. */
+    return dst;
+}
+
+/** computes the equal (!xor) of two bitstring values treating Z as wildcard.
+ *  @param src0 the first source value of the and
+ *  @param src1 the second source value of the and
+ *  @param dst the destination value
+ *  @return dst */
+static Value equal_value_z_bitstring(Value src0, Value src1, Value dst) {
+    // printf("equal_value_bitstring.\n");
+    /* compute the width of sources in bits. */
+    unsigned long long width0 = type_width(src0->type);
+    unsigned long long width1 = type_width(src1->type);
+
+    /* update the destination capacity if required. */
+    resize_value(dst,width0);
+    /* set the type and size of the destination from the type of the source.*/
+    dst->type = src0->type;
+    dst->numeric = 0;
+
+    /* get access to the data of the sources. */
+    char *src0_data = src0->data_str;
+    char *src1_data = src1->data_str;
+    /* get access to the data of the destination. */
+    char *dst_data = dst->data_str;
+
+    /* get the sign extension character of source 1 and convert it to a bit.*/
+    int ext = bitstring_ext(src1);
+
+    /* perform the !xor. */
+    unsigned long long count;
+    /* check if values are the same. */
+    char same = '1';
+    for(count = 0; count < width0; ++count) {
+        char d0 = src0_data[count] - '0'; /* get and convert to bit. */
+        char d1;
+        if (d0 == 'z' - '0' || d0 == 'Z' - '0') {
+            /* Z is wildcard, so same. */
+            continue;
+        }
+        if (count < width1) {
+            /* still within source 1. */
+            d1 = src1_data[count] - '0';/* get and convert to bit. */
+        } else {
+            /* outside source 1, use the sign extension. */
+            d1 = ext;
+        }
+        if (d1 == 'z' - '0' || d1 == 'Z' - '0') {
+            /* Z is wildcard, so same. */
+            continue;
+        }
+        if (d0 == (d0&1)) {
+            /* d0 is defined. */
+            if (d1 == (d1&1)) {
+                /* d1 is also defined. */
+                if (d0 != d1) {
+                    same = '0';
+                    break;
+                }
+            } else  {
+                /* undefined. */
+                same = 'x';
+                break;
+            }
+        } else {
+            /* undefined. */
+            same = 'x';
+            break;
+        }
+    }
+    /* set the destination to 0 or 1 depending of different. */
+    dst_data[0] = same;
+    for(count = 1; count < width0; ++count) {
+        dst_data[count] = '0';
+    }
+    /* return the destination. */
     return dst;
 }
 
@@ -3299,7 +3375,7 @@ Value shift_right_value(Value src0, Value src1, Value dst) {
 }
 
 
-/** Computes the equal (!XOR) of two general values.
+/** Computes the equal (NXOR) of two general values.
  *  @param src0 the first source value of the addition
  *  @param src1 the second source value of the addition
  *  @param dst the destination value
@@ -3336,6 +3412,43 @@ Value equal_value(Value src0, Value src1, Value dst) {
     return dst;
 }
 
+/** Computes the equal (NXOR) of two general values.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+Value equal_value_z(Value src0, Value src1, Value dst) {
+    // printf("equal_value.\n");
+    /* Might allocate a new value so save the current pool state. */
+    unsigned int pos = get_value_pos();
+    /* Do a numeric computation if possible, otherwise fallback to bitstring
+     * computation. */
+    if (src0->numeric) {
+        if (src1->numeric) {
+            // printf("numeric numeric\n");
+            /* Both sources are numeric. */
+            return equal_value_numeric(src0,src1,dst);
+        } else {
+            // printf("numeric bitstring\n");
+            /* src1 is not numeric, convert src0 to bitstring. */
+            src0 = set_bitstring_value(src0,get_value());
+        }
+    } else {
+        /* src0 is not numeric, what about src1. */
+        if (src1->numeric) {
+            // printf("bitstring numeric\n");
+            /* src1 is numeric, convert it to bitstring. */
+            src1 = set_bitstring_value(src1,get_value());
+        }
+    }
+    /* The sources cannot be numeric, compute bitsitrings. */
+    dst = equal_value_z_bitstring(src0,src1,dst);
+    /* Restores the pool of values. */
+    set_value_pos(pos);
+    /* Return the destination. */
+    return dst;
+}
+
 
 /** Computes the C equal of two general values.
  *  @param src0 the first source value of the addition
@@ -3344,6 +3457,16 @@ Value equal_value(Value src0, Value src1, Value dst) {
  *  @return the destination value */
 Value equal_value_c(Value src0, Value src1, Value dst) {
     dst = equal_value(src0,src1,dst);
+    return reduce_or_value(dst,dst);
+}
+
+/** Computes the C equal of two general values treating Z as wildcards.
+ *  @param src0 the first source value of the addition
+ *  @param src1 the second source value of the addition
+ *  @param dst the destination value
+ *  @return the destination value */
+Value equal_value_z_c(Value src0, Value src1, Value dst) {
+    dst = equal_value_z(src0,src1,dst);
     return reduce_or_value(dst,dst);
 }
 

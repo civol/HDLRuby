@@ -3818,15 +3818,18 @@ module HDLRuby::Low
         attr_reader :default
 
         # Creates a new case statement whose excution flow is decided from
-        # +value+ with a possible cases given in +whens+ and +default
-        # + (can be set later)
-        def initialize(value, default = nil, whens = [])
+        # +value+ with a possible cases given in +whens+ and +default+
+        # (can be set later)
+        # +mode+ is the mode the case should run in. For now there are two
+        # possible modes: normal case :"", and in a mode where z are taken as wildcards :casez.
+        def initialize(value, mode = :"", default = nil, whens = [])
             # Check and set the value.
             unless value.is_a?(Expression)
                 raise AnyError, "Invalid class for a value: #{value.class}"
             end
             super()
             @value = value
+            @mode = mode.to_sym
             # And set its parent.
             value.parent = self
             # Checks and set the default case if any.
@@ -3994,7 +3997,7 @@ module HDLRuby::Low
             # Clone the default if any.
             default = @default ? @default.clone : nil
             # Clone the case.
-            return Case.new(@value.clone,default,(@whens.map do |w|
+            return Case.new(@value.clone,@mode,default,(@whens.map do |w|
                 w.clone
             end) )
         end

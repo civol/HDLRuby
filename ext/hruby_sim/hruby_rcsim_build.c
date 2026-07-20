@@ -659,6 +659,28 @@ VALUE rcsim_make_hcase(VALUE mod, VALUE valueV, VALUE defoltV) {
     return res;
 }
 
+/* Creating a hardware casez C object. */
+VALUE rcsim_make_hcasez(VALUE mod, VALUE valueV, VALUE defoltV) {
+    // printf("rcsim_make_hcasez\n");
+    /* Allocates the hardware case. */
+    HCaseZ hcasez = (HCaseZ)malloc(sizeof(HCaseZS));
+    // printf("hcasez=%p\n",hcasez);
+    /* Set it up. */
+    hcasez->kind = HCASEZ;
+    hcasez->owner = NULL;
+    value_to_rcsim(ExpressionS,valueV,hcasez->value);
+    hcasez->num_whens = 0;
+    hcasez->matches = NULL;
+    hcasez->stmnts = NULL;
+    if (TYPE(defoltV) == T_NIL)
+        hcasez->defolt = NULL;
+    else
+        value_to_rcsim(StatementS,defoltV,hcasez->defolt);
+    /* Returns the C hardware case embedded into a ruby VALUE. */
+    VALUE res;
+    rcsim_to_value(HCaseZS,hcasez,res);
+    return res;
+}
 
 /* Creating a block C object. */
 VALUE rcsim_make_block(VALUE mod, VALUE modeV) {
@@ -1927,6 +1949,7 @@ void Init_hruby_sim() {
     rb_define_singleton_method(mod,"rcsim_make_timeTerminate",rcsim_make_timeTerminate,0);
     rb_define_singleton_method(mod,"rcsim_make_hif",rcsim_make_hif,3);
     rb_define_singleton_method(mod,"rcsim_make_hcase",rcsim_make_hcase,2);
+    rb_define_singleton_method(mod,"rcsim_make_hcasez",rcsim_make_hcasez,2);
     rb_define_singleton_method(mod,"rcsim_make_block",rcsim_make_block,1);
     rb_define_singleton_method(mod,"rcsim_make_value_numeric",rcsim_make_value_numeric,2);
     rb_define_singleton_method(mod,"rcsim_make_value_numeric_63one",rcsim_make_value_numeric_63one,2);

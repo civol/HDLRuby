@@ -719,8 +719,13 @@ module HDLRuby::High
         # Generate the C description of the hardware case.
         def to_rcsim
             # Create the hardware case C object.
-            @rcstatement = RCSim.rcsim_make_hcase(self.value.to_rcsim,
-                                    self.default ? self.default.to_rcsim : nil)
+            if(@mode == :casez) then
+              @rcstatement = RCSim.rcsim_make_hcasez(self.value.to_rcsim,
+                               self.default ? self.default.to_rcsim : nil)
+            else
+              @rcstatement = RCSim.rcsim_make_hcase(self.value.to_rcsim,
+                               self.default ? self.default.to_rcsim : nil)
+            end
 
             # Add the hardware whens.
             rcsim_matches = self.each_when.map {|wh| wh.match.to_rcsim }

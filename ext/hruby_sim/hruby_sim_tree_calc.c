@@ -471,6 +471,43 @@ void execute_statement(Statement stmnt, int mode, Behavior behavior) {
                 }
                 break;
             }
+        case HCASEZ:
+            {
+                HCaseZ hcasez = (HCaseZ)stmnt;
+                /* Calculation the value to check. */
+                // Value value = calc_expression(hcasez->value);
+                Value value = get_value();
+                value = calc_expression(hcasez->value,value);
+                /* Tell if a casez if matched. */
+                int met = 0;
+                /* Check each case. */
+                Value cmp = get_value();
+                for(int i=0; i<hcasez->num_whens; ++i) {
+                    // cmp = equal_value_z_c(value,calc_expression(hcasez->matches[i]),
+                    //         cmp);
+                    Value match = get_value();
+                    match = calc_expression(hcasez->matches[i],match);
+                    cmp = equal_value_z_c(value,match,cmp);
+                    if (is_defined_value(cmp) && value2integer(cmp)) {
+                        /* Found the right case, execute the corresponding
+                         * statement. */
+                        execute_statement(hcasez->stmnts[i],mode,behavior);
+                        /* And remeber it. */
+                        met = 1;
+                        free_value();
+                        break;
+                    }
+                    free_value();
+                }
+                free_value();
+                free_value();
+                /* Was no case found and is there a default statement? */
+                if (!met && hcasez->defolt) {
+                    /* Yes, execute the default statement. */
+                    execute_statement(hcasez->defolt,mode,behavior);
+                }
+                break;
+            }
         case TIME_WAIT:
             {
                 /* Get the value of the delay. */
