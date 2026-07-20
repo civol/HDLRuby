@@ -889,6 +889,34 @@ module VerilogTools
         state.indent = indent
         state.level  = level
         return case_txt
+      when :casez
+        # Saves the state.
+        indent = state.indent
+        level = state.level
+        # Generate the hcase.
+        state.indent += "  "
+        case_txt = indent + "hcasez(" + ast[1].to_HDLRuby(state) + ")\n"
+        # Generate the case items.
+        case_txt += ast[2].map do |item|
+          res_txt = ""
+          if item[0] != "default" then
+            # hwhen case.
+            res_txt += indent + "hwhen(" 
+            res_txt += item[0].map {|e| e.to_HDLRuby(state) }.join(",")
+            res_txt += ") do\n"
+            res_txt += item[1].to_HDLRuby(state)
+            res_txt += indent + "end\n"
+          else
+            # helse case.
+            res_txt += indent + "helse do\n"
+            res_txt += item[1].to_HDLRuby(state) + indent + "end\n"
+          end
+          res_txt
+        end.join
+        # Restore the state and return the result.
+        state.indent = indent
+        state.level  = level
+        return case_txt
       when :blocking_assignment, :non_blocking_assignment
         return ast[0].to_HDLRuby(state)
       when :statement
@@ -1094,6 +1122,8 @@ module VerilogTools
       base = ast[1] ? ast[1].to_HDLRuby(state) : ""
       # Get the second number if any.
       number1 = ast[2] ? ast[2].to_HDLRuby(state) : ""
+      # In HDLRuby, for now, wildcards work like z.
+      number1 = number1.gsub("?","z")
       # Depending on the base.
       case base
       when "'b"
