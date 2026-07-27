@@ -475,7 +475,7 @@ These include:
 
 * `hif` / `helsif` / `helse` for `if`-like conditionals
 
-* `hcase` / `hwhen` / `helse` for `case`-like conditionals
+* `hcase` / `hcasez` / `hwhen` / `helse` for `case`-like conditionals
 
 * `mux`, an expression-level construct for multiplexers, which supports multiple inputs, unlike the ?: ternary operator in Verilog, which only handles two
 
@@ -1793,7 +1793,7 @@ The behavior of an assignment statement depends on the execution mode of the enc
 
 ### Control Statements
 
-There are two types of control statements in HDLRuby: the hardware if (`hif`) and the hardware case (`hcase`).
+There are two types of control statements in HDLRuby: the hardware if (`hif`) the hardware case (`hcase`), and the hardware case with wildcards (`hcasez`).
 
 #### hif
 
@@ -1818,6 +1818,30 @@ hwhen <value 1> do
    <block contents 1>
 end
 ...
+```
+
+#### hcasez
+
+The `hcasez` construct consists of an expression and a list of value-block pairs. A block is executed when its corresponding value matches the value of the `hcasez` expression. If the value contains wildcard digits represented by a `z` they match any corresponding digit. It is declared as follows:
+
+```ruby
+hcasez <expression>
+hwhen <value 0> do
+   <block contents 0>
+end
+hwhen <value 1> do
+   <block contents 1>
+end
+...
+```
+
+As an example of wildcard, the following statement will be executed if val is equal to 5 or 7:
+
+```ruby
+hcasez val
+hwhen _b01z1 do
+   <block contents 0>
+end
 ```
 
 #### helse
