@@ -5845,6 +5845,20 @@ def self.configure_high
     end
 
 
+
+    ## Handling the properties that can be added to HDLRuby objects.
+
+    ## Add to object +obj+, property +prop+.
+    def self.add_property(obj,prop)
+      HDLRuby::Low.add_property(obj,prop)
+    end
+
+    ## Iterate on the properties of object +obj+.
+    def self.each_property(obj,&ruby_block)
+      HDLRuby::Low.each_property(obj,&ruby_block)
+    end
+
+
 end
 
 

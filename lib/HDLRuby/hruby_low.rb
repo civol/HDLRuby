@@ -36,8 +36,6 @@ module HDLRuby::Low
     end
 
 
-    # Hdecorator = HDLRuby::Hdecorator
-
     ##
     # Gives parent definition and access properties to an hardware object.
     module Hparent
@@ -161,9 +159,6 @@ module HDLRuby::Low
                                         &(@scope.method(meth_sym).to_proc))
             end
         end
-
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -528,9 +523,6 @@ module HDLRuby::Low
             # Initialize the behaviors lists.
             @behaviors = []
         end
-
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -1292,9 +1284,6 @@ module HDLRuby::Low
             # Check and set the name.
             @name = name.to_sym
         end
-
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
 
         # Comparison for hash: structural comparison.
         def eql?(obj)
@@ -2330,9 +2319,6 @@ module HDLRuby::Low
             # @block = block
         end
 
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
-
         # Sets the block if not already set.
         def block=(block)
             # Check the block.
@@ -2561,9 +2547,6 @@ module HDLRuby::Low
             ref.parent = self
         end
 
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
-
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Event)
@@ -2698,9 +2681,6 @@ module HDLRuby::Low
             @signals.each(&ruby_block) if @signals
         end
 
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
-
         # Iterates over each object deeply.
         #
         # Returns an enumerator if no ruby block is given.
@@ -2782,9 +2762,6 @@ module HDLRuby::Low
             # being the instantiated system.
             @systemTs = [ @systemT ]
         end
-
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
 
         # Iterates over each object deeply.
         #
@@ -2918,9 +2895,6 @@ module HDLRuby::Low
             @lumps = []
             lumps.each { |lump| self.add_lump(lump) }
         end
-
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
 
         # Adds a +lump+ of code, it is ment to become an expression or
         # some text.
@@ -3101,9 +3075,6 @@ module HDLRuby::Low
             @chunks = HashName.new
         end
 
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
-
         # Adds a +chunk+ to the sensitivity list.
         def add_chunk(chunk)
             # Check and add the chunk.
@@ -3212,7 +3183,6 @@ module HDLRuby::Low
     # NOTE: this is an abstract class which is not to be used directly.
     class Statement
         include Hparent
-        # include Hdecorator
         
         # Clones (deeply)
         def clone
@@ -3700,9 +3670,6 @@ module HDLRuby::Low
             match.parent = statement.parent = self
         end
 
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
-
         # Iterates over each object deeply.
         #
         # Returns an enumerator if no ruby block is given.
@@ -4027,9 +3994,6 @@ module HDLRuby::Low
             # Check and set the unit.
             @unit = unit.to_sym
         end
-
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
 
         # Iterates over each object deeply.
         #
@@ -4921,9 +4885,6 @@ module HDLRuby::Low
             end
         end
 
-        # # Add decorator capability (modifies intialize to put after).
-        # include Hdecorator
-
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Expression)
@@ -5026,6 +4987,7 @@ module HDLRuby::Low
 
         # Creates a new value typed +type+ and containing +content+.
         def initialize(type,content)
+            # puts "New value with content=#{content} (content.class=#{content.class})"
             super(type)
             if content.nil? then
                 # Handle the nil content case.
@@ -5044,7 +5006,11 @@ module HDLRuby::Low
                 unless content.is_a?(Numeric) or
                         content.is_a?(HDLRuby::BitString)
                     # content = HDLRuby::BitString.new(content.to_s)
-                    content = content.to_s
+                    if content.is_a?(Array) then
+                      content = content.map(&:to_s).join
+                    else
+                      content = content.to_s
+                    end
                     if self.type.unsigned? && content[0] != "0" then
                         # content = "0" + content.rjust(self.type.width,content[0])
                         if content[0] == "1" then
@@ -6452,4 +6418,23 @@ module HDLRuby::Low
         end
 
     end
+
+
+    ## Handling the properties that can be added to HDLRuby objects.
+
+    Properties = Hash.new
+
+    ## Add to object +obj+, property +prop+.
+    def self.add_property(obj,prop)
+      Properties[obj] ||= Set.new
+      Properties[obj] << prop
+      obj
+    end
+
+    ## Iterate on the properties of object +obj+.
+    def self.each_property(obj,&ruby_block)
+      Properties[obj].each(&ruby_block)
+    end
+
+
 end
