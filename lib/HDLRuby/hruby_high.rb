@@ -793,8 +793,8 @@ module HDLRuby::High
                 # If no arguments, return the system as is
                 return obj if args.empty?
                 # Are there any generic arguments?
-                # if ruby_block.arity > 0 then
-                if ruby_block.parameters.size > 0 then
+                if ruby_block.arity > 0 or args.size > 1 or args[0].is_a?(Hash) then
+                # if ruby_block.parameters.size > 0 then
                     # Yes, must specialize the system with the arguments.
                     # If arguments, create a new system specialized with them
                     return SystemT.new(:"") { include(obj,*args) }
@@ -2366,8 +2366,8 @@ module HDLRuby::High
                 raise AnyError, "A local type cannot be declared within a #{HDLRuby::High.top_user.class}."
             end
             define_singleton_method(name.to_sym) do |*args|
-                # if (args.size < ruby_block.arity) then
-                if (args.size < ruby_block.parameters.size) then
+                if (args.size < ruby_block.arity) then
+                # if (args.size < ruby_block.parameters.size) then
                     # Not enough arguments get generic type as is.
                     type
                 else
@@ -2380,8 +2380,8 @@ module HDLRuby::High
             end
         else
             define_method(name.to_sym) do |*args|
-                # if (args.size < ruby_block.arity) then
-                if (args.size < ruby_block.parameters.size) then
+                if (args.size < ruby_block.arity) then
+                # if (args.size < ruby_block.parameters.size) then
                     # Not enough arguments, get generic type as is.
                     type
                 else
