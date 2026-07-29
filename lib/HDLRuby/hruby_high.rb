@@ -777,7 +777,6 @@ module HDLRuby::High
         #       registered in the namespace stack, and one for creating an
         #       array of instances being registered in the Array class.
         def make_instantiater(name,klass,&ruby_block)
-            # puts "make_instantiater with name=#{name}"
             # Set the instanciater.
             @instance_procs = [ ruby_block ]
             # Set the target instantiation class.
@@ -794,7 +793,8 @@ module HDLRuby::High
                 # If no arguments, return the system as is
                 return obj if args.empty?
                 # Are there any generic arguments?
-                if ruby_block.arity > 0 then
+                # if ruby_block.arity > 0 then
+                if ruby_block.parameters.size > 0 then
                     # Yes, must specialize the system with the arguments.
                     # If arguments, create a new system specialized with them
                     return SystemT.new(:"") { include(obj,*args) }
@@ -2366,7 +2366,8 @@ module HDLRuby::High
                 raise AnyError, "A local type cannot be declared within a #{HDLRuby::High.top_user.class}."
             end
             define_singleton_method(name.to_sym) do |*args|
-                if (args.size < ruby_block.arity) then
+                # if (args.size < ruby_block.arity) then
+                if (args.size < ruby_block.parameters.size) then
                     # Not enough arguments get generic type as is.
                     type
                 else
@@ -2379,7 +2380,8 @@ module HDLRuby::High
             end
         else
             define_method(name.to_sym) do |*args|
-                if (args.size < ruby_block.arity) then
+                # if (args.size < ruby_block.arity) then
+                if (args.size < ruby_block.parameters.size) then
                     # Not enough arguments, get generic type as is.
                     type
                 else
@@ -2398,7 +2400,7 @@ module HDLRuby::High
     def system(name = :"", *includes, &ruby_block)
         # Ensure there is a block.
         ruby_block = proc {} unless block_given?
-        # print "system ruby_block=#{ruby_block}\n"
+        # print "system name=#{name} ruby_block=#{ruby_block}\n"
         # Creates the resulting system.
         return SystemT.new(name,*includes,&ruby_block)
     end
@@ -5440,6 +5442,18 @@ module HDLRuby::High
             elems.each {|elem| expr.add_expression(elem) }
             expr
         end
+
+        # Casts to +typ+.
+        def as(typ)
+          return self.to_expr.as(typ)
+        end
+
+        # Converts to a bit vector.
+        def to_bit
+          return self.to_expr.to_bit
+        end
+
+        # Add the methods of HExpression
 
         # Converts to a new high-level reference.
         def to_ref
