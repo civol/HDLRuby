@@ -1978,6 +1978,11 @@ module HDLRuby::Low
             return true
         end
 
+        # Gets thebitwidth
+        def width
+          return self.reduce(0) {|sum,elem| sum + elem.width }
+        end
+
         # Hash function.
         def hash
             return [super,@types].hash
@@ -4885,6 +4890,11 @@ module HDLRuby::Low
             end
         end
 
+        # Gets the bit width of the expression.
+        def width
+            return @type.width
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Expression)
@@ -5077,10 +5087,10 @@ module HDLRuby::Low
             return self.content <=> value
         end
 
-        # Gets the bit width of the value.
-        def width
-            return @type.width
-        end
+        # # Gets the bit width of the value.
+        # def width
+        #     return @type.width
+        # end
 
         # Tells if the value is even.
         def even?
