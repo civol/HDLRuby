@@ -5291,6 +5291,7 @@ module HDLRuby::High
     class ::Float
         # Converts to a new high-level expression.
         def to_expr
+          raise "Float not supported yet."
             return Value.new(Real,self)
         end
 
