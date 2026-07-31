@@ -1285,6 +1285,12 @@ module HDLRuby::Low
             @name = name.to_sym
         end
 
+        # Converts the system to HDLRuby::Low.
+        # Here already low.
+        def to_low
+          return self
+        end
+
         # Comparison for hash: structural comparison.
         def eql?(obj)
             return false unless obj.is_a?(Type)
