@@ -1562,10 +1562,14 @@ module HDLRuby::Low
         # Converts the system to Verilog code.
         def to_verilog
             # if self.base.name.to_s != "bit"
+            first = self.range.first
+            first = first.to_verilog if first.is_a?(Expression)
+            last = self.range.last
+            last = last.to_verilog if last.is_a?(Expression)
             if VERILOG_BASE_TYPES.include?(self.base.name.to_s)
-                return " #{self.base.name.to_s}[#{self.range.first}:#{self.range.last}]"
+              return " #{self.base.name.to_s}[#{first}:#{last}]"
             end
-            return " [#{self.range.first}:#{self.range.last}]"
+            return " [#{first}:#{last}]"
         end
     end
 
@@ -1630,9 +1634,9 @@ module HDLRuby::Low
             res = ""
             sels = self.select.to_verilog
             @choices[0..-2].each_with_index do |choice,i|
-                res << "#{sels} == #{i} ? #{choice.to_verilog} : "
+                res << "(#{sels} == #{i} ? #{choice.to_verilog} : "
             end
-            res << @choices[-1].to_verilog
+            res << @choices[-1].to_verilog + (")" * @choices[0..-2].size)
             return res
         end
     end
