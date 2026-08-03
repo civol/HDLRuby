@@ -2555,6 +2555,9 @@ module HDLRuby::High
                 connects.each do |key,value|
                     # Gets the signal corresponding to connect.
                     signal = self.systemT.get_signal_with_included(key)
+                    unless signal then
+                      raise AnyError, "Invalid parameter: #{key}"
+                    end
                     # Check if it is an output.
                     isout = self.systemT.get_output_with_included(key)
                     # Convert it to a reference.
@@ -3219,12 +3222,12 @@ module HDLRuby::High
 
         # Extends on the left to +n+ bits filling with +v+ bit values.
         def ljust(n,v)
-            return [(v.to_s * (n-self.width)).to_expr, self]
+          return [(v.to_s * (n-self.width)).to_expr, self].to_expr
         end
 
         # Extends on the right to +n+ bits filling with +v+ bit values.
         def rjust(n,v)
-            return [self, (v.to_s * (n-self.width)).to_expr]
+          return [self, (v.to_s * (n-self.width)).to_expr].to_expr
         end
 
         # Extends on the left to +n+ bits filling with 0.
@@ -3234,7 +3237,8 @@ module HDLRuby::High
 
         # Extends on the left to +n+ bits preserving the signe.
         def sext(n)
-            return self.ljust(n,self[-1])
+            # return self.ljust(n,self[-1])
+          return self.as(HDLRuby::High.top_user.signed[self.type.width]).as(HDLRuby::High.top_user.signed[n])
         end
 
         # # Match the type with +typ+:
@@ -3775,6 +3779,9 @@ module HDLRuby::High
         # Creates a new reference from a +base+ reference and named +object+.
         def initialize(base,object)
             # puts "New RefObjet with base=#{base}, object=#{object}"
+            unless object
+              raise AnyError, "Empty object for reference."
+            end
             if object.respond_to?(:type) then
                 # Typed object, so typed reference.
                 super(object.type)
