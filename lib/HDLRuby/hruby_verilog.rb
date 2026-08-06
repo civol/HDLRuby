@@ -1680,6 +1680,9 @@ module HDLRuby::Low
                 # return "#{self.type.width}'b#{str}"
             else
                 str = self.content.to_verilog
+                if str.length > self.type.width then
+                  str = str[str.length-self.type.width..-1]
+                end
                 if self.content.negative? then
                     return "#{str.length}'sb#{str}"
                 else
