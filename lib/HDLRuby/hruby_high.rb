@@ -3222,12 +3222,12 @@ module HDLRuby::High
 
         # Extends on the left to +n+ bits filling with +v+ bit values.
         def ljust(n,v)
-          return [(v.to_s * (n-self.width)).to_expr, self].to_expr
+          return [(v.to_s * (n-self.width)).to_value, self].to_expr
         end
 
         # Extends on the right to +n+ bits filling with +v+ bit values.
         def rjust(n,v)
-          return [self, (v.to_s * (n-self.width)).to_expr].to_expr
+          return [self, (v.to_s * (n-self.width)).to_value].to_expr
         end
 
         # Extends on the left to +n+ bits filling with 0.
