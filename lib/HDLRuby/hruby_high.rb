@@ -5461,6 +5461,26 @@ module HDLRuby::High
           return self.to_expr.to_bit
         end
 
+        # Casts to an unsigned bit vector type.
+        def to_unsigned
+          return self.to_bit.to_unsigned
+        end
+
+        # Casts to a signed bit vector type.
+        def to_signed
+            return self.to_bit_to_signed
+        end
+
+        # Extends on the left to +n+ bits filling with 0.
+        def zext(n)
+          return self.to_bit.zext(n)
+        end
+
+        # Extends on the left to +n+ bits preserving the signe.
+        def sext(n)
+          return self.to_bit.sext(n)
+        end
+
         # Add the methods of HExpression
 
         # Converts to a new high-level reference.
