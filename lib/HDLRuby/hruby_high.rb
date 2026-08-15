@@ -2861,7 +2861,7 @@ module HDLRuby::High
             obj = self
             ::HDLRuby::High.cur_block.delete_statement!(obj)
             # Handles the metaprogramming.
-            return obj if self.metaif(condition,proc { add_statement(obj) })
+            return obj if self.metaif(condition) { add_statement(obj) }
             # Creates the if statement.
             stmnt = If.new(condition) { add_statement(obj) }
             # Add it to the current block.
