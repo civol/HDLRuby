@@ -131,10 +131,10 @@ module HDLRuby::High::Std
             format = format.to_s
             width = format.size
             # For that purpose create the regular expression used to process it.
-            prs = "([0-1]+)|(a+)|(b+)|(c+)|(d+)|(e+)|(g+)|(h+)|(i+)|(j+)|(k+)|(l+)|(m+)|(n+)|(o+)|(p+)|(q+)|(r+)|(s+)|(t+)|(u+)|(v+)|(w+)|(x+)|(y+)|(z+)"
+            prs = "([0-1]+)|(a+)|(b+)|(c+)|(d+)|(e+)|(f+)|(g+)|(h+)|(i+)|(j+)|(k+)|(l+)|(m+)|(n+)|(o+)|(p+)|(q+)|(r+)|(s+)|(t+)|(u+)|(v+)|(w+)|(x+)|(y+)|(z+)"
             # Check if the format is compatible with it.
             unless format =~ Regexp.new("^(#{prs})+$") then
-                raise AnyError("Invalid format for a field: #{format}")
+                raise AnyError, "Invalid format for a field: #{format}"
             end
             # Split the format in fields.
             format = format.split(Regexp.new(prs)).select {|str| !str.empty?}
