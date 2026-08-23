@@ -344,7 +344,7 @@ system :henmerable_checks do
 
   par(clk.posedge) do
     # hprint("}0\n")
-    vals.hzip([_h12]*8).each_with_index { |(a,b),i| res62[i] <= a+b }
+    vals.hzip([_h12]*8).heach_with_index { |(a,b),i| res62[i] <= a+b }
   end
 
   # Test enumerators of values.
